@@ -1820,16 +1820,25 @@ extern struct fr_code MJS_code;
 
 #define MJS_OP_quote ((fr_opcode_t) -1)
 #define MJS_OP_exit ((fr_opcode_t) 0)
-#define MJS_OP_print ((fr_opcode_t) 1)
-#define MJS_OP_EQ_ ((fr_opcode_t) 2)
-#define MJS_OP_ADD_ ((fr_opcode_t) 3)
-#define MJS_OP_call ((fr_opcode_t) 4)
-#define MJS_OP_if ((fr_opcode_t) 5)
-#define MJS_OP_ifelse ((fr_opcode_t) 6)
-#define MJS_OP_foo ((fr_opcode_t) 7)
-#define MJS_OP_anon_0 ((fr_opcode_t) 8)
-#define MJS_OP_anon_1 ((fr_opcode_t) 9)
-#define MJS_OP_demo ((fr_opcode_t) 10)
+#define MJS_OP_drop ((fr_opcode_t) 1)
+#define MJS_OP_dup ((fr_opcode_t) 2)
+#define MJS_OP_swap ((fr_opcode_t) 3)
+#define MJS_OP_PUSHR ((fr_opcode_t) 4)
+#define MJS_OP_POPR ((fr_opcode_t) 5)
+#define MJS_OP_print ((fr_opcode_t) 6)
+#define MJS_OP_EQ_ ((fr_opcode_t) 7)
+#define MJS_OP_invert ((fr_opcode_t) 8)
+#define MJS_OP_ADD_ ((fr_opcode_t) 9)
+#define MJS_OP_call ((fr_opcode_t) 10)
+#define MJS_OP_if ((fr_opcode_t) 11)
+#define MJS_OP_ifelse ((fr_opcode_t) 12)
+#define MJS_OP_loop ((fr_opcode_t) 13)
+#define MJS_OP_foo ((fr_opcode_t) 14)
+#define MJS_OP_NEQ_ ((fr_opcode_t) 15)
+#define MJS_OP_anon_0 ((fr_opcode_t) 16)
+#define MJS_OP_anon_1 ((fr_opcode_t) 17)
+#define MJS_OP_anon_2 ((fr_opcode_t) 18)
+#define MJS_OP_demo ((fr_opcode_t) 19)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -6348,15 +6357,6 @@ void mjsParser(
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "mjs/froth/vm.h" */
 
-void fr_op_todo(struct fr_vm *vm);
-void fr_op_quote(struct fr_vm *vm);
-void fr_op_exit(struct fr_vm *vm);
-void fr_op_print(struct fr_vm *vm);
-void fr_op_eq(struct fr_vm *vm);
-void fr_op_call(struct fr_vm *vm);
-void fr_op_if(struct fr_vm *vm);
-void fr_op_ifelse(struct fr_vm *vm);
-
 static void fr_init_stack(struct fr_stack *stack) {
   stack->size = FR_STACK_SIZE;
 }
@@ -6476,6 +6476,39 @@ void fr_op_exit(struct fr_vm *vm) {
   vm->ip = fr_pop(&vm->rstack);
 }
 
+void fr_op_drop(struct fr_vm *vm) {
+  fr_pop(&vm->dstack);
+}
+
+void fr_op_dup(struct fr_vm *vm) {
+  fr_cell_t v = fr_pop(&vm->dstack);
+  /*
+   * could be done more efficiently but this way we reuse the asserts and guards
+   * in the stack primitives.
+   */
+  fr_push(&vm->dstack, v);
+  fr_push(&vm->dstack, v);
+}
+
+void fr_op_swap(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_cell_t b = fr_pop(&vm->dstack);
+  /*
+   * could be done more efficiently but this way we reuse the asserts and guards
+   * in the stack primitives.
+   */
+  fr_push(&vm->dstack, a);
+  fr_push(&vm->dstack, b);
+}
+
+void fr_op_pushr(struct fr_vm *vm) {
+  fr_push(&vm->rstack, fr_pop(&vm->dstack));
+}
+
+void fr_op_popr(struct fr_vm *vm) {
+  fr_push(&vm->dstack, fr_pop(&vm->rstack));
+}
+
 void fr_op_print(struct fr_vm *vm) {
   fr_cell_t v = fr_pop(&vm->dstack);
   LOG(LL_ERROR, ("%d", v));
@@ -6485,7 +6518,18 @@ void fr_op_print(struct fr_vm *vm) {
 void fr_op_eq(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_cell_t b = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a == b);
+  fr_push(&vm->dstack, a == b ? -1 : 0);
+}
+
+void fr_op_invert(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, ~a);
+}
+
+void fr_op_add(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, a + b);
 }
 
 void fr_op_call(struct fr_vm *vm) {
@@ -6515,26 +6559,44 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <fr_op_quote> */ 
   /* 0000 -> : exit ... ; */
   /*           <fr_op_exit> */ 
+  /* 0000 -> : drop ... ; */
+  /*           <fr_op_drop> */ 
+  /* 0000 -> : dup ... ; */
+  /*           <fr_op_dup> */ 
+  /* 0000 -> : swap ... ; */
+  /*           <fr_op_swap> */ 
+  /* 0000 -> : >r ... ; */
+  /*           <fr_op_pushr> */ 
+  /* 0000 -> : r> ... ; */
+  /*           <fr_op_popr> */ 
   /* 0000 -> : print ... ; */
   /*           <fr_op_print> */ 
   /* 0000 -> : = ... ; */
   /*           <fr_op_eq> */ 
+  /* 0000 -> : invert ... ; */
+  /*           <fr_op_invert> */ 
   /* 0000 -> : + ... ; */
-  /*           <fr_op_todo> */ 
+  /*           <fr_op_add> */ 
   /* 0000 -> : call ... ; */
   /*           <fr_op_call> */ 
   /* 0000 -> : if ... ; */
   /*           <fr_op_if> */ 
   /* 0000 -> : ifelse ... ; */
   /*           <fr_op_ifelse> */ 
-  /* 0000 -> : foo ... ; */
-  MJS_OP_quote, 0, 66, MJS_OP_EQ_, MJS_OP_quote, -1, -3, MJS_OP_if, MJS_OP_exit,
-  /* 0009 -> : anon_0 ... ; */
+  /* 0000 -> : loop ... ; */
+  MJS_OP_dup, MJS_OP_PUSHR, MJS_OP_call, MJS_OP_POPR, MJS_OP_swap, MJS_OP_quote, 0, 0, MJS_OP_if, MJS_OP_exit,
+  /* 0010 -> : foo ... ; */
+  MJS_OP_quote, 0, 66, MJS_OP_EQ_, MJS_OP_quote, -1, -8, MJS_OP_if, MJS_OP_exit,
+  /* 0019 -> : != ... ; */
+  MJS_OP_EQ_, MJS_OP_invert, MJS_OP_exit,
+  /* 0022 -> : anon_0 ... ; */
   MJS_OP_quote, 0, 66, MJS_OP_foo, MJS_OP_exit,
-  /* 0014 -> : anon_1 ... ; */
+  /* 0027 -> : anon_1 ... ; */
   MJS_OP_quote, 0, 0, MJS_OP_print, MJS_OP_exit,
-  /* 0019 -> : demo ... ; */
-  MJS_OP_quote, 0, 42, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 1, MJS_OP_EQ_, MJS_OP_quote, 0, 9, MJS_OP_quote, 0, 14, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0032 -> : anon_2 ... ; */
+  MJS_OP_dup, MJS_OP_print, MJS_OP_quote, 0, 1, MJS_OP_NEQ_, MJS_OP_exit,
+  /* 0039 -> : demo ... ; */
+  MJS_OP_quote, 0, 10, MJS_OP_PUSHR, MJS_OP_quote, 0, 40, MJS_OP_quote, 0, 2, MJS_OP_ADD_, MJS_OP_POPR, MJS_OP_print, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_invert, MJS_OP_quote, 0, 22, MJS_OP_quote, 0, 27, MJS_OP_ifelse, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_quote, 0, 3, MJS_OP_quote, 0, 4, MJS_OP_quote, 0, 5, MJS_OP_quote, 0, 6, MJS_OP_quote, 0, 7, MJS_OP_quote, 0, 32, MJS_OP_loop, MJS_OP_exit,
 };
 
 fr_word_ptr_t MJS_word_ptrs[] = {
@@ -6546,17 +6608,32 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0004 */ -6, 
   /* 0005 */ -7, 
   /* 0006 */ -8, 
-  /* 0007 */ 0, 
-  /* 0008 */ 9, 
-  /* 0009 */ 14, 
-  /* 0010 */ 19, 
+  /* 0007 */ -9, 
+  /* 0008 */ -10, 
+  /* 0009 */ -11, 
+  /* 0010 */ -12, 
+  /* 0011 */ -13, 
+  /* 0012 */ -14, 
+  /* 0013 */ 0, 
+  /* 0014 */ 10, 
+  /* 0015 */ 19, 
+  /* 0016 */ 22, 
+  /* 0017 */ 27, 
+  /* 0018 */ 32, 
+  /* 0019 */ 39, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
 void fr_op_exit(struct fr_vm *vm);
+void fr_op_drop(struct fr_vm *vm);
+void fr_op_dup(struct fr_vm *vm);
+void fr_op_swap(struct fr_vm *vm);
+void fr_op_pushr(struct fr_vm *vm);
+void fr_op_popr(struct fr_vm *vm);
 void fr_op_print(struct fr_vm *vm);
 void fr_op_eq(struct fr_vm *vm);
-void fr_op_todo(struct fr_vm *vm);
+void fr_op_invert(struct fr_vm *vm);
+void fr_op_add(struct fr_vm *vm);
 void fr_op_call(struct fr_vm *vm);
 void fr_op_if(struct fr_vm *vm);
 void fr_op_ifelse(struct fr_vm *vm);
@@ -6564,30 +6641,55 @@ void fr_op_ifelse(struct fr_vm *vm);
 fr_native_t MJS_native_words[] = {
   /* -001 */ fr_op_quote,
   /* -002 */ fr_op_exit,
-  /* -003 */ fr_op_print,
-  /* -004 */ fr_op_eq,
-  /* -005 */ fr_op_todo,
-  /* -006 */ fr_op_call,
-  /* -007 */ fr_op_if,
-  /* -008 */ fr_op_ifelse,
+  /* -003 */ fr_op_drop,
+  /* -004 */ fr_op_dup,
+  /* -005 */ fr_op_swap,
+  /* -006 */ fr_op_pushr,
+  /* -007 */ fr_op_popr,
+  /* -008 */ fr_op_print,
+  /* -009 */ fr_op_eq,
+  /* -010 */ fr_op_invert,
+  /* -011 */ fr_op_add,
+  /* -012 */ fr_op_call,
+  /* -013 */ fr_op_if,
+  /* -014 */ fr_op_ifelse,
 };
 
 const char *MJS_word_names[] = {
   /* -001 */ "quote", 
   /* 0000 */ "exit", 
-  /* 0001 */ "print", 
-  /* 0002 */ "=", 
-  /* 0003 */ "+", 
-  /* 0004 */ "call", 
-  /* 0005 */ "if", 
-  /* 0006 */ "ifelse", 
-  /* 0007 */ "foo", 
-  /* 0008 */ "anon_0", 
-  /* 0009 */ "anon_1", 
-  /* 0010 */ "demo", 
+  /* 0001 */ "drop", 
+  /* 0002 */ "dup", 
+  /* 0003 */ "swap", 
+  /* 0004 */ ">r", 
+  /* 0005 */ "r>", 
+  /* 0006 */ "print", 
+  /* 0007 */ "=", 
+  /* 0008 */ "invert", 
+  /* 0009 */ "+", 
+  /* 0010 */ "call", 
+  /* 0011 */ "if", 
+  /* 0012 */ "ifelse", 
+  /* 0013 */ "loop", 
+  /* 0014 */ "foo", 
+  /* 0015 */ "!=", 
+  /* 0016 */ "anon_0", 
+  /* 0017 */ "anon_1", 
+  /* 0018 */ "anon_2", 
+  /* 0019 */ "demo", 
 };
 
 const char *MJS_pos_names[] = {
+  "loop", 
+  "loop+1", 
+  "loop+2", 
+  "loop+3", 
+  "loop+4", 
+  "loop+5", 
+  "loop+6", 
+  "loop+7", 
+  "loop+8", 
+  "loop+9", 
   "foo", 
   "foo+1", 
   "foo+2", 
@@ -6597,6 +6699,9 @@ const char *MJS_pos_names[] = {
   "foo+6", 
   "foo+7", 
   "foo+8", 
+  "!=", 
+  "!=+1", 
+  "!=+2", 
   "anon_0", 
   "anon_0+1", 
   "anon_0+2", 
@@ -6607,6 +6712,13 @@ const char *MJS_pos_names[] = {
   "anon_1+2", 
   "anon_1+3", 
   "anon_1+4", 
+  "anon_2", 
+  "anon_2+1", 
+  "anon_2+2", 
+  "anon_2+3", 
+  "anon_2+4", 
+  "anon_2+5", 
+  "anon_2+6", 
   "demo", 
   "demo+1", 
   "demo+2", 
@@ -6625,6 +6737,42 @@ const char *MJS_pos_names[] = {
   "demo+15", 
   "demo+16", 
   "demo+17", 
+  "demo+18", 
+  "demo+19", 
+  "demo+20", 
+  "demo+21", 
+  "demo+22", 
+  "demo+23", 
+  "demo+24", 
+  "demo+25", 
+  "demo+26", 
+  "demo+27", 
+  "demo+28", 
+  "demo+29", 
+  "demo+30", 
+  "demo+31", 
+  "demo+32", 
+  "demo+33", 
+  "demo+34", 
+  "demo+35", 
+  "demo+36", 
+  "demo+37", 
+  "demo+38", 
+  "demo+39", 
+  "demo+40", 
+  "demo+41", 
+  "demo+42", 
+  "demo+43", 
+  "demo+44", 
+  "demo+45", 
+  "demo+46", 
+  "demo+47", 
+  "demo+48", 
+  "demo+49", 
+  "demo+50", 
+  "demo+51", 
+  "demo+52", 
+  "demo+53", 
 };
 
 struct fr_code MJS_code = {
