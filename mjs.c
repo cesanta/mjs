@@ -1720,8 +1720,8 @@ char *utfutf(char *s1, char *s2);
  * All rights reserved
  */
 
-#ifndef MJS_SRC_PARSER_STATE_H_
-#define MJS_SRC_PARSER_STATE_H_
+#ifndef MJS_PARSER_STATE_H_
+#define MJS_PARSER_STATE_H_
 
 struct mjs_token {
   const char *begin;
@@ -1747,7 +1747,7 @@ struct mjs_parse_ctx {
   double cur_tok_dbl;    /* When tokenizing, parser stores TOK_NUMBER here */
 };
 
-#endif /* MJS_SRC_PARSER_STATE_H_ */
+#endif /* MJS_PARSER_STATE_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/froth/vm.h"
 #endif
@@ -1756,8 +1756,8 @@ struct mjs_parse_ctx {
  * All rights reserved
  */
 
-#ifndef FR_SRC_FROTH_H_
-#define FR_SRC_FROTH_H_
+#ifndef MJS_FROTH_VM_H_
+#define MJS_FROTH_VM_H_
 
 /* Amalgamated: #include "common/platform.h" */
 
@@ -1804,7 +1804,7 @@ fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op);
 void fr_push(struct fr_stack *stack, fr_cell_t value);
 fr_cell_t fr_pop(struct fr_stack *stack);
 
-#endif /* FR_SRC_FROTH_H_ */
+#endif /* MJS_FROTH_VM_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.h"
 #endif
@@ -1835,8 +1835,8 @@ extern struct fr_code MJS_code;
  * All rights reserved
  */
 
-#ifndef MJS_SRC_CORE_H_
-#define MJS_SRC_CORE_H_
+#ifndef MJS_CORE_H_
+#define MJS_CORE_H_
 
 /* Amalgamated: #include "mjs/license.h" */
 /* Amalgamated: #include "mjs/froth/vm.h" */
@@ -1866,7 +1866,7 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
  */
 const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
-#endif /* MJS_SRC_CORE_H_ */
+#endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.h"
 #endif
@@ -1979,8 +1979,8 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
  * All rights reserved
  */
 
-#ifndef MJS_SRC_TOKENIZER_H_
-#define MJS_SRC_TOKENIZER_H_
+#ifndef MJS_TOKENIZER_H_
+#define MJS_TOKENIZER_H_
 
 typedef int mjs_tok_t;
 
@@ -1989,7 +1989,7 @@ mjs_tok_t get_tok(const char **s, const char *src_end, double *n,
                   mjs_tok_t prev_tok);
 int is_reserved_word_token(mjs_tok_t tok);
 
-#endif /* MJS_SRC_TOKENIZER_H_ */
+#endif /* MJS_TOKENIZER_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.h"
 #endif
@@ -1998,8 +1998,8 @@ int is_reserved_word_token(mjs_tok_t tok);
  * All rights reserved
  */
 
-#ifndef MJS_SRC_PARSER_H_
-#define MJS_SRC_PARSER_H_
+#ifndef MJS_PARSER_H_
+#define MJS_PARSER_H_
 
 #include <stdlib.h>
 
@@ -2025,7 +2025,7 @@ void mjsParser(
     struct mjs_parse_ctx *ctx /* Optional %extra_argument parameter */
     );
 
-#endif /* MJS_SRC_PARSER_H_ */
+#endif /* MJS_PARSER_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "common/cs_strtod.h"
 #endif
