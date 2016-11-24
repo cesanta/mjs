@@ -1780,6 +1780,9 @@ struct fr_code {
   size_t table_len;          /* max 127 */
   fr_native_t *native_words; /* native words */
   size_t native_words_len;
+
+  const char **word_names; /* table_len number of entries, for tracing */
+  const char **pos_names;  /* opcodes_len number of entries, for tracing */
 };
 
 struct fr_stack {
@@ -6377,35 +6380,26 @@ static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
 static void fr_trace(struct fr_vm *vm) {
   fr_opcode_t op = fr_fetch(vm, vm->ip);
   fr_word_ptr_t word = fr_lookup_word(vm, op);
-  char sword[128];
+  char sword[128], pad[64];
+  const char *pos_name = "???";
+  const char *name = vm->code->word_names[op + 1];
+
   if (word < 0) {
-    /*
-     * TODO: generate a table of function names.
-     * and make it disableable on embedded.
-     */
     fr_native_t func = vm->code->native_words[-word - 1];
-    const char *name = "custom";
-    if (func == fr_op_quote) {
-      name = "quote";
-    } else if (func == fr_op_exit) {
-      name = "exit";
-    } else if (func == fr_op_print) {
-      name = "print";
-    } else if (func == fr_op_eq) {
-      name = "eq";
-    } else if (func == fr_op_call) {
-      name = "call";
-    } else if (func == fr_op_if) {
-      name = "if";
-    } else if (func == fr_op_ifelse) {
-      name = "ifelse";
-    }
     snprintf(sword, sizeof(sword), "%s <%p>", name, func);
   } else {
-    snprintf(sword, sizeof(sword), "%04x", word);
+    snprintf(sword, sizeof(sword), "%s (%04d)", name, word);
   }
 
-  LOG(LL_ERROR, (">> ip:%04X op:%02X -> %s", vm->ip, (uint8_t) op, sword));
+  pos_name = vm->code->pos_names[vm->ip];
+  memset(pad, ' ', sizeof(pad));
+  if (strlen(pos_name) <= 16) {
+    pad[16 - strlen(pos_name)] = '\0';
+  } else {
+    pad[0] = '\0';
+  }
+  LOG(LL_ERROR, (">> ip:%04X (%s)%sop:%02X -> %s", vm->ip, pos_name, pad,
+                 (uint8_t) op, sword));
 }
 
 void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
@@ -6578,10 +6572,66 @@ fr_native_t MJS_native_words[] = {
   /* -008 */ fr_op_ifelse,
 };
 
+const char *MJS_word_names[] = {
+  /* -001 */ "quote", 
+  /* 0000 */ "exit", 
+  /* 0001 */ "print", 
+  /* 0002 */ "=", 
+  /* 0003 */ "+", 
+  /* 0004 */ "call", 
+  /* 0005 */ "if", 
+  /* 0006 */ "ifelse", 
+  /* 0007 */ "foo", 
+  /* 0008 */ "anon_0", 
+  /* 0009 */ "anon_1", 
+  /* 0010 */ "demo", 
+};
+
+const char *MJS_pos_names[] = {
+  "foo", 
+  "foo+1", 
+  "foo+2", 
+  "foo+3", 
+  "foo+4", 
+  "foo+5", 
+  "foo+6", 
+  "foo+7", 
+  "foo+8", 
+  "anon_0", 
+  "anon_0+1", 
+  "anon_0+2", 
+  "anon_0+3", 
+  "anon_0+4", 
+  "anon_1", 
+  "anon_1+1", 
+  "anon_1+2", 
+  "anon_1+3", 
+  "anon_1+4", 
+  "demo", 
+  "demo+1", 
+  "demo+2", 
+  "demo+3", 
+  "demo+4", 
+  "demo+5", 
+  "demo+6", 
+  "demo+7", 
+  "demo+8", 
+  "demo+9", 
+  "demo+10", 
+  "demo+11", 
+  "demo+12", 
+  "demo+13", 
+  "demo+14", 
+  "demo+15", 
+  "demo+16", 
+  "demo+17", 
+};
+
 struct fr_code MJS_code = {
   MJS_opcodes, sizeof(MJS_opcodes)/sizeof(MJS_opcodes[0]),
   MJS_word_ptrs, sizeof(MJS_word_ptrs)/sizeof(MJS_word_ptrs),
   MJS_native_words, sizeof(MJS_native_words)/sizeof(MJS_native_words),
+  MJS_word_names, MJS_pos_names,
 };
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/core.c"
