@@ -1820,11 +1820,13 @@ extern struct fr_code MJS_code;
 #define MJS_OP_print ((fr_opcode_t) 1)
 #define MJS_OP_EQ_ ((fr_opcode_t) 2)
 #define MJS_OP_ADD_ ((fr_opcode_t) 3)
-#define MJS_OP_if ((fr_opcode_t) 4)
-#define MJS_OP_foo ((fr_opcode_t) 5)
-#define MJS_OP_anon_0 ((fr_opcode_t) 6)
-#define MJS_OP_xdemo ((fr_opcode_t) 7)
-#define MJS_OP_demo ((fr_opcode_t) 8)
+#define MJS_OP_call ((fr_opcode_t) 4)
+#define MJS_OP_if ((fr_opcode_t) 5)
+#define MJS_OP_ifelse ((fr_opcode_t) 6)
+#define MJS_OP_foo ((fr_opcode_t) 7)
+#define MJS_OP_anon_0 ((fr_opcode_t) 8)
+#define MJS_OP_anon_1 ((fr_opcode_t) 9)
+#define MJS_OP_demo ((fr_opcode_t) 10)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -6348,6 +6350,9 @@ void fr_op_quote(struct fr_vm *vm);
 void fr_op_exit(struct fr_vm *vm);
 void fr_op_print(struct fr_vm *vm);
 void fr_op_eq(struct fr_vm *vm);
+void fr_op_call(struct fr_vm *vm);
+void fr_op_if(struct fr_vm *vm);
+void fr_op_ifelse(struct fr_vm *vm);
 
 static void fr_init_stack(struct fr_stack *stack) {
   stack->size = FR_STACK_SIZE;
@@ -6374,6 +6379,10 @@ static void fr_trace(struct fr_vm *vm) {
   fr_word_ptr_t word = fr_lookup_word(vm, op);
   char sword[128];
   if (word < 0) {
+    /*
+     * TODO: generate a table of function names.
+     * and make it disableable on embedded.
+     */
     fr_native_t func = vm->code->native_words[-word - 1];
     const char *name = "custom";
     if (func == fr_op_quote) {
@@ -6384,6 +6393,12 @@ static void fr_trace(struct fr_vm *vm) {
       name = "print";
     } else if (func == fr_op_eq) {
       name = "eq";
+    } else if (func == fr_op_call) {
+      name = "call";
+    } else if (func == fr_op_if) {
+      name = "if";
+    } else if (func == fr_op_ifelse) {
+      name = "ifelse";
     }
     snprintf(sword, sizeof(sword), "%s <%p>", name, func);
   } else {
@@ -6393,38 +6408,36 @@ static void fr_trace(struct fr_vm *vm) {
   LOG(LL_ERROR, (">> ip:%04X op:%02X -> %s", vm->ip, (uint8_t) op, sword));
 }
 
+void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
+  fr_push(&vm->rstack, vm->ip);
+  vm->ip = word;
+}
+
+void fr_enter(struct fr_vm *vm, fr_word_ptr_t word) {
+  if (word < 0) {
+    fr_native_t nat = vm->code->native_words[-word - 1];
+    LOG(LL_DEBUG, ("calling native function %p", nat));
+    nat(vm);
+  } else {
+    LOG(LL_DEBUG, ("%d is threaded word", word));
+    fr_enter_thread(vm, word);
+  }
+}
+
 void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
+  fr_opcode_t op;
   vm->ip = word;
 
   /* push sentinel so we can exit the loop */
   fr_push(&vm->rstack, FR_EXIT_RUN);
 
-  while (vm->ip != FR_EXIT_RUN) {
-    if ((size_t) vm->ip >= vm->code->opcodes_len) {
-      LOG(LL_ERROR, ("reached end of opcode"));
-      return;
-    }
-
-    fr_opcode_t op = fr_fetch(vm, vm->ip);
+  while (vm->ip != FR_EXIT_RUN && (size_t) vm->ip < vm->code->opcodes_len) {
     fr_trace(vm);
 
+    op = fr_fetch(vm, vm->ip);
     vm->ip++;
-
-    LOG(LL_DEBUG, ("decoding opcode %d", op));
-
     word = fr_lookup_word(vm, op);
-    LOG(LL_DEBUG, ("found word %d", word));
-    if (word < 0) {
-      /* native */
-      fr_native_t nat = vm->code->native_words[-word - 1];
-      LOG(LL_DEBUG, ("calling native function %p", nat));
-      nat(vm);
-    } else {
-      /* threaded */
-      LOG(LL_DEBUG, ("%d is threaded word", word));
-      fr_push(&vm->rstack, vm->ip);
-      vm->ip = word;
-    }
+    fr_enter(vm, word);
   }
 }
 
@@ -6480,6 +6493,25 @@ void fr_op_eq(struct fr_vm *vm) {
   fr_cell_t b = fr_pop(&vm->dstack);
   fr_push(&vm->dstack, a == b);
 }
+
+void fr_op_call(struct fr_vm *vm) {
+  fr_enter(vm, fr_pop(&vm->dstack));
+}
+
+void fr_op_if(struct fr_vm *vm) {
+  fr_cell_t iftrue = fr_pop(&vm->dstack);
+  fr_cell_t cond = fr_pop(&vm->dstack);
+  if (cond) {
+    fr_enter(vm, iftrue);
+  }
+}
+
+void fr_op_ifelse(struct fr_vm *vm) {
+  fr_cell_t iffalse = fr_pop(&vm->dstack);
+  fr_cell_t iftrue = fr_pop(&vm->dstack);
+  fr_cell_t cond = fr_pop(&vm->dstack);
+  fr_enter(vm, (cond ? iftrue : iffalse));
+}
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.c"
 #endif
@@ -6495,16 +6527,20 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <fr_op_eq> */ 
   /* 0000 -> : + ... ; */
   /*           <fr_op_todo> */ 
+  /* 0000 -> : call ... ; */
+  /*           <fr_op_call> */ 
   /* 0000 -> : if ... ; */
-  /*           <fr_op_todo> */ 
+  /*           <fr_op_if> */ 
+  /* 0000 -> : ifelse ... ; */
+  /*           <fr_op_ifelse> */ 
   /* 0000 -> : foo ... ; */
-  MJS_OP_quote, 2, -102, MJS_OP_print, MJS_OP_exit,
-  /* 0005 -> : anon_0 ... ; */
-  MJS_OP_quote, 0, 42, MJS_OP_print, MJS_OP_exit,
-  /* 0010 -> : xdemo ... ; */
-  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 1, MJS_OP_EQ_, MJS_OP_quote, 0, 5, MJS_OP_if, MJS_OP_exit,
-  /* 0022 -> : demo ... ; */
-  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_print, MJS_OP_print, MJS_OP_exit,
+  MJS_OP_quote, 0, 66, MJS_OP_EQ_, MJS_OP_quote, -1, -3, MJS_OP_if, MJS_OP_exit,
+  /* 0009 -> : anon_0 ... ; */
+  MJS_OP_quote, 0, 66, MJS_OP_foo, MJS_OP_exit,
+  /* 0014 -> : anon_1 ... ; */
+  MJS_OP_quote, 0, 0, MJS_OP_print, MJS_OP_exit,
+  /* 0019 -> : demo ... ; */
+  MJS_OP_quote, 0, 42, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 1, MJS_OP_EQ_, MJS_OP_quote, 0, 9, MJS_OP_quote, 0, 14, MJS_OP_ifelse, MJS_OP_exit,
 };
 
 fr_word_ptr_t MJS_word_ptrs[] = {
@@ -6514,10 +6550,12 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0002 */ -4, 
   /* 0003 */ -5, 
   /* 0004 */ -6, 
-  /* 0005 */ 0, 
-  /* 0006 */ 5, 
-  /* 0007 */ 10, 
-  /* 0008 */ 22, 
+  /* 0005 */ -7, 
+  /* 0006 */ -8, 
+  /* 0007 */ 0, 
+  /* 0008 */ 9, 
+  /* 0009 */ 14, 
+  /* 0010 */ 19, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -6525,7 +6563,9 @@ void fr_op_exit(struct fr_vm *vm);
 void fr_op_print(struct fr_vm *vm);
 void fr_op_eq(struct fr_vm *vm);
 void fr_op_todo(struct fr_vm *vm);
-void fr_op_todo(struct fr_vm *vm);
+void fr_op_call(struct fr_vm *vm);
+void fr_op_if(struct fr_vm *vm);
+void fr_op_ifelse(struct fr_vm *vm);
 
 fr_native_t MJS_native_words[] = {
   /* -001 */ fr_op_quote,
@@ -6533,7 +6573,9 @@ fr_native_t MJS_native_words[] = {
   /* -003 */ fr_op_print,
   /* -004 */ fr_op_eq,
   /* -005 */ fr_op_todo,
-  /* -006 */ fr_op_todo,
+  /* -006 */ fr_op_call,
+  /* -007 */ fr_op_if,
+  /* -008 */ fr_op_ifelse,
 };
 
 struct fr_code MJS_code = {
