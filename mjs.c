@@ -1760,6 +1760,8 @@ struct mjs_parse_ctx {
 
 #define FR_STACK_SIZE 256
 
+#define FR_EXIT_RUN -1
+
 typedef int16_t fr_cell_t;
 
 typedef int8_t fr_opcode_t;
@@ -1817,10 +1819,9 @@ extern struct fr_code MJS_code;
 #define MJS_OP_ADD_ ((fr_opcode_t) 3)
 #define MJS_OP_if ((fr_opcode_t) 4)
 #define MJS_OP_foo ((fr_opcode_t) 5)
-#define MJS_OP_doublefoo ((fr_opcode_t) 6)
-#define MJS_OP_anon_0 ((fr_opcode_t) 7)
-#define MJS_OP_bar ((fr_opcode_t) 8)
-#define MJS_OP_demo ((fr_opcode_t) 9)
+#define MJS_OP_anon_0 ((fr_opcode_t) 6)
+#define MJS_OP_xdemo ((fr_opcode_t) 7)
+#define MJS_OP_demo ((fr_opcode_t) 8)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -6392,7 +6393,10 @@ static void fr_trace(struct fr_vm *vm) {
 void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
   vm->ip = word;
 
-  for (;;) {
+  /* push sentinel so we can exit the loop */
+  fr_push(&vm->rstack, FR_EXIT_RUN);
+
+  while (vm->ip != FR_EXIT_RUN) {
     if ((size_t) vm->ip >= vm->code->opcodes_len) {
       LOG(LL_ERROR, ("reached end of opcode"));
       return;
@@ -6403,11 +6407,6 @@ void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
 
     vm->ip++;
 
-    if (op == 0 && vm->rstack.pos == 0) {
-      LOG(LL_ERROR,
-          ("reached exit opcode on empty stack, exiting interpreter"));
-      return;
-    }
     LOG(LL_DEBUG, ("decoding opcode %d", op));
 
     word = fr_lookup_word(vm, op);
@@ -6483,42 +6482,39 @@ void fr_op_eq(struct fr_vm *vm) {
 #endif
 /* Amalgamated: #include "mjs/vm_bcode.h" */
 fr_opcode_t MJS_opcodes[] = {
-  /* : quote ... ; */
-  /* native call to fr_op_quote */ 
-  /* : exit ... ; */
-  /* native call to fr_op_exit */ 
-  /* : print ... ; */
-  /* native call to fr_op_print */ 
-  /* : = ... ; */
-  /* native call to fr_op_eq */ 
-  /* : + ... ; */
-  /* native call to fr_op_todo */ 
-  /* : if ... ; */
-  /* native call to fr_op_todo */ 
-  /* : foo ... ; */
-  MJS_OP_print, MJS_OP_exit,
-  /* : doublefoo ... ; */
-  MJS_OP_foo, MJS_OP_foo, MJS_OP_exit,
-  /* : anon_0 ... ; */
-  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_ADD_, MJS_OP_exit,
-  /* : bar ... ; */
-  MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_quote, 0, MJS_OP_anon_0, MJS_OP_if, MJS_OP_exit,
-  /* : demo ... ; */
-  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_print, MJS_OP_quote, 0, 42, MJS_OP_quote, 0, 42, MJS_OP_EQ_, MJS_OP_print, MJS_OP_exit,
+  /* 0000 -> : quote ... ; */
+  /*           <fr_op_quote> */ 
+  /* 0000 -> : exit ... ; */
+  /*           <fr_op_exit> */ 
+  /* 0000 -> : print ... ; */
+  /*           <fr_op_print> */ 
+  /* 0000 -> : = ... ; */
+  /*           <fr_op_eq> */ 
+  /* 0000 -> : + ... ; */
+  /*           <fr_op_todo> */ 
+  /* 0000 -> : if ... ; */
+  /*           <fr_op_todo> */ 
+  /* 0000 -> : foo ... ; */
+  MJS_OP_quote, 2, -102, MJS_OP_print, MJS_OP_exit,
+  /* 0005 -> : anon_0 ... ; */
+  MJS_OP_quote, 0, 42, MJS_OP_print, MJS_OP_exit,
+  /* 0010 -> : xdemo ... ; */
+  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 1, MJS_OP_EQ_, MJS_OP_quote, 0, 5, MJS_OP_if, MJS_OP_exit,
+  /* 0022 -> : demo ... ; */
+  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_print, MJS_OP_print, MJS_OP_exit,
 };
 
 fr_word_ptr_t MJS_word_ptrs[] = {
-  -1, /* 0 */
-  -2, /* 1 */
-  -3, /* 2 */
-  -4, /* 3 */
-  -5, /* 4 */
-  -6, /* 5 */
-  0, /* 6 */
-  2, /* 7 */
-  5, /* 8 */
-  13, /* 9 */
-  22, /* 10 */
+  /* -001 */ -1, 
+  /* 0000 */ -2, 
+  /* 0001 */ -3, 
+  /* 0002 */ -4, 
+  /* 0003 */ -5, 
+  /* 0004 */ -6, 
+  /* 0005 */ 0, 
+  /* 0006 */ 5, 
+  /* 0007 */ 10, 
+  /* 0008 */ 22, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -6529,12 +6525,12 @@ void fr_op_todo(struct fr_vm *vm);
 void fr_op_todo(struct fr_vm *vm);
 
 fr_native_t MJS_native_words[] = {
-  fr_op_quote, /* 0 */
-  fr_op_exit, /* 1 */
-  fr_op_print, /* 2 */
-  fr_op_eq, /* 3 */
-  fr_op_todo, /* 4 */
-  fr_op_todo, /* 5 */
+  /* -001 */ fr_op_quote,
+  /* -002 */ fr_op_exit,
+  /* -003 */ fr_op_print,
+  /* -004 */ fr_op_eq,
+  /* -005 */ fr_op_todo,
+  /* -006 */ fr_op_todo,
 };
 
 struct fr_code MJS_code = {
