@@ -1813,8 +1813,8 @@ extern struct fr_code MJS_code;
 #define MJS_OP_quote ((fr_opcode_t) -1)
 #define MJS_OP_exit ((fr_opcode_t) 0)
 #define MJS_OP_print ((fr_opcode_t) 1)
-#define MJS_OP_eq ((fr_opcode_t) 2)
-#define MJS_OP_add ((fr_opcode_t) 3)
+#define MJS_OP_EQ_ ((fr_opcode_t) 2)
+#define MJS_OP_ADD_ ((fr_opcode_t) 3)
 #define MJS_OP_if ((fr_opcode_t) 4)
 #define MJS_OP_foo ((fr_opcode_t) 5)
 #define MJS_OP_doublefoo ((fr_opcode_t) 6)
@@ -6343,6 +6343,7 @@ void fr_op_todo(struct fr_vm *vm);
 void fr_op_quote(struct fr_vm *vm);
 void fr_op_exit(struct fr_vm *vm);
 void fr_op_print(struct fr_vm *vm);
+void fr_op_eq(struct fr_vm *vm);
 
 static void fr_init_stack(struct fr_stack *stack) {
   stack->size = FR_STACK_SIZE;
@@ -6377,6 +6378,8 @@ static void fr_trace(struct fr_vm *vm) {
       name = "exit";
     } else if (func == fr_op_print) {
       name = "print";
+    } else if (func == fr_op_eq) {
+      name = "eq";
     }
     snprintf(sword, sizeof(sword), "%s <%p>", name, func);
   } else {
@@ -6469,6 +6472,12 @@ void fr_op_print(struct fr_vm *vm) {
   LOG(LL_ERROR, ("%d", v));
   printf("%d\n", v);
 }
+
+void fr_op_eq(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, a == b);
+}
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.c"
 #endif
@@ -6480,9 +6489,9 @@ fr_opcode_t MJS_opcodes[] = {
   /* native call to fr_op_exit */ 
   /* : print ... ; */
   /* native call to fr_op_print */ 
-  /* : eq ... ; */
-  /* native call to fr_op_todo */ 
-  /* : add ... ; */
+  /* : = ... ; */
+  /* native call to fr_op_eq */ 
+  /* : + ... ; */
   /* native call to fr_op_todo */ 
   /* : if ... ; */
   /* native call to fr_op_todo */ 
@@ -6491,11 +6500,11 @@ fr_opcode_t MJS_opcodes[] = {
   /* : doublefoo ... ; */
   MJS_OP_foo, MJS_OP_foo, MJS_OP_exit,
   /* : anon_0 ... ; */
-  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_add, MJS_OP_exit,
+  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_ADD_, MJS_OP_exit,
   /* : bar ... ; */
-  MJS_OP_quote, 0, 0, MJS_OP_eq, MJS_OP_quote, 0, MJS_OP_anon_0, MJS_OP_if, MJS_OP_exit,
+  MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_quote, 0, MJS_OP_anon_0, MJS_OP_if, MJS_OP_exit,
   /* : demo ... ; */
-  MJS_OP_quote, 0, 12, MJS_OP_foo, MJS_OP_quote, 0, 42, MJS_OP_foo, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 2, MJS_OP_doublefoo, MJS_OP_exit,
+  MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_print, MJS_OP_quote, 0, 42, MJS_OP_quote, 0, 42, MJS_OP_EQ_, MJS_OP_print, MJS_OP_exit,
 };
 
 fr_word_ptr_t MJS_word_ptrs[] = {
@@ -6515,7 +6524,7 @@ fr_word_ptr_t MJS_word_ptrs[] = {
 void fr_op_quote(struct fr_vm *vm);
 void fr_op_exit(struct fr_vm *vm);
 void fr_op_print(struct fr_vm *vm);
-void fr_op_todo(struct fr_vm *vm);
+void fr_op_eq(struct fr_vm *vm);
 void fr_op_todo(struct fr_vm *vm);
 void fr_op_todo(struct fr_vm *vm);
 
@@ -6523,7 +6532,7 @@ fr_native_t MJS_native_words[] = {
   fr_op_quote, /* 0 */
   fr_op_exit, /* 1 */
   fr_op_print, /* 2 */
-  fr_op_todo, /* 3 */
+  fr_op_eq, /* 3 */
   fr_op_todo, /* 4 */
   fr_op_todo, /* 5 */
 };
