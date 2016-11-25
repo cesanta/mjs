@@ -1793,6 +1793,7 @@ struct fr_stack {
 
 struct fr_vm {
   struct fr_code *code;
+  struct fr_mem *iram;
 
   fr_word_ptr_t ip;
   struct fr_stack dstack; /* data stack */
@@ -1800,6 +1801,7 @@ struct fr_vm {
 };
 
 void fr_init_vm(struct fr_vm *vm, struct fr_code *code);
+void fr_destroy_vm(struct fr_vm *vm);
 void fr_run(struct fr_vm *vm, fr_word_ptr_t word);
 
 fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op);
@@ -1808,6 +1810,44 @@ void fr_push(struct fr_stack *stack, fr_cell_t value);
 fr_cell_t fr_pop(struct fr_stack *stack);
 
 #endif /* MJS_FROTH_VM_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/froth/mem.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FROTH_MEM_H_
+#define MJS_FROTH_MEM_H_
+
+/* Amalgamated: #include "common/platform.h" */
+/* Amalgamated: #include "mjs/froth/vm.h" */
+
+#define FR_PAGE_SIZE 512
+
+#define FR_MEM_RO (1 << 0)
+#define FR_MEM_FOREIGN (1 << 1)
+
+struct fr_page {
+  void *base;
+  uint16_t flags;
+};
+
+struct fr_mem {
+  size_t num_pages;
+  struct fr_page pages[1];  // zero sized arrays are non-standard
+};
+
+struct fr_mem *fr_create_mem();
+void fr_destroy_mem(struct fr_mem *mem);
+
+fr_cell_t fr_mmap(struct fr_mem **mem, void *buf, size_t buf_len, int flags);
+
+char fr_read_byte(struct fr_mem *mem, fr_cell_t addr);
+void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value);
+
+#endif /* MJS_FROTH_MEM_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.h"
 #endif
@@ -6337,6 +6377,98 @@ void mjsParser(
   return;
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/froth/mem.c"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/*
+ * Froth code has access to a 16-bit addressable memory,
+ * mostly for storing code. The froth memory contains both
+ * statically generated read-only code (possibly mapped on flash from
+ * the rodata section) and dynamically generated code.
+ *
+ * This file contains MMU-liked abstraction that allows the VM to
+ * address a unified 16-bit byte-addressed memory backed by a set
+ * of smaller pages. Each page can point to either a read-only
+ * code section, a buffer on heap and it's also possible to extend it in
+ * the future to access external storage that doesn't provide a memory
+ * interface to the CPU (e.g. byte ordiented filesystem API), useful
+ * on many embedded platforms such as CC3200.
+ */
+
+#include <assert.h>
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
+
+struct fr_mem *fr_create_mem() {
+  size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
+  struct fr_mem *mem = (struct fr_mem *) calloc(1, size);
+  mem->num_pages = 0;
+  return mem;
+}
+
+void fr_destroy_mem(struct fr_mem *mem) {
+  size_t i;
+  for (i = 0; i < mem->num_pages; i++) {
+    if (!(mem->pages[i].flags & FR_MEM_FOREIGN)) {
+      free(mem->pages[i].base);
+    }
+  }
+  free(mem);
+}
+
+static void fr_realloc_mem(struct fr_mem **mem) {
+  size_t size =
+      sizeof(struct fr_mem) + sizeof(struct fr_page) * ((*mem)->num_pages - 1);
+  *mem = (struct fr_mem *) realloc(*mem, size);
+}
+
+fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
+  size_t i;
+  size_t start_page = (*mem)->num_pages;
+  size_t num_pages =
+      data_len / FR_PAGE_SIZE + (data_len % FR_PAGE_SIZE == 0 ? 0 : 1);
+
+  LOG(LL_DEBUG, ("mapping %d pages", num_pages));
+
+  (*mem)->num_pages += num_pages;
+  fr_realloc_mem(mem);
+
+  for (i = 0; i < num_pages; i++) {
+    struct fr_page *page = &(*mem)->pages[start_page + i];
+    page->flags = flags;
+    page->base = data + i * FR_PAGE_SIZE;
+  }
+
+  return start_page * FR_PAGE_SIZE;
+}
+
+char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t off = addr % FR_PAGE_SIZE;
+  assert(page < mem->num_pages);
+  return ((char *) mem->pages[page].base)[off];
+}
+
+void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t off = addr % FR_PAGE_SIZE;
+  assert(page < mem->num_pages);
+
+  /* TODO: make this disabled in release builds */
+  if (mem->pages[page].flags & FR_MEM_RO) {
+    LOG(LL_DEBUG,
+        ("Trapping write access to read only froth memory at addr 0x%X", addr));
+    return;
+  }
+
+  ((char *) mem->pages[page].base)[off] = value;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/froth/vm.c"
 #endif
 /*
@@ -6350,13 +6482,14 @@ void mjsParser(
  * Froth is not a general purpose programming language but instead it is used
  * to implement the MJS virtual machine.
  *
- * The binary encoding is documented in the froth compiler (see the `fr_codegen`
- * docstring).
+ * The binary encoding is documented in the froth compiler (see the
+ * `fr_codegen` docstring).
  */
 
 #include <assert.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
 /* Amalgamated: #include "mjs/froth/vm.h" */
 
 static void fr_init_stack(struct fr_stack *stack) {
@@ -6370,6 +6503,16 @@ void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
 
   fr_init_stack(&vm->dstack);
   fr_init_stack(&vm->rstack);
+
+  vm->iram = fr_create_mem();
+  if (code != NULL && code->opcodes != NULL) {
+    fr_mmap(&vm->iram, code->opcodes, code->opcodes_len,
+            FR_MEM_RO | FR_MEM_FOREIGN);
+  }
+}
+
+void fr_destroy_vm(struct fr_vm *vm) {
+  fr_destroy_mem(vm->iram);
 }
 
 static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
@@ -6638,7 +6781,7 @@ fr_opcode_t MJS_opcodes[] = {
   MJS_OP_print, MJS_OP_exit,
   /* 0066 -> : demo ... ; */
   MJS_OP_quote, 0, 10, MJS_OP_PUSHR, MJS_OP_quote, 0, 40, MJS_OP_quote, 0, 2, MJS_OP_ADD_, MJS_OP_POPR, MJS_OP_print, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_invert, MJS_OP_quote, 0, 54, MJS_OP_quote, 0, 59, MJS_OP_ifelse, MJS_OP_quote, 0, 2, MJS_OP_quote, 0, 64, MJS_OP_repeat, MJS_OP_exit,
-};
+}; /* 102 * sizeof(fr_opcode_t) */
 
 fr_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -6859,6 +7002,7 @@ struct mjs *mjs_create() {
 }
 
 void mjs_destroy(struct mjs *mjs) {
+  fr_destroy_vm(&mjs->vm);
   free(mjs->error_msg);
   free(mjs);
 }
