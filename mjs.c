@@ -6359,7 +6359,8 @@ void mjsParser(
 /* Amalgamated: #include "mjs/froth/vm.h" */
 
 static void fr_init_stack(struct fr_stack *stack) {
-  stack->size = FR_STACK_SIZE;
+  stack->size = ARRAY_SIZE(stack->stack);
+  stack->pos = 0;
 }
 
 void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
@@ -6372,7 +6373,7 @@ void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
 
 static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
   if (word < 0) {
-    return -1;
+    return FR_EXIT_RUN;
   }
   assert((size_t) word < vm->code->opcodes_len);
   return vm->code->opcodes[word];
