@@ -1838,14 +1838,9 @@ extern struct fr_code MJS_code;
 #define MJS_OP_foo ((fr_opcode_t) 16)
 #define MJS_OP_NEQ_ ((fr_opcode_t) 17)
 #define MJS_OP_2dup ((fr_opcode_t) 18)
-#define MJS_OP_dec ((fr_opcode_t) 19)
-#define MJS_OP_GE_ ((fr_opcode_t) 20)
-#define MJS_OP_anon_0 ((fr_opcode_t) 21)
-#define MJS_OP_repeat ((fr_opcode_t) 22)
-#define MJS_OP_anon_1 ((fr_opcode_t) 23)
-#define MJS_OP_anon_2 ((fr_opcode_t) 24)
-#define MJS_OP_anon_3 ((fr_opcode_t) 25)
-#define MJS_OP_demo ((fr_opcode_t) 26)
+#define MJS_OP_GE_ ((fr_opcode_t) 19)
+#define MJS_OP_repeat ((fr_opcode_t) 20)
+#define MJS_OP_demo ((fr_opcode_t) 21)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -6390,7 +6385,7 @@ static void fr_trace(struct fr_vm *vm) {
   fr_word_ptr_t word = fr_lookup_word(vm, op);
   char sword[128], pad[64];
   const char *pos_name = "???";
-  const char *name = vm->code->word_names[op + 1];
+  const char *name = (op >= -1 ? vm->code->word_names[op + 1] : "<rel>");
 
   if (word < 0) {
     fr_native_t func = vm->code->native_words[-word - 1];
@@ -6450,8 +6445,9 @@ void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
 
 fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op) {
   if (op < -1) {
-    LOG(LL_ERROR, ("TODO: relative lookups not implemented yet"));
-    return 0;
+    LOG(LL_DEBUG,
+        ("looking up relative op %d, ip:%d -> %d", op, vm->ip, vm->ip + op));
+    return vm->ip - 1 + op;
   } else {
     LOG(LL_DEBUG, ("looking up word_ptr for op %d", op));
     return vm->code->table[op + 1];
@@ -6631,9 +6627,9 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0030 -> : >= ... ; */
   MJS_OP_LT_, MJS_OP_invert, MJS_OP_exit,
   /* 0033 -> : anon_0 ... ; */
-  MJS_OP_2dup, MJS_OP_call, MJS_OP_swap, MJS_OP_dec, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GE_, MJS_OP_PUSHR, MJS_OP_swap, MJS_OP_POPR, MJS_OP_exit,
+  MJS_OP_2dup, MJS_OP_call, MJS_OP_swap, -11, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GE_, MJS_OP_PUSHR, MJS_OP_swap, MJS_OP_POPR, MJS_OP_exit,
   /* 0046 -> : repeat ... ; */
-  MJS_OP_swap, MJS_OP_dec, MJS_OP_swap, MJS_OP_quote, 0, 33, MJS_OP_loop, MJS_OP_exit,
+  MJS_OP_swap, -22, MJS_OP_swap, MJS_OP_quote, 0, 33, MJS_OP_loop, MJS_OP_exit,
   /* 0054 -> : anon_1 ... ; */
   MJS_OP_quote, 0, 66, MJS_OP_foo, MJS_OP_exit,
   /* 0059 -> : anon_2 ... ; */
@@ -6641,7 +6637,7 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0064 -> : anon_3 ... ; */
   MJS_OP_print, MJS_OP_exit,
   /* 0066 -> : demo ... ; */
-  MJS_OP_quote, 0, 10, MJS_OP_PUSHR, MJS_OP_quote, 0, 40, MJS_OP_quote, 0, 2, MJS_OP_ADD_, MJS_OP_POPR, MJS_OP_print, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_invert, MJS_OP_quote, 0, 54, MJS_OP_quote, 0, 59, MJS_OP_ifelse, MJS_OP_quote, 0, 10, MJS_OP_quote, 0, 64, MJS_OP_repeat, MJS_OP_exit,
+  MJS_OP_quote, 0, 10, MJS_OP_PUSHR, MJS_OP_quote, 0, 40, MJS_OP_quote, 0, 2, MJS_OP_ADD_, MJS_OP_POPR, MJS_OP_print, MJS_OP_quote, 0, 1, MJS_OP_quote, 0, 0, MJS_OP_EQ_, MJS_OP_invert, MJS_OP_quote, 0, 54, MJS_OP_quote, 0, 59, MJS_OP_ifelse, MJS_OP_quote, 0, 2, MJS_OP_quote, 0, 64, MJS_OP_repeat, MJS_OP_exit,
 };
 
 fr_word_ptr_t MJS_word_ptrs[] = {
@@ -6665,14 +6661,9 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0016 */ 10, 
   /* 0017 */ 19, 
   /* 0018 */ 22, 
-  /* 0019 */ 25, 
-  /* 0020 */ 30, 
-  /* 0021 */ 33, 
-  /* 0022 */ 46, 
-  /* 0023 */ 54, 
-  /* 0024 */ 59, 
-  /* 0025 */ 64, 
-  /* 0026 */ 66, 
+  /* 0019 */ 30, 
+  /* 0020 */ 46, 
+  /* 0021 */ 66, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -6732,14 +6723,9 @@ const char *MJS_word_names[] = {
   /* 0016 */ "foo", 
   /* 0017 */ "<>", 
   /* 0018 */ "2dup", 
-  /* 0019 */ "dec", 
-  /* 0020 */ ">=", 
-  /* 0021 */ "anon_0", 
-  /* 0022 */ "repeat", 
-  /* 0023 */ "anon_1", 
-  /* 0024 */ "anon_2", 
-  /* 0025 */ "anon_3", 
-  /* 0026 */ "demo", 
+  /* 0019 */ ">=", 
+  /* 0020 */ "repeat", 
+  /* 0021 */ "demo", 
 };
 
 const char *MJS_pos_names[] = {
