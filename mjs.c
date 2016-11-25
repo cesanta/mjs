@@ -1847,6 +1847,9 @@ fr_cell_t fr_mmap(struct fr_mem **mem, void *buf, size_t buf_len, int flags);
 char fr_read_byte(struct fr_mem *mem, fr_cell_t addr);
 void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value);
 
+/* return false if the address is unmapped */
+int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
+
 #endif /* MJS_FROTH_MEM_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.h"
@@ -6447,6 +6450,11 @@ fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
   return start_page * FR_PAGE_SIZE;
 }
 
+int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  return page < mem->num_pages;
+}
+
 char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
   uint16_t page = addr / FR_PAGE_SIZE;
   uint16_t off = addr % FR_PAGE_SIZE;
@@ -6519,8 +6527,7 @@ static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
   if (word < 0) {
     return FR_EXIT_RUN;
   }
-  assert((size_t) word < vm->code->opcodes_len);
-  return vm->code->opcodes[word];
+  return (fr_opcode_t) fr_read_byte(vm->iram, word);
 }
 
 static void fr_trace(struct fr_vm *vm) {
@@ -6537,7 +6544,9 @@ static void fr_trace(struct fr_vm *vm) {
     snprintf(sword, sizeof(sword), "%s (%04d)", name, word);
   }
 
-  pos_name = vm->code->pos_names[vm->ip];
+  if ((size_t) vm->ip < vm->code->opcodes_len) {
+    pos_name = vm->code->pos_names[vm->ip];
+  }
   memset(pad, ' ', sizeof(pad));
   if (strlen(pos_name) <= 16) {
     pad[16 - strlen(pos_name)] = '\0';
@@ -6576,7 +6585,7 @@ void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
   /* push sentinel so we can exit the loop */
   fr_push(&vm->rstack, FR_EXIT_RUN);
 
-  while (vm->ip != FR_EXIT_RUN && (size_t) vm->ip < vm->code->opcodes_len) {
+  while (vm->ip != FR_EXIT_RUN && fr_is_mapped(vm->iram, vm->ip)) {
     fr_trace(vm);
 
     op = fr_fetch(vm, vm->ip);
