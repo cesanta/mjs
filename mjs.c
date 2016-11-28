@@ -1713,42 +1713,6 @@ char *utfutf(char *s1, char *s2);
 #endif /* __cplusplus */
 #endif /* CS_COMMON_UTF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/parser_state.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_PARSER_STATE_H_
-#define MJS_PARSER_STATE_H_
-
-struct mjs_token {
-  const char *begin;
-};
-
-struct mjs_pstate {
-  const char *file_name;
-  const char *source_code;
-  const char *pc;      /* Current parsing position */
-  const char *src_end; /* End of source code */
-  int line_no;         /* Line number */
-  int prev_line_no;    /* Line number of previous token */
-};
-
-struct mjs_parse_ctx {
-  int state;
-  struct mjs_token syntax_error;
-
-  struct mjs_pstate pstate;
-  int cur_tok;           /* Current token */
-  const char *tok;       /* Parsed terminal token (ident, number, string) */
-  unsigned long tok_len; /* Length of the parsed terminal token */
-  double cur_tok_dbl;    /* When tokenizing, parser stores TOK_NUMBER here */
-};
-
-#endif /* MJS_PARSER_STATE_H_ */
-#ifdef MG_MODULE_LINES
 #line 1 "mjs/froth/vm.h"
 #endif
 /*
@@ -1852,6 +1816,59 @@ int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
 
 #endif /* MJS_FROTH_MEM_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/parser_state.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_PARSER_STATE_H_
+#define MJS_PARSER_STATE_H_
+
+/* Amalgamated: #include "mjs/froth/vm.h" */
+
+struct mjs_token {
+  const char *begin;
+};
+
+struct mjs_pstate {
+  const char *file_name;
+  const char *source_code;
+  const char *pc;      /* Current parsing position */
+  const char *src_end; /* End of source code */
+  int line_no;         /* Line number */
+  int prev_line_no;    /* Line number of previous token */
+};
+
+struct mjs_parse_ctx {
+  int state;
+  struct mjs_token syntax_error;
+
+  struct mjs_pstate pstate;
+  int cur_tok;           /* Current token */
+  const char *tok;       /* Parsed terminal token (ident, number, string) */
+  unsigned long tok_len; /* Length of the parsed terminal token */
+  double cur_tok_dbl;    /* When tokenizing, parser stores TOK_NUMBER here */
+
+  struct mjs *mjs;
+  fr_word_ptr_t gen;
+  fr_word_ptr_t entry;
+};
+
+fr_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, fr_opcode_t op);
+fr_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, fr_word_ptr_t dst);
+fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
+                           fr_word_ptr_t b, fr_opcode_t op);
+fr_word_ptr_t mjs_emit_lit(struct mjs_parse_ctx *ctx, const char *lit);
+
+fr_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v);
+fr_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v);
+fr_word_ptr_t mjs_emit_uint32(struct mjs_parse_ctx *ctx, uint32_t v);
+fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
+
+#endif /* MJS_PARSER_STATE_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.h"
 #endif
 #ifndef MJS_GEN_OPCODES_H_
@@ -1874,16 +1891,17 @@ extern struct fr_code MJS_code;
 #define MJS_OP_LT_ ((fr_opcode_t) 9)
 #define MJS_OP_invert ((fr_opcode_t) 10)
 #define MJS_OP_ADD_ ((fr_opcode_t) 11)
-#define MJS_OP_call ((fr_opcode_t) 12)
-#define MJS_OP_if ((fr_opcode_t) 13)
-#define MJS_OP_ifelse ((fr_opcode_t) 14)
-#define MJS_OP_loop ((fr_opcode_t) 15)
-#define MJS_OP_foo ((fr_opcode_t) 16)
-#define MJS_OP_NEQ_ ((fr_opcode_t) 17)
-#define MJS_OP_2dup ((fr_opcode_t) 18)
-#define MJS_OP_GE_ ((fr_opcode_t) 19)
-#define MJS_OP_repeat ((fr_opcode_t) 20)
-#define MJS_OP_demo ((fr_opcode_t) 21)
+#define MJS_OP_MUL_ ((fr_opcode_t) 12)
+#define MJS_OP_call ((fr_opcode_t) 13)
+#define MJS_OP_if ((fr_opcode_t) 14)
+#define MJS_OP_ifelse ((fr_opcode_t) 15)
+#define MJS_OP_loop ((fr_opcode_t) 16)
+#define MJS_OP_foo ((fr_opcode_t) 17)
+#define MJS_OP_NEQ_ ((fr_opcode_t) 18)
+#define MJS_OP_2dup ((fr_opcode_t) 19)
+#define MJS_OP_GE_ ((fr_opcode_t) 20)
+#define MJS_OP_repeat ((fr_opcode_t) 21)
+#define MJS_OP_demo ((fr_opcode_t) 22)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -1906,10 +1924,14 @@ enum mjs_err {
   MJS_INTERNAL_ERROR,
 };
 
+typedef uint64_t mjs_val_t;
+
 typedef enum mjs_err mjs_err_t;
 
 struct mjs {
   struct fr_vm vm;
+  fr_word_ptr_t last_code;
+
   char *error_msg;
   mjs_err_t error_msg_err;
 };
@@ -1926,6 +1948,25 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
 #endif /* MJS_CORE_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/exec.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_EXEC_H_
+#define MJS_EXEC_H_
+
+/* Amalgamated: #include "mjs/core.h" */
+
+mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
+                       mjs_val_t *res);
+mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
+
+#endif /* MJS_EXEC_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.h"
 #endif
@@ -2067,12 +2108,15 @@ int is_reserved_word_token(mjs_tok_t tok);
 /* Amalgamated: #include "mjs/tokenizer.h" */
 /* Amalgamated: #include "mjs/parser_state.h" */
 
-mjs_err_t mjs_parsen(struct mjs *mjs, const char *src, size_t len,
-                     struct mjs_parse_ctx *ctx);
+mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
+                        struct mjs_parse_ctx *ctx);
 mjs_err_t mjs_parse(struct mjs *mjs, const char *src,
                     struct mjs_parse_ctx *ctx);
 mjs_err_t mjs_parse_file(struct mjs *mjs, const char *file,
                          struct mjs_parse_ctx *ctx);
+
+void mjs_dump_bcode(struct mjs *mjs, const char *filename, fr_word_ptr_t start,
+                    fr_word_ptr_t end);
 
 /* generated by lemon */
 void *mjsParserAlloc(void *(*mallocProc)(size_t));
@@ -4429,6 +4473,362 @@ const char *utfnshift(const char *s, long m) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/froth/mem.c"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/*
+ * Froth code has access to a 16-bit addressable memory,
+ * mostly for storing code. The froth memory contains both
+ * statically generated read-only code (possibly mapped on flash from
+ * the rodata section) and dynamically generated code.
+ *
+ * This file contains MMU-liked abstraction that allows the VM to
+ * address a unified 16-bit byte-addressed memory backed by a set
+ * of smaller pages. Each page can point to either a read-only
+ * code section, a buffer on heap and it's also possible to extend it in
+ * the future to access external storage that doesn't provide a memory
+ * interface to the CPU (e.g. byte ordiented filesystem API), useful
+ * on many embedded platforms such as CC3200.
+ */
+
+#include <assert.h>
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
+
+struct fr_mem *fr_create_mem() {
+  size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
+  struct fr_mem *mem = (struct fr_mem *) calloc(1, size);
+  mem->num_pages = 0;
+  return mem;
+}
+
+void fr_destroy_mem(struct fr_mem *mem) {
+  size_t i;
+  for (i = 0; i < mem->num_pages; i++) {
+    if (!(mem->pages[i].flags & FR_MEM_FOREIGN)) {
+      free(mem->pages[i].base);
+    }
+  }
+  free(mem);
+}
+
+static void fr_realloc_mem(struct fr_mem **mem) {
+  size_t size =
+      sizeof(struct fr_mem) + sizeof(struct fr_page) * ((*mem)->num_pages - 1);
+  *mem = (struct fr_mem *) realloc(*mem, size);
+}
+
+fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
+  size_t i;
+  size_t start_page = (*mem)->num_pages;
+  size_t num_pages =
+      data_len / FR_PAGE_SIZE + (data_len % FR_PAGE_SIZE == 0 ? 0 : 1);
+
+  LOG(LL_DEBUG, ("mapping %d pages", num_pages));
+
+  (*mem)->num_pages += num_pages;
+  fr_realloc_mem(mem);
+
+  for (i = 0; i < num_pages; i++) {
+    struct fr_page *page = &(*mem)->pages[start_page + i];
+    page->flags = flags;
+    page->base = data + i * FR_PAGE_SIZE;
+  }
+
+  return start_page * FR_PAGE_SIZE;
+}
+
+int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  return page < mem->num_pages;
+}
+
+char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t off = addr % FR_PAGE_SIZE;
+  assert(page < mem->num_pages);
+  return ((char *) mem->pages[page].base)[off];
+}
+
+void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t off = addr % FR_PAGE_SIZE;
+  assert(page < mem->num_pages);
+
+  /* TODO: make this disabled in release builds */
+  if (mem->pages[page].flags & FR_MEM_RO) {
+    LOG(LL_DEBUG,
+        ("Trapping write access to read only froth memory at addr 0x%X", addr));
+    return;
+  }
+
+  ((char *) mem->pages[page].base)[off] = value;
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/froth/vm.c"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/*
+ * Froth is a simple FORTH-like language borrowing a few ideas from Factor
+ * (https://factorcode.org/).
+ * Froth is not a general purpose programming language but instead it is used
+ * to implement the MJS virtual machine.
+ *
+ * The binary encoding is documented in the froth compiler (see the
+ * `fr_codegen` docstring).
+ */
+
+#include <assert.h>
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
+/* Amalgamated: #include "mjs/froth/vm.h" */
+
+static void fr_init_stack(struct fr_stack *stack) {
+  stack->size = ARRAY_SIZE(stack->stack);
+  stack->pos = 0;
+}
+
+void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
+  memset(vm, 0, sizeof(*vm));
+  vm->code = code;
+
+  fr_init_stack(&vm->dstack);
+  fr_init_stack(&vm->rstack);
+
+  vm->iram = fr_create_mem();
+  if (code != NULL && code->opcodes != NULL) {
+    fr_mmap(&vm->iram, code->opcodes, code->opcodes_len,
+            FR_MEM_RO | FR_MEM_FOREIGN);
+  }
+}
+
+void fr_destroy_vm(struct fr_vm *vm) {
+  fr_destroy_mem(vm->iram);
+}
+
+static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
+  if (word < 0) {
+    return FR_EXIT_RUN;
+  }
+  return (fr_opcode_t) fr_read_byte(vm->iram, word);
+}
+
+static void fr_trace(struct fr_vm *vm) {
+  fr_opcode_t op = fr_fetch(vm, vm->ip);
+  fr_word_ptr_t word = fr_lookup_word(vm, op);
+  char sword[128], pad[64];
+  const char *pos_name = "???";
+  const char *name = (op >= -1 ? vm->code->word_names[op + 1] : "<rel>");
+
+  if (word < 0) {
+    fr_native_t func = vm->code->native_words[-word - 1];
+    snprintf(sword, sizeof(sword), "%s <%p>", name, func);
+  } else {
+    snprintf(sword, sizeof(sword), "%s (%04d)", name, word);
+  }
+
+  if ((size_t) vm->ip < vm->code->opcodes_len) {
+    pos_name = vm->code->pos_names[vm->ip];
+  }
+  memset(pad, ' ', sizeof(pad));
+  if (strlen(pos_name) <= 16) {
+    pad[16 - strlen(pos_name)] = '\0';
+  } else {
+    pad[0] = '\0';
+  }
+  LOG(LL_DEBUG, (">> ip:%04X (%s)%sop:%02X -> %s", vm->ip, pos_name, pad,
+                 (uint8_t) op, sword));
+}
+
+void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
+  fr_push(&vm->rstack, vm->ip);
+  vm->ip = word;
+}
+
+void fr_enter(struct fr_vm *vm, fr_word_ptr_t word) {
+  if (word >= 0 && fr_fetch(vm, vm->ip) == 0 && vm->rstack.pos > 0) {
+    LOG(LL_DEBUG, ("tail recursion"));
+    vm->ip = fr_pop(&vm->rstack);
+  }
+
+  if (word < 0) {
+    fr_native_t nat = vm->code->native_words[-word - 1];
+    LOG(LL_DEBUG, ("calling native function %p", nat));
+    nat(vm);
+  } else {
+    LOG(LL_DEBUG, ("%d is threaded word", word));
+    fr_enter_thread(vm, word);
+  }
+}
+
+void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
+  fr_opcode_t op;
+  vm->ip = word;
+
+  /* push sentinel so we can exit the loop */
+  fr_push(&vm->rstack, FR_EXIT_RUN);
+
+  while (vm->ip != FR_EXIT_RUN && fr_is_mapped(vm->iram, vm->ip)) {
+    fr_trace(vm);
+
+    op = fr_fetch(vm, vm->ip);
+    vm->ip++;
+    word = fr_lookup_word(vm, op);
+    fr_enter(vm, word);
+  }
+}
+
+fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op) {
+  if (op < -1) {
+    LOG(LL_DEBUG,
+        ("looking up relative op %d, ip:%d -> %d", op, vm->ip, vm->ip + op));
+    return vm->ip - 1 + op;
+  } else {
+    LOG(LL_DEBUG, ("looking up word_ptr for op %d", op));
+    return vm->code->table[op + 1];
+  }
+}
+
+void fr_push(struct fr_stack *stack, fr_cell_t value) {
+  stack->stack[stack->pos] = value;
+  stack->pos++;
+}
+
+fr_cell_t fr_pop(struct fr_stack *stack) {
+  assert(stack->pos > 0);
+  stack->pos--;
+  return stack->stack[stack->pos];
+}
+
+void fr_op_todo(struct fr_vm *vm) {
+  (void) vm;
+  LOG(LL_ERROR, ("TODO: stub"));
+}
+
+void fr_op_quote(struct fr_vm *vm) {
+  fr_cell_t lit;
+  (void) vm;
+  lit = (uint8_t) fr_fetch(vm, vm->ip);
+  lit <<= 8;
+  lit |= (uint8_t) fr_fetch(vm, vm->ip + 1);
+  vm->ip += 2;
+  LOG(LL_DEBUG, ("quoting %d", lit));
+  fr_push(&vm->dstack, lit);
+}
+
+void fr_op_exit(struct fr_vm *vm) {
+  vm->ip = fr_pop(&vm->rstack);
+}
+
+void fr_op_drop(struct fr_vm *vm) {
+  fr_pop(&vm->dstack);
+}
+
+void fr_op_dup(struct fr_vm *vm) {
+  fr_cell_t v = fr_pop(&vm->dstack);
+  /*
+   * could be done more efficiently but this way we reuse the asserts and guards
+   * in the stack primitives.
+   */
+  fr_push(&vm->dstack, v);
+  fr_push(&vm->dstack, v);
+}
+
+void fr_op_swap(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_cell_t b = fr_pop(&vm->dstack);
+  /*
+   * could be done more efficiently but this way we reuse the asserts and guards
+   * in the stack primitives.
+   */
+  fr_push(&vm->dstack, a);
+  fr_push(&vm->dstack, b);
+}
+
+void fr_op_over(struct fr_vm *vm) {
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_cell_t a = fr_pop(&vm->dstack);
+  /*
+   * could be done more efficiently but this way we reuse the asserts and guards
+   * in the stack primitives.
+   */
+  fr_push(&vm->dstack, a);
+  fr_push(&vm->dstack, b);
+  fr_push(&vm->dstack, a);
+}
+
+void fr_op_pushr(struct fr_vm *vm) {
+  fr_push(&vm->rstack, fr_pop(&vm->dstack));
+}
+
+void fr_op_popr(struct fr_vm *vm) {
+  fr_push(&vm->dstack, fr_pop(&vm->rstack));
+}
+
+void fr_op_print(struct fr_vm *vm) {
+  fr_cell_t v = fr_pop(&vm->dstack);
+  LOG(LL_DEBUG, ("%d", v));
+  printf("%d\n", v);
+}
+
+void fr_op_eq(struct fr_vm *vm) {
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, a == b ? -1 : 0);
+}
+
+void fr_op_lt(struct fr_vm *vm) {
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, a < b ? -1 : 0);
+}
+
+void fr_op_invert(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, ~a);
+}
+
+void fr_op_add(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, a + b);
+}
+
+void fr_op_mul(struct fr_vm *vm) {
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, a * b);
+}
+
+void fr_op_call(struct fr_vm *vm) {
+  fr_enter(vm, fr_pop(&vm->dstack));
+}
+
+void fr_op_if(struct fr_vm *vm) {
+  fr_cell_t iftrue = fr_pop(&vm->dstack);
+  fr_cell_t cond = fr_pop(&vm->dstack);
+  if (cond) {
+    fr_enter(vm, iftrue);
+  }
+}
+
+void fr_op_ifelse(struct fr_vm *vm) {
+  fr_cell_t iffalse = fr_pop(&vm->dstack);
+  fr_cell_t iftrue = fr_pop(&vm->dstack);
+  fr_cell_t cond = fr_pop(&vm->dstack);
+  fr_enter(vm, (cond ? iftrue : iffalse));
+}
+#ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.c"
 #endif
 /* clang-format off */
@@ -4463,7 +4863,8 @@ const char *utfnshift(const char *s, long m) {
   #include <assert.h>
   #include <string.h>
 /* Amalgamated:   #include "mjs/parser_state.h" */
-#line 34 "mjs/mjs.lem.c"
+/* Amalgamated:   #include "mjs/vm_bcode.h" */
+#line 35 "mjs/mjs.lem.c"
 /**************** End of %include directives **********************************/
 /* These constants specify the various numeric values for terminal symbols
 ** in a format understandable to "makeheaders".  This section is blank unless
@@ -4529,7 +4930,7 @@ const char *utfnshift(const char *s, long m) {
 typedef union {
   int yyinit;
   mjsParserTOKENTYPE yy0;
-  int yy156;
+  fr_word_ptr_t yy92;
 } YYMINORTYPE;
 #ifndef YYSTACKDEPTH
 #define YYSTACKDEPTH 100
@@ -4621,103 +5022,103 @@ typedef union {
 *********** Begin parsing tables **********************************************/
 #define YY_ACTTAB_COUNT (1406)
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */   288,  289,  290,  291,  292,  293,  294,  295,  296,  297,
- /*    10 */   298,  299,  300,  301,  302,  303,  304,  305,  306,  307,
- /*    20 */   308,  309,  310,  311,  312,  313,  314,  315,  316,  317,
- /*    30 */   318,  319,  320,  321,  322,  323,  324,  325,  326,  327,
- /*    40 */   328,  329,  330,  331,  332,  333,  334,  335,  336,  337,
- /*    50 */   338,  339,  340,  341,  342,  343,  344,  345,  346,  347,
- /*    60 */   348,  349,  350,  351,  352,  353,  354,  355,  356,  357,
- /*    70 */   358,  359,  360,  361,  362,  363,  364,  365,  366,  367,
- /*    80 */   368,  369,  370,  371,  372,  373,  374,  375,  376,  377,
- /*    90 */   378,  379,  380,  381,  382,  383,  384,  385,  386,  387,
- /*   100 */   463,  464,  471,  436,   61,   62,   23,   38,  457,   14,
+ /*     0 */   294,  295,  296,  297,  298,  299,  300,  301,  302,  303,
+ /*    10 */   304,  305,  306,  307,  308,  309,  310,  311,  312,  313,
+ /*    20 */   314,  315,  316,  317,  318,  319,  320,  321,  322,  323,
+ /*    30 */   324,  325,  326,  327,  328,  329,  330,  331,  332,  333,
+ /*    40 */   334,  335,  336,  337,  338,  339,  340,  341,  342,  343,
+ /*    50 */   344,  345,  346,  347,  348,  349,  350,  351,  352,  353,
+ /*    60 */   354,  355,  356,  357,  358,  359,  360,  361,  362,  363,
+ /*    70 */   364,  365,  366,  367,  368,  369,  370,  371,  372,  373,
+ /*    80 */   374,  375,  376,  377,  378,  379,  380,  381,  382,  383,
+ /*    90 */   384,  385,  386,  387,  388,  389,  390,  391,  392,  393,
+ /*   100 */   293,  464,  471,  437,   61,   62,   23,   38,  458,   14,
  /*   110 */    47,   45,   46,   44,   84,   69,   69,  116,  116,  478,
  /*   120 */   477,  139,  476,   69,  138,   69,   69,   69,   43,   42,
- /*   130 */   416,  417,   53,   55,   49,   51,   39,   41,   40,   57,
+ /*   130 */   420,  421,   53,   55,   49,   51,   39,   41,   40,   57,
  /*   140 */    54,   52,   50,   48,   60,   58,   56,   83,   69,   69,
- /*   150 */   455,   59,   38,  129,  472,  126,   69,   68,   69,   69,
- /*   160 */    69,  470,  391,  132,  120,  135,  118,  118,  126,  460,
- /*   170 */    18,  119,  462,  119,  469,  416,  417,  392,  121,  133,
- /*   180 */   121,   65,  461,  673,  463,  464,  674,  436,   61,  453,
- /*   190 */    23,   12,  672,   14,   24,  122,  122,   63,  459,   66,
- /*   200 */   438,   13,   20,   36,   31,   33,   32,   26,   35,   34,
+ /*   150 */   456,   59,   38,  129,  472,  126,   69,   68,   69,   69,
+ /*   160 */    69,  470,  395,  132,  120,  135,  118,  118,  126,  461,
+ /*   170 */    18,  119,  463,  119,  469,  420,  421,  396,  121,  133,
+ /*   180 */   121,   65,  462,  673,  293,  464,  674,  437,   61,  454,
+ /*   190 */    23,   12,  672,   14,   24,  122,  122,   63,  460,   66,
+ /*   200 */   439,   13,   20,   36,   31,   33,   32,   26,   35,   34,
  /*   210 */    25,   27,   30,   29,   28,    2,   53,   55,   49,   51,
- /*   220 */    84,   69,   69,   57,  439,   81,   69,   69,   19,   69,
+ /*   220 */    84,   69,   69,   57,  440,   81,   69,   69,   19,   69,
  /*   230 */   479,   69,   69,   69,   69,   59,   69,   69,   69,  127,
  /*   240 */    67,  128,  117,    3,   64,  470,   15,  132,  120,  135,
- /*   250 */   136,   67,   16,  460,   18,   17,  462,   21,  469,    5,
- /*   260 */    22,    7,   64,  133,   37,   65,  461,  485,  463,  464,
- /*   270 */   584,  436,   61,  451,   23,   12,    4,   14,   24,  485,
+ /*   250 */   136,   67,   16,  461,   18,   17,  463,   21,  469,    5,
+ /*   260 */    22,    7,   64,  133,   37,   65,  462,  485,  293,  464,
+ /*   270 */   590,  437,   61,  452,   23,   12,    4,   14,   24,  485,
  /*   280 */   485,  485,  485,  485,  485,  485,  485,   36,   31,   33,
  /*   290 */    32,   26,   35,   34,   25,   27,   30,   29,   28,  485,
- /*   300 */    53,   55,   49,   51,  485,    9,    9,   57,  485,   73,
- /*   310 */    69,   69,  485,  485,  485,  485,    9,  485,   69,   59,
+ /*   300 */    53,   55,   49,   51,  485,    9,  289,   57,  485,   73,
+ /*   310 */    69,   69,  485,  485,  485,  485,  289,  485,   69,   59,
  /*   320 */    69,   69,   69,  118,  118,  126,  485,  485,  485,  470,
- /*   330 */   485,  132,  120,  135,  485,  485,  485,  460,   18,  485,
- /*   340 */   462,  485,  469,  485,  485,  485,  485,  133,  485,   65,
- /*   350 */   461,  485,  463,  464,  485,  436,   61,  454,   23,   12,
+ /*   330 */   485,  132,  120,  135,  485,  485,  485,  461,   18,  485,
+ /*   340 */   463,  485,  469,  485,  485,  485,  485,  133,  485,   65,
+ /*   350 */   462,  485,  293,  464,  485,  437,   61,  455,   23,   12,
  /*   360 */     6,   14,   24,  485,  485,  485,  485,  485,  485,  485,
  /*   370 */   485,   36,   31,   33,   32,   26,   35,   34,   25,   27,
  /*   380 */    30,   29,   28,  485,   53,   55,   49,   51,  485,  485,
- /*   390 */   485,   57,  680,  485,   11,   11,  485,  485,   73,   69,
- /*   400 */    69,  485,  485,   59,  485,   11,  485,   69,  485,   69,
+ /*   390 */   485,   57,  680,  485,   11,  289,  485,  485,   73,   69,
+ /*   400 */    69,  485,  485,   59,  485,  289,  485,   69,  485,   69,
  /*   410 */    69,   69,  485,  470,  485,  132,  120,  135,  485,  485,
- /*   420 */   485,  460,   18,  485,  462,  485,  469,  485,  485,  485,
- /*   430 */   485,  133,  485,   65,  461,  483,  485,  463,  464,  485,
- /*   440 */   436,   61,   12,   23,  485,   24,   14,  485,  485,  396,
+ /*   420 */   485,  461,   18,  485,  463,  485,  469,  485,  485,  485,
+ /*   430 */   485,  133,  485,   65,  462,  483,  485,  293,  464,  485,
+ /*   440 */   437,   61,   12,   23,  485,   24,   14,  485,  485,  400,
  /*   450 */   485,  485,  485,  485,   36,   31,   33,   32,   26,   35,
  /*   460 */    34,   25,   27,   30,   29,   28,  485,  485,  485,   53,
- /*   470 */    55,   49,   51,  485,  485,  485,   57,  485,    8,    8,
- /*   480 */   485,  485,   73,   69,   69,  485,  485,  485,   59,    8,
+ /*   470 */    55,   49,   51,  485,  485,  485,   57,  485,    8,  289,
+ /*   480 */   485,  485,   73,   69,   69,  485,  485,  485,   59,  289,
  /*   490 */   485,   69,  485,   69,   69,   69,  485,  485,  470,  485,
- /*   500 */   132,  120,  135,  485,  485,  485,  460,   18,  485,  462,
- /*   510 */   485,  469,  485,  485,  485,  485,  133,  485,   65,  461,
- /*   520 */   485,  124,  123,  485,  125,   61,  485,   23,   12,  435,
+ /*   500 */   132,  120,  135,  485,  485,  485,  461,   18,  485,  463,
+ /*   510 */   485,  469,  485,  485,  485,  485,  133,  485,   65,  462,
+ /*   520 */   485,  124,  123,  485,  125,   61,  485,   23,   12,  292,
  /*   530 */    14,   24,  485,  485,  485,  485,  485,  485,  485,  485,
  /*   540 */    36,   31,   33,   32,   26,   35,   34,   25,   27,   30,
  /*   550 */    29,   28,  485,   53,   55,   49,   51,  485,  485,  485,
- /*   560 */    57,  447,  485,  485,   73,   69,   69,  485,  485,  447,
- /*   570 */   485,  447,   59,   69,  485,   69,   69,   69,  485,  485,
+ /*   560 */    57,  448,  485,  485,   73,   69,   69,  485,  485,  448,
+ /*   570 */   485,  448,   59,   69,  485,   69,   69,   69,  485,  485,
  /*   580 */   485,  485,  470,  485,  132,  120,  135,  485,  485,  485,
- /*   590 */   460,   18,  485,  462,  485,  469,   38,  485,  485,  485,
- /*   600 */   133,  485,   65,  461,  485,  463,  464,  485,  436,   61,
- /*   610 */   485,   23,  485,  485,   14,  485,  485,   43,   42,  416,
- /*   620 */   417,  485,  485,  485,  485,   39,   41,   40,  485,   54,
+ /*   590 */   461,   18,  485,  463,  485,  469,   38,  485,  485,  485,
+ /*   600 */   133,  485,   65,  462,  485,  293,  464,  485,  437,   61,
+ /*   610 */   485,   23,  485,  485,   14,  485,  485,   43,   42,  420,
+ /*   620 */   421,  485,  485,  485,  485,   39,   41,   40,  485,   54,
  /*   630 */    52,   50,   48,   60,   58,   56,  485,   53,   55,   49,
- /*   640 */    51,  485,  485,  485,   57,  485,  485,  446,  485,  485,
- /*   650 */    73,   69,   69,  485,  485,  446,   59,  446,  485,   69,
+ /*   640 */    51,  485,  485,  485,   57,  485,  485,  447,  485,  485,
+ /*   650 */    73,   69,   69,  485,  485,  447,   59,  447,  485,   69,
  /*   660 */   485,   69,   69,   69,  485,  485,  470,  485,  132,  120,
- /*   670 */   135,  485,  485,  485,  460,   18,  485,  462,  485,  469,
- /*   680 */   485,  485,  485,  485,  133,  485,   65,  461,  485,  463,
- /*   690 */   464,  485,  436,    1,  485,   23,   12,  485,   14,   24,
- /*   700 */   443,  485,  485,  485,  485,  485,  485,  485,   36,   31,
+ /*   670 */   135,  485,  485,  485,  461,   18,  485,  463,  485,  469,
+ /*   680 */   485,  485,  485,  485,  133,  485,   65,  462,  485,  293,
+ /*   690 */   464,  485,  437,    1,  485,   23,   12,  485,   14,   24,
+ /*   700 */   444,  485,  485,  485,  485,  485,  485,  485,   36,   31,
  /*   710 */    33,   32,   26,   35,   34,   25,   27,   30,   29,   28,
- /*   720 */   485,   53,   55,   49,   51,  485,  485,  445,   57,  485,
- /*   730 */    73,   69,   69,  485,  485,  445,  485,  445,  485,   69,
+ /*   720 */   485,   53,   55,   49,   51,  485,  485,  446,   57,  485,
+ /*   730 */    73,   69,   69,  485,  485,  446,  485,  446,  485,   69,
  /*   740 */    59,   69,   69,   69,  485,  485,  485,  485,  485,  485,
- /*   750 */   470,  485,  132,  120,  135,  485,  485,  485,  460,   18,
- /*   760 */   485,  462,  485,  469,  485,  485,  485,  485,  133,  485,
- /*   770 */    65,  461,  485,  463,  464,  485,  436,   61,  485,   23,
- /*   780 */    12,  485,   14,   24,  485,  485,  458,  485,  485,  485,
+ /*   750 */   470,  485,  132,  120,  135,  485,  485,  485,  461,   18,
+ /*   760 */   485,  463,  485,  469,  485,  485,  485,  485,  133,  485,
+ /*   770 */    65,  462,  485,  293,  464,  485,  437,   61,  485,   23,
+ /*   780 */    12,  485,   14,   24,  485,  485,  459,  485,  485,  485,
  /*   790 */   485,  485,   36,   31,   33,   32,   26,   35,   34,   25,
  /*   800 */    27,   30,   29,   28,  485,   53,   55,   49,   51,   83,
  /*   810 */    69,   69,   57,  485,  485,  130,  485,  485,   69,  485,
- /*   820 */    69,   69,   69,  485,   59,  485,  485,  463,  464,  485,
- /*   830 */   436,   61,  485,   23,  470,  485,   14,  137,  434,  434,
- /*   840 */   485,  485,  460,  485,  485,  462,  434,  469,  434,  434,
- /*   850 */   434,  485,  485,  485,  485,  461,  485,  485,  485,   53,
+ /*   820 */    69,   69,   69,  485,   59,  485,  485,  293,  464,  485,
+ /*   830 */   437,   61,  485,   23,  470,  485,   14,  137,  436,  436,
+ /*   840 */   485,  485,  461,  485,  485,  463,  436,  469,  436,  436,
+ /*   850 */   436,  485,  485,  485,  485,  462,  485,  485,  485,   53,
  /*   860 */    55,   49,   51,  485,  485,  134,   57,  485,   73,   69,
  /*   870 */    69,  485,  485,  134,  485,  134,  485,   69,   59,   69,
  /*   880 */    69,   69,  485,  485,  485,  485,  485,  485,  470,   10,
- /*   890 */    10,  137,   38,   73,   69,   69,  460,  485,  485,  462,
- /*   900 */    10,  469,   69,  485,   69,   69,   69,  485,  485,  461,
- /*   910 */   485,  485,  485,   43,   42,  416,  417,  485,  485,  485,
+ /*   890 */   289,  137,   38,   73,   69,   69,  461,  485,  485,  463,
+ /*   900 */   289,  469,   69,  485,   69,   69,   69,  485,  485,  462,
+ /*   910 */   485,  485,  485,   43,   42,  420,  421,  485,  485,  485,
  /*   920 */   485,   39,   41,   40,  485,  485,  485,  485,  485,   60,
- /*   930 */    58,   56,  485,  485,  389,  485,  485,   73,   69,   69,
- /*   940 */   485,  485,  485,  485,  389,   38,   69,  485,   69,   69,
+ /*   930 */    58,   56,  485,  485,  288,  485,  485,   73,   69,   69,
+ /*   940 */   485,  485,  485,  485,  288,   38,   69,  485,   69,   69,
  /*   950 */    69,  485,   83,   69,   69,  485,  485,  485,  131,  485,
- /*   960 */   485,   69,  485,   69,   69,   69,   43,   42,  416,  417,
+ /*   960 */   485,   69,  485,   69,   69,   69,   43,   42,  420,  421,
  /*   970 */    70,   69,   69,  485,   39,   41,   40,  485,  485,   69,
  /*   980 */   485,   69,   69,   69,  485,   80,   69,   69,  485,  485,
  /*   990 */    82,   69,   69,  485,   69,  485,   69,   69,   69,   69,
@@ -4760,7 +5161,7 @@ static const YYACTIONTYPE yy_action[] = {
  /*  1360 */   114,  485,  114,  114,  114,  103,  103,  485,  485,  485,
  /*  1370 */   485,  485,  485,  103,   38,  103,  103,  103,  115,  115,
  /*  1380 */   485,  485,  485,  102,  102,  485,  115,  485,  115,  115,
- /*  1390 */   115,  102,  485,  102,  102,  102,  485,  416,  417,  485,
+ /*  1390 */   115,  102,  485,  102,  102,  102,  485,  420,  421,  485,
  /*  1400 */   485,  485,  485,   39,   41,   40,
 };
 static const YYCODETYPE yy_lookahead[] = {
@@ -4941,19 +5342,19 @@ static const short yy_reduce_ofst[] = {
 };
 static const YYACTIONTYPE yy_default[] = {
  /*     0 */   679,  670,  679,  679,  679,  679,  679,  679,  679,  679,
- /*    10 */   679,  679,  638,  638,  678,  644,  644,  644,  679,  679,
+ /*    10 */   679,  679,  639,  639,  678,  645,  645,  645,  679,  679,
  /*    20 */   679,  679,  679,  679,  679,  679,  679,  679,  679,  679,
  /*    30 */   679,  679,  679,  679,  679,  679,  679,  679,  679,  679,
  /*    40 */   679,  679,  679,  679,  679,  679,  679,  679,  679,  679,
  /*    50 */   679,  679,  679,  679,  679,  679,  679,  679,  679,  679,
- /*    60 */   679,  670,  679,  679,  679,  679,  679,  679,  679,  605,
- /*    70 */   679,  679,  679,  679,  679,  624,  623,  622,  621,  679,
- /*    80 */   676,  677,  671,  645,  637,  604,  603,  602,  601,  600,
- /*    90 */   599,  598,  597,  596,  595,  594,  593,  590,  617,  618,
- /*   100 */   619,  620,  614,  615,  616,  626,  625,  609,  608,  629,
- /*   110 */   628,  627,  611,  610,  607,  606,  679,  679,  679,  679,
- /*   120 */   679,  679,  679,  660,  659,  632,  679,  679,  679,  679,
- /*   130 */   679,  679,  679,  679,  640,  679,  679,  679,  591,  679,
+ /*    60 */   679,  670,  679,  679,  679,  679,  679,  679,  679,  609,
+ /*    70 */   679,  679,  679,  679,  679,  628,  627,  626,  625,  679,
+ /*    80 */   676,  677,  671,  646,  638,  608,  607,  606,  605,  604,
+ /*    90 */   603,  602,  601,  600,  599,  598,  597,  594,  621,  622,
+ /*   100 */   623,  624,  618,  619,  620,  629,  486,  613,  612,  631,
+ /*   110 */   630,  487,  615,  614,  611,  610,  679,  679,  679,  679,
+ /*   120 */   679,  679,  679,  660,  489,  633,  679,  679,  679,  679,
+ /*   130 */   679,  679,  679,  679,  641,  679,  679,  679,  595,  679,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -5098,182 +5499,182 @@ static const char *const yyTokenName[] = {
 */
 static const char *const yyRuleName[] = {
  /*   0 */ "program ::= stmtlist",
- /*   1 */ "dummy ::= END_OF_INPUT",
- /*   2 */ "dummy ::= NUMBER",
- /*   3 */ "dummy ::= STRING_LITERAL",
- /*   4 */ "dummy ::= REGEX_LITERAL",
- /*   5 */ "dummy ::= IDENTIFIER",
- /*   6 */ "dummy ::= OPEN_CURLY",
- /*   7 */ "dummy ::= CLOSE_CURLY",
- /*   8 */ "dummy ::= OPEN_PAREN",
- /*   9 */ "dummy ::= CLOSE_PAREN",
- /*  10 */ "dummy ::= COMMA",
- /*  11 */ "dummy ::= OPEN_BRACKET",
- /*  12 */ "dummy ::= CLOSE_BRACKET",
- /*  13 */ "dummy ::= DOT",
- /*  14 */ "dummy ::= COLON",
- /*  15 */ "dummy ::= SEMICOLON",
- /*  16 */ "dummy ::= EQ",
- /*  17 */ "dummy ::= EQ_EQ",
- /*  18 */ "dummy ::= NE",
- /*  19 */ "dummy ::= NE_NE",
- /*  20 */ "dummy ::= ASSIGN",
- /*  21 */ "dummy ::= REM_ASSIGN",
- /*  22 */ "dummy ::= MUL_ASSIGN",
- /*  23 */ "dummy ::= DIV_ASSIGN",
- /*  24 */ "dummy ::= XOR_ASSIGN",
- /*  25 */ "dummy ::= PLUS_ASSIGN",
- /*  26 */ "dummy ::= MINUS_ASSIGN",
- /*  27 */ "dummy ::= OR_ASSIGN",
- /*  28 */ "dummy ::= AND_ASSIGN",
- /*  29 */ "dummy ::= LSHIFT_ASSIGN",
- /*  30 */ "dummy ::= RSHIFT_ASSIGN",
- /*  31 */ "dummy ::= URSHIFT_ASSIGN",
- /*  32 */ "dummy ::= AND",
- /*  33 */ "dummy ::= LOGICAL_OR",
- /*  34 */ "dummy ::= PLUS",
- /*  35 */ "dummy ::= MINUS",
- /*  36 */ "dummy ::= PLUS_PLUS",
- /*  37 */ "dummy ::= MINUS_MINUS",
- /*  38 */ "dummy ::= LOGICAL_AND",
- /*  39 */ "dummy ::= OR",
- /*  40 */ "dummy ::= QUESTION",
- /*  41 */ "dummy ::= TILDA",
- /*  42 */ "dummy ::= REM",
- /*  43 */ "dummy ::= MUL",
- /*  44 */ "dummy ::= DIV",
- /*  45 */ "dummy ::= XOR",
- /*  46 */ "dummy ::= LE",
- /*  47 */ "dummy ::= LT",
- /*  48 */ "dummy ::= GE",
- /*  49 */ "dummy ::= GT",
- /*  50 */ "dummy ::= LSHIFT",
- /*  51 */ "dummy ::= RSHIFT",
- /*  52 */ "dummy ::= URSHIFT",
- /*  53 */ "dummy ::= NOT",
- /*  54 */ "dummy ::= BREAK",
- /*  55 */ "dummy ::= CASE",
- /*  56 */ "dummy ::= CATCH",
- /*  57 */ "dummy ::= CONTINUE",
- /*  58 */ "dummy ::= DEBUGGER",
- /*  59 */ "dummy ::= DEFAULT",
- /*  60 */ "dummy ::= DELETE",
- /*  61 */ "dummy ::= DO",
- /*  62 */ "dummy ::= ELSE",
- /*  63 */ "dummy ::= FALSE",
- /*  64 */ "dummy ::= FINALLY",
- /*  65 */ "dummy ::= FOR",
- /*  66 */ "dummy ::= FUNCTION",
- /*  67 */ "dummy ::= IF",
- /*  68 */ "dummy ::= IN",
- /*  69 */ "dummy ::= INSTANCEOF",
- /*  70 */ "dummy ::= NEW",
- /*  71 */ "dummy ::= NULL",
- /*  72 */ "dummy ::= RETURN",
- /*  73 */ "dummy ::= SWITCH",
- /*  74 */ "dummy ::= THIS",
- /*  75 */ "dummy ::= THROW",
- /*  76 */ "dummy ::= TRUE",
- /*  77 */ "dummy ::= TRY",
- /*  78 */ "dummy ::= TYPEOF",
- /*  79 */ "dummy ::= VAR",
- /*  80 */ "dummy ::= VOID",
- /*  81 */ "dummy ::= WHILE",
- /*  82 */ "dummy ::= WITH",
- /*  83 */ "dummy ::= LET",
- /*  84 */ "dummy ::= UNDEFINED",
- /*  85 */ "dummy ::= CLASS",
- /*  86 */ "dummy ::= ENUM",
- /*  87 */ "dummy ::= EXTENDS",
- /*  88 */ "dummy ::= SUPER",
- /*  89 */ "dummy ::= CONST",
- /*  90 */ "dummy ::= EXPORT",
- /*  91 */ "dummy ::= IMPORT",
- /*  92 */ "dummy ::= IMPLEMENTS",
- /*  93 */ "dummy ::= PRIVATE",
- /*  94 */ "dummy ::= PUBLIC",
- /*  95 */ "dummy ::= INTERFACE",
- /*  96 */ "dummy ::= PACKAGE",
- /*  97 */ "dummy ::= PROTECTED",
- /*  98 */ "dummy ::= STATIC",
- /*  99 */ "dummy ::= YIELD",
- /* 100 */ "dummy ::= THEN",
- /* 101 */ "program ::= NUM_TOKENS dummy",
- /* 102 */ "stmtlist ::= stmtlist stmt",
- /* 103 */ "stmtlist ::= stmt",
- /* 104 */ "stmt ::= LET letspecs SEMICOLON",
- /* 105 */ "letspecs ::= letspecs COMMA letspec",
- /* 106 */ "letspecs ::= letspec",
- /* 107 */ "letspec ::= IDENTIFIER ASSIGN expr",
- /* 108 */ "letspec ::= IDENTIFIER",
- /* 109 */ "stmt ::= expr SEMICOLON",
- /* 110 */ "expr ::= expr ASSIGN expr",
- /* 111 */ "expr ::= expr PLUS_ASSIGN expr",
- /* 112 */ "expr ::= expr MINUS_ASSIGN expr",
- /* 113 */ "expr ::= expr MUL_ASSIGN expr",
- /* 114 */ "expr ::= expr DIV_ASSIGN expr",
- /* 115 */ "expr ::= expr REM_ASSIGN expr",
- /* 116 */ "expr ::= expr LSHIFT_ASSIGN expr",
- /* 117 */ "expr ::= expr RSHIFT_ASSIGN expr",
- /* 118 */ "expr ::= expr URSHIFT_ASSIGN expr",
- /* 119 */ "expr ::= expr AND_ASSIGN expr",
- /* 120 */ "expr ::= expr XOR_ASSIGN expr",
- /* 121 */ "expr ::= expr OR_ASSIGN expr",
- /* 122 */ "expr ::= sexp",
- /* 123 */ "sexp ::= NOT sexp",
- /* 124 */ "sexp ::= TILDA sexp",
- /* 125 */ "sexp ::= MINUS sexp",
- /* 126 */ "sexp ::= PLUS sexp",
- /* 127 */ "sexp ::= MINUS_MINUS sexp",
- /* 128 */ "sexp ::= PLUS_PLUS sexp",
- /* 129 */ "sexp ::= sexp PLUS_PLUS",
- /* 130 */ "sexp ::= sexp MINUS_MINUS",
- /* 131 */ "sexp ::= sexp LSHIFT sexp",
- /* 132 */ "sexp ::= sexp RSHIFT sexp",
- /* 133 */ "sexp ::= sexp URSHIFT sexp",
- /* 134 */ "sexp ::= sexp LE sexp",
- /* 135 */ "sexp ::= sexp LT sexp",
- /* 136 */ "sexp ::= sexp GE sexp",
- /* 137 */ "sexp ::= sexp GT sexp",
- /* 138 */ "sexp ::= sexp EQ sexp",
- /* 139 */ "sexp ::= sexp NE sexp",
- /* 140 */ "sexp ::= sexp EQ_EQ sexp",
- /* 141 */ "sexp ::= sexp NE_NE sexp",
- /* 142 */ "sexp ::= sexp PLUS sexp",
- /* 143 */ "sexp ::= sexp MINUS sexp",
- /* 144 */ "sexp ::= sexp MUL sexp",
- /* 145 */ "sexp ::= sexp DIV sexp",
- /* 146 */ "sexp ::= sexp REM sexp",
- /* 147 */ "sexp ::= sexp DOT sexp",
- /* 148 */ "sexp ::= OPEN_PAREN expr CLOSE_PAREN",
- /* 149 */ "sexp ::= IDENTIFIER",
- /* 150 */ "sexp ::= literal",
- /* 151 */ "expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN",
- /* 152 */ "callarglist ::= callarglist COMMA callarg",
- /* 153 */ "callarglist ::= callarg",
- /* 154 */ "callarg ::= expr",
- /* 155 */ "callarg ::=",
- /* 156 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
- /* 157 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block",
- /* 158 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block",
- /* 159 */ "stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block",
- /* 160 */ "stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block",
- /* 161 */ "optexpr ::=",
- /* 162 */ "optexpr ::= expr",
- /* 163 */ "block ::= stmt",
- /* 164 */ "block ::= OPEN_CURLY stmtlist CLOSE_CURLY",
- /* 165 */ "stmt ::= funcdecl",
- /* 166 */ "funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
- /* 167 */ "func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
- /* 168 */ "arglist ::= arglist COMMA argspec",
- /* 169 */ "arglist ::= argspec",
- /* 170 */ "argspec ::= IDENTIFIER",
- /* 171 */ "stmt ::= RETURN SEMICOLON",
- /* 172 */ "stmt ::= RETURN expr SEMICOLON",
- /* 173 */ "literal ::= NULL",
- /* 174 */ "literal ::= UNDEFINED",
- /* 175 */ "literal ::= THIS",
- /* 176 */ "literal ::= NUMBER",
+ /*   1 */ "stmtlist ::= stmtlist stmt",
+ /*   2 */ "stmtlist ::= stmt",
+ /*   3 */ "sexp ::= sexp PLUS sexp",
+ /*   4 */ "sexp ::= sexp MUL sexp",
+ /*   5 */ "sexp ::= OPEN_PAREN expr CLOSE_PAREN",
+ /*   6 */ "literal ::= NUMBER",
+ /*   7 */ "dummy ::= END_OF_INPUT",
+ /*   8 */ "dummy ::= NUMBER",
+ /*   9 */ "dummy ::= STRING_LITERAL",
+ /*  10 */ "dummy ::= REGEX_LITERAL",
+ /*  11 */ "dummy ::= IDENTIFIER",
+ /*  12 */ "dummy ::= OPEN_CURLY",
+ /*  13 */ "dummy ::= CLOSE_CURLY",
+ /*  14 */ "dummy ::= OPEN_PAREN",
+ /*  15 */ "dummy ::= CLOSE_PAREN",
+ /*  16 */ "dummy ::= COMMA",
+ /*  17 */ "dummy ::= OPEN_BRACKET",
+ /*  18 */ "dummy ::= CLOSE_BRACKET",
+ /*  19 */ "dummy ::= DOT",
+ /*  20 */ "dummy ::= COLON",
+ /*  21 */ "dummy ::= SEMICOLON",
+ /*  22 */ "dummy ::= EQ",
+ /*  23 */ "dummy ::= EQ_EQ",
+ /*  24 */ "dummy ::= NE",
+ /*  25 */ "dummy ::= NE_NE",
+ /*  26 */ "dummy ::= ASSIGN",
+ /*  27 */ "dummy ::= REM_ASSIGN",
+ /*  28 */ "dummy ::= MUL_ASSIGN",
+ /*  29 */ "dummy ::= DIV_ASSIGN",
+ /*  30 */ "dummy ::= XOR_ASSIGN",
+ /*  31 */ "dummy ::= PLUS_ASSIGN",
+ /*  32 */ "dummy ::= MINUS_ASSIGN",
+ /*  33 */ "dummy ::= OR_ASSIGN",
+ /*  34 */ "dummy ::= AND_ASSIGN",
+ /*  35 */ "dummy ::= LSHIFT_ASSIGN",
+ /*  36 */ "dummy ::= RSHIFT_ASSIGN",
+ /*  37 */ "dummy ::= URSHIFT_ASSIGN",
+ /*  38 */ "dummy ::= AND",
+ /*  39 */ "dummy ::= LOGICAL_OR",
+ /*  40 */ "dummy ::= PLUS",
+ /*  41 */ "dummy ::= MINUS",
+ /*  42 */ "dummy ::= PLUS_PLUS",
+ /*  43 */ "dummy ::= MINUS_MINUS",
+ /*  44 */ "dummy ::= LOGICAL_AND",
+ /*  45 */ "dummy ::= OR",
+ /*  46 */ "dummy ::= QUESTION",
+ /*  47 */ "dummy ::= TILDA",
+ /*  48 */ "dummy ::= REM",
+ /*  49 */ "dummy ::= MUL",
+ /*  50 */ "dummy ::= DIV",
+ /*  51 */ "dummy ::= XOR",
+ /*  52 */ "dummy ::= LE",
+ /*  53 */ "dummy ::= LT",
+ /*  54 */ "dummy ::= GE",
+ /*  55 */ "dummy ::= GT",
+ /*  56 */ "dummy ::= LSHIFT",
+ /*  57 */ "dummy ::= RSHIFT",
+ /*  58 */ "dummy ::= URSHIFT",
+ /*  59 */ "dummy ::= NOT",
+ /*  60 */ "dummy ::= BREAK",
+ /*  61 */ "dummy ::= CASE",
+ /*  62 */ "dummy ::= CATCH",
+ /*  63 */ "dummy ::= CONTINUE",
+ /*  64 */ "dummy ::= DEBUGGER",
+ /*  65 */ "dummy ::= DEFAULT",
+ /*  66 */ "dummy ::= DELETE",
+ /*  67 */ "dummy ::= DO",
+ /*  68 */ "dummy ::= ELSE",
+ /*  69 */ "dummy ::= FALSE",
+ /*  70 */ "dummy ::= FINALLY",
+ /*  71 */ "dummy ::= FOR",
+ /*  72 */ "dummy ::= FUNCTION",
+ /*  73 */ "dummy ::= IF",
+ /*  74 */ "dummy ::= IN",
+ /*  75 */ "dummy ::= INSTANCEOF",
+ /*  76 */ "dummy ::= NEW",
+ /*  77 */ "dummy ::= NULL",
+ /*  78 */ "dummy ::= RETURN",
+ /*  79 */ "dummy ::= SWITCH",
+ /*  80 */ "dummy ::= THIS",
+ /*  81 */ "dummy ::= THROW",
+ /*  82 */ "dummy ::= TRUE",
+ /*  83 */ "dummy ::= TRY",
+ /*  84 */ "dummy ::= TYPEOF",
+ /*  85 */ "dummy ::= VAR",
+ /*  86 */ "dummy ::= VOID",
+ /*  87 */ "dummy ::= WHILE",
+ /*  88 */ "dummy ::= WITH",
+ /*  89 */ "dummy ::= LET",
+ /*  90 */ "dummy ::= UNDEFINED",
+ /*  91 */ "dummy ::= CLASS",
+ /*  92 */ "dummy ::= ENUM",
+ /*  93 */ "dummy ::= EXTENDS",
+ /*  94 */ "dummy ::= SUPER",
+ /*  95 */ "dummy ::= CONST",
+ /*  96 */ "dummy ::= EXPORT",
+ /*  97 */ "dummy ::= IMPORT",
+ /*  98 */ "dummy ::= IMPLEMENTS",
+ /*  99 */ "dummy ::= PRIVATE",
+ /* 100 */ "dummy ::= PUBLIC",
+ /* 101 */ "dummy ::= INTERFACE",
+ /* 102 */ "dummy ::= PACKAGE",
+ /* 103 */ "dummy ::= PROTECTED",
+ /* 104 */ "dummy ::= STATIC",
+ /* 105 */ "dummy ::= YIELD",
+ /* 106 */ "dummy ::= THEN",
+ /* 107 */ "program ::= NUM_TOKENS dummy",
+ /* 108 */ "stmt ::= LET letspecs SEMICOLON",
+ /* 109 */ "letspecs ::= letspecs COMMA letspec",
+ /* 110 */ "letspecs ::= letspec",
+ /* 111 */ "letspec ::= IDENTIFIER ASSIGN expr",
+ /* 112 */ "letspec ::= IDENTIFIER",
+ /* 113 */ "stmt ::= expr SEMICOLON",
+ /* 114 */ "expr ::= expr ASSIGN expr",
+ /* 115 */ "expr ::= expr PLUS_ASSIGN expr",
+ /* 116 */ "expr ::= expr MINUS_ASSIGN expr",
+ /* 117 */ "expr ::= expr MUL_ASSIGN expr",
+ /* 118 */ "expr ::= expr DIV_ASSIGN expr",
+ /* 119 */ "expr ::= expr REM_ASSIGN expr",
+ /* 120 */ "expr ::= expr LSHIFT_ASSIGN expr",
+ /* 121 */ "expr ::= expr RSHIFT_ASSIGN expr",
+ /* 122 */ "expr ::= expr URSHIFT_ASSIGN expr",
+ /* 123 */ "expr ::= expr AND_ASSIGN expr",
+ /* 124 */ "expr ::= expr XOR_ASSIGN expr",
+ /* 125 */ "expr ::= expr OR_ASSIGN expr",
+ /* 126 */ "expr ::= sexp",
+ /* 127 */ "sexp ::= NOT sexp",
+ /* 128 */ "sexp ::= TILDA sexp",
+ /* 129 */ "sexp ::= MINUS sexp",
+ /* 130 */ "sexp ::= PLUS sexp",
+ /* 131 */ "sexp ::= MINUS_MINUS sexp",
+ /* 132 */ "sexp ::= PLUS_PLUS sexp",
+ /* 133 */ "sexp ::= sexp PLUS_PLUS",
+ /* 134 */ "sexp ::= sexp MINUS_MINUS",
+ /* 135 */ "sexp ::= sexp LSHIFT sexp",
+ /* 136 */ "sexp ::= sexp RSHIFT sexp",
+ /* 137 */ "sexp ::= sexp URSHIFT sexp",
+ /* 138 */ "sexp ::= sexp LE sexp",
+ /* 139 */ "sexp ::= sexp LT sexp",
+ /* 140 */ "sexp ::= sexp GE sexp",
+ /* 141 */ "sexp ::= sexp GT sexp",
+ /* 142 */ "sexp ::= sexp EQ sexp",
+ /* 143 */ "sexp ::= sexp NE sexp",
+ /* 144 */ "sexp ::= sexp EQ_EQ sexp",
+ /* 145 */ "sexp ::= sexp NE_NE sexp",
+ /* 146 */ "sexp ::= sexp MINUS sexp",
+ /* 147 */ "sexp ::= sexp DIV sexp",
+ /* 148 */ "sexp ::= sexp REM sexp",
+ /* 149 */ "sexp ::= sexp DOT sexp",
+ /* 150 */ "sexp ::= IDENTIFIER",
+ /* 151 */ "sexp ::= literal",
+ /* 152 */ "expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN",
+ /* 153 */ "callarglist ::= callarglist COMMA callarg",
+ /* 154 */ "callarglist ::= callarg",
+ /* 155 */ "callarg ::= expr",
+ /* 156 */ "callarg ::=",
+ /* 157 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
+ /* 158 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block",
+ /* 159 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block",
+ /* 160 */ "stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block",
+ /* 161 */ "stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block",
+ /* 162 */ "optexpr ::=",
+ /* 163 */ "optexpr ::= expr",
+ /* 164 */ "block ::= stmt",
+ /* 165 */ "block ::= OPEN_CURLY stmtlist CLOSE_CURLY",
+ /* 166 */ "stmt ::= funcdecl",
+ /* 167 */ "funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
+ /* 168 */ "func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
+ /* 169 */ "arglist ::= arglist COMMA argspec",
+ /* 170 */ "arglist ::= argspec",
+ /* 171 */ "argspec ::= IDENTIFIER",
+ /* 172 */ "stmt ::= RETURN SEMICOLON",
+ /* 173 */ "stmt ::= RETURN expr SEMICOLON",
+ /* 174 */ "literal ::= NULL",
+ /* 175 */ "literal ::= UNDEFINED",
+ /* 176 */ "literal ::= THIS",
  /* 177 */ "literal ::= STRING_LITERAL",
  /* 178 */ "literal ::= boolean_literal",
  /* 179 */ "literal ::= func_literal",
@@ -5404,9 +5805,9 @@ static void yy_destructor(
 /********* Begin destructor definitions ***************************************/
     case 103: /* program */
 {
-#line 37 "mjs/mjs.lem.c"
+#line 38 "mjs/mjs.lem.c"
  (void)ctx; 
-#line 977 "mjs/mjs.lem.c"
+#line 978 "mjs/mjs.lem.c"
 }
       break;
 /********* End destructor definitions *****************************************/
@@ -5577,10 +5978,10 @@ static void yyStackOverflow(yyParser *yypParser){
    /* Here code is inserted which will execute if the parser
    ** stack every overflows */
 /******** Begin %stack_overflow code ******************************************/
-#line 32 "mjs/mjs.lem.c"
+#line 33 "mjs/mjs.lem.c"
 
   printf("Giving up.  Parser stack overflow\n");
-#line 1151 "mjs/mjs.lem.c"
+#line 1152 "mjs/mjs.lem.c"
 /******** End %stack_overflow code ********************************************/
    mjsParserARG_STORE; /* Suppress warning about unused %extra_argument var */
 }
@@ -5653,6 +6054,12 @@ static const struct {
   unsigned char nrhs;     /* Number of right-hand side symbols in the rule */
 } yyRuleInfo[] = {
   { 103, 1 },
+  { 105, 2 },
+  { 105, 1 },
+  { 110, 3 },
+  { 110, 3 },
+  { 110, 3 },
+  { 111, 1 },
   { 104, 1 },
   { 104, 1 },
   { 104, 1 },
@@ -5754,8 +6161,6 @@ static const struct {
   { 104, 1 },
   { 104, 1 },
   { 103, 2 },
-  { 105, 2 },
-  { 105, 1 },
   { 106, 3 },
   { 107, 3 },
   { 107, 1 },
@@ -5798,9 +6203,6 @@ static const struct {
   { 110, 3 },
   { 110, 3 },
   { 110, 3 },
-  { 110, 3 },
-  { 110, 3 },
-  { 110, 3 },
   { 110, 1 },
   { 110, 1 },
   { 109, 4 },
@@ -5825,7 +6227,6 @@ static const struct {
   { 119, 1 },
   { 106, 2 },
   { 106, 3 },
-  { 111, 1 },
   { 111, 1 },
   { 111, 1 },
   { 111, 1 },
@@ -5910,188 +6311,223 @@ static void yy_reduce(
   **     break;
   */
 /********** Begin reduce actions **********************************************/
+        YYMINORTYPE yylhsminor;
       case 0: /* program ::= stmtlist */
-#line 179 "mjs/mjs.lem.c"
-{ ctx->state = 1; }
-#line 1484 "mjs/mjs.lem.c"
+#line 180 "mjs/mjs.lem.c"
+{ ctx->state = 1; ctx->entry = yymsp[0].minor.yy92; }
+#line 1486 "mjs/mjs.lem.c"
+        break;
+      case 1: /* stmtlist ::= stmtlist stmt */
+#line 182 "mjs/mjs.lem.c"
+{
+  yylhsminor.yy92=mjs_emit_call(ctx, yymsp[-1].minor.yy92);
+  mjs_emit(ctx, MJS_OP_drop);
+  mjs_emit_call(ctx,yymsp[0].minor.yy92);
+  mjs_emit(ctx, MJS_OP_exit);
+}
+#line 1496 "mjs/mjs.lem.c"
+  yymsp[-1].minor.yy92 = yylhsminor.yy92;
+        break;
+      case 2: /* stmtlist ::= stmt */
+#line 188 "mjs/mjs.lem.c"
+{ yylhsminor.yy92=mjs_emit_call(ctx, yymsp[0].minor.yy92); mjs_emit(ctx, MJS_OP_exit); }
+#line 1502 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy92 = yylhsminor.yy92;
+        break;
+      case 3: /* sexp ::= sexp PLUS sexp */
+#line 238 "mjs/mjs.lem.c"
+{ yylhsminor.yy92=mjs_emit_bin(ctx, yymsp[-2].minor.yy92, yymsp[0].minor.yy92, MJS_OP_ADD_); }
+#line 1508 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy92 = yylhsminor.yy92;
+        break;
+      case 4: /* sexp ::= sexp MUL sexp */
+#line 240 "mjs/mjs.lem.c"
+{ yylhsminor.yy92=mjs_emit_bin(ctx, yymsp[-2].minor.yy92, yymsp[0].minor.yy92, MJS_OP_MUL_); }
+#line 1514 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy92 = yylhsminor.yy92;
+        break;
+      case 5: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
+#line 244 "mjs/mjs.lem.c"
+{ yymsp[-2].minor.yy92=yymsp[-1].minor.yy92; }
+#line 1520 "mjs/mjs.lem.c"
+        break;
+      case 6: /* literal ::= NUMBER */
+#line 288 "mjs/mjs.lem.c"
+{ yylhsminor.yy92=mjs_emit_lit(ctx, yymsp[0].minor.yy0.begin); }
+#line 1525 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy92 = yylhsminor.yy92;
         break;
       default:
-      /* (1) dummy ::= END_OF_INPUT */ yytestcase(yyruleno==1);
-      /* (2) dummy ::= NUMBER */ yytestcase(yyruleno==2);
-      /* (3) dummy ::= STRING_LITERAL */ yytestcase(yyruleno==3);
-      /* (4) dummy ::= REGEX_LITERAL */ yytestcase(yyruleno==4);
-      /* (5) dummy ::= IDENTIFIER */ yytestcase(yyruleno==5);
-      /* (6) dummy ::= OPEN_CURLY */ yytestcase(yyruleno==6);
-      /* (7) dummy ::= CLOSE_CURLY */ yytestcase(yyruleno==7);
-      /* (8) dummy ::= OPEN_PAREN */ yytestcase(yyruleno==8);
-      /* (9) dummy ::= CLOSE_PAREN */ yytestcase(yyruleno==9);
-      /* (10) dummy ::= COMMA */ yytestcase(yyruleno==10);
-      /* (11) dummy ::= OPEN_BRACKET */ yytestcase(yyruleno==11);
-      /* (12) dummy ::= CLOSE_BRACKET */ yytestcase(yyruleno==12);
-      /* (13) dummy ::= DOT */ yytestcase(yyruleno==13);
-      /* (14) dummy ::= COLON */ yytestcase(yyruleno==14);
-      /* (15) dummy ::= SEMICOLON */ yytestcase(yyruleno==15);
-      /* (16) dummy ::= EQ */ yytestcase(yyruleno==16);
-      /* (17) dummy ::= EQ_EQ */ yytestcase(yyruleno==17);
-      /* (18) dummy ::= NE */ yytestcase(yyruleno==18);
-      /* (19) dummy ::= NE_NE */ yytestcase(yyruleno==19);
-      /* (20) dummy ::= ASSIGN */ yytestcase(yyruleno==20);
-      /* (21) dummy ::= REM_ASSIGN */ yytestcase(yyruleno==21);
-      /* (22) dummy ::= MUL_ASSIGN */ yytestcase(yyruleno==22);
-      /* (23) dummy ::= DIV_ASSIGN */ yytestcase(yyruleno==23);
-      /* (24) dummy ::= XOR_ASSIGN */ yytestcase(yyruleno==24);
-      /* (25) dummy ::= PLUS_ASSIGN */ yytestcase(yyruleno==25);
-      /* (26) dummy ::= MINUS_ASSIGN */ yytestcase(yyruleno==26);
-      /* (27) dummy ::= OR_ASSIGN */ yytestcase(yyruleno==27);
-      /* (28) dummy ::= AND_ASSIGN */ yytestcase(yyruleno==28);
-      /* (29) dummy ::= LSHIFT_ASSIGN */ yytestcase(yyruleno==29);
-      /* (30) dummy ::= RSHIFT_ASSIGN */ yytestcase(yyruleno==30);
-      /* (31) dummy ::= URSHIFT_ASSIGN */ yytestcase(yyruleno==31);
-      /* (32) dummy ::= AND */ yytestcase(yyruleno==32);
-      /* (33) dummy ::= LOGICAL_OR */ yytestcase(yyruleno==33);
-      /* (34) dummy ::= PLUS */ yytestcase(yyruleno==34);
-      /* (35) dummy ::= MINUS */ yytestcase(yyruleno==35);
-      /* (36) dummy ::= PLUS_PLUS */ yytestcase(yyruleno==36);
-      /* (37) dummy ::= MINUS_MINUS */ yytestcase(yyruleno==37);
-      /* (38) dummy ::= LOGICAL_AND */ yytestcase(yyruleno==38);
-      /* (39) dummy ::= OR */ yytestcase(yyruleno==39);
-      /* (40) dummy ::= QUESTION */ yytestcase(yyruleno==40);
-      /* (41) dummy ::= TILDA */ yytestcase(yyruleno==41);
-      /* (42) dummy ::= REM */ yytestcase(yyruleno==42);
-      /* (43) dummy ::= MUL */ yytestcase(yyruleno==43);
-      /* (44) dummy ::= DIV */ yytestcase(yyruleno==44);
-      /* (45) dummy ::= XOR */ yytestcase(yyruleno==45);
-      /* (46) dummy ::= LE */ yytestcase(yyruleno==46);
-      /* (47) dummy ::= LT */ yytestcase(yyruleno==47);
-      /* (48) dummy ::= GE */ yytestcase(yyruleno==48);
-      /* (49) dummy ::= GT */ yytestcase(yyruleno==49);
-      /* (50) dummy ::= LSHIFT */ yytestcase(yyruleno==50);
-      /* (51) dummy ::= RSHIFT */ yytestcase(yyruleno==51);
-      /* (52) dummy ::= URSHIFT */ yytestcase(yyruleno==52);
-      /* (53) dummy ::= NOT */ yytestcase(yyruleno==53);
-      /* (54) dummy ::= BREAK */ yytestcase(yyruleno==54);
-      /* (55) dummy ::= CASE */ yytestcase(yyruleno==55);
-      /* (56) dummy ::= CATCH */ yytestcase(yyruleno==56);
-      /* (57) dummy ::= CONTINUE */ yytestcase(yyruleno==57);
-      /* (58) dummy ::= DEBUGGER */ yytestcase(yyruleno==58);
-      /* (59) dummy ::= DEFAULT */ yytestcase(yyruleno==59);
-      /* (60) dummy ::= DELETE */ yytestcase(yyruleno==60);
-      /* (61) dummy ::= DO */ yytestcase(yyruleno==61);
-      /* (62) dummy ::= ELSE */ yytestcase(yyruleno==62);
-      /* (63) dummy ::= FALSE */ yytestcase(yyruleno==63);
-      /* (64) dummy ::= FINALLY */ yytestcase(yyruleno==64);
-      /* (65) dummy ::= FOR */ yytestcase(yyruleno==65);
-      /* (66) dummy ::= FUNCTION */ yytestcase(yyruleno==66);
-      /* (67) dummy ::= IF */ yytestcase(yyruleno==67);
-      /* (68) dummy ::= IN */ yytestcase(yyruleno==68);
-      /* (69) dummy ::= INSTANCEOF */ yytestcase(yyruleno==69);
-      /* (70) dummy ::= NEW */ yytestcase(yyruleno==70);
-      /* (71) dummy ::= NULL */ yytestcase(yyruleno==71);
-      /* (72) dummy ::= RETURN */ yytestcase(yyruleno==72);
-      /* (73) dummy ::= SWITCH */ yytestcase(yyruleno==73);
-      /* (74) dummy ::= THIS */ yytestcase(yyruleno==74);
-      /* (75) dummy ::= THROW */ yytestcase(yyruleno==75);
-      /* (76) dummy ::= TRUE */ yytestcase(yyruleno==76);
-      /* (77) dummy ::= TRY */ yytestcase(yyruleno==77);
-      /* (78) dummy ::= TYPEOF */ yytestcase(yyruleno==78);
-      /* (79) dummy ::= VAR */ yytestcase(yyruleno==79);
-      /* (80) dummy ::= VOID */ yytestcase(yyruleno==80);
-      /* (81) dummy ::= WHILE */ yytestcase(yyruleno==81);
-      /* (82) dummy ::= WITH */ yytestcase(yyruleno==82);
-      /* (83) dummy ::= LET */ yytestcase(yyruleno==83);
-      /* (84) dummy ::= UNDEFINED */ yytestcase(yyruleno==84);
-      /* (85) dummy ::= CLASS */ yytestcase(yyruleno==85);
-      /* (86) dummy ::= ENUM */ yytestcase(yyruleno==86);
-      /* (87) dummy ::= EXTENDS */ yytestcase(yyruleno==87);
-      /* (88) dummy ::= SUPER */ yytestcase(yyruleno==88);
-      /* (89) dummy ::= CONST */ yytestcase(yyruleno==89);
-      /* (90) dummy ::= EXPORT */ yytestcase(yyruleno==90);
-      /* (91) dummy ::= IMPORT */ yytestcase(yyruleno==91);
-      /* (92) dummy ::= IMPLEMENTS */ yytestcase(yyruleno==92);
-      /* (93) dummy ::= PRIVATE */ yytestcase(yyruleno==93);
-      /* (94) dummy ::= PUBLIC */ yytestcase(yyruleno==94);
-      /* (95) dummy ::= INTERFACE */ yytestcase(yyruleno==95);
-      /* (96) dummy ::= PACKAGE */ yytestcase(yyruleno==96);
-      /* (97) dummy ::= PROTECTED */ yytestcase(yyruleno==97);
-      /* (98) dummy ::= STATIC */ yytestcase(yyruleno==98);
-      /* (99) dummy ::= YIELD */ yytestcase(yyruleno==99);
-      /* (100) dummy ::= THEN */ yytestcase(yyruleno==100);
-      /* (101) program ::= NUM_TOKENS dummy */ yytestcase(yyruleno==101);
-      /* (102) stmtlist ::= stmtlist stmt */ yytestcase(yyruleno==102);
-      /* (103) stmtlist ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=103);
-      /* (104) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==104);
-      /* (105) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==105);
-      /* (106) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=106);
-      /* (107) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==107);
-      /* (108) letspec ::= IDENTIFIER */ yytestcase(yyruleno==108);
-      /* (109) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==109);
-      /* (110) expr ::= expr ASSIGN expr */ yytestcase(yyruleno==110);
-      /* (111) expr ::= expr PLUS_ASSIGN expr */ yytestcase(yyruleno==111);
-      /* (112) expr ::= expr MINUS_ASSIGN expr */ yytestcase(yyruleno==112);
-      /* (113) expr ::= expr MUL_ASSIGN expr */ yytestcase(yyruleno==113);
-      /* (114) expr ::= expr DIV_ASSIGN expr */ yytestcase(yyruleno==114);
-      /* (115) expr ::= expr REM_ASSIGN expr */ yytestcase(yyruleno==115);
-      /* (116) expr ::= expr LSHIFT_ASSIGN expr */ yytestcase(yyruleno==116);
-      /* (117) expr ::= expr RSHIFT_ASSIGN expr */ yytestcase(yyruleno==117);
-      /* (118) expr ::= expr URSHIFT_ASSIGN expr */ yytestcase(yyruleno==118);
-      /* (119) expr ::= expr AND_ASSIGN expr */ yytestcase(yyruleno==119);
-      /* (120) expr ::= expr XOR_ASSIGN expr */ yytestcase(yyruleno==120);
-      /* (121) expr ::= expr OR_ASSIGN expr */ yytestcase(yyruleno==121);
-      /* (122) expr ::= sexp */ yytestcase(yyruleno==122);
-      /* (123) sexp ::= NOT sexp */ yytestcase(yyruleno==123);
-      /* (124) sexp ::= TILDA sexp */ yytestcase(yyruleno==124);
-      /* (125) sexp ::= MINUS sexp */ yytestcase(yyruleno==125);
-      /* (126) sexp ::= PLUS sexp */ yytestcase(yyruleno==126);
-      /* (127) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==127);
-      /* (128) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==128);
-      /* (129) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==129);
-      /* (130) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==130);
-      /* (131) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==131);
-      /* (132) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==132);
-      /* (133) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==133);
-      /* (134) sexp ::= sexp LE sexp */ yytestcase(yyruleno==134);
-      /* (135) sexp ::= sexp LT sexp */ yytestcase(yyruleno==135);
-      /* (136) sexp ::= sexp GE sexp */ yytestcase(yyruleno==136);
-      /* (137) sexp ::= sexp GT sexp */ yytestcase(yyruleno==137);
-      /* (138) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==138);
-      /* (139) sexp ::= sexp NE sexp */ yytestcase(yyruleno==139);
-      /* (140) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==140);
-      /* (141) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==141);
-      /* (142) sexp ::= sexp PLUS sexp */ yytestcase(yyruleno==142);
-      /* (143) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==143);
-      /* (144) sexp ::= sexp MUL sexp */ yytestcase(yyruleno==144);
-      /* (145) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==145);
-      /* (146) sexp ::= sexp REM sexp */ yytestcase(yyruleno==146);
-      /* (147) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==147);
-      /* (148) sexp ::= OPEN_PAREN expr CLOSE_PAREN */ yytestcase(yyruleno==148);
-      /* (149) sexp ::= IDENTIFIER */ yytestcase(yyruleno==149);
-      /* (150) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=150);
-      /* (151) expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */ yytestcase(yyruleno==151);
-      /* (152) callarglist ::= callarglist COMMA callarg */ yytestcase(yyruleno==152);
-      /* (153) callarglist ::= callarg (OPTIMIZED OUT) */ assert(yyruleno!=153);
-      /* (154) callarg ::= expr */ yytestcase(yyruleno==154);
-      /* (155) callarg ::= */ yytestcase(yyruleno==155);
-      /* (156) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==156);
-      /* (157) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==157);
-      /* (158) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */ yytestcase(yyruleno==158);
-      /* (159) stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==159);
-      /* (160) stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block */ yytestcase(yyruleno==160);
-      /* (161) optexpr ::= */ yytestcase(yyruleno==161);
-      /* (162) optexpr ::= expr */ yytestcase(yyruleno==162);
-      /* (163) block ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=163);
-      /* (164) block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==164);
-      /* (165) stmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=165);
-      /* (166) funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==166);
-      /* (167) func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==167);
-      /* (168) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==168);
-      /* (169) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=169);
-      /* (170) argspec ::= IDENTIFIER */ yytestcase(yyruleno==170);
-      /* (171) stmt ::= RETURN SEMICOLON */ yytestcase(yyruleno==171);
-      /* (172) stmt ::= RETURN expr SEMICOLON */ yytestcase(yyruleno==172);
-      /* (173) literal ::= NULL */ yytestcase(yyruleno==173);
-      /* (174) literal ::= UNDEFINED */ yytestcase(yyruleno==174);
-      /* (175) literal ::= THIS */ yytestcase(yyruleno==175);
-      /* (176) literal ::= NUMBER */ yytestcase(yyruleno==176);
+      /* (7) dummy ::= END_OF_INPUT */ yytestcase(yyruleno==7);
+      /* (8) dummy ::= NUMBER */ yytestcase(yyruleno==8);
+      /* (9) dummy ::= STRING_LITERAL */ yytestcase(yyruleno==9);
+      /* (10) dummy ::= REGEX_LITERAL */ yytestcase(yyruleno==10);
+      /* (11) dummy ::= IDENTIFIER */ yytestcase(yyruleno==11);
+      /* (12) dummy ::= OPEN_CURLY */ yytestcase(yyruleno==12);
+      /* (13) dummy ::= CLOSE_CURLY */ yytestcase(yyruleno==13);
+      /* (14) dummy ::= OPEN_PAREN */ yytestcase(yyruleno==14);
+      /* (15) dummy ::= CLOSE_PAREN */ yytestcase(yyruleno==15);
+      /* (16) dummy ::= COMMA */ yytestcase(yyruleno==16);
+      /* (17) dummy ::= OPEN_BRACKET */ yytestcase(yyruleno==17);
+      /* (18) dummy ::= CLOSE_BRACKET */ yytestcase(yyruleno==18);
+      /* (19) dummy ::= DOT */ yytestcase(yyruleno==19);
+      /* (20) dummy ::= COLON */ yytestcase(yyruleno==20);
+      /* (21) dummy ::= SEMICOLON */ yytestcase(yyruleno==21);
+      /* (22) dummy ::= EQ */ yytestcase(yyruleno==22);
+      /* (23) dummy ::= EQ_EQ */ yytestcase(yyruleno==23);
+      /* (24) dummy ::= NE */ yytestcase(yyruleno==24);
+      /* (25) dummy ::= NE_NE */ yytestcase(yyruleno==25);
+      /* (26) dummy ::= ASSIGN */ yytestcase(yyruleno==26);
+      /* (27) dummy ::= REM_ASSIGN */ yytestcase(yyruleno==27);
+      /* (28) dummy ::= MUL_ASSIGN */ yytestcase(yyruleno==28);
+      /* (29) dummy ::= DIV_ASSIGN */ yytestcase(yyruleno==29);
+      /* (30) dummy ::= XOR_ASSIGN */ yytestcase(yyruleno==30);
+      /* (31) dummy ::= PLUS_ASSIGN */ yytestcase(yyruleno==31);
+      /* (32) dummy ::= MINUS_ASSIGN */ yytestcase(yyruleno==32);
+      /* (33) dummy ::= OR_ASSIGN */ yytestcase(yyruleno==33);
+      /* (34) dummy ::= AND_ASSIGN */ yytestcase(yyruleno==34);
+      /* (35) dummy ::= LSHIFT_ASSIGN */ yytestcase(yyruleno==35);
+      /* (36) dummy ::= RSHIFT_ASSIGN */ yytestcase(yyruleno==36);
+      /* (37) dummy ::= URSHIFT_ASSIGN */ yytestcase(yyruleno==37);
+      /* (38) dummy ::= AND */ yytestcase(yyruleno==38);
+      /* (39) dummy ::= LOGICAL_OR */ yytestcase(yyruleno==39);
+      /* (40) dummy ::= PLUS */ yytestcase(yyruleno==40);
+      /* (41) dummy ::= MINUS */ yytestcase(yyruleno==41);
+      /* (42) dummy ::= PLUS_PLUS */ yytestcase(yyruleno==42);
+      /* (43) dummy ::= MINUS_MINUS */ yytestcase(yyruleno==43);
+      /* (44) dummy ::= LOGICAL_AND */ yytestcase(yyruleno==44);
+      /* (45) dummy ::= OR */ yytestcase(yyruleno==45);
+      /* (46) dummy ::= QUESTION */ yytestcase(yyruleno==46);
+      /* (47) dummy ::= TILDA */ yytestcase(yyruleno==47);
+      /* (48) dummy ::= REM */ yytestcase(yyruleno==48);
+      /* (49) dummy ::= MUL */ yytestcase(yyruleno==49);
+      /* (50) dummy ::= DIV */ yytestcase(yyruleno==50);
+      /* (51) dummy ::= XOR */ yytestcase(yyruleno==51);
+      /* (52) dummy ::= LE */ yytestcase(yyruleno==52);
+      /* (53) dummy ::= LT */ yytestcase(yyruleno==53);
+      /* (54) dummy ::= GE */ yytestcase(yyruleno==54);
+      /* (55) dummy ::= GT */ yytestcase(yyruleno==55);
+      /* (56) dummy ::= LSHIFT */ yytestcase(yyruleno==56);
+      /* (57) dummy ::= RSHIFT */ yytestcase(yyruleno==57);
+      /* (58) dummy ::= URSHIFT */ yytestcase(yyruleno==58);
+      /* (59) dummy ::= NOT */ yytestcase(yyruleno==59);
+      /* (60) dummy ::= BREAK */ yytestcase(yyruleno==60);
+      /* (61) dummy ::= CASE */ yytestcase(yyruleno==61);
+      /* (62) dummy ::= CATCH */ yytestcase(yyruleno==62);
+      /* (63) dummy ::= CONTINUE */ yytestcase(yyruleno==63);
+      /* (64) dummy ::= DEBUGGER */ yytestcase(yyruleno==64);
+      /* (65) dummy ::= DEFAULT */ yytestcase(yyruleno==65);
+      /* (66) dummy ::= DELETE */ yytestcase(yyruleno==66);
+      /* (67) dummy ::= DO */ yytestcase(yyruleno==67);
+      /* (68) dummy ::= ELSE */ yytestcase(yyruleno==68);
+      /* (69) dummy ::= FALSE */ yytestcase(yyruleno==69);
+      /* (70) dummy ::= FINALLY */ yytestcase(yyruleno==70);
+      /* (71) dummy ::= FOR */ yytestcase(yyruleno==71);
+      /* (72) dummy ::= FUNCTION */ yytestcase(yyruleno==72);
+      /* (73) dummy ::= IF */ yytestcase(yyruleno==73);
+      /* (74) dummy ::= IN */ yytestcase(yyruleno==74);
+      /* (75) dummy ::= INSTANCEOF */ yytestcase(yyruleno==75);
+      /* (76) dummy ::= NEW */ yytestcase(yyruleno==76);
+      /* (77) dummy ::= NULL */ yytestcase(yyruleno==77);
+      /* (78) dummy ::= RETURN */ yytestcase(yyruleno==78);
+      /* (79) dummy ::= SWITCH */ yytestcase(yyruleno==79);
+      /* (80) dummy ::= THIS */ yytestcase(yyruleno==80);
+      /* (81) dummy ::= THROW */ yytestcase(yyruleno==81);
+      /* (82) dummy ::= TRUE */ yytestcase(yyruleno==82);
+      /* (83) dummy ::= TRY */ yytestcase(yyruleno==83);
+      /* (84) dummy ::= TYPEOF */ yytestcase(yyruleno==84);
+      /* (85) dummy ::= VAR */ yytestcase(yyruleno==85);
+      /* (86) dummy ::= VOID */ yytestcase(yyruleno==86);
+      /* (87) dummy ::= WHILE */ yytestcase(yyruleno==87);
+      /* (88) dummy ::= WITH */ yytestcase(yyruleno==88);
+      /* (89) dummy ::= LET */ yytestcase(yyruleno==89);
+      /* (90) dummy ::= UNDEFINED */ yytestcase(yyruleno==90);
+      /* (91) dummy ::= CLASS */ yytestcase(yyruleno==91);
+      /* (92) dummy ::= ENUM */ yytestcase(yyruleno==92);
+      /* (93) dummy ::= EXTENDS */ yytestcase(yyruleno==93);
+      /* (94) dummy ::= SUPER */ yytestcase(yyruleno==94);
+      /* (95) dummy ::= CONST */ yytestcase(yyruleno==95);
+      /* (96) dummy ::= EXPORT */ yytestcase(yyruleno==96);
+      /* (97) dummy ::= IMPORT */ yytestcase(yyruleno==97);
+      /* (98) dummy ::= IMPLEMENTS */ yytestcase(yyruleno==98);
+      /* (99) dummy ::= PRIVATE */ yytestcase(yyruleno==99);
+      /* (100) dummy ::= PUBLIC */ yytestcase(yyruleno==100);
+      /* (101) dummy ::= INTERFACE */ yytestcase(yyruleno==101);
+      /* (102) dummy ::= PACKAGE */ yytestcase(yyruleno==102);
+      /* (103) dummy ::= PROTECTED */ yytestcase(yyruleno==103);
+      /* (104) dummy ::= STATIC */ yytestcase(yyruleno==104);
+      /* (105) dummy ::= YIELD */ yytestcase(yyruleno==105);
+      /* (106) dummy ::= THEN */ yytestcase(yyruleno==106);
+      /* (107) program ::= NUM_TOKENS dummy */ yytestcase(yyruleno==107);
+      /* (108) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==108);
+      /* (109) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==109);
+      /* (110) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=110);
+      /* (111) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==111);
+      /* (112) letspec ::= IDENTIFIER */ yytestcase(yyruleno==112);
+      /* (113) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==113);
+      /* (114) expr ::= expr ASSIGN expr */ yytestcase(yyruleno==114);
+      /* (115) expr ::= expr PLUS_ASSIGN expr */ yytestcase(yyruleno==115);
+      /* (116) expr ::= expr MINUS_ASSIGN expr */ yytestcase(yyruleno==116);
+      /* (117) expr ::= expr MUL_ASSIGN expr */ yytestcase(yyruleno==117);
+      /* (118) expr ::= expr DIV_ASSIGN expr */ yytestcase(yyruleno==118);
+      /* (119) expr ::= expr REM_ASSIGN expr */ yytestcase(yyruleno==119);
+      /* (120) expr ::= expr LSHIFT_ASSIGN expr */ yytestcase(yyruleno==120);
+      /* (121) expr ::= expr RSHIFT_ASSIGN expr */ yytestcase(yyruleno==121);
+      /* (122) expr ::= expr URSHIFT_ASSIGN expr */ yytestcase(yyruleno==122);
+      /* (123) expr ::= expr AND_ASSIGN expr */ yytestcase(yyruleno==123);
+      /* (124) expr ::= expr XOR_ASSIGN expr */ yytestcase(yyruleno==124);
+      /* (125) expr ::= expr OR_ASSIGN expr */ yytestcase(yyruleno==125);
+      /* (126) expr ::= sexp */ yytestcase(yyruleno==126);
+      /* (127) sexp ::= NOT sexp */ yytestcase(yyruleno==127);
+      /* (128) sexp ::= TILDA sexp */ yytestcase(yyruleno==128);
+      /* (129) sexp ::= MINUS sexp */ yytestcase(yyruleno==129);
+      /* (130) sexp ::= PLUS sexp */ yytestcase(yyruleno==130);
+      /* (131) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==131);
+      /* (132) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==132);
+      /* (133) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==133);
+      /* (134) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==134);
+      /* (135) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==135);
+      /* (136) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==136);
+      /* (137) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==137);
+      /* (138) sexp ::= sexp LE sexp */ yytestcase(yyruleno==138);
+      /* (139) sexp ::= sexp LT sexp */ yytestcase(yyruleno==139);
+      /* (140) sexp ::= sexp GE sexp */ yytestcase(yyruleno==140);
+      /* (141) sexp ::= sexp GT sexp */ yytestcase(yyruleno==141);
+      /* (142) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==142);
+      /* (143) sexp ::= sexp NE sexp */ yytestcase(yyruleno==143);
+      /* (144) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==144);
+      /* (145) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==145);
+      /* (146) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==146);
+      /* (147) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==147);
+      /* (148) sexp ::= sexp REM sexp */ yytestcase(yyruleno==148);
+      /* (149) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==149);
+      /* (150) sexp ::= IDENTIFIER */ yytestcase(yyruleno==150);
+      /* (151) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=151);
+      /* (152) expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */ yytestcase(yyruleno==152);
+      /* (153) callarglist ::= callarglist COMMA callarg */ yytestcase(yyruleno==153);
+      /* (154) callarglist ::= callarg (OPTIMIZED OUT) */ assert(yyruleno!=154);
+      /* (155) callarg ::= expr */ yytestcase(yyruleno==155);
+      /* (156) callarg ::= */ yytestcase(yyruleno==156);
+      /* (157) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==157);
+      /* (158) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==158);
+      /* (159) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */ yytestcase(yyruleno==159);
+      /* (160) stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==160);
+      /* (161) stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block */ yytestcase(yyruleno==161);
+      /* (162) optexpr ::= */ yytestcase(yyruleno==162);
+      /* (163) optexpr ::= expr */ yytestcase(yyruleno==163);
+      /* (164) block ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=164);
+      /* (165) block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==165);
+      /* (166) stmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=166);
+      /* (167) funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==167);
+      /* (168) func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==168);
+      /* (169) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==169);
+      /* (170) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=170);
+      /* (171) argspec ::= IDENTIFIER */ yytestcase(yyruleno==171);
+      /* (172) stmt ::= RETURN SEMICOLON */ yytestcase(yyruleno==172);
+      /* (173) stmt ::= RETURN expr SEMICOLON */ yytestcase(yyruleno==173);
+      /* (174) literal ::= NULL */ yytestcase(yyruleno==174);
+      /* (175) literal ::= UNDEFINED */ yytestcase(yyruleno==175);
+      /* (176) literal ::= THIS */ yytestcase(yyruleno==176);
       /* (177) literal ::= STRING_LITERAL */ yytestcase(yyruleno==177);
       /* (178) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=178);
       /* (179) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=179);
@@ -6151,9 +6587,9 @@ static void yy_parse_failed(
   /* Here code is inserted which will be executed whenever the
   ** parser fails */
 /************ Begin %parse_failure code ***************************************/
-#line 25 "mjs/mjs.lem.c"
+#line 26 "mjs/mjs.lem.c"
 
-#line 1724 "mjs/mjs.lem.c"
+#line 1760 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6170,10 +6606,10 @@ static void yy_syntax_error(
   mjsParserARG_FETCH;
 #define TOKEN yyminor
 /************ Begin %syntax_error code ****************************************/
-#line 28 "mjs/mjs.lem.c"
+#line 29 "mjs/mjs.lem.c"
 
   ctx->syntax_error = TOKEN;
-#line 1744 "mjs/mjs.lem.c"
+#line 1780 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6197,9 +6633,9 @@ static void yy_accept(
   /* Here code is inserted which will be executed whenever the
   ** parser accepts */
 /*********** Begin %parse_accept code *****************************************/
-#line 22 "mjs/mjs.lem.c"
+#line 23 "mjs/mjs.lem.c"
 
-#line 1770 "mjs/mjs.lem.c"
+#line 1806 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6380,356 +6816,6 @@ void mjsParser(
   return;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/mem.c"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * Froth code has access to a 16-bit addressable memory,
- * mostly for storing code. The froth memory contains both
- * statically generated read-only code (possibly mapped on flash from
- * the rodata section) and dynamically generated code.
- *
- * This file contains MMU-liked abstraction that allows the VM to
- * address a unified 16-bit byte-addressed memory backed by a set
- * of smaller pages. Each page can point to either a read-only
- * code section, a buffer on heap and it's also possible to extend it in
- * the future to access external storage that doesn't provide a memory
- * interface to the CPU (e.g. byte ordiented filesystem API), useful
- * on many embedded platforms such as CC3200.
- */
-
-#include <assert.h>
-
-/* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
-
-struct fr_mem *fr_create_mem() {
-  size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
-  struct fr_mem *mem = (struct fr_mem *) calloc(1, size);
-  mem->num_pages = 0;
-  return mem;
-}
-
-void fr_destroy_mem(struct fr_mem *mem) {
-  size_t i;
-  for (i = 0; i < mem->num_pages; i++) {
-    if (!(mem->pages[i].flags & FR_MEM_FOREIGN)) {
-      free(mem->pages[i].base);
-    }
-  }
-  free(mem);
-}
-
-static void fr_realloc_mem(struct fr_mem **mem) {
-  size_t size =
-      sizeof(struct fr_mem) + sizeof(struct fr_page) * ((*mem)->num_pages - 1);
-  *mem = (struct fr_mem *) realloc(*mem, size);
-}
-
-fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
-  size_t i;
-  size_t start_page = (*mem)->num_pages;
-  size_t num_pages =
-      data_len / FR_PAGE_SIZE + (data_len % FR_PAGE_SIZE == 0 ? 0 : 1);
-
-  LOG(LL_DEBUG, ("mapping %d pages", num_pages));
-
-  (*mem)->num_pages += num_pages;
-  fr_realloc_mem(mem);
-
-  for (i = 0; i < num_pages; i++) {
-    struct fr_page *page = &(*mem)->pages[start_page + i];
-    page->flags = flags;
-    page->base = data + i * FR_PAGE_SIZE;
-  }
-
-  return start_page * FR_PAGE_SIZE;
-}
-
-int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  return page < mem->num_pages;
-}
-
-char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  uint16_t off = addr % FR_PAGE_SIZE;
-  assert(page < mem->num_pages);
-  return ((char *) mem->pages[page].base)[off];
-}
-
-void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  uint16_t off = addr % FR_PAGE_SIZE;
-  assert(page < mem->num_pages);
-
-  /* TODO: make this disabled in release builds */
-  if (mem->pages[page].flags & FR_MEM_RO) {
-    LOG(LL_DEBUG,
-        ("Trapping write access to read only froth memory at addr 0x%X", addr));
-    return;
-  }
-
-  ((char *) mem->pages[page].base)[off] = value;
-}
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/vm.c"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * Froth is a simple FORTH-like language borrowing a few ideas from Factor
- * (https://factorcode.org/).
- * Froth is not a general purpose programming language but instead it is used
- * to implement the MJS virtual machine.
- *
- * The binary encoding is documented in the froth compiler (see the
- * `fr_codegen` docstring).
- */
-
-#include <assert.h>
-
-/* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
-/* Amalgamated: #include "mjs/froth/vm.h" */
-
-static void fr_init_stack(struct fr_stack *stack) {
-  stack->size = ARRAY_SIZE(stack->stack);
-  stack->pos = 0;
-}
-
-void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
-  memset(vm, 0, sizeof(*vm));
-  vm->code = code;
-
-  fr_init_stack(&vm->dstack);
-  fr_init_stack(&vm->rstack);
-
-  vm->iram = fr_create_mem();
-  if (code != NULL && code->opcodes != NULL) {
-    fr_mmap(&vm->iram, code->opcodes, code->opcodes_len,
-            FR_MEM_RO | FR_MEM_FOREIGN);
-  }
-}
-
-void fr_destroy_vm(struct fr_vm *vm) {
-  fr_destroy_mem(vm->iram);
-}
-
-static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
-  if (word < 0) {
-    return FR_EXIT_RUN;
-  }
-  return (fr_opcode_t) fr_read_byte(vm->iram, word);
-}
-
-static void fr_trace(struct fr_vm *vm) {
-  fr_opcode_t op = fr_fetch(vm, vm->ip);
-  fr_word_ptr_t word = fr_lookup_word(vm, op);
-  char sword[128], pad[64];
-  const char *pos_name = "???";
-  const char *name = (op >= -1 ? vm->code->word_names[op + 1] : "<rel>");
-
-  if (word < 0) {
-    fr_native_t func = vm->code->native_words[-word - 1];
-    snprintf(sword, sizeof(sword), "%s <%p>", name, func);
-  } else {
-    snprintf(sword, sizeof(sword), "%s (%04d)", name, word);
-  }
-
-  if ((size_t) vm->ip < vm->code->opcodes_len) {
-    pos_name = vm->code->pos_names[vm->ip];
-  }
-  memset(pad, ' ', sizeof(pad));
-  if (strlen(pos_name) <= 16) {
-    pad[16 - strlen(pos_name)] = '\0';
-  } else {
-    pad[0] = '\0';
-  }
-  LOG(LL_ERROR, (">> ip:%04X (%s)%sop:%02X -> %s", vm->ip, pos_name, pad,
-                 (uint8_t) op, sword));
-}
-
-void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
-  fr_push(&vm->rstack, vm->ip);
-  vm->ip = word;
-}
-
-void fr_enter(struct fr_vm *vm, fr_word_ptr_t word) {
-  if (word >= 0 && fr_fetch(vm, vm->ip) == 0 && vm->rstack.pos > 0) {
-    LOG(LL_DEBUG, ("tail recursion"));
-    vm->ip = fr_pop(&vm->rstack);
-  }
-
-  if (word < 0) {
-    fr_native_t nat = vm->code->native_words[-word - 1];
-    LOG(LL_DEBUG, ("calling native function %p", nat));
-    nat(vm);
-  } else {
-    LOG(LL_DEBUG, ("%d is threaded word", word));
-    fr_enter_thread(vm, word);
-  }
-}
-
-void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
-  fr_opcode_t op;
-  vm->ip = word;
-
-  /* push sentinel so we can exit the loop */
-  fr_push(&vm->rstack, FR_EXIT_RUN);
-
-  while (vm->ip != FR_EXIT_RUN && fr_is_mapped(vm->iram, vm->ip)) {
-    fr_trace(vm);
-
-    op = fr_fetch(vm, vm->ip);
-    vm->ip++;
-    word = fr_lookup_word(vm, op);
-    fr_enter(vm, word);
-  }
-}
-
-fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op) {
-  if (op < -1) {
-    LOG(LL_DEBUG,
-        ("looking up relative op %d, ip:%d -> %d", op, vm->ip, vm->ip + op));
-    return vm->ip - 1 + op;
-  } else {
-    LOG(LL_DEBUG, ("looking up word_ptr for op %d", op));
-    return vm->code->table[op + 1];
-  }
-}
-
-void fr_push(struct fr_stack *stack, fr_cell_t value) {
-  stack->stack[stack->pos] = value;
-  stack->pos++;
-}
-
-fr_cell_t fr_pop(struct fr_stack *stack) {
-  assert(stack->pos > 0);
-  stack->pos--;
-  return stack->stack[stack->pos];
-}
-
-void fr_op_todo(struct fr_vm *vm) {
-  (void) vm;
-  LOG(LL_ERROR, ("TODO: stub"));
-}
-
-void fr_op_quote(struct fr_vm *vm) {
-  fr_cell_t lit;
-  (void) vm;
-  lit = (uint8_t) fr_fetch(vm, vm->ip);
-  lit <<= 8;
-  lit |= (uint8_t) fr_fetch(vm, vm->ip + 1);
-  vm->ip += 2;
-  LOG(LL_ERROR, ("quoting %d", lit));
-  fr_push(&vm->dstack, lit);
-}
-
-void fr_op_exit(struct fr_vm *vm) {
-  vm->ip = fr_pop(&vm->rstack);
-}
-
-void fr_op_drop(struct fr_vm *vm) {
-  fr_pop(&vm->dstack);
-}
-
-void fr_op_dup(struct fr_vm *vm) {
-  fr_cell_t v = fr_pop(&vm->dstack);
-  /*
-   * could be done more efficiently but this way we reuse the asserts and guards
-   * in the stack primitives.
-   */
-  fr_push(&vm->dstack, v);
-  fr_push(&vm->dstack, v);
-}
-
-void fr_op_swap(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_cell_t b = fr_pop(&vm->dstack);
-  /*
-   * could be done more efficiently but this way we reuse the asserts and guards
-   * in the stack primitives.
-   */
-  fr_push(&vm->dstack, a);
-  fr_push(&vm->dstack, b);
-}
-
-void fr_op_over(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  /*
-   * could be done more efficiently but this way we reuse the asserts and guards
-   * in the stack primitives.
-   */
-  fr_push(&vm->dstack, a);
-  fr_push(&vm->dstack, b);
-  fr_push(&vm->dstack, a);
-}
-
-void fr_op_pushr(struct fr_vm *vm) {
-  fr_push(&vm->rstack, fr_pop(&vm->dstack));
-}
-
-void fr_op_popr(struct fr_vm *vm) {
-  fr_push(&vm->dstack, fr_pop(&vm->rstack));
-}
-
-void fr_op_print(struct fr_vm *vm) {
-  fr_cell_t v = fr_pop(&vm->dstack);
-  LOG(LL_ERROR, ("%d", v));
-  printf("%d\n", v);
-}
-
-void fr_op_eq(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a == b ? -1 : 0);
-}
-
-void fr_op_lt(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a < b ? -1 : 0);
-}
-
-void fr_op_invert(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, ~a);
-}
-
-void fr_op_add(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a + b);
-}
-
-void fr_op_call(struct fr_vm *vm) {
-  fr_enter(vm, fr_pop(&vm->dstack));
-}
-
-void fr_op_if(struct fr_vm *vm) {
-  fr_cell_t iftrue = fr_pop(&vm->dstack);
-  fr_cell_t cond = fr_pop(&vm->dstack);
-  if (cond) {
-    fr_enter(vm, iftrue);
-  }
-}
-
-void fr_op_ifelse(struct fr_vm *vm) {
-  fr_cell_t iffalse = fr_pop(&vm->dstack);
-  fr_cell_t iftrue = fr_pop(&vm->dstack);
-  fr_cell_t cond = fr_pop(&vm->dstack);
-  fr_enter(vm, (cond ? iftrue : iffalse));
-}
-#ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm_bcode.c"
 #endif
 /* Amalgamated: #include "mjs/vm_bcode.h" */
@@ -6760,6 +6846,8 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <fr_op_invert> */ 
   /* 0000 -> : + ... ; */
   /*           <fr_op_add> */ 
+  /* 0000 -> : * ... ; */
+  /*           <fr_op_mul> */ 
   /* 0000 -> : call ... ; */
   /*           <fr_op_call> */ 
   /* 0000 -> : if ... ; */
@@ -6809,13 +6897,14 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0012 */ -14, 
   /* 0013 */ -15, 
   /* 0014 */ -16, 
-  /* 0015 */ 0, 
-  /* 0016 */ 10, 
-  /* 0017 */ 19, 
-  /* 0018 */ 22, 
-  /* 0019 */ 30, 
-  /* 0020 */ 46, 
-  /* 0021 */ 66, 
+  /* 0015 */ -17, 
+  /* 0016 */ 0, 
+  /* 0017 */ 10, 
+  /* 0018 */ 19, 
+  /* 0019 */ 22, 
+  /* 0020 */ 30, 
+  /* 0021 */ 46, 
+  /* 0022 */ 66, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -6831,6 +6920,7 @@ void fr_op_eq(struct fr_vm *vm);
 void fr_op_lt(struct fr_vm *vm);
 void fr_op_invert(struct fr_vm *vm);
 void fr_op_add(struct fr_vm *vm);
+void fr_op_mul(struct fr_vm *vm);
 void fr_op_call(struct fr_vm *vm);
 void fr_op_if(struct fr_vm *vm);
 void fr_op_ifelse(struct fr_vm *vm);
@@ -6849,9 +6939,10 @@ fr_native_t MJS_native_words[] = {
   /* -011 */ fr_op_lt,
   /* -012 */ fr_op_invert,
   /* -013 */ fr_op_add,
-  /* -014 */ fr_op_call,
-  /* -015 */ fr_op_if,
-  /* -016 */ fr_op_ifelse,
+  /* -014 */ fr_op_mul,
+  /* -015 */ fr_op_call,
+  /* -016 */ fr_op_if,
+  /* -017 */ fr_op_ifelse,
 };
 
 const char *MJS_word_names[] = {
@@ -6868,16 +6959,17 @@ const char *MJS_word_names[] = {
   /* 0009 */ "<", 
   /* 0010 */ "invert", 
   /* 0011 */ "+", 
-  /* 0012 */ "call", 
-  /* 0013 */ "if", 
-  /* 0014 */ "ifelse", 
-  /* 0015 */ "loop", 
-  /* 0016 */ "foo", 
-  /* 0017 */ "<>", 
-  /* 0018 */ "2dup", 
-  /* 0019 */ ">=", 
-  /* 0020 */ "repeat", 
-  /* 0021 */ "demo", 
+  /* 0012 */ "*", 
+  /* 0013 */ "call", 
+  /* 0014 */ "if", 
+  /* 0015 */ "ifelse", 
+  /* 0016 */ "loop", 
+  /* 0017 */ "foo", 
+  /* 0018 */ "<>", 
+  /* 0019 */ "2dup", 
+  /* 0020 */ ">=", 
+  /* 0021 */ "repeat", 
+  /* 0022 */ "demo", 
 };
 
 const char *MJS_pos_names[] = {
@@ -7002,11 +7094,13 @@ struct fr_code MJS_code = {
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
 /* Amalgamated: #include "mjs/vm_bcode.h" */
 
 struct mjs *mjs_create() {
   struct mjs *res = calloc(1, sizeof(*res));
   fr_init_vm(&res->vm, &MJS_code);
+  res->last_code = res->vm.iram->num_pages * FR_PAGE_SIZE;
   return res;
 }
 
@@ -7044,6 +7138,52 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err) {
   return "unset";
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/exec.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "common/cs_file.h" */
+/* Amalgamated: #include "common/platform.h" */
+/* Amalgamated: #include "mjs/exec.h" */
+/* Amalgamated: #include "mjs/parser.h" */
+
+mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
+                       mjs_val_t *res) {
+  mjs_err_t err;
+  struct mjs_parse_ctx ctx;
+
+  LOG(LL_DEBUG, ("parsing %s", src));
+  err = mjs_parse_buf(mjs, src, len, &ctx);
+  if (err != MJS_OK) {
+    return err;
+  }
+
+  LOG(LL_DEBUG, ("running %d", ctx.entry));
+  fr_run(&mjs->vm, ctx.entry);
+  if (res != NULL) {
+    *(int64_t *) res = fr_pop(&mjs->vm.dstack);
+  }
+
+  return err;
+}
+
+mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res) {
+  return mjs_exec_buf(mjs, src, strlen(src), res);
+}
+
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
+  mjs_err_t err;
+  size_t len;
+  char *body = cs_read_file(filename, &len);
+  err = mjs_exec_buf(mjs, body, len, res);
+  free(body);
+  return err;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
 #endif
 /*
@@ -7051,12 +7191,111 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err) {
  * All rights reserved
  */
 
+/*
+ * This file implements the parser and compiler for MJS.
+ *
+ * We use a bottom up parser generated by lemon, the parser generator from the
+ * sqlite project.
+ *
+ * The code generation technique is optimized for simplicity, not for space
+ * and cleverness.
+ *
+ * You can think of it as an upside down executable syntax tree.
+ *
+ * A bottom up parser naturally builds a tree from the leaves up to the
+ * root. The code is emitted precisely in that sequence, from the leaves
+ * up. Each "node" of the tree is an anonymous froth word.
+ *
+ * For example `1` is a literal number expression, thus `: anon 1 ;`.
+ * These are 2 froth instructions: the literal and the exit opcode (the `;`).
+ * (How that encodes down to bytes is irrelevant in this discussion, see the
+ * froth compiler; however an interesting note is that in most cases the
+ * call to a previously defined subexpression can be encoded in one byte, a
+ * negative offset).
+ *
+ * Another example: the `1+2` expression would be classically represented with a
+ * binary node `+` and two pointers to the left and right subexpressions.
+ * We do the same thing here but with executable froth code:
+ *
+ * ```
+ * : anon3 anon1 anon2 + ;
+ * ```
+ *
+ * These are 4 froth words: a call to the left subexpression, a call to the
+ * right subexpression, the add operation and exit.
+ *
+ * And so forth. This technique can easily encode arbitrary expressions by
+ * just appending bytes to the instruction stream. It works even if
+ * subexpressions generate code that is meant to be executed straight away,
+ * for example: `mqtt.subscribe('bar', function() {...})` or
+ * `;1+(l=function(){return 10;})()+l()`.
+ *
+ * Basically all the juice is emitted even before we start to emit the code
+ * for `mqtt.subscribe`.
+ *
+ * This is well suited for compiling straight to flash, since flash works
+ * well in append only.
+ *
+ * ---
+ *
+ * Statements, again for simplicity, are chained so that the last statement
+ * calls the previous one which calls the previous one etc until the first
+ * is reached:
+ *
+ * ```
+ * $ blaze run //mjs:mjs_shell -- -c -e '1;2;3;4;' >/tmp/dump.bin
+ * $ blaze run //mjs:defroth /tmp/dump.bin
+ * : anon1 1 ;
+ * : anon2 anon1 ;
+ * : anon3 2 ;
+ * : anon4 anon2 drop anon3 ;
+ * : anon5 3 ;
+ * : anon6 anon4 drop anon5 ;
+ * : anon7 4 ;
+ * : anon8 anon6 drop anon7 ;
+ * ```
+ *
+ * This is suboptimal as it requires a 16-bit word on the stack for each
+ * statement in a block.
+ * To put things in perspective 12 statements will waste the same memory on the
+ * stack as a single object propertly (without counting the space for the
+ * property name).
+ *
+ * This can be solved with a general inlining technique (TODO).
+ * The basic idea is that we make a second pass over the generated stream and we
+ * inline all the word bodies that are referenced only once. This will yield:
+ *
+ * ```
+ * $ blaze run //mjs:mjs_shell -- -c -e '1+2;3+4;' >/tmp/dump.bin
+ * $ blaze run //mjs:defroth /tmp/dump.bin
+ * : anon1 1 ;
+ * : anon2 2 ;
+ * : anon3 anon1 anon2 + ;
+ * : anon4 anon3 ;
+ * : anon5 3 ;
+ * : anon6 4 ;
+ * : anon7 anon5 anon6 + ;
+ * : anon8 anon4 drop anon7 ;
+ * ```
+ *
+ * after inlining:
+ *
+ * ```
+ * : anon8 1 2 drop 3 4 + ;
+ * ```
+ *
+ * The rules of concatenative languages allow us to simply replace each
+ * invocation of a word with its body.
+ */
+
 #include <stdio.h>
 #include <string.h>
 
-/* Amalgamated: #include "common/cs_file.h" */
 /* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "common/cs_file.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
 /* Amalgamated: #include "mjs/parser.h" */
+/* Amalgamated: #include "mjs/vm_bcode.h" */
 
 static unsigned long mjs_get_column(const char *code, const char *pos) {
   const char *p = pos;
@@ -7077,8 +7316,8 @@ static int next_tok(struct mjs_parse_ctx *ctx) {
   return ctx->cur_tok;
 }
 
-mjs_err_t mjs_parsen(struct mjs *mjs, const char *src, size_t len,
-                     struct mjs_parse_ctx *ctx) {
+mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
+                        struct mjs_parse_ctx *ctx) {
   mjs_err_t err = MJS_OK;
   void *parser = mjsParserAlloc(malloc);
   struct mjs_token tok_data = {src};
@@ -7089,6 +7328,9 @@ mjs_err_t mjs_parsen(struct mjs *mjs, const char *src, size_t len,
   ctx->pstate.pc = src;
   ctx->pstate.src_end = src + len;
   ctx->pstate.line_no = 1;
+
+  ctx->mjs = mjs;
+  ctx->gen = mjs->last_code;
 
   while (next_tok(ctx) != TOK_END_OF_INPUT) {
     mjs_tok_t tok = ctx->cur_tok;
@@ -7125,12 +7367,17 @@ mjs_err_t mjs_parsen(struct mjs *mjs, const char *src, size_t len,
   }
 
   mjsParserFree(parser, free);
+
+  LOG(LL_ERROR, ("emitted %d bytes", ctx->gen - ctx->mjs->last_code));
+  LOG(LL_ERROR, ("start at %d", ctx->mjs->last_code));
+
+  ctx->mjs->last_code = ctx->gen;
   return err;
 }
 
 mjs_err_t mjs_parse(struct mjs *mjs, const char *src,
                     struct mjs_parse_ctx *ctx) {
-  return mjs_parsen(mjs, src, strlen(src), ctx);
+  return mjs_parse_buf(mjs, src, strlen(src), ctx);
 }
 
 mjs_err_t mjs_parse_file(struct mjs *mjs, const char *path,
@@ -7142,9 +7389,86 @@ mjs_err_t mjs_parse_file(struct mjs *mjs, const char *path,
   if (src == NULL) {
     return mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "cannot open file %s", path);
   }
-  err = mjs_parsen(mjs, src, len, ctx);
+  err = mjs_parse_buf(mjs, src, len, ctx);
   free(src);
   return err;
+}
+
+void mjs_dump_bcode(struct mjs *mjs, const char *filename, fr_word_ptr_t start,
+                    fr_word_ptr_t end) {
+  fr_word_ptr_t i;
+  FILE *out = fopen(filename, "w");
+
+  for (i = start; i < end; i++) {
+    uint8_t b = (uint8_t) fr_read_byte(mjs->vm.iram, i);
+    fwrite(&b, 1, 1, out);
+  }
+  fclose(out);
+}
+
+fr_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, fr_opcode_t op) {
+  LOG(LL_DEBUG, ("emitting opcode %d at %d", op, ctx->gen));
+  return mjs_emit_uint8(ctx, (uint8_t) op);
+}
+
+fr_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, fr_word_ptr_t dst) {
+  size_t delta;
+  assert(dst < ctx->gen);
+  delta = ctx->gen - dst;
+  LOG(LL_DEBUG, ("emitting call to %d at %d", dst, ctx->gen));
+  if (delta <= 128) {
+    return mjs_emit_uint8(ctx, (uint8_t)(int8_t)(-delta));
+  } else {
+    fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
+    mjs_emit_uint16(ctx, dst);
+    return start;
+  }
+}
+
+fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
+                           fr_word_ptr_t b, fr_opcode_t op) {
+  fr_word_ptr_t start = ctx->gen;
+  mjs_emit_call(ctx, a);
+  mjs_emit_call(ctx, b);
+  mjs_emit(ctx, op);
+  mjs_emit(ctx, MJS_OP_exit);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_lit(struct mjs_parse_ctx *ctx, const char *lit) {
+  int n = atoi(lit);
+  fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
+  mjs_emit_uint16(ctx, (uint16_t) n);
+  mjs_emit(ctx, MJS_OP_exit);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v) {
+  fr_word_ptr_t start = ctx->gen;
+  if (!fr_is_mapped(ctx->mjs->vm.iram, ctx->gen)) {
+    fr_mmap(&ctx->mjs->vm.iram, calloc(1, FR_PAGE_SIZE), FR_PAGE_SIZE, 0);
+  }
+  LOG(LL_DEBUG, ("emitting byte %02X at %d", v, ctx->gen));
+  fr_write_byte(ctx->mjs->vm.iram, ctx->gen++, v);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v) {
+  fr_word_ptr_t start = mjs_emit_uint8(ctx, v >> 8);
+  mjs_emit_uint8(ctx, v & 0xff);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_uint32(struct mjs_parse_ctx *ctx, uint32_t v) {
+  fr_word_ptr_t start = mjs_emit_uint16(ctx, v >> 16);
+  mjs_emit_uint16(ctx, v & 0xffff);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v) {
+  fr_word_ptr_t start = mjs_emit_uint32(ctx, v >> 32);
+  mjs_emit_uint32(ctx, v & 0xffffffff);
+  return start;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/tokenizer.c"
