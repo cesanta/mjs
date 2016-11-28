@@ -4540,7 +4540,7 @@ fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
   for (i = 0; i < num_pages; i++) {
     struct fr_page *page = &(*mem)->pages[start_page + i];
     page->flags = flags;
-    page->base = data + i * FR_PAGE_SIZE;
+    page->base = (char *) data + i * FR_PAGE_SIZE;
   }
 
   return start_page * FR_PAGE_SIZE;
