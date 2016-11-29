@@ -1818,6 +1818,62 @@ int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
 
 #endif /* MJS_FROTH_MEM_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/tok.h"
+#endif
+#ifndef MJS_TOK_H
+#define MJS_TOK_H
+struct pstate {
+  const char *file_name; /* Source code file name */
+  const char *buf;       /* Nul-terminated source code buffer */
+  const char *pos;       /* Current position */
+  int line_no;           /* Line number */
+  double double_val;     /* Parsed TOK_NUM value */
+  const char *tok_ptr;   /* Points to the beginning of the parsed token */
+  int tok_len;           /* Length of the parsed token */
+};
+
+enum {
+  TOK_EOF,
+  TOK_NUM = 200, /* Make sure they don't clash with ascii '+', '{', etc */
+  TOK_STR,
+  TOK_IDENT,
+  TOK_KEYWORD_BREAK,
+  TOK_KEYWORD_CASE,
+  TOK_KEYWORD_CATCH,
+  TOK_KEYWORD_CONTINUE,
+  TOK_KEYWORD_DEBUGGER,
+  TOK_KEYWORD_DEFAULT,
+  TOK_KEYWORD_DELETE,
+  TOK_KEYWORD_DO,
+  TOK_KEYWORD_ELSE,
+  TOK_KEYWORD_FALSE,
+  TOK_KEYWORD_FINALLY,
+  TOK_KEYWORD_FOR,
+  TOK_KEYWORD_FUNCTION,
+  TOK_KEYWORD_IF,
+  TOK_KEYWORD_IN,
+  TOK_KEYWORD_INSTANCEOF,
+  TOK_KEYWORD_NEW,
+  TOK_KEYWORD_NULL,
+  TOK_KEYWORD_RETURN,
+  TOK_KEYWORD_SWITCH,
+  TOK_KEYWORD_THIS,
+  TOK_KEYWORD_THROW,
+  TOK_KEYWORD_TRUE,
+  TOK_KEYWORD_TRY,
+  TOK_KEYWORD_TYPEOF,
+  TOK_KEYWORD_VAR,
+  TOK_KEYWORD_VOID,
+  TOK_KEYWORD_WHILE,
+  TOK_KEYWORD_WITH,
+  TOK_KEYWORD_LET,
+  TOK_KEYWORD_UNDEFINED
+};
+
+void pinit(const char *file_name, const char *buf, struct pstate *);
+int pnext(struct pstate *);
+#endif
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/parser_state.h"
 #endif
 /*
@@ -1829,30 +1885,16 @@ int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
 #define MJS_PARSER_STATE_H_
 
 /* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/tok.h" */
 
 struct mjs_token {
   const char *begin;
 };
 
-struct mjs_pstate {
-  const char *file_name;
-  const char *source_code;
-  const char *pc;      /* Current parsing position */
-  const char *src_end; /* End of source code */
-  int line_no;         /* Line number */
-  int prev_line_no;    /* Line number of previous token */
-};
-
 struct mjs_parse_ctx {
   int state;
   struct mjs_token syntax_error;
-
-  struct mjs_pstate pstate;
-  int cur_tok;           /* Current token */
-  const char *tok;       /* Parsed terminal token (ident, number, string) */
-  unsigned long tok_len; /* Length of the parsed terminal token */
-  double cur_tok_dbl;    /* When tokenizing, parser stores TOK_NUMBER here */
-
+  struct pstate pstate;
   struct mjs *mjs;
   fr_word_ptr_t gen;
   fr_word_ptr_t entry;
@@ -2075,25 +2117,6 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
 #define TOK_THEN                           100
 #define TOK_NUM_TOKENS                     101
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/tokenizer.h"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_TOKENIZER_H_
-#define MJS_TOKENIZER_H_
-
-typedef int mjs_tok_t;
-
-int skip_to_next_tok(const char **ptr, const char *src_end);
-mjs_tok_t get_tok(const char **s, const char *src_end, double *n,
-                  mjs_tok_t prev_tok);
-int is_reserved_word_token(mjs_tok_t tok);
-
-#endif /* MJS_TOKENIZER_H_ */
-#ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.h"
 #endif
 /*
@@ -2106,10 +2129,10 @@ int is_reserved_word_token(mjs_tok_t tok);
 
 #include <stdlib.h>
 
-/* Amalgamated: #include "mjs/mjs.lem.h" */
 /* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/tokenizer.h" */
+/* Amalgamated: #include "mjs/mjs.lem.h" */
 /* Amalgamated: #include "mjs/parser_state.h" */
+/* Amalgamated: #include "mjs/tok.h" */
 
 mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
                         struct mjs_parse_ctx *ctx);
@@ -2132,20 +2155,6 @@ void mjsParser(
     );
 
 #endif /* MJS_PARSER_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "common/cs_strtod.h"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef CS_COMMON_CS_STRTOD_H_
-#define CS_COMMON_CS_STRTOD_H_
-
-double cs_strtod(const char *str, char **endptr);
-
-#endif /* CS_COMMON_CS_STRTOD_H_ */
 #ifndef MG_EXPORT_INTERNAL_HEADERS
 #ifdef MG_MODULE_LINES
 #line 1 "common/cs_dbg.c"
@@ -7339,15 +7348,59 @@ static unsigned long mjs_get_column(const char *code, const char *pos) {
   return p == code ? pos - p : pos - (p + 1);
 }
 
-static int next_tok(struct mjs_parse_ctx *ctx) {
-  ctx->pstate.prev_line_no = ctx->pstate.line_no;
-  ctx->pstate.line_no += skip_to_next_tok(&ctx->pstate.pc, ctx->pstate.src_end);
-  ctx->tok = ctx->pstate.pc;
-  ctx->cur_tok = get_tok(&ctx->pstate.pc, ctx->pstate.src_end,
-                         &ctx->cur_tok_dbl, ctx->cur_tok);
-  ctx->tok_len = ctx->pstate.pc - ctx->tok;
-  ctx->pstate.line_no += skip_to_next_tok(&ctx->pstate.pc, ctx->pstate.src_end);
-  return ctx->cur_tok;
+typedef int mjs_tok_t;
+
+static int next_tok(struct pstate *p) {
+  int tok = pnext(p);
+#define DT(x, y) ((x) << 8 | (y))
+
+  /* Map token ID produced by tok.c to token ID produced by lemon */
+  /* clang-format off */
+  switch (tok) {
+    case ':': return TOK_COLON;
+    case ';': return TOK_SEMICOLON;
+    case ',': return TOK_COMMA;
+    case '=': return TOK_ASSIGN;
+    case '{': return TOK_OPEN_CURLY;
+    case '}': return TOK_CLOSE_CURLY;
+    case '(': return TOK_OPEN_PAREN;
+    case ')': return TOK_CLOSE_PAREN;
+    case '[': return TOK_OPEN_BRACKET;
+    case ']': return TOK_CLOSE_BRACKET;
+    case '*': return TOK_MUL;
+    case '+': return TOK_PLUS;
+    case '-': return TOK_MINUS;
+    case '/': return TOK_DIV;
+    case '%': return TOK_REM;
+    case '^': return TOK_XOR;
+    case '.': return TOK_DOT;
+    case DT('<','<'): return TOK_LSHIFT;
+    case DT('>','>'): return TOK_RSHIFT;
+    case DT('-','-'): return TOK_MINUS_MINUS;
+    case DT('+','+'): return TOK_PLUS_PLUS;
+
+    /* TODO(lsm): wrap these into a single ASSIGN op and delta */
+    case DT('+','='): return TOK_PLUS_ASSIGN;
+    case DT('-','='): return TOK_MINUS_ASSIGN;
+    case DT('*','='): return TOK_MUL_ASSIGN;
+    case DT('/','='): return TOK_DIV_ASSIGN;
+    case DT('&','='): return TOK_AND_ASSIGN;
+    case DT('|','='): return TOK_OR_ASSIGN;
+    case DT('%','='): return TOK_REM_ASSIGN;
+
+    case TOK_NUM: return TOK_NUMBER;
+    case TOK_STR: return TOK_STRING_LITERAL;
+    case TOK_IDENT: return TOK_IDENTIFIER;
+    case TOK_KEYWORD_LET: return TOK_LET;
+    case TOK_KEYWORD_UNDEFINED: return TOK_UNDEFINED;
+    case TOK_KEYWORD_IF: return TOK_IF;
+    case TOK_KEYWORD_TRUE: return TOK_TRUE;
+    case TOK_KEYWORD_FALSE: return TOK_FALSE;
+    case TOK_KEYWORD_FUNCTION: return TOK_FUNCTION;
+    case TOK_KEYWORD_RETURN: return TOK_RETURN;
+    default: return TOK_END_OF_INPUT;
+  }
+  /* clang-format on */
 }
 
 mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
@@ -7355,26 +7408,23 @@ mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
   mjs_err_t err = MJS_OK;
   void *parser = mjsParserAlloc(malloc);
   struct mjs_token tok_data = {src};
+  int tok;
 
   memset(ctx, 0, sizeof(*ctx));
 
-  ctx->pstate.source_code = src;
-  ctx->pstate.pc = src;
-  ctx->pstate.src_end = src + len;
-  ctx->pstate.line_no = 1;
+  pinit(NULL, src, &ctx->pstate);
 
   ctx->mjs = mjs;
   ctx->gen = mjs->last_code;
 
-  while (next_tok(ctx) != TOK_END_OF_INPUT) {
-    mjs_tok_t tok = ctx->cur_tok;
-    tok_data.begin = ctx->tok;
-    LOG(LL_DEBUG,
-        ("sending token %d '%s' state %d\n", tok, tok_data.begin, ctx->state));
+  while ((tok = next_tok(&ctx->pstate)) != TOK_END_OF_INPUT) {
+    tok_data.begin = ctx->pstate.tok_ptr;
+    LOG(LL_DEBUG, ("sending token %d '%.*s' state %d", tok, ctx->pstate.tok_len,
+                   tok_data.begin, ctx->state));
     mjsParser(parser, tok, tok_data, ctx);
   }
 
-  tok_data.begin = ctx->tok;
+  tok_data.begin = ctx->pstate.tok_ptr;
   mjsParser(parser, 0, tok_data, ctx);
 
   if (ctx->syntax_error.begin != NULL) {
@@ -7382,13 +7432,12 @@ mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
     const char *p;
     unsigned long col = mjs_get_column(src, ctx->syntax_error.begin);
 
-    for (p = ctx->syntax_error.begin - col;
-         p < ctx->pstate.src_end && *p != '\0' && *p != '\n'; p++) {
+    for (p = ctx->syntax_error.begin - col; *p != '\0' && *p != '\n'; p++) {
       line_len++;
     }
 
     /* fixup line number: line_no points to the beginning of the next token */
-    for (; p < ctx->pstate.pc; p++) {
+    for (; p < ctx->pstate.pos; p++) {
       if (*p == '\n') {
         ctx->pstate.line_no--;
       }
@@ -7505,509 +7554,149 @@ fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v) {
   return start;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/tokenizer.c"
+#line 1 "mjs/tok.c"
 #endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 
-/* Amalgamated: #include "common/cs_strtod.h" */
-/* Amalgamated: #include "common/mg_str.h" */
-/* Amalgamated: #include "common/utf.h" */
-/* Amalgamated: #include "mjs/parser.h" */
+/* Amalgamated: #include "mjs/tok.h" */
 
-/*
- * Must be in the same order as enum token constants. See comment
- * for function get_tok() for rationale for that.
- */
-static const struct mg_str s_keywords[] = {
-    MG_MK_STR("break"),      MG_MK_STR("case"),     MG_MK_STR("catch"),
-    MG_MK_STR("continue"),   MG_MK_STR("debugger"), MG_MK_STR("default"),
-    MG_MK_STR("delete"),     MG_MK_STR("do"),       MG_MK_STR("else"),
-    MG_MK_STR("false"),      MG_MK_STR("finally"),  MG_MK_STR("for"),
-    MG_MK_STR("function"),   MG_MK_STR("if"),       MG_MK_STR("in"),
-    MG_MK_STR("instanceof"), MG_MK_STR("new"),      MG_MK_STR("null"),
-    MG_MK_STR("return"),     MG_MK_STR("switch"),   MG_MK_STR("this"),
-    MG_MK_STR("throw"),      MG_MK_STR("true"),     MG_MK_STR("try"),
-    MG_MK_STR("typeof"),     MG_MK_STR("var"),      MG_MK_STR("void"),
-    MG_MK_STR("while"),      MG_MK_STR("with"),     MG_MK_STR("let"),
-    MG_MK_STR("undefined")};
-
-int is_reserved_word_token(mjs_tok_t tok) {
-  return tok >= TOK_BREAK && tok <= TOK_WITH;
+void pinit(const char *file_name, const char *buf, struct pstate *p) {
+  memset(p, 0, sizeof(*p));
+  p->line_no = 1;
+  p->file_name = file_name;
+  p->buf = p->pos = buf;
 }
 
-/*
- * Move ptr to the next token, skipping comments and whitespaces.
- * Return number of new line characters detected.
- */
-int skip_to_next_tok(const char **ptr, const char *src_end) {
-  const char *s = *ptr, *p = NULL;
-  int num_lines = 0;
+// We're not relying on the target libc ctype, as it may incorrectly
+// handle negative arguments, e.g. isspace(-1).
+static int is_space(int c) {
+  return c == ' ' || c == '\r' || c == '\n' || c == '\t';
+}
 
-  while (s != p && s < src_end && *s != '\0' &&
-         (isspace((unsigned char) *s) || *s == '/')) {
-    p = s;
-    while (s < src_end && *s != '\0' && isspace((unsigned char) *s)) {
-      if (*s == '\n') num_lines++;
-      s++;
-    }
-    if ((s + 1) < src_end && s[0] == '/' && s[1] == '/') {
-      s += 2;
-      while (s < src_end && s[0] != '\0' && s[0] != '\n') s++;
-    }
-    if ((s + 1) < src_end && s[0] == '/' && s[1] == '*') {
-      s += 2;
-      while (s < src_end && s[0] != '\0' && !(s[-1] == '/' && s[-2] == '*')) {
-        if (s[0] == '\n') num_lines++;
-        s++;
-      }
-    }
+static int is_digit(int c) {
+  return c >= '0' && c <= '9';
+}
+
+static int is_alpha(int c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+static int is_ident(int c) {
+  return c == '_' || c == '$' || is_alpha(c);
+}
+
+// Try to parse a token that can take one or two chars.
+static int longtok(struct pstate *p, const char *first_chars,
+                   const char *second_chars) {
+  if (strchr(first_chars, p->pos[0]) == NULL) return TOK_EOF;
+  if (strchr(second_chars, p->pos[1]) != NULL) {
+    p->tok_len++;
+    p->pos++;
+    return p->pos[-1] << 8 | p->pos[0];
   }
-  *ptr = s;
-
-  return num_lines;
+  return p->pos[0];
 }
 
-/* Advance `s` pointer to the end of identifier  */
-static void ident(const char **s, const char *src_end) {
-  const unsigned char *p = (unsigned char *) *s;
-  int n;
-  Rune r;
-
-  while ((const char *) p < src_end && p[0] != '\0') {
-    if (p[0] == '$' || p[0] == '_' || isalnum(p[0])) {
-      /* $, _, or any alphanumeric are valid identifier characters */
-      p++;
-    } else if ((const char *) (p + 5) < src_end && p[0] == '\\' &&
-               p[1] == 'u' && isxdigit(p[2]) && isxdigit(p[3]) &&
-               isxdigit(p[4]) && isxdigit(p[5])) {
-      /* Unicode escape, \uXXXX . Could be used like "var \u0078 = 1;" */
-      p += 6;
-    } else if ((n = chartorune(&r, (char *) p)) > 1 && isalpharune(r)) {
-      /*
-       * TODO(dfrank): the chartorune() call above can read `p` past the
-       * src_end, so it might crash on incorrect code. The solution would be
-       * to modify `chartorune()` to accept src_end argument as well.
-       */
-      /* Unicode alphanumeric character */
-      p += n;
-    } else {
-      break;
-    }
-  }
-
-  *s = (char *) p;
+static int getnum(struct pstate *p) {
+  p->double_val = strtod(p->pos, (char **) &p->pos);
+  p->tok_len = p->pos - p->tok_ptr;
+  p->pos--;
+  return TOK_NUM;
 }
 
-static mjs_tok_t kw(const char *s, size_t len, int ntoks, mjs_tok_t tok) {
+static int is_reserved_word_token(const char *s, int len) {
+  const char *reserved[] = {
+      "break",     "case",   "catch", "continue",   "debugger", "default",
+      "delete",    "do",     "else",  "false",      "finally",  "for",
+      "function",  "if",     "in",    "instanceof", "new",      "null",
+      "return",    "switch", "this",  "throw",      "true",     "try",
+      "typeof",    "var",    "void",  "while",      "with",     "let",
+      "undefined", NULL};
   int i;
-
-  for (i = 0; i < ntoks; i++) {
-    if (s_keywords[(tok - TOK_BREAK) + i].len == len &&
-        memcmp(s_keywords[(tok - TOK_BREAK) + i].p + 1, s + 1, len - 1) == 0)
-      break;
+  if (!is_alpha(s[0])) return 0;
+  for (i = 0; reserved[i] != NULL; i++) {
+    if (len == (int) strlen(reserved[i]) && strncmp(s, reserved[i], len) == 0)
+      return i + 1;
   }
-
-  return i == ntoks ? TOK_IDENTIFIER : (mjs_tok_t)(tok + i);
-}
-
-static mjs_tok_t punct1(const char **s, const char *src_end, int ch1,
-                        mjs_tok_t tok1, mjs_tok_t tok2) {
-  (*s)++;
-  if (*s < src_end && **s == ch1) {
-    (*s)++;
-    return tok1;
-  } else {
-    return tok2;
-  }
-}
-
-static mjs_tok_t punct2(const char **s, const char *src_end, int ch1,
-                        mjs_tok_t tok1, int ch2, mjs_tok_t tok2,
-                        mjs_tok_t tok3) {
-  if ((*s + 2) < src_end && s[0][1] == ch1 && s[0][2] == ch2) {
-    (*s) += 3;
-    return tok2;
-  }
-
-  return punct1(s, src_end, ch1, tok1, tok3);
-}
-
-static mjs_tok_t punct3(const char **s, const char *src_end, int ch1,
-                        mjs_tok_t tok1, int ch2, mjs_tok_t tok2,
-                        mjs_tok_t tok3) {
-  (*s)++;
-  if (*s < src_end) {
-    if (**s == ch1) {
-      (*s)++;
-      return tok1;
-    } else if (**s == ch2) {
-      (*s)++;
-      return tok2;
-    }
-  }
-  return tok3;
-}
-
-static void parse_number(const char *s, const char **end, double *num) {
-  *num = cs_strtod(s, (char **) end);
-}
-
-static mjs_tok_t parse_str_literal(const char **p, const char *src_end) {
-  const char *s = *p;
-  int quote = '\0';
-
-  if (s < src_end) {
-    quote = *s++;
-  }
-
-  /* Scan string literal, handle escape sequences */
-  for (; s < src_end && *s != '\0' && *s != quote; s++) {
-    if (*s == '\\') {
-      switch (s[1]) {
-        case 'b':
-        case 'f':
-        case 'n':
-        case 'r':
-        case 't':
-        case 'v':
-        case '\\':
-          s++;
-          break;
-        default:
-          if (s[1] == quote) s++;
-          break;
-      }
-    }
-  }
-
-  if (s < src_end && *s == quote) {
-    s++;
-    *p = s;
-    return TOK_STRING_LITERAL;
-  } else {
-    return TOK_END_OF_INPUT;
-  }
-}
-
-/*
- * This function is the heart of the tokenizer.
- * Organized as a giant switch statement.
- *
- * Switch statement is by the first character of the input stream. If first
- * character begins with a letter, it could be either keyword or identifier.
- * get_tok() calls ident() which shifts `s` pointer to the end of the word.
- * Now, tokenizer knows that the word begins at `p` and ends at `s`.
- * It calls function kw() to scan over the keywords that start with `p[0]`
- * letter. Therefore, keyword tokens and keyword strings must be in the
- * same order, to let kw() function work properly.
- * If kw() finds a keyword match, it returns keyword token.
- * Otherwise, it returns TOK_IDENTIFIER.
- * NOTE(lsm): `prev_tok` is a previously parsed token. It is needed for
- * correctly parsing regex literals.
- */
-mjs_tok_t get_tok(const char **s, const char *src_end, double *n,
-                  mjs_tok_t prev_tok) {
-  const char *p = *s;
-
-  if (p >= src_end) {
-    return TOK_END_OF_INPUT;
-  }
-
-  switch (*p) {
-    /* Letters */
-    case 'a':
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-    case 'b':
-      ident(s, src_end);
-      return kw(p, *s - p, 1, TOK_BREAK);
-    case 'c':
-      ident(s, src_end);
-      return kw(p, *s - p, 3, TOK_CASE);
-    case 'd':
-      ident(s, src_end);
-      return kw(p, *s - p, 4, TOK_DEBUGGER);
-    case 'e':
-      ident(s, src_end);
-      return kw(p, *s - p, 1, TOK_ELSE);
-    case 'f':
-      ident(s, src_end);
-      return kw(p, *s - p, 4, TOK_FALSE);
-    case 'g':
-    case 'h':
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-    case 'i':
-      ident(s, src_end);
-      return kw(p, *s - p, 3, TOK_IF);
-    case 'j':
-    case 'k':
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-    case 'l':
-      ident(s, src_end);
-      return kw(p, *s - p, 1, TOK_LET);
-    case 'm':
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-    case 'n':
-      ident(s, src_end);
-      return kw(p, *s - p, 2, TOK_NEW);
-    case 'o':
-    case 'p':
-    case 'q':
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-    case 'r':
-      ident(s, src_end);
-      return kw(p, *s - p, 1, TOK_RETURN);
-    case 's':
-      ident(s, src_end);
-      return kw(p, *s - p, 1, TOK_SWITCH);
-    case 't':
-      ident(s, src_end);
-      return kw(p, *s - p, 5, TOK_THIS);
-    case 'u':
-      ident(s, src_end);
-      return kw(p, *s - p, 1, TOK_UNDEFINED);
-    case 'v':
-      ident(s, src_end);
-      return kw(p, *s - p, 2, TOK_VAR);
-    case 'w':
-      ident(s, src_end);
-      return kw(p, *s - p, 2, TOK_WHILE);
-    case 'x':
-    case 'y':
-    case 'z':
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-
-    case '_':
-    case '$':
-    case 'A':
-    case 'B':
-    case 'C':
-    case 'D':
-    case 'E':
-    case 'F':
-    case 'G':
-    case 'H':
-    case 'I':
-    case 'J':
-    case 'K':
-    case 'L':
-    case 'M':
-    case 'N':
-    case 'O':
-    case 'P':
-    case 'Q':
-    case 'R':
-    case 'S':
-    case 'T':
-    case 'U':
-    case 'V':
-    case 'W':
-    case 'X':
-    case 'Y':
-    case 'Z':
-    case '\\': /* Identifier may start with unicode escape sequence */
-      ident(s, src_end);
-      return TOK_IDENTIFIER;
-
-    /* Numbers */
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-      parse_number(p, s, n);
-      return TOK_NUMBER;
-
-    /* String literals */
-    case '\'':
-    case '"':
-      return parse_str_literal(s, src_end);
-
-    /* Punctuators */
-    case '=':
-      return punct2(s, src_end, '=', TOK_EQ, '=', TOK_EQ_EQ, TOK_ASSIGN);
-    case '!':
-      return punct2(s, src_end, '=', TOK_NE, '=', TOK_NE_NE, TOK_NOT);
-
-    case '%':
-      return punct1(s, src_end, '=', TOK_REM_ASSIGN, TOK_REM);
-    case '*':
-      return punct1(s, src_end, '=', TOK_MUL_ASSIGN, TOK_MUL);
-    case '/':
-      /*
-       * TOK_DIV, TOK_DIV_ASSIGN, and TOK_REGEX_LITERAL start with `/` char.
-       * Division can happen after an expression.
-       * In expressions like this:
-       *            a /= b; c /= d;
-       * things between slashes is NOT a regex literal.
-       * The switch below catches all cases where division happens.
-       */
-      switch (prev_tok) {
-        case TOK_CLOSE_CURLY:
-        case TOK_CLOSE_PAREN:
-        case TOK_CLOSE_BRACKET:
-        case TOK_IDENTIFIER:
-        case TOK_NUMBER:
-          return punct1(s, src_end, '=', TOK_DIV_ASSIGN, TOK_DIV);
-        default:
-          /* Not a division - this is a regex. Scan until closing slash */
-          for (p++; p < src_end && *p != '\0' && *p != '\n'; p++) {
-            if (*p == '\\') {
-              /* Skip escape sequence */
-              p++;
-            } else if (*p == '/') {
-              /* This is a closing slash */
-              p++;
-              /* Skip regex flags */
-              while (*p == 'g' || *p == 'i' || *p == 'm') {
-                p++;
-              }
-              *s = p;
-              return TOK_REGEX_LITERAL;
-            }
-          }
-          break;
-      }
-      return punct1(s, src_end, '=', TOK_DIV_ASSIGN, TOK_DIV);
-    case '^':
-      return punct1(s, src_end, '=', TOK_XOR_ASSIGN, TOK_XOR);
-
-    case '+':
-      return punct3(s, src_end, '+', TOK_PLUS_PLUS, '=', TOK_PLUS_ASSIGN,
-                    TOK_PLUS);
-    case '-':
-      return punct3(s, src_end, '-', TOK_MINUS_MINUS, '=', TOK_MINUS_ASSIGN,
-                    TOK_MINUS);
-    case '&':
-      return punct3(s, src_end, '&', TOK_LOGICAL_AND, '=', TOK_AND_ASSIGN,
-                    TOK_AND);
-    case '|':
-      return punct3(s, src_end, '|', TOK_LOGICAL_OR, '=', TOK_OR_ASSIGN,
-                    TOK_OR);
-
-    case '<':
-      if (*s + 1 < src_end && s[0][1] == '=') {
-        (*s) += 2;
-        return TOK_LE;
-      }
-      return punct2(s, src_end, '<', TOK_LSHIFT, '=', TOK_LSHIFT_ASSIGN,
-                    TOK_LT);
-    case '>':
-      if (*s + 1 < src_end && s[0][1] == '=') {
-        (*s) += 2;
-        return TOK_GE;
-      }
-      if (*s + 3 < src_end && s[0][1] == '>' && s[0][2] == '>' &&
-          s[0][3] == '=') {
-        (*s) += 4;
-        return TOK_URSHIFT_ASSIGN;
-      }
-      if (*s + 2 < src_end && s[0][1] == '>' && s[0][2] == '>') {
-        (*s) += 3;
-        return TOK_URSHIFT;
-      }
-      return punct2(s, src_end, '>', TOK_RSHIFT, '=', TOK_RSHIFT_ASSIGN,
-                    TOK_GT);
-
-    case '{':
-      (*s)++;
-      return TOK_OPEN_CURLY;
-    case '}':
-      (*s)++;
-      return TOK_CLOSE_CURLY;
-    case '(':
-      (*s)++;
-      return TOK_OPEN_PAREN;
-    case ')':
-      (*s)++;
-      return TOK_CLOSE_PAREN;
-    case '[':
-      (*s)++;
-      return TOK_OPEN_BRACKET;
-    case ']':
-      (*s)++;
-      return TOK_CLOSE_BRACKET;
-    case '.':
-      switch (*(*s + 1)) {
-        /* Numbers */
-        case '0':
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-        case '5':
-        case '6':
-        case '7':
-        case '8':
-        case '9':
-          parse_number(p, s, n);
-          return TOK_NUMBER;
-      }
-      (*s)++;
-      return TOK_DOT;
-    case ';':
-      (*s)++;
-      return TOK_SEMICOLON;
-    case ':':
-      (*s)++;
-      return TOK_COLON;
-    case '?':
-      (*s)++;
-      return TOK_QUESTION;
-    case '~':
-      (*s)++;
-      return TOK_TILDA;
-    case ',':
-      (*s)++;
-      return TOK_COMMA;
-
-    default: {
-      /* Handle unicode variables */
-      Rune r;
-      if (chartorune(&r, *s) > 1 && isalpharune(r)) {
-        ident(s, src_end);
-        return TOK_IDENTIFIER;
-      }
-      return TOK_END_OF_INPUT;
-    }
-  }
-}
-
-#ifdef TEST_RUN
-int main(void) {
-  const char *src =
-      "for (var fo++ = -1; /= <= 1.17; x<<) { == <<=, 'x')} "
-      "Infinity %=x<<=2";
-  const char *src_end = src + strlen(src);
-  mjs_tok_t tok;
-  double num;
-  const char *p = src;
-
-  skip_to_next_tok(&src, src_end);
-  while ((tok = get_tok(&src, src_end, &num, tok)) != TOK_END_OF_INPUT) {
-    printf("%d [%.*s]\n", tok, (int) (src - p), p);
-    skip_to_next_tok(&src, src_end);
-    p = src;
-  }
-  printf("%d [%.*s]\n", tok, (int) (src - p), p);
-
   return 0;
 }
-#endif
+
+static int getident(struct pstate *p) {
+  while (is_ident(p->pos[0])) p->pos++;
+  p->tok_len = p->pos - p->tok_ptr;
+  p->pos--;
+  return TOK_IDENT;
+}
+
+static int getstr(struct pstate *p) {
+  int quote = *p->pos++;
+  while (p->pos[0] != '\0' && p->pos[0] != quote) {
+    if (p->pos[0] == '\\' && p->pos[1] != '\0' &&
+        (p->pos[1] == quote || strchr("bfnrtv\\", p->pos[1]) != NULL)) {
+      p->pos += 2;
+    } else {
+      p->pos++;
+    }
+  }
+  p->tok_len = p->pos - p->tok_ptr;
+  return TOK_STR;
+}
+
+static void skip_spaces_and_comments(struct pstate *p) {
+  const char *pos;
+  do {
+    pos = p->pos;
+    while (is_space(p->pos[0])) {
+      if (p->pos[0] == '\n') p->line_no++;
+      p->pos++;
+    }
+    if (p->pos[0] == '/' && p->pos[1] == '/') {
+      while (p->pos[0] != '\0' && p->pos[0] != '\n') p->pos++;
+      if (p->pos[0] == '\0') p->pos++;
+      p->line_no++;
+    }
+    if (p->pos[0] == '/' && p->pos[1] == '*') {
+      p->pos += 2;
+      while (p->pos[0] != '\0') {
+        if (p->pos[0] == '\n') p->line_no++;
+        if (p->pos[0] == '*' && p->pos[1] == '/') {
+          p->pos += 2;
+          break;
+        }
+        p->pos++;
+      }
+    }
+  } while (pos < p->pos);
+}
+
+int pnext(struct pstate *p) {
+  int tmp, tok = TOK_EOF;
+
+  skip_spaces_and_comments(p);
+  p->tok_ptr = p->pos;
+  p->tok_len = 1;
+
+  if (is_digit(p->pos[0])) {
+    tok = getnum(p);
+  } else if (p->pos[0] == '\'' || p->pos[0] == '"') {
+    tok = getstr(p);
+  } else if (is_ident(p->pos[0])) {
+    tok = getident(p) + is_reserved_word_token(p->tok_ptr, p->tok_len);
+  } else if (strchr(",.:;{}[]()", p->pos[0]) != NULL) {
+    tok = p->pos[0];
+  } else if ((tmp = longtok(p, "&", "&=")) != TOK_EOF ||
+             (tmp = longtok(p, "|", "|=")) != TOK_EOF ||
+             (tmp = longtok(p, "<", "<=")) != TOK_EOF ||
+             (tmp = longtok(p, ">", ">=")) != TOK_EOF ||
+             (tmp = longtok(p, "-", "-=")) != TOK_EOF ||
+             (tmp = longtok(p, "+", "+=")) != TOK_EOF) {
+    tok = tmp;
+  } else if ((tmp = longtok(p, "^~+-%/*<>=!|&", "=")) != TOK_EOF) {
+    tok = tmp;
+  }
+  if (p->pos[0] != '\0') p->pos++;
+
+  return tok;
+}
 #endif /* MG_EXPORT_INTERNAL_HEADERS */
