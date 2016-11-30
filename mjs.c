@@ -1761,11 +1761,6 @@ struct fr_vm {
   struct fr_stack rstack; /* return stack */
 
   void *user_data;
-
-  int32_t (*to_int)(fr_cell_t);
-  fr_cell_t (*from_int)(int32_t);
-  void (*print_cell)(fr_cell_t);
-  int (*is_true)(fr_cell_t);
 };
 
 void fr_init_vm(struct fr_vm *vm, struct fr_code *code);
@@ -1778,6 +1773,13 @@ void fr_push(struct fr_stack *stack, fr_cell_t value);
 fr_cell_t fr_pop(struct fr_stack *stack);
 
 void fr_print_stack(struct fr_vm *vm, struct fr_stack *stack);
+
+/* these should be implemented by whoever embeds the VM */
+
+int32_t fr_to_int(fr_cell_t cell);
+fr_cell_t fr_from_int(int32_t i);
+void fr_print_cell(fr_cell_t cell);
+int fr_is_true(fr_cell_t cell);
 
 #endif /* MJS_FROTH_VM_H_ */
 #ifdef MG_MODULE_LINES
@@ -5163,22 +5165,6 @@ void fr_destroy_vm(struct fr_vm *vm) {
   fr_destroy_mem(vm->iram);
 }
 
-static int32_t default_fr_to_int(fr_cell_t cell) {
-  return ~cell;
-}
-
-static fr_cell_t default_fr_from_int(int32_t i) {
-  return ~i;
-}
-
-static void default_fr_print_cell(fr_cell_t cell) {
-  printf("%d", (int) default_fr_to_int(cell));
-}
-
-static int default_fr_is_true(fr_cell_t cell) {
-  return !!default_fr_to_int(cell);
-}
-
 void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
   memset(vm, 0, sizeof(*vm));
   vm->code = code;
@@ -5191,11 +5177,6 @@ void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
     fr_mmap(&vm->iram, code->opcodes, code->opcodes_len,
             FR_MEM_RO | FR_MEM_FOREIGN);
   }
-
-  vm->to_int = default_fr_to_int;
-  vm->from_int = default_fr_from_int;
-  vm->print_cell = default_fr_print_cell;
-  vm->is_true = default_fr_is_true;
 }
 
 static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
@@ -5233,14 +5214,14 @@ static void fr_trace(struct fr_vm *vm) {
 }
 
 void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
-  fr_push(&vm->rstack, vm->from_int(vm->ip));
+  fr_push(&vm->rstack, fr_from_int(vm->ip));
   vm->ip = word;
 }
 
 void fr_enter(struct fr_vm *vm, fr_word_ptr_t word) {
   if (word >= 0 && fr_fetch(vm, vm->ip) == 0 && vm->rstack.pos > 0) {
     LOG(LL_DEBUG, ("tail recursion"));
-    vm->ip = vm->to_int(fr_pop(&vm->rstack));
+    vm->ip = fr_to_int(fr_pop(&vm->rstack));
   }
 
   if (word < 0) {
@@ -5258,7 +5239,7 @@ void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
   vm->ip = word;
 
   /* push sentinel so we can exit the loop */
-  fr_push(&vm->rstack, vm->from_int(FR_EXIT_RUN));
+  fr_push(&vm->rstack, fr_from_int(FR_EXIT_RUN));
 
   while (vm->ip != FR_EXIT_RUN && fr_is_mapped(vm->iram, vm->ip)) {
     fr_trace(vm);
@@ -5297,7 +5278,7 @@ void fr_print_stack(struct fr_vm *vm, struct fr_stack *stack) {
   /* gforth style stack print */
   printf("<%zu> ", stack->pos);
   for (i = 0; i < stack->pos; i++) {
-    vm->print_cell(stack->stack[i]);
+    fr_print_cell(stack->stack[i]);
     printf(" ");
   }
 }
@@ -5315,11 +5296,11 @@ void fr_op_quote(struct fr_vm *vm) {
   lit |= (uint8_t) fr_fetch(vm, vm->ip + 1);
   vm->ip += 2;
   LOG(LL_DEBUG, ("quoting %d", lit));
-  fr_push(&vm->dstack, vm->from_int(lit));
+  fr_push(&vm->dstack, fr_from_int(lit));
 }
 
 void fr_op_exit(struct fr_vm *vm) {
-  vm->ip = vm->to_int(fr_pop(&vm->rstack));
+  vm->ip = fr_to_int(fr_pop(&vm->rstack));
 }
 
 void fr_op_drop(struct fr_vm *vm) {
@@ -5369,7 +5350,7 @@ void fr_op_popr(struct fr_vm *vm) {
 
 void fr_op_print(struct fr_vm *vm) {
   fr_cell_t v = fr_pop(&vm->dstack);
-  vm->print_cell(v);
+  fr_print_cell(v);
 }
 
 void fr_op_print_stack(struct fr_vm *vm) {
@@ -5380,41 +5361,41 @@ void fr_op_eq(struct fr_vm *vm) {
   fr_cell_t b = fr_pop(&vm->dstack);
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_push(&vm->dstack, a == b ? -1 : 0);
-  fr_push(&vm->dstack, vm->from_int(a == b ? -1 : 0));
+  fr_push(&vm->dstack, fr_from_int(a == b ? -1 : 0));
 }
 
 void fr_op_lt(struct fr_vm *vm) {
   fr_cell_t b = fr_pop(&vm->dstack);
   fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, vm->from_int(vm->to_int(a) < vm->to_int(b) ? -1 : 0));
+  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) < fr_to_int(b) ? -1 : 0));
 }
 
 void fr_op_invert(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, vm->from_int(~vm->to_int(a)));
+  fr_push(&vm->dstack, fr_from_int(~fr_to_int(a)));
 }
 
 void fr_op_add(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_cell_t b = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, vm->from_int(vm->to_int(a) + vm->to_int(b)));
+  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) + fr_to_int(b)));
 }
 
 void fr_op_mul(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_cell_t b = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, vm->from_int(vm->to_int(a) * vm->to_int(b)));
+  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) * fr_to_int(b)));
 }
 
 void fr_op_call(struct fr_vm *vm) {
-  fr_enter(vm, vm->to_int(fr_pop(&vm->dstack)));
+  fr_enter(vm, fr_to_int(fr_pop(&vm->dstack)));
 }
 
 void fr_op_if(struct fr_vm *vm) {
   fr_cell_t iftrue = fr_pop(&vm->dstack);
   fr_cell_t cond = fr_pop(&vm->dstack);
-  if (vm->is_true(cond)) {
-    fr_enter(vm, vm->to_int(iftrue));
+  if (fr_is_true(cond)) {
+    fr_enter(vm, fr_to_int(iftrue));
   }
 }
 
@@ -5422,7 +5403,7 @@ void fr_op_ifelse(struct fr_vm *vm) {
   fr_cell_t iffalse = fr_pop(&vm->dstack);
   fr_cell_t iftrue = fr_pop(&vm->dstack);
   fr_cell_t cond = fr_pop(&vm->dstack);
-  fr_enter(vm, (vm->is_true(cond) ? vm->to_int(iftrue) : vm->to_int(iffalse)));
+  fr_enter(vm, (fr_is_true(cond) ? fr_to_int(iftrue) : fr_to_int(iffalse)));
 }
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.c"
@@ -7386,10 +7367,6 @@ int fr_is_true(fr_cell_t cell) {
 struct mjs *mjs_create() {
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   fr_init_vm(&mjs->vm, &MJS_code);
-  mjs->vm.to_int = fr_to_int;
-  mjs->vm.from_int = fr_from_int;
-  mjs->vm.print_cell = fr_print_cell;
-  mjs->vm.is_true = fr_is_true;
   mjs->vm.user_data = (void *) mjs;
 
   mjs->last_code = mjs->vm.iram->num_pages * FR_PAGE_SIZE;
