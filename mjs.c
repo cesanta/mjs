@@ -1760,6 +1760,8 @@ struct fr_vm {
   struct fr_stack dstack; /* data stack */
   struct fr_stack rstack; /* return stack */
 
+  void *user_data;
+
   int32_t (*to_int)(fr_cell_t);
   fr_cell_t (*from_int)(int32_t);
   void (*print_cell)(fr_cell_t);
@@ -1916,7 +1918,8 @@ fr_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, fr_opcode_t op);
 fr_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, fr_word_ptr_t dst);
 fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
                            fr_word_ptr_t b, fr_opcode_t op);
-fr_word_ptr_t mjs_emit_lit(struct mjs_parse_ctx *ctx, const char *lit);
+fr_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit);
+fr_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit);
 
 fr_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v);
 fr_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v);
@@ -1953,12 +1956,13 @@ extern struct fr_code MJS_code;
 #define MJS_OP_if ((fr_opcode_t) 15)
 #define MJS_OP_ifelse ((fr_opcode_t) 16)
 #define MJS_OP_loop ((fr_opcode_t) 17)
-#define MJS_OP_moo ((fr_opcode_t) 18)
-#define MJS_OP_NEQ_ ((fr_opcode_t) 19)
-#define MJS_OP_2dup ((fr_opcode_t) 20)
-#define MJS_OP_GE_ ((fr_opcode_t) 21)
-#define MJS_OP_repeat ((fr_opcode_t) 22)
-#define MJS_OP_demo ((fr_opcode_t) 23)
+#define MJS_OP_str ((fr_opcode_t) 18)
+#define MJS_OP_moo ((fr_opcode_t) 19)
+#define MJS_OP_NEQ_ ((fr_opcode_t) 20)
+#define MJS_OP_2dup ((fr_opcode_t) 21)
+#define MJS_OP_GE_ ((fr_opcode_t) 22)
+#define MJS_OP_repeat ((fr_opcode_t) 23)
+#define MJS_OP_demo ((fr_opcode_t) 24)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -2013,6 +2017,10 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
 #ifndef STATIC
 #define STATIC
+#endif
+
+#ifndef ENDL
+#define ENDL "\n"
 #endif
 
 #ifdef MJS_EXPOSE_PRIVATE
@@ -2492,6 +2500,8 @@ enum embstr_flags {
 
 struct mbuf;
 
+MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);
+
 MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
                               size_t len, uint8_t /*enum embstr_flags*/ flags);
 #endif /* MJS_STR_UTIL_H_ */
@@ -2511,6 +2521,8 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
 /* Amalgamated: #include "mjs/val.h" */
 
 struct mjs;
+
+#define MJS_STRING_LITERAL_MAX_LEN 64
 
 /*
  * Creates a string primitive value.
@@ -2603,6 +2615,34 @@ MJS_PRIVATE int calc_llen(size_t len);
 
 #endif /* MJS_VARINT_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/util.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_UTIL_H_
+#define MJS_UTIL_H_
+
+/* Amalgamated: #include "mjs/val.h" */
+
+struct mjs;
+
+/* Output a string representation of the value to stdout. */
+void mjs_print(struct mjs *mjs, mjs_val_t v);
+
+/* Output a string representation of the value to stdout followed by nl. */
+void mjs_println(struct mjs *mjs, mjs_val_t v);
+
+/* Output a string representation of the value to a file. */
+void mjs_fprint(FILE *f, struct mjs *mjs, mjs_val_t v);
+
+/* Output a string representation of the value to a file followed by nl */
+void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v);
+
+#endif /* MJS_UTIL_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs//internal.h"
 #endif
 /*
@@ -2623,6 +2663,10 @@ MJS_PRIVATE int calc_llen(size_t len);
 
 #ifndef STATIC
 #define STATIC
+#endif
+
+#ifndef ENDL
+#define ENDL "\n"
 #endif
 
 #ifdef MJS_EXPOSE_PRIVATE
@@ -5381,18 +5425,6 @@ void fr_op_ifelse(struct fr_vm *vm) {
   fr_enter(vm, (vm->is_true(cond) ? vm->to_int(iftrue) : vm->to_int(iffalse)));
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/ops.c"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * This file contains froth words implemented in C.
- * The functions here must be referenced from //mjs:vm.frt.
- */
-#ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.c"
 #endif
 /* clang-format off */
@@ -5586,78 +5618,78 @@ typedef union {
 *********** Begin parsing tables **********************************************/
 #define YY_ACTTAB_COUNT (1141)
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */    53,   55,  118,  273,  118,   49,   51,   59,   57,  255,
- /*    10 */    23,   14,   65,  269,  125,  234,  275,  274,  134,  132,
- /*    20 */   131,   61,  251,  119,   18,  258,  259,  260,  191,  261,
+ /*     0 */    53,   55,  118,  273,  118,   49,   51,   59,   57,  256,
+ /*    10 */    23,   14,   65,  269,  125,  235,  275,  274,  134,  132,
+ /*    20 */   131,   61,  252,  119,   18,  259,  260,  261,  191,  192,
  /*    30 */   266,  267,   53,   55,  117,  117,  125,   49,   51,   59,
- /*    40 */    57,  137,   23,   14,   65,  217,  218,  234,  253,   38,
- /*    50 */   134,  132,  131,   61,  249,  119,   18,  258,  259,  260,
- /*    60 */   191,  261,  266,  267,   53,   55,  280,  121,  121,   49,
- /*    70 */    51,   59,   57,   62,   23,   14,   65,  193,  120,  234,
- /*    80 */   120,  268,  134,  132,  131,   61,  252,  119,   18,  258,
- /*    90 */   259,  260,  191,  261,  266,  267,    2,   53,   55,   13,
- /*   100 */   369,  236,   49,   51,   59,   57,  370,   23,   14,   65,
- /*   110 */    19,  368,  234,  276,   64,  134,  132,  131,   61,  127,
- /*   120 */   119,   18,  258,  259,  260,  191,  261,  266,  267,   53,
+ /*    40 */    57,  137,   23,   14,   65,  218,  219,  235,  254,   38,
+ /*    50 */   134,  132,  131,   61,  250,  119,   18,  259,  260,  261,
+ /*    60 */   191,  192,  266,  267,   53,   55,  280,  121,  121,   49,
+ /*    70 */    51,   59,   57,   62,   23,   14,   65,  194,  120,  235,
+ /*    80 */   120,  268,  134,  132,  131,   61,  253,  119,   18,  259,
+ /*    90 */   260,  261,  191,  192,  266,  267,    2,   53,   55,   13,
+ /*   100 */   369,  237,   49,   51,   59,   57,  370,   23,   14,   65,
+ /*   110 */    19,  368,  235,  276,   64,  134,  132,  131,   61,  127,
+ /*   120 */   119,   18,  259,  260,  261,  191,  192,  266,  267,   53,
  /*   130 */    55,   66,   20,  126,   49,   51,   59,   57,   63,   23,
- /*   140 */    14,   65,    3,   15,  234,   16,   17,  134,  132,  131,
- /*   150 */    61,   21,  119,   18,  258,  259,  260,  191,  261,  266,
+ /*   140 */    14,   65,    3,   15,  235,   16,   17,  134,  132,  131,
+ /*   150 */    61,   21,  119,   18,  259,  260,  261,  191,  192,  266,
  /*   160 */   267,   53,   55,   66,   22,  135,   49,   51,   59,   57,
  /*   170 */     5,   23,   14,   65,    7,   64,  124,   37,  282,  134,
- /*   180 */   132,  131,   61,  282,  119,   18,  258,  259,  260,  123,
- /*   190 */   122,  266,  267,   53,   55,  192,   67,  282,   49,   51,
- /*   200 */    59,   57,  282,   23,   14,   65,  282,  282,  234,  282,
- /*   210 */   282,  134,  132,  131,    1,  282,  119,   18,  258,  259,
- /*   220 */   260,  191,  261,  266,  267,   53,   55,  282,  282,  282,
- /*   230 */    49,   51,   59,   57,  282,   23,   14,  282,  256,  282,
- /*   240 */   234,  282,  282,  282,  282,  282,   61,  282,  136,  282,
- /*   250 */   258,  259,  260,  191,  261,  266,  267,   47,   46,   45,
+ /*   180 */   132,  131,   61,  282,  119,   18,  259,  260,  261,  123,
+ /*   190 */   122,  266,  267,   53,   55,  193,   67,  282,   49,   51,
+ /*   200 */    59,   57,  282,   23,   14,   65,  282,  282,  235,  282,
+ /*   210 */   282,  134,  132,  131,    1,  282,  119,   18,  259,  260,
+ /*   220 */   261,  191,  192,  266,  267,   53,   55,  282,  282,  282,
+ /*   230 */    49,   51,   59,   57,  282,   23,   14,  282,  257,  282,
+ /*   240 */   235,  282,  282,  282,  282,  282,   61,  282,  136,  282,
+ /*   250 */   259,  260,  261,  191,  192,  266,  267,   47,   46,   45,
  /*   260 */    44,   54,   52,   50,   48,   60,   58,   56,   43,   42,
- /*   270 */    41,   40,   39,  217,  218,  282,  282,   38,   53,   55,
+ /*   270 */    41,   40,   39,  218,  219,  282,  282,   38,   53,   55,
  /*   280 */   282,  282,  282,   49,   51,   59,   57,  282,   23,   14,
- /*   290 */   282,  282,  282,  234,  282,  282,  282,  282,  282,   61,
- /*   300 */   282,  136,  282,  258,  259,  260,  191,  261,  266,  267,
+ /*   290 */   282,  282,  282,  235,  282,  282,  282,  282,  282,   61,
+ /*   300 */   282,  136,  282,  259,  260,  261,  191,  192,  266,  267,
  /*   310 */    36,   35,   34,   33,   32,   31,   30,   29,   28,   27,
  /*   320 */    26,   25,   36,   35,   34,   33,   32,   31,   30,   29,
  /*   330 */    28,   27,   26,   25,   36,   35,   34,   33,   32,   31,
  /*   340 */    30,   29,   28,   27,   26,   25,  282,  282,   12,   24,
- /*   350 */   282,  257,    8,  187,  282,  282,   72,   68,   68,  282,
+ /*   350 */   282,  258,    8,  187,  282,  282,   72,   68,   68,  282,
  /*   360 */    12,   24,  282,  187,  282,   68,    4,   68,   68,   68,
  /*   370 */   282,  282,   12,   24,  282,  282,  282,  282,    6,  282,
  /*   380 */   282,  282,   36,   35,   34,   33,   32,   31,   30,   29,
  /*   390 */    28,   27,   26,   25,   36,   35,   34,   33,   32,   31,
- /*   400 */    30,   29,   28,   27,   26,   25,   41,   40,   39,  217,
- /*   410 */   218,    9,  187,   38,  282,   72,   68,   68,  282,  282,
- /*   420 */    12,   24,  187,  197,   68,  282,   68,   68,   68,  117,
+ /*   400 */    30,   29,   28,   27,   26,   25,   41,   40,   39,  218,
+ /*   410 */   219,    9,  187,   38,  282,   72,   68,   68,  282,  282,
+ /*   420 */    12,   24,  187,  198,   68,  282,   68,   68,   68,  117,
  /*   430 */   117,  125,   12,   24,  282,  282,  282,  282,  190,  282,
  /*   440 */   282,  282,  282,  282,  282,   54,   52,   50,   48,   60,
- /*   450 */    58,   56,   43,   42,   41,   40,   39,  217,  218,  282,
+ /*   450 */    58,   56,   43,   42,   41,   40,   39,  218,  219,  282,
  /*   460 */   282,   38,   36,   35,   34,   33,   32,   31,   30,   29,
  /*   470 */    28,   27,   26,   25,   36,   35,   34,   33,   32,   31,
  /*   480 */    30,   29,   28,   27,   26,   25,  282,  282,  282,  282,
  /*   490 */   282,  282,  376,   11,  187,  282,  282,   72,   68,   68,
- /*   500 */    12,   24,  282,  282,  187,  282,   68,  241,   68,   68,
+ /*   500 */    12,   24,  282,  282,  187,  282,   68,  242,   68,   68,
  /*   510 */    68,  282,   12,   24,   60,   58,   56,   43,   42,   41,
- /*   520 */    40,   39,  217,  218,  245,  282,   38,   72,   68,   68,
- /*   530 */   282,  282,  245,  282,  245,  282,   68,  282,   68,   68,
- /*   540 */    68,  244,  282,  282,   72,   68,   68,  282,  282,  244,
- /*   550 */   282,  244,  282,   68,  282,   68,   68,   68,  282,  282,
- /*   560 */   243,  282,  282,   72,   68,   68,  282,  282,  243,  282,
- /*   570 */   243,  282,   68,  282,   68,   68,   68,  133,  282,  282,
+ /*   520 */    40,   39,  218,  219,  246,  282,   38,   72,   68,   68,
+ /*   530 */   282,  282,  246,  282,  246,  282,   68,  282,   68,   68,
+ /*   540 */    68,  245,  282,  282,   72,   68,   68,  282,  282,  245,
+ /*   550 */   282,  245,  282,   68,  282,   68,   68,   68,  282,  282,
+ /*   560 */   244,  282,  282,   72,   68,   68,  282,  282,  244,  282,
+ /*   570 */   244,  282,   68,  282,   68,   68,   68,  133,  282,  282,
  /*   580 */    72,   68,   68,  282,  282,  133,  282,  133,  282,   68,
  /*   590 */   282,   68,   68,   68,   10,  187,  282,  282,   72,   68,
  /*   600 */    68,  282,  282,  282,  282,  187,  282,   68,  282,   68,
  /*   610 */    68,   68,  186,  282,  282,   72,   68,   68,  282,  282,
  /*   620 */   282,  282,  186,  282,   68,  282,   68,   68,   68,  282,
  /*   630 */   282,   83,   68,   68,  115,  115,  282,  282,  282,  282,
- /*   640 */    68,  282,   68,   68,   68,   83,   68,   68,  282,  237,
+ /*   640 */    68,  282,   68,   68,   68,   83,   68,   68,  282,  238,
  /*   650 */   282,   80,   68,   68,   68,  282,   68,   68,   68,  282,
  /*   660 */    68,  282,   68,   68,   68,   82,   68,   68,  116,  282,
  /*   670 */   282,  128,  282,  282,   68,  282,   68,   68,   68,  282,
  /*   680 */    82,   68,   68,  282,  282,  282,  129,  282,  282,   68,
  /*   690 */   282,   68,   68,   68,  282,   82,   68,   68,  282,  282,
  /*   700 */   282,  130,  282,  282,   68,  282,   68,   68,   68,   43,
- /*   710 */    42,   41,   40,   39,  217,  218,  282,  282,   38,  282,
+ /*   710 */    42,   41,   40,   39,  218,  219,  282,  282,   38,  282,
  /*   720 */    69,   68,   68,  282,  282,   79,   68,   68,  282,   68,
  /*   730 */   282,   68,   68,   68,   68,  282,   68,   68,   68,   81,
  /*   740 */    68,   68,  282,  282,  282,   70,   68,   68,   68,  282,
@@ -5677,8 +5709,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*   880 */   282,  282,   94,   68,   68,  282,   68,  282,   68,   68,
  /*   890 */    68,   68,  282,   68,   68,   68,   95,   68,   68,  282,
  /*   900 */   282,   96,   68,   68,  282,   68,  282,   68,   68,   68,
- /*   910 */    68,  282,   68,   68,   68,  282,  233,  233,  282,  282,
- /*   920 */   282,  282,  108,  108,  233,  282,  233,  233,  233,  282,
+ /*   910 */    68,  282,   68,   68,   68,  282,  234,  234,  282,  282,
+ /*   920 */   282,  282,  108,  108,  234,  282,  234,  234,  234,  282,
  /*   930 */   108,  282,  108,  108,  108,  109,  109,  282,  282,  282,
  /*   940 */   282,  110,  110,  109,  282,  109,  109,  109,  282,  110,
  /*   950 */   282,  110,  110,  110,  104,  104,  282,  282,  282,  282,
@@ -5854,19 +5886,19 @@ static const short yy_reduce_ofst[] = {
 };
 static const YYACTIONTYPE yy_default[] = {
  /*     0 */   375,  366,  375,  375,  375,  375,  375,  375,  375,  375,
- /*    10 */   375,  375,  335,  335,  374,  341,  341,  341,  375,  375,
+ /*    10 */   375,  375,  336,  336,  374,  342,  342,  342,  375,  375,
  /*    20 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
  /*    30 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
  /*    40 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
  /*    50 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
- /*    60 */   375,  366,  375,  375,  375,  375,  375,  375,  305,  375,
- /*    70 */   375,  375,  375,  375,  324,  323,  322,  321,  375,  372,
- /*    80 */   373,  367,  342,  334,  304,  303,  302,  301,  300,  299,
- /*    90 */   298,  297,  296,  295,  294,  293,  290,  317,  318,  319,
- /*   100 */   320,  314,  315,  316,  325,  283,  309,  308,  327,  326,
- /*   110 */   284,  311,  310,  307,  306,  375,  375,  375,  375,  375,
- /*   120 */   375,  375,  356,  286,  329,  375,  375,  375,  375,  375,
- /*   130 */   375,  375,  375,  337,  375,  375,  375,  291,
+ /*    60 */   375,  366,  375,  375,  375,  375,  375,  375,  306,  375,
+ /*    70 */   375,  375,  375,  375,  325,  324,  323,  322,  375,  372,
+ /*    80 */   373,  367,  343,  335,  305,  304,  303,  302,  301,  300,
+ /*    90 */   299,  298,  297,  296,  295,  294,  291,  318,  319,  320,
+ /*   100 */   321,  315,  316,  317,  326,  283,  310,  309,  328,  327,
+ /*   110 */   284,  312,  311,  308,  307,  375,  375,  375,  375,  375,
+ /*   120 */   375,  375,  287,  286,  330,  375,  375,  375,  375,  375,
+ /*   130 */   375,  375,  375,  338,  375,  375,  375,  292,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -6007,76 +6039,76 @@ static const char *const yyRuleName[] = {
  /*   4 */ "sexp ::= sexp MUL sexp",
  /*   5 */ "sexp ::= OPEN_PAREN expr CLOSE_PAREN",
  /*   6 */ "literal ::= NUMBER",
- /*   7 */ "stmt ::= LET letspecs SEMICOLON",
- /*   8 */ "letspecs ::= letspecs COMMA letspec",
- /*   9 */ "letspecs ::= letspec",
- /*  10 */ "letspec ::= IDENTIFIER ASSIGN expr",
- /*  11 */ "letspec ::= IDENTIFIER",
- /*  12 */ "stmt ::= expr SEMICOLON",
- /*  13 */ "expr ::= expr ASSIGN expr",
- /*  14 */ "expr ::= expr PLUS_ASSIGN expr",
- /*  15 */ "expr ::= expr MINUS_ASSIGN expr",
- /*  16 */ "expr ::= expr MUL_ASSIGN expr",
- /*  17 */ "expr ::= expr DIV_ASSIGN expr",
- /*  18 */ "expr ::= expr REM_ASSIGN expr",
- /*  19 */ "expr ::= expr LSHIFT_ASSIGN expr",
- /*  20 */ "expr ::= expr RSHIFT_ASSIGN expr",
- /*  21 */ "expr ::= expr URSHIFT_ASSIGN expr",
- /*  22 */ "expr ::= expr AND_ASSIGN expr",
- /*  23 */ "expr ::= expr XOR_ASSIGN expr",
- /*  24 */ "expr ::= expr OR_ASSIGN expr",
- /*  25 */ "expr ::= sexp",
- /*  26 */ "sexp ::= NOT sexp",
- /*  27 */ "sexp ::= TILDA sexp",
- /*  28 */ "sexp ::= MINUS sexp",
- /*  29 */ "sexp ::= PLUS sexp",
- /*  30 */ "sexp ::= MINUS_MINUS sexp",
- /*  31 */ "sexp ::= PLUS_PLUS sexp",
- /*  32 */ "sexp ::= sexp PLUS_PLUS",
- /*  33 */ "sexp ::= sexp MINUS_MINUS",
- /*  34 */ "sexp ::= sexp LSHIFT sexp",
- /*  35 */ "sexp ::= sexp RSHIFT sexp",
- /*  36 */ "sexp ::= sexp URSHIFT sexp",
- /*  37 */ "sexp ::= sexp LE sexp",
- /*  38 */ "sexp ::= sexp LT sexp",
- /*  39 */ "sexp ::= sexp GE sexp",
- /*  40 */ "sexp ::= sexp GT sexp",
- /*  41 */ "sexp ::= sexp EQ sexp",
- /*  42 */ "sexp ::= sexp NE sexp",
- /*  43 */ "sexp ::= sexp EQ_EQ sexp",
- /*  44 */ "sexp ::= sexp NE_NE sexp",
- /*  45 */ "sexp ::= sexp MINUS sexp",
- /*  46 */ "sexp ::= sexp DIV sexp",
- /*  47 */ "sexp ::= sexp REM sexp",
- /*  48 */ "sexp ::= sexp DOT sexp",
- /*  49 */ "sexp ::= IDENTIFIER",
- /*  50 */ "sexp ::= literal",
- /*  51 */ "expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN",
- /*  52 */ "callarglist ::= callarglist COMMA callarg",
- /*  53 */ "callarglist ::= callarg",
- /*  54 */ "callarg ::= expr",
- /*  55 */ "callarg ::=",
- /*  56 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
- /*  57 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block",
- /*  58 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block",
- /*  59 */ "stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block",
- /*  60 */ "stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block",
- /*  61 */ "optexpr ::=",
- /*  62 */ "optexpr ::= expr",
- /*  63 */ "block ::= stmt",
- /*  64 */ "block ::= OPEN_CURLY stmtlist CLOSE_CURLY",
- /*  65 */ "stmt ::= funcdecl",
- /*  66 */ "funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
- /*  67 */ "func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
- /*  68 */ "arglist ::= arglist COMMA argspec",
- /*  69 */ "arglist ::= argspec",
- /*  70 */ "argspec ::= IDENTIFIER",
- /*  71 */ "stmt ::= RETURN SEMICOLON",
- /*  72 */ "stmt ::= RETURN expr SEMICOLON",
- /*  73 */ "literal ::= NULL",
- /*  74 */ "literal ::= UNDEFINED",
- /*  75 */ "literal ::= THIS",
- /*  76 */ "literal ::= STRING_LITERAL",
+ /*   7 */ "literal ::= STRING_LITERAL",
+ /*   8 */ "stmt ::= LET letspecs SEMICOLON",
+ /*   9 */ "letspecs ::= letspecs COMMA letspec",
+ /*  10 */ "letspecs ::= letspec",
+ /*  11 */ "letspec ::= IDENTIFIER ASSIGN expr",
+ /*  12 */ "letspec ::= IDENTIFIER",
+ /*  13 */ "stmt ::= expr SEMICOLON",
+ /*  14 */ "expr ::= expr ASSIGN expr",
+ /*  15 */ "expr ::= expr PLUS_ASSIGN expr",
+ /*  16 */ "expr ::= expr MINUS_ASSIGN expr",
+ /*  17 */ "expr ::= expr MUL_ASSIGN expr",
+ /*  18 */ "expr ::= expr DIV_ASSIGN expr",
+ /*  19 */ "expr ::= expr REM_ASSIGN expr",
+ /*  20 */ "expr ::= expr LSHIFT_ASSIGN expr",
+ /*  21 */ "expr ::= expr RSHIFT_ASSIGN expr",
+ /*  22 */ "expr ::= expr URSHIFT_ASSIGN expr",
+ /*  23 */ "expr ::= expr AND_ASSIGN expr",
+ /*  24 */ "expr ::= expr XOR_ASSIGN expr",
+ /*  25 */ "expr ::= expr OR_ASSIGN expr",
+ /*  26 */ "expr ::= sexp",
+ /*  27 */ "sexp ::= NOT sexp",
+ /*  28 */ "sexp ::= TILDA sexp",
+ /*  29 */ "sexp ::= MINUS sexp",
+ /*  30 */ "sexp ::= PLUS sexp",
+ /*  31 */ "sexp ::= MINUS_MINUS sexp",
+ /*  32 */ "sexp ::= PLUS_PLUS sexp",
+ /*  33 */ "sexp ::= sexp PLUS_PLUS",
+ /*  34 */ "sexp ::= sexp MINUS_MINUS",
+ /*  35 */ "sexp ::= sexp LSHIFT sexp",
+ /*  36 */ "sexp ::= sexp RSHIFT sexp",
+ /*  37 */ "sexp ::= sexp URSHIFT sexp",
+ /*  38 */ "sexp ::= sexp LE sexp",
+ /*  39 */ "sexp ::= sexp LT sexp",
+ /*  40 */ "sexp ::= sexp GE sexp",
+ /*  41 */ "sexp ::= sexp GT sexp",
+ /*  42 */ "sexp ::= sexp EQ sexp",
+ /*  43 */ "sexp ::= sexp NE sexp",
+ /*  44 */ "sexp ::= sexp EQ_EQ sexp",
+ /*  45 */ "sexp ::= sexp NE_NE sexp",
+ /*  46 */ "sexp ::= sexp MINUS sexp",
+ /*  47 */ "sexp ::= sexp DIV sexp",
+ /*  48 */ "sexp ::= sexp REM sexp",
+ /*  49 */ "sexp ::= sexp DOT sexp",
+ /*  50 */ "sexp ::= IDENTIFIER",
+ /*  51 */ "sexp ::= literal",
+ /*  52 */ "expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN",
+ /*  53 */ "callarglist ::= callarglist COMMA callarg",
+ /*  54 */ "callarglist ::= callarg",
+ /*  55 */ "callarg ::= expr",
+ /*  56 */ "callarg ::=",
+ /*  57 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
+ /*  58 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block",
+ /*  59 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block",
+ /*  60 */ "stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block",
+ /*  61 */ "stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block",
+ /*  62 */ "optexpr ::=",
+ /*  63 */ "optexpr ::= expr",
+ /*  64 */ "block ::= stmt",
+ /*  65 */ "block ::= OPEN_CURLY stmtlist CLOSE_CURLY",
+ /*  66 */ "stmt ::= funcdecl",
+ /*  67 */ "funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
+ /*  68 */ "func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
+ /*  69 */ "arglist ::= arglist COMMA argspec",
+ /*  70 */ "arglist ::= argspec",
+ /*  71 */ "argspec ::= IDENTIFIER",
+ /*  72 */ "stmt ::= RETURN SEMICOLON",
+ /*  73 */ "stmt ::= RETURN expr SEMICOLON",
+ /*  74 */ "literal ::= NULL",
+ /*  75 */ "literal ::= UNDEFINED",
+ /*  76 */ "literal ::= THIS",
  /*  77 */ "literal ::= boolean_literal",
  /*  78 */ "literal ::= func_literal",
  /*  79 */ "literal ::= object_literal",
@@ -6461,6 +6493,7 @@ static const struct {
   { 71, 3 },
   { 71, 3 },
   { 72, 1 },
+  { 72, 1 },
   { 67, 3 },
   { 68, 3 },
   { 68, 1 },
@@ -6527,7 +6560,6 @@ static const struct {
   { 80, 1 },
   { 67, 2 },
   { 67, 3 },
-  { 72, 1 },
   { 72, 1 },
   { 72, 1 },
   { 72, 1 },
@@ -6653,81 +6685,86 @@ static void yy_reduce(
         break;
       case 6: /* literal ::= NUMBER */
 #line 165 "mjs/mjs.lem.c"
-{ yylhsminor.yy8=mjs_emit_lit(ctx, yymsp[0].minor.yy0.begin); }
+{ yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
 #line 1261 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
+      case 7: /* literal ::= STRING_LITERAL */
+#line 166 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
+#line 1267 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
+        break;
       default:
-      /* (7) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==7);
-      /* (8) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==8);
-      /* (9) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=9);
-      /* (10) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==10);
-      /* (11) letspec ::= IDENTIFIER */ yytestcase(yyruleno==11);
-      /* (12) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==12);
-      /* (13) expr ::= expr ASSIGN expr */ yytestcase(yyruleno==13);
-      /* (14) expr ::= expr PLUS_ASSIGN expr */ yytestcase(yyruleno==14);
-      /* (15) expr ::= expr MINUS_ASSIGN expr */ yytestcase(yyruleno==15);
-      /* (16) expr ::= expr MUL_ASSIGN expr */ yytestcase(yyruleno==16);
-      /* (17) expr ::= expr DIV_ASSIGN expr */ yytestcase(yyruleno==17);
-      /* (18) expr ::= expr REM_ASSIGN expr */ yytestcase(yyruleno==18);
-      /* (19) expr ::= expr LSHIFT_ASSIGN expr */ yytestcase(yyruleno==19);
-      /* (20) expr ::= expr RSHIFT_ASSIGN expr */ yytestcase(yyruleno==20);
-      /* (21) expr ::= expr URSHIFT_ASSIGN expr */ yytestcase(yyruleno==21);
-      /* (22) expr ::= expr AND_ASSIGN expr */ yytestcase(yyruleno==22);
-      /* (23) expr ::= expr XOR_ASSIGN expr */ yytestcase(yyruleno==23);
-      /* (24) expr ::= expr OR_ASSIGN expr */ yytestcase(yyruleno==24);
-      /* (25) expr ::= sexp */ yytestcase(yyruleno==25);
-      /* (26) sexp ::= NOT sexp */ yytestcase(yyruleno==26);
-      /* (27) sexp ::= TILDA sexp */ yytestcase(yyruleno==27);
-      /* (28) sexp ::= MINUS sexp */ yytestcase(yyruleno==28);
-      /* (29) sexp ::= PLUS sexp */ yytestcase(yyruleno==29);
-      /* (30) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==30);
-      /* (31) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==31);
-      /* (32) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==32);
-      /* (33) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==33);
-      /* (34) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==34);
-      /* (35) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==35);
-      /* (36) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==36);
-      /* (37) sexp ::= sexp LE sexp */ yytestcase(yyruleno==37);
-      /* (38) sexp ::= sexp LT sexp */ yytestcase(yyruleno==38);
-      /* (39) sexp ::= sexp GE sexp */ yytestcase(yyruleno==39);
-      /* (40) sexp ::= sexp GT sexp */ yytestcase(yyruleno==40);
-      /* (41) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==41);
-      /* (42) sexp ::= sexp NE sexp */ yytestcase(yyruleno==42);
-      /* (43) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==43);
-      /* (44) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==44);
-      /* (45) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==45);
-      /* (46) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==46);
-      /* (47) sexp ::= sexp REM sexp */ yytestcase(yyruleno==47);
-      /* (48) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==48);
-      /* (49) sexp ::= IDENTIFIER */ yytestcase(yyruleno==49);
-      /* (50) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=50);
-      /* (51) expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */ yytestcase(yyruleno==51);
-      /* (52) callarglist ::= callarglist COMMA callarg */ yytestcase(yyruleno==52);
-      /* (53) callarglist ::= callarg (OPTIMIZED OUT) */ assert(yyruleno!=53);
-      /* (54) callarg ::= expr */ yytestcase(yyruleno==54);
-      /* (55) callarg ::= */ yytestcase(yyruleno==55);
-      /* (56) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==56);
-      /* (57) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==57);
-      /* (58) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */ yytestcase(yyruleno==58);
-      /* (59) stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==59);
-      /* (60) stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block */ yytestcase(yyruleno==60);
-      /* (61) optexpr ::= */ yytestcase(yyruleno==61);
-      /* (62) optexpr ::= expr */ yytestcase(yyruleno==62);
-      /* (63) block ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=63);
-      /* (64) block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==64);
-      /* (65) stmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=65);
-      /* (66) funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==66);
-      /* (67) func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==67);
-      /* (68) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==68);
-      /* (69) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=69);
-      /* (70) argspec ::= IDENTIFIER */ yytestcase(yyruleno==70);
-      /* (71) stmt ::= RETURN SEMICOLON */ yytestcase(yyruleno==71);
-      /* (72) stmt ::= RETURN expr SEMICOLON */ yytestcase(yyruleno==72);
-      /* (73) literal ::= NULL */ yytestcase(yyruleno==73);
-      /* (74) literal ::= UNDEFINED */ yytestcase(yyruleno==74);
-      /* (75) literal ::= THIS */ yytestcase(yyruleno==75);
-      /* (76) literal ::= STRING_LITERAL */ yytestcase(yyruleno==76);
+      /* (8) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==8);
+      /* (9) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==9);
+      /* (10) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=10);
+      /* (11) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==11);
+      /* (12) letspec ::= IDENTIFIER */ yytestcase(yyruleno==12);
+      /* (13) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==13);
+      /* (14) expr ::= expr ASSIGN expr */ yytestcase(yyruleno==14);
+      /* (15) expr ::= expr PLUS_ASSIGN expr */ yytestcase(yyruleno==15);
+      /* (16) expr ::= expr MINUS_ASSIGN expr */ yytestcase(yyruleno==16);
+      /* (17) expr ::= expr MUL_ASSIGN expr */ yytestcase(yyruleno==17);
+      /* (18) expr ::= expr DIV_ASSIGN expr */ yytestcase(yyruleno==18);
+      /* (19) expr ::= expr REM_ASSIGN expr */ yytestcase(yyruleno==19);
+      /* (20) expr ::= expr LSHIFT_ASSIGN expr */ yytestcase(yyruleno==20);
+      /* (21) expr ::= expr RSHIFT_ASSIGN expr */ yytestcase(yyruleno==21);
+      /* (22) expr ::= expr URSHIFT_ASSIGN expr */ yytestcase(yyruleno==22);
+      /* (23) expr ::= expr AND_ASSIGN expr */ yytestcase(yyruleno==23);
+      /* (24) expr ::= expr XOR_ASSIGN expr */ yytestcase(yyruleno==24);
+      /* (25) expr ::= expr OR_ASSIGN expr */ yytestcase(yyruleno==25);
+      /* (26) expr ::= sexp */ yytestcase(yyruleno==26);
+      /* (27) sexp ::= NOT sexp */ yytestcase(yyruleno==27);
+      /* (28) sexp ::= TILDA sexp */ yytestcase(yyruleno==28);
+      /* (29) sexp ::= MINUS sexp */ yytestcase(yyruleno==29);
+      /* (30) sexp ::= PLUS sexp */ yytestcase(yyruleno==30);
+      /* (31) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==31);
+      /* (32) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==32);
+      /* (33) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==33);
+      /* (34) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==34);
+      /* (35) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==35);
+      /* (36) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==36);
+      /* (37) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==37);
+      /* (38) sexp ::= sexp LE sexp */ yytestcase(yyruleno==38);
+      /* (39) sexp ::= sexp LT sexp */ yytestcase(yyruleno==39);
+      /* (40) sexp ::= sexp GE sexp */ yytestcase(yyruleno==40);
+      /* (41) sexp ::= sexp GT sexp */ yytestcase(yyruleno==41);
+      /* (42) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==42);
+      /* (43) sexp ::= sexp NE sexp */ yytestcase(yyruleno==43);
+      /* (44) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==44);
+      /* (45) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==45);
+      /* (46) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==46);
+      /* (47) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==47);
+      /* (48) sexp ::= sexp REM sexp */ yytestcase(yyruleno==48);
+      /* (49) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==49);
+      /* (50) sexp ::= IDENTIFIER */ yytestcase(yyruleno==50);
+      /* (51) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=51);
+      /* (52) expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */ yytestcase(yyruleno==52);
+      /* (53) callarglist ::= callarglist COMMA callarg */ yytestcase(yyruleno==53);
+      /* (54) callarglist ::= callarg (OPTIMIZED OUT) */ assert(yyruleno!=54);
+      /* (55) callarg ::= expr */ yytestcase(yyruleno==55);
+      /* (56) callarg ::= */ yytestcase(yyruleno==56);
+      /* (57) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==57);
+      /* (58) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==58);
+      /* (59) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */ yytestcase(yyruleno==59);
+      /* (60) stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==60);
+      /* (61) stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block */ yytestcase(yyruleno==61);
+      /* (62) optexpr ::= */ yytestcase(yyruleno==62);
+      /* (63) optexpr ::= expr */ yytestcase(yyruleno==63);
+      /* (64) block ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=64);
+      /* (65) block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==65);
+      /* (66) stmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=66);
+      /* (67) funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==67);
+      /* (68) func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==68);
+      /* (69) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==69);
+      /* (70) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=70);
+      /* (71) argspec ::= IDENTIFIER */ yytestcase(yyruleno==71);
+      /* (72) stmt ::= RETURN SEMICOLON */ yytestcase(yyruleno==72);
+      /* (73) stmt ::= RETURN expr SEMICOLON */ yytestcase(yyruleno==73);
+      /* (74) literal ::= NULL */ yytestcase(yyruleno==74);
+      /* (75) literal ::= UNDEFINED */ yytestcase(yyruleno==75);
+      /* (76) literal ::= THIS */ yytestcase(yyruleno==76);
       /* (77) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=77);
       /* (78) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=78);
       /* (79) literal ::= object_literal (OPTIMIZED OUT) */ assert(yyruleno!=79);
@@ -6788,7 +6825,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 26 "mjs/mjs.lem.c"
 
-#line 1395 "mjs/mjs.lem.c"
+#line 1400 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6808,7 +6845,7 @@ static void yy_syntax_error(
 #line 29 "mjs/mjs.lem.c"
 
   ctx->syntax_error = TOKEN;
-#line 1415 "mjs/mjs.lem.c"
+#line 1420 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6834,7 +6871,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 23 "mjs/mjs.lem.c"
 
-#line 1441 "mjs/mjs.lem.c"
+#line 1446 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7057,6 +7094,8 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <fr_op_ifelse> */ 
   /* 0000 -> : loop ... ; */
   MJS_OP_dup, MJS_OP_PUSHR, MJS_OP_call, MJS_OP_POPR, MJS_OP_swap, MJS_OP_quote, 0, 0, MJS_OP_if, MJS_OP_exit,
+  /* 0010 -> : str ... ; */
+  /*           <mjs_op_str> */ 
   /* 0010 -> : moo ... ; */
   MJS_OP_quote, 0, 66, MJS_OP_EQ_, MJS_OP_quote, -1, -9, MJS_OP_if, MJS_OP_exit,
   /* 0019 -> : <> ... ; */
@@ -7101,12 +7140,13 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0015 */ -17, 
   /* 0016 */ -18, 
   /* 0017 */ 0, 
-  /* 0018 */ 10, 
-  /* 0019 */ 19, 
-  /* 0020 */ 22, 
-  /* 0021 */ 30, 
-  /* 0022 */ 46, 
-  /* 0023 */ 66, 
+  /* 0018 */ -19, 
+  /* 0019 */ 10, 
+  /* 0020 */ 19, 
+  /* 0021 */ 22, 
+  /* 0022 */ 30, 
+  /* 0023 */ 46, 
+  /* 0024 */ 66, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -7127,6 +7167,7 @@ void fr_op_mul(struct fr_vm *vm);
 void fr_op_call(struct fr_vm *vm);
 void fr_op_if(struct fr_vm *vm);
 void fr_op_ifelse(struct fr_vm *vm);
+void mjs_op_str(struct fr_vm *vm);
 
 fr_native_t MJS_native_words[] = {
   /* -001 */ fr_op_quote,
@@ -7147,6 +7188,7 @@ fr_native_t MJS_native_words[] = {
   /* -016 */ fr_op_call,
   /* -017 */ fr_op_if,
   /* -018 */ fr_op_ifelse,
+  /* -019 */ mjs_op_str,
 };
 
 const char *MJS_word_names[] = {
@@ -7169,12 +7211,13 @@ const char *MJS_word_names[] = {
   /* 0015 */ "if", 
   /* 0016 */ "ifelse", 
   /* 0017 */ "loop", 
-  /* 0018 */ "moo", 
-  /* 0019 */ "<>", 
-  /* 0020 */ "2dup", 
-  /* 0021 */ ">=", 
-  /* 0022 */ "repeat", 
-  /* 0023 */ "demo", 
+  /* 0018 */ "str", 
+  /* 0019 */ "moo", 
+  /* 0020 */ "<>", 
+  /* 0021 */ "2dup", 
+  /* 0022 */ ">=", 
+  /* 0023 */ "repeat", 
+  /* 0024 */ "demo", 
 };
 
 const char *MJS_pos_names[] = {
@@ -7347,6 +7390,7 @@ struct mjs *mjs_create() {
   mjs->vm.from_int = fr_from_int;
   mjs->vm.print_cell = fr_print_cell;
   mjs->vm.is_true = fr_is_true;
+  mjs->vm.user_data = (void *) mjs;
 
   mjs->last_code = mjs->vm.iram->num_pages * FR_PAGE_SIZE;
 
@@ -7369,6 +7413,29 @@ void mjs_destroy(struct mjs *mjs) {
   gc_arena_destroy(mjs, &mjs->property_arena);
   free(mjs->error_msg);
   free(mjs);
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/defroth_mjs.c"
+#endif
+#include <stdio.h>
+
+/* Amalgamated: #include "mjs/vm_bcode.h" */
+
+int defroth_custom(char b, FILE *in, int *pos) {
+  if (b == MJS_OP_str) {
+    char buf[128];
+    char ch;
+    int p = 0;
+    do {
+      fread(&ch, 1, 1, in);
+      buf[p++] = ch;
+    } while (ch != '\0');
+
+    printf("\"%s\" ", buf);
+    *pos += p;
+    return 1;
+  }
+  return 0;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/err.c"
@@ -8012,6 +8079,38 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
   return mjs_set(mjs, obj, s, n, val);
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/ops.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/*
+ * This file contains froth words implemented in C.
+ * The functions here must be referenced from //mjs:vm.frt.
+ */
+
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
+/* Amalgamated: #include "mjs/string.h" */
+
+void mjs_op_str(struct fr_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  char ch;
+  char buf[MJS_STRING_LITERAL_MAX_LEN];
+  size_t len = 0;
+  do {
+    ch = (char) fr_read_byte(vm->iram, vm->ip++);
+    if (len < MJS_STRING_LITERAL_MAX_LEN) {
+      buf[len++] = ch;
+    }
+  } while (ch != '\0');
+
+  fr_push(&vm->dstack, mjs_mk_string(mjs, buf, len - 1, 1));
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
 #endif
 /*
@@ -8123,6 +8222,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "common/cs_file.h" */
 /* Amalgamated: #include "mjs/froth/mem.h" */
 /* Amalgamated: #include "mjs/parser.h" */
+/* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm_bcode.h" */
 
 static unsigned long mjs_get_column(const char *code, const char *pos) {
@@ -8236,8 +8336,8 @@ mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
 
   mjsParserFree(parser, free);
 
-  LOG(LL_ERROR, ("emitted %d bytes", ctx->gen - ctx->mjs->last_code));
-  LOG(LL_ERROR, ("start at %d", ctx->mjs->last_code));
+  LOG(LL_DEBUG, ("emitted %d bytes", ctx->gen - ctx->mjs->last_code));
+  LOG(LL_DEBUG, ("start at %d", ctx->mjs->last_code));
 
   ctx->mjs->last_code = ctx->gen;
   return err;
@@ -8303,10 +8403,30 @@ fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
   return start;
 }
 
-fr_word_ptr_t mjs_emit_lit(struct mjs_parse_ctx *ctx, const char *lit) {
+fr_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit) {
   int n = atoi(lit);
   fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
   mjs_emit_uint16(ctx, (uint16_t) n);
+  mjs_emit(ctx, MJS_OP_exit);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit) {
+  fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
+  char quote = lit[0];
+  size_t len = 0, ulen, i;
+  char buf[MJS_STRING_LITERAL_MAX_LEN];
+
+  lit++;
+  while (lit[len++] != quote) {
+    if (lit[len] == '\\') len += 2;
+  }
+
+  ulen = unescape(lit, len - 1, buf);
+  for (i = 0; i < ulen; i++) {
+    mjs_emit_uint8(ctx, buf[i]);
+  }
+  mjs_emit_uint8(ctx, 0);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
@@ -8829,6 +8949,38 @@ int pnext(struct pstate *p) {
   if (p->pos[0] != '\0') p->pos++;
 
   return tok;
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/util.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/util.h" */
+/* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/string.h" */
+
+void mjs_print(struct mjs *mjs, mjs_val_t v) {
+  mjs_fprint(stdout, mjs, v);
+}
+
+void mjs_fprint(FILE *f, struct mjs *mjs, mjs_val_t v) {
+  if (mjs_is_number(v)) {
+    fprintf(f, "%lf", mjs_get_double(mjs, v));
+  } else if (mjs_is_string(v)) {
+    fprintf(f, "%s", mjs_get_cstring(mjs, &v));
+  }
+}
+
+void mjs_println(struct mjs *mjs, mjs_val_t v) {
+  mjs_fprintln(stdout, mjs, v);
+}
+
+void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v) {
+  mjs_fprint(f, mjs, v);
+  fprintf(f, ENDL);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/val.c"
