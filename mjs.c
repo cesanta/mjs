@@ -1970,7 +1970,7 @@ enum mjs_err {
   MJS_OK,
   MJS_SYNTAX_ERROR,
   MJS_INTERNAL_ERROR,
-  MJS_EXEC_EXCEPTION,
+  MJS_REFERENCE_ERROR,
 };
 
 typedef enum mjs_err mjs_err_t;
@@ -2015,11 +2015,6 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 #else
 #define MJS_PRIVATE static
 #define MJS_EXTERN static
-#endif
-
-#ifndef MJS_DISABLE_STR_ALLOC_SEQ
-/* TODO(mkm): put back to 0 when port is done */
-#define MJS_DISABLE_STR_ALLOC_SEQ 1
 #endif
 
 #endif /* MJS_INTERNAL_H_ */
@@ -2102,9 +2097,65 @@ typedef uint64_t mjs_val_t;
 /* JavaScript `undefined` value */
 #define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
 
+/*
+ * Make `null` primitive value.
+ *
+ * NOTE: this function is deprecated and will be removed in future releases.
+ * Use `MJS_NULL` instead.
+ */
+mjs_val_t mjs_mk_null(void);
+
+/* Returns true if given value is a primitive `null` value */
+int mjs_is_null(mjs_val_t v);
+
+/*
+ * Make `undefined` primitive value.
+ *
+ * NOTE: this function is deprecated and will be removed in future releases.
+ * Use `MJS_UNDEFINED` instead.
+ */
+mjs_val_t mjs_mk_undefined(void);
+
+/* Returns true if given value is a primitive `undefined` value */
+int mjs_is_undefined(mjs_val_t v);
+
+MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
 
 #endif /* MJS_VAL_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/mm.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_MM_H_
+#define MJS_MM_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+struct mjs;
+
+typedef void (*gc_cell_destructor_t)(struct mjs *mjs, void *);
+
+struct gc_block {
+  struct gc_block *next;
+  struct gc_cell *base;
+  size_t size;
+};
+
+struct gc_arena {
+  struct gc_block *blocks;
+  size_t size_increment;
+  struct gc_cell *free; /* head of free list */
+  size_t cell_size;
+
+  gc_cell_destructor_t destructor;
+};
+
+#endif /* MJS_MM_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/core.h"
 #endif
@@ -2121,6 +2172,11 @@ MJS_PRIVATE void *get_ptr(mjs_val_t v);
 /* Amalgamated: #include "mjs/froth/vm.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+
+struct mjs_vals {
+  mjs_val_t global_object;
+};
 
 struct mjs {
   struct fr_vm vm;
@@ -2128,6 +2184,12 @@ struct mjs {
 
   struct mbuf owned_strings;   /* Sequence of (varint len, char data[]) */
   struct mbuf foreign_strings; /* Sequence of (varint len, char *data) */
+
+  struct gc_arena object_arena;
+  struct gc_arena property_arena;
+
+  struct mbuf owned_values; /* buffer for GC roots owned by C code */
+  struct mjs_vals vals;
 
   char *error_msg;
   mjs_err_t error_msg_err;
@@ -2137,6 +2199,120 @@ struct mjs *mjs_create();
 void mjs_destroy(struct mjs *mjs);
 
 #endif /* MJS_CORE_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/gc.h"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_GC_H_
+#define MJS_GC_H_
+
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+
+/*
+ * performs arithmetics on gc_cell pointers as if they were arena->cell_size
+ * bytes wide
+ */
+#define GC_CELL_OP(arena, cell, op, arg) \
+  ((struct gc_cell *) (((char *) (cell)) op((arg) * (arena)->cell_size)))
+
+struct gc_cell {
+  union {
+    struct gc_cell *link;
+    uintptr_t word;
+  } head;
+};
+
+/*
+ * Perform garbage collection.
+ * Pass true to full in order to reclaim unused heap back to the OS.
+ */
+void mjs_gc(struct mjs *mjs, int full);
+
+MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
+MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
+
+MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
+
+MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
+MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
+MJS_PRIVATE void gc_sweep(struct mjs *, struct gc_arena *, size_t);
+MJS_PRIVATE void *gc_alloc_cell(struct mjs *, struct gc_arena *);
+
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v);
+
+/* return 0 if v is an object/function with a bad pointer */
+MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
+
+/* checks whether a pointer is within the ranges of an arena */
+MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
+
+#endif /* MJS_GC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/object.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_OBJECT_H_
+#define MJS_OBJECT_H_
+
+/* Amalgamated: #include "mjs/err.h" */
+/* Amalgamated: #include "mjs/val.h" */
+
+struct mjs;
+
+struct mjs_property {
+  struct mjs_property *next; /* Linkage in struct mjs_object::properties */
+  mjs_val_t name;            /* Property name (a string) */
+  mjs_val_t value;           /* Property value */
+};
+
+struct mjs_object {
+  struct mjs_property *properties;
+};
+
+/*
+ * Returns true if the given value is an object or function.
+ * i.e. it returns true if the value holds properties and can be
+ * used as argument to `mjs_get`, `mjs_set` and `mjs_def`.
+ */
+int mjs_is_object(mjs_val_t v);
+
+/* Make an empty object */
+mjs_val_t mjs_mk_object(struct mjs *mjs);
+
+/*
+ * Lookup property `name` in object `obj`. If `obj` holds no such property,
+ * an `undefined` value is returned.
+ *
+ * If `name_len` is ~0, `name` is assumed to be NUL-terminated and
+ * `strlen(name)` is used.
+ */
+mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
+                  size_t name_len);
+
+/*
+ * Set object property. Behaves just like JavaScript assignment.
+ */
+mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len,
+                  mjs_val_t val);
+
+/*
+ * Like mjs_set but the name is already a JS string.
+ */
+mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
+                    mjs_val_t val);
+
+MJS_PRIVATE struct mjs_object *get_object_struct(mjs_val_t v);
+#endif /* MJS_OBJECT_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/exec.h"
 #endif
@@ -2285,32 +2461,6 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
                               size_t len, uint8_t /*enum embstr_flags*/ flags);
 #endif /* MJS_STR_UTIL_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/varint.h"
-#endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_VARINT_H_
-#define MJS_VARINT_H_
-
-/* Amalgamated: #include "mjs/internal.h" */
-
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus */
-
-MJS_PRIVATE int encode_varint(size_t len, unsigned char *p);
-MJS_PRIVATE size_t decode_varint(const unsigned char *p, int *llen);
-MJS_PRIVATE int calc_llen(size_t len);
-
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
-
-#endif /* MJS_VARINT_H_ */
-#ifdef MG_MODULE_LINES
 #line 1 "mjs/string.h"
 #endif
 /*
@@ -2376,7 +2526,47 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *len);
  */
 const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
 
+/*
+ * Returns the standard strcmp comparison code after comparing a JS string a
+ * with a possibly non null-terminated string b. NOTE: the strings are equal
+ * only if their length is equal, i.e. the len field doesn't imply strncmp
+ * behaviour.
+ */
+int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
+
+/*
+ * Size of the extra space for strings mbuf that is needed to avoid frequent
+ * reallocations
+ */
+#define _MJS_STRING_BUF_RESERVE 500
+
 #endif /* MJS_STRING_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/varint.h"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_VARINT_H_
+#define MJS_VARINT_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+MJS_PRIVATE int encode_varint(size_t len, unsigned char *p);
+MJS_PRIVATE size_t decode_varint(const unsigned char *p, int *llen);
+MJS_PRIVATE int calc_llen(size_t len);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* MJS_VARINT_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs//internal.h"
 #endif
@@ -2406,11 +2596,6 @@ const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
 #else
 #define MJS_PRIVATE static
 #define MJS_EXTERN static
-#endif
-
-#ifndef MJS_DISABLE_STR_ALLOC_SEQ
-/* TODO(mkm): put back to 0 when port is done */
-#define MJS_DISABLE_STR_ALLOC_SEQ 1
 #endif
 
 #endif /* MJS_INTERNAL_H_ */
@@ -7058,21 +7243,45 @@ struct fr_code MJS_code = {
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "mjs/core.h" */
 /* Amalgamated: #include "mjs/froth/mem.h" */
+/* Amalgamated: #include "mjs/gc.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+/* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/vm_bcode.h" */
 
+#ifndef MJS_DEFAULT_OBJECT_ARENA_SIZE
+#define MJS_DEFAULT_OBJECT_ARENA_SIZE 20
+#endif
+#ifndef MJS_DEFAULT_PROPERTY_ARENA_SIZE
+#define MJS_DEFAULT_PROPERTY_ARENA_SIZE 80
+#endif
+
+static void object_destructor(struct mjs *mjs, void *ptr) {
+  (void) mjs;
+  (void) ptr;
+}
+
 struct mjs *mjs_create() {
-  struct mjs *res = calloc(1, sizeof(*res));
-  fr_init_vm(&res->vm, &MJS_code);
-  res->last_code = res->vm.iram->num_pages * FR_PAGE_SIZE;
-  mbuf_init(&res->owned_strings, 0);
-  mbuf_init(&res->foreign_strings, 0);
-  return res;
+  struct mjs *mjs = calloc(1, sizeof(*mjs));
+  fr_init_vm(&mjs->vm, &MJS_code);
+  mjs->last_code = mjs->vm.iram->num_pages * FR_PAGE_SIZE;
+
+  mbuf_init(&mjs->owned_strings, 0);
+  mbuf_init(&mjs->foreign_strings, 0);
+
+  gc_arena_init(&mjs->object_arena, sizeof(struct mjs_object),
+                MJS_DEFAULT_OBJECT_ARENA_SIZE, 10);
+  mjs->object_arena.destructor = object_destructor;
+  gc_arena_init(&mjs->property_arena, sizeof(struct mjs_property),
+                MJS_DEFAULT_PROPERTY_ARENA_SIZE, 10);
+  return mjs;
 }
 
 void mjs_destroy(struct mjs *mjs) {
   fr_destroy_vm(&mjs->vm);
   mbuf_free(&mjs->owned_strings);
   mbuf_free(&mjs->foreign_strings);
+  gc_arena_destroy(mjs, &mjs->object_arena);
+  gc_arena_destroy(mjs, &mjs->property_arena);
   free(mjs->error_msg);
   free(mjs);
 }
@@ -7155,6 +7364,567 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
   err = mjs_exec_buf(mjs, body, len, res);
   free(body);
   return err;
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/gc.c"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#include <stdio.h>
+
+/* Amalgamated: #include "common/mbuf.h" */
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/gc.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+/* Amalgamated: #include "mjs/object.h" */
+/* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/varint.h" */
+
+/*
+ * Macros for marking reachable things: use bit 0.
+ */
+#define MARK(p) (((struct gc_cell *) (p))->head.word |= 1)
+#define UNMARK(p) (((struct gc_cell *) (p))->head.word &= ~1)
+#define MARKED(p) (((struct gc_cell *) (p))->head.word & 1)
+
+/*
+ * Similar to `MARK()` / `UNMARK()` / `MARKED()`, but `.._FREE` counterparts
+ * are intended to mark free cells (as opposed to used ones), so they use
+ * bit 1.
+ */
+#define MARK_FREE(p) (((struct gc_cell *) (p))->head.word |= 2)
+#define UNMARK_FREE(p) (((struct gc_cell *) (p))->head.word &= ~2)
+#define MARKED_FREE(p) (((struct gc_cell *) (p))->head.word & 2)
+
+void gc_mark_string(struct mjs *, mjs_val_t *);
+
+static struct gc_block *gc_new_block(struct gc_arena *a, size_t size);
+static void gc_free_block(struct gc_block *b);
+static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf);
+
+MJS_PRIVATE struct mjs_object *new_object(struct mjs *mjs) {
+  return (struct mjs_object *) gc_alloc_cell(mjs, &mjs->object_arena);
+}
+
+MJS_PRIVATE struct mjs_property *new_property(struct mjs *mjs) {
+  return (struct mjs_property *) gc_alloc_cell(mjs, &mjs->property_arena);
+}
+
+/* Initializes a new arena. */
+MJS_PRIVATE void gc_arena_init(struct gc_arena *a, size_t cell_size,
+                               size_t initial_size, size_t size_increment) {
+  assert(cell_size >= sizeof(uintptr_t));
+
+  memset(a, 0, sizeof(*a));
+  a->cell_size = cell_size;
+  a->size_increment = size_increment;
+  a->blocks = gc_new_block(a, initial_size);
+}
+
+MJS_PRIVATE void gc_arena_destroy(struct mjs *mjs, struct gc_arena *a) {
+  struct gc_block *b;
+
+  if (a->blocks != NULL) {
+    gc_sweep(mjs, a, 0);
+    for (b = a->blocks; b != NULL;) {
+      struct gc_block *tmp;
+      tmp = b;
+      b = b->next;
+      gc_free_block(tmp);
+    }
+  }
+}
+
+static void gc_free_block(struct gc_block *b) {
+  free(b->base);
+  free(b);
+}
+
+static struct gc_block *gc_new_block(struct gc_arena *a, size_t size) {
+  struct gc_cell *cur;
+  struct gc_block *b;
+
+  b = (struct gc_block *) calloc(1, sizeof(*b));
+  if (b == NULL) abort();
+
+  b->size = size;
+  b->base = (struct gc_cell *) calloc(a->cell_size, b->size);
+  if (b->base == NULL) abort();
+
+  for (cur = GC_CELL_OP(a, b->base, +, 0);
+       cur < GC_CELL_OP(a, b->base, +, b->size);
+       cur = GC_CELL_OP(a, cur, +, 1)) {
+    cur->head.link = a->free;
+    a->free = cur;
+  }
+
+  return b;
+}
+
+MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
+  struct gc_cell *r;
+  if (a->free == NULL) {
+    struct gc_block *b = gc_new_block(a, a->size_increment);
+    (void) mjs; /* TODO: signal GC pressure */
+    b->next = a->blocks;
+    a->blocks = b;
+  }
+  r = a->free;
+
+  UNMARK(r);
+
+  a->free = r->head.link;
+
+  /*
+   * TODO(mkm): minor opt possible since most of the fields
+   * are overwritten downstream, but not worth the yak shave time
+   * when fields are added to GC-able structures */
+  memset(r, 0, a->cell_size);
+  return (void *) r;
+}
+
+/*
+ * Scans the arena and add all unmarked cells to the free list.
+ *
+ * Empty blocks get deallocated. The head of the free list will contais cells
+ * from the last (oldest) block. Cells will thus be allocated in block order.
+ */
+void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
+  struct gc_block *b;
+  struct gc_cell *cur;
+  struct gc_block **prevp = &a->blocks;
+
+  /*
+   * Before we sweep, we should mark all free cells in a way that is
+   * distinguishable from marked used cells.
+   */
+  {
+    struct gc_cell *next;
+    for (cur = a->free; cur != NULL; cur = next) {
+      next = cur->head.link;
+      MARK_FREE(cur);
+    }
+  }
+
+  /*
+   * We'll rebuild the whole `free` list, so initially we just reset it
+   */
+  a->free = NULL;
+
+  for (b = a->blocks; b != NULL;) {
+    size_t freed_in_block = 0;
+    /*
+     * if it turns out that this block is 100% garbage
+     * we can release the whole block, but the addition
+     * of it's cells to the free list has to be undone.
+     */
+    struct gc_cell *prev_free = a->free;
+
+    for (cur = GC_CELL_OP(a, b->base, +, start);
+         cur < GC_CELL_OP(a, b->base, +, b->size);
+         cur = GC_CELL_OP(a, cur, +, 1)) {
+      if (MARKED(cur)) {
+        /* The cell is used and marked  */
+        UNMARK(cur);
+      } else {
+        /*
+         * The cell is either:
+         * - free
+         * - garbage that's about to be freed
+         */
+
+        if (MARKED_FREE(cur)) {
+          /* The cell is free, so, just unmark it */
+          UNMARK_FREE(cur);
+        } else {
+          /*
+           * The cell is used and should be freed: call the destructor and
+           * reset the memory
+           */
+          if (a->destructor != NULL) {
+            a->destructor(mjs, cur);
+          }
+          memset(cur, 0, a->cell_size);
+        }
+
+        /* Add this cell to the `free` list */
+        cur->head.link = a->free;
+        a->free = cur;
+        freed_in_block++;
+      }
+    }
+
+    /*
+     * don't free the initial block, which is at the tail
+     * because it has a special size aimed at reducing waste
+     * and simplifying initial startup. TODO(mkm): improve
+     * */
+    if (b->next != NULL && freed_in_block == b->size) {
+      *prevp = b->next;
+      gc_free_block(b);
+      b = *prevp;
+      a->free = prev_free;
+    } else {
+      prevp = &b->next;
+      b = b->next;
+    }
+  }
+}
+
+MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
+  struct mjs_object *obj_base;
+  struct mjs_property *prop;
+  struct mjs_property *next;
+
+  if (!mjs_is_object(v)) {
+    return;
+  }
+  obj_base = get_object_struct(v);
+
+  /*
+   * we treat all object like things like objects but they might be functions,
+   * gc_gheck_val checks the appropriate arena per actual value type.
+   */
+  if (!gc_check_val(mjs, v)) {
+    abort();
+  }
+
+  if (MARKED(obj_base)) return;
+
+  /* mark object itself, and its properties */
+  for ((prop = obj_base->properties), MARK(obj_base); prop != NULL;
+       prop = next) {
+    if (!gc_check_ptr(&mjs->property_arena, prop)) {
+      abort();
+    }
+
+    gc_mark_string(mjs, &prop->value);
+    gc_mark_string(mjs, &prop->name);
+    gc_mark(mjs, prop->value);
+
+    next = prop->next;
+    MARK(prop);
+  }
+
+  /* mark object's prototype */
+  /*
+   * We dropped support for object prototypes in MJS.
+   * If we ever bring it back, don't forget to mark it
+   */
+  /* gc_mark(mjs, mjs_get_proto(mjs, v)); */
+}
+
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
+  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK);
+}
+
+MJS_PRIVATE mjs_val_t gc_string_val_from_offset(uint64_t s) {
+  return s | MJS_TAG_STRING_O;
+}
+
+/* Mark a string value */
+void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
+  mjs_val_t h, tmp = 0;
+  char *s;
+
+  /* clang-format off */
+
+  /*
+   * If a value points to an unmarked string we shall:
+   *  1. save the first 6 bytes of the string
+   *     since we need to be able to distinguish real values from
+   *     the saved first 6 bytes of the string, we need to tag the chunk
+   *     as MJS_TAG_STRING_C
+   *  2. encode value's address (v) into the first 6 bytes of the string.
+   *  3. put the saved 8 bytes (tag + chunk) back into the value.
+   *  4. mark the string by putting '\1' in the NUL terminator of the previous
+   *     string chunk.
+   *
+   * If a value points to an already marked string we shall:
+   *     (0, <6 bytes of a pointer to a mjs_val_t>), hence we have to skip
+   *     the first byte. We tag the value pointer as a MJS_TAG_FOREIGN
+   *     so that it won't be followed during recursive mark.
+   *
+   *  ... the rest is the same
+   *
+   *  Note: 64-bit pointers can be represented with 48-bits
+   */
+
+  /* clang-format on */
+
+  if ((*v & MJS_TAG_MASK) != MJS_TAG_STRING_O) {
+    return;
+  }
+
+  s = mjs->owned_strings.buf + gc_string_mjs_val_to_offset(*v);
+  assert(s < mjs->owned_strings.buf + mjs->owned_strings.len);
+  if (s[-1] == '\0') {
+    memcpy(&tmp, s, sizeof(tmp) - 2);
+    tmp |= MJS_TAG_STRING_C;
+  } else {
+    memcpy(&tmp, s, sizeof(tmp) - 2);
+    tmp |= MJS_TAG_FOREIGN;
+  }
+
+  h = (mjs_val_t)(uintptr_t) v;
+  s[-1] = 1;
+  memcpy(s, &h, sizeof(h) - 2);
+  memcpy(v, &tmp, sizeof(tmp));
+}
+
+void gc_compact_strings(struct mjs *mjs) {
+  char *p = mjs->owned_strings.buf + 1;
+  uint64_t h, next, head = 1;
+  int len, llen;
+
+  while (p < mjs->owned_strings.buf + mjs->owned_strings.len) {
+    if (p[-1] == '\1') {
+      /* relocate and update ptrs */
+      h = 0;
+      memcpy(&h, p, sizeof(h) - 2);
+
+      /*
+       * relocate pointers until we find the tail.
+       * The tail is marked with MJS_TAG_STRING_C,
+       * while mjs_val_t link pointers are tagged with MJS_TAG_FOREIGN
+       */
+      for (; (h & MJS_TAG_MASK) != MJS_TAG_STRING_C; h = next) {
+        h &= ~MJS_TAG_MASK;
+        memcpy(&next, (char *) (uintptr_t) h, sizeof(h));
+
+        *(mjs_val_t *) (uintptr_t) h = gc_string_val_from_offset(head);
+      }
+      h &= ~MJS_TAG_MASK;
+
+      /*
+       * the tail contains the first 6 bytes we stole from
+       * the actual string.
+       */
+      len = decode_varint((unsigned char *) &h, &llen);
+      len += llen + 1;
+
+      /*
+       * restore the saved 6 bytes
+       * TODO(mkm): think about endianness
+       */
+      memcpy(p, &h, sizeof(h) - 2);
+
+      /*
+       * and relocate the string data by packing it to the left.
+       */
+      memmove(mjs->owned_strings.buf + head, p, len);
+      mjs->owned_strings.buf[head - 1] = 0x0;
+      p += len;
+      head += len;
+    } else {
+      len = decode_varint((unsigned char *) p, &llen);
+      len += llen + 1;
+
+      p += len;
+    }
+  }
+
+  mjs->owned_strings.len = head;
+}
+
+/*
+ * builting on gcc, tried out by redefining it.
+ * Using null pointer as base can trigger undefined behavior, hence
+ * a portable workaround that involves a valid yet dummy pointer.
+ * It's meant to be used as a contant expression.
+ */
+#ifndef offsetof
+#define offsetof(st, m) (((ptrdiff_t)(&((st *) 32)->m)) - 32)
+#endif
+
+/*
+ * mark an mbuf containing *pointers* to `mjs_val_t` values
+ */
+static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf) {
+  mjs_val_t **vp;
+  for (vp = (mjs_val_t **) mbuf->buf; (char *) vp < mbuf->buf + mbuf->len;
+       vp++) {
+    gc_mark(mjs, **vp);
+    gc_mark_string(mjs, *vp);
+  }
+}
+
+/* Perform garbage collection */
+void mjs_gc(struct mjs *mjs, int full) {
+  gc_mark_mbuf_pt(mjs, &mjs->owned_values);
+
+  gc_compact_strings(mjs);
+
+  gc_sweep(mjs, &mjs->object_arena, 0);
+  gc_sweep(mjs, &mjs->property_arena, 0);
+
+  if (full) {
+    /*
+     * In case of full GC, we also resize strings buffer, but we still leave
+     * some extra space (at most, `_MJS_STRING_BUF_RESERVE`) in order to avoid
+     * frequent reallocations
+     */
+    size_t trimmed_size = mjs->owned_strings.len + _MJS_STRING_BUF_RESERVE;
+    if (trimmed_size < mjs->owned_strings.size) {
+      mbuf_resize(&mjs->owned_strings, trimmed_size);
+    }
+  }
+}
+
+MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v) {
+  if (mjs_is_object(v)) {
+    return gc_check_ptr(&mjs->object_arena, get_object_struct(v));
+  }
+  return 1;
+}
+
+MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *ptr) {
+  const struct gc_cell *p = (const struct gc_cell *) ptr;
+  struct gc_block *b;
+  for (b = a->blocks; b != NULL; b = b->next) {
+    if (p >= b->base && p < GC_CELL_OP(a, b->base, +, b->size)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/object.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/gc.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+/* Amalgamated: #include "mjs/object.h" */
+/* Amalgamated: #include "mjs/string.h" */
+
+MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
+  if (o == NULL) {
+    return MJS_NULL;
+  } else {
+    return pointer_to_value(o) | MJS_TAG_OBJECT;
+  }
+}
+
+MJS_PRIVATE struct mjs_object *get_object_struct(mjs_val_t v) {
+  struct mjs_object *ret = NULL;
+  if (mjs_is_null(v)) {
+    ret = NULL;
+  } else {
+    assert(mjs_is_object(v));
+    ret = (struct mjs_object *) get_ptr(v);
+  }
+  return ret;
+}
+
+mjs_val_t mjs_mk_object(struct mjs *mjs) {
+  struct mjs_object *o = new_object(mjs);
+  if (o == NULL) {
+    return MJS_NULL;
+  }
+  (void) mjs;
+  o->properties = NULL;
+  return mjs_object_to_value(o);
+}
+
+int mjs_is_object(mjs_val_t v) {
+  return (v & MJS_TAG_MASK) == MJS_TAG_OBJECT;
+}
+
+MJS_PRIVATE struct mjs_property *mjs_get_own_property(struct mjs *mjs,
+                                                      mjs_val_t obj,
+                                                      const char *name,
+                                                      size_t len) {
+  struct mjs_property *p;
+  struct mjs_object *o;
+
+  if (!mjs_is_object(obj)) {
+    return NULL;
+  }
+
+  o = get_object_struct(obj);
+
+  if (len <= 5) {
+    mjs_val_t ss = mjs_mk_string(mjs, name, len, 1);
+    for (p = o->properties; p != NULL; p = p->next) {
+      if (p->name == ss) return p;
+    }
+  } else {
+    for (p = o->properties; p != NULL; p = p->next) {
+      if (mjs_strcmp(mjs, &p->name, name, len) == 0) return p;
+    }
+    return p;
+  }
+
+  return NULL;
+}
+
+MJS_PRIVATE struct mjs_property *mjs_mk_property(struct mjs *mjs,
+                                                 mjs_val_t name,
+                                                 mjs_val_t value) {
+  struct mjs_property *p = new_property(mjs);
+  p->next = NULL;
+  p->name = name;
+  p->value = value;
+  return p;
+}
+
+mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
+                  size_t name_len) {
+  struct mjs_property *p;
+
+  if (name_len == (size_t) ~0) {
+    name_len = strlen(name);
+  }
+
+  p = mjs_get_own_property(mjs, obj, name, name_len);
+  if (p == NULL) {
+    return MJS_UNDEFINED;
+  } else {
+    return p->value;
+  }
+}
+
+mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name,
+                  size_t name_len, mjs_val_t val) {
+  struct mjs_property *p;
+
+  if (name_len == (size_t) ~0) {
+    name_len = strlen(name);
+  }
+
+  p = mjs_get_own_property(mjs, obj, name, name_len);
+  if (p == NULL) {
+    mjs_val_t namestr;
+    struct mjs_object *o;
+    if (!mjs_is_object(obj)) {
+      return MJS_REFERENCE_ERROR;
+    }
+
+    namestr = mjs_mk_string(mjs, name, name_len, 1);
+    p = mjs_mk_property(mjs, namestr, val);
+
+    o = get_object_struct(obj);
+    p->next = o->properties;
+    o->properties = p;
+  }
+
+  p->value = val;
+  return MJS_OK;
+}
+
+mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
+                    mjs_val_t val) {
+  size_t n;
+  const char *s = mjs_get_string(mjs, &name, &n);
+  return mjs_set(mjs, obj, s, n, val);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
@@ -7636,33 +8406,15 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
  * All rights reserved
  */
 
-/* Amalgamated: #include "common/utf.h" */
 /* Amalgamated: #include "common/mg_str.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/varint.h" */
 
 /* TODO(lsm): NaN payload location depends on endianness, make crossplatform */
 #define GET_VAL_NAN_PAYLOAD(v) ((char *) &(v))
-
-/*
- * Size of the extra space for strings mbuf that is needed to avoid frequent
- * reallocations
- */
-#define _MJS_STRING_BUF_RESERVE 500
-
-/*
- * The GC code uses part of the string val_t to store debugging info.
- * TODO(mkm): Move this function to the GC module, when we'll have one.
- */
-MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
-  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK)
-#if !MJS_DISABLE_STR_ALLOC_SEQ
-         & 0xFFFFFFFF
-#endif
-      ;
-}
 
 /*
  * Dictionary of read-only strings with length > 5.
@@ -7741,10 +8493,6 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
     }
     embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
     tag = MJS_TAG_STRING_O;
-#if !MJS_DISABLE_STR_ALLOC_SEQ
-    /* TODO(imax): panic if offset >= 2^32. */
-    offset |= ((mjs_val_t) gc_next_allocation_seqn(mjs, p, len)) << 32;
-#endif
   } else {
     /* foreign string */
     if (sizeof(void *) <= 4 && len <= UINT16_MAX) {
@@ -7792,10 +8540,6 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
   } else if (tag == MJS_TAG_STRING_O) {
     size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
     char *s = mjs->owned_strings.buf + offset;
-
-#if !MJS_DISABLE_STR_ALLOC_SEQ
-    gc_check_valid_allocation_seqn(mjs, (*v >> 32) & 0xFFFF);
-#endif
     size = decode_varint((uint8_t *) s, &llen);
     p = s + llen;
   } else if (tag == MJS_TAG_STRING_F) {
@@ -7844,6 +8588,16 @@ const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *value) {
     return NULL;
   }
   return s;
+}
+
+int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len) {
+  size_t n;
+  if (len == (size_t) ~0) len = strlen(b);
+  const char *s = mjs_get_string(mjs, a, &n);
+  if (n != len) {
+    return n - len;
+  }
+  return strncmp(s, b, len);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/tok.c"
@@ -8000,6 +8754,29 @@ int pnext(struct pstate *p) {
  */
 
 /* Amalgamated: #include "mjs/val.h" */
+
+mjs_val_t mjs_mk_null(void) {
+  return MJS_NULL;
+}
+
+int mjs_is_null(mjs_val_t v) {
+  return v == MJS_NULL;
+}
+
+mjs_val_t mjs_mk_undefined(void) {
+  return MJS_UNDEFINED;
+}
+
+int mjs_is_undefined(mjs_val_t v) {
+  return v == MJS_UNDEFINED;
+}
+
+MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
+  uint64_t n = ((uint64_t)(uintptr_t) p);
+
+  assert((n & MJS_TAG_MASK) == 0 || (n & MJS_TAG_MASK) == (~0 & MJS_TAG_MASK));
+  return n & ~MJS_TAG_MASK;
+}
 
 MJS_PRIVATE void *get_ptr(mjs_val_t v) {
   return (void *) (uintptr_t)(v & 0xFFFFFFFFFFFFUL);
