@@ -1824,6 +1824,42 @@ int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
 
 #endif /* MJS_FROTH_MEM_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/internal.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_INTERNAL_H_
+#define MJS_INTERNAL_H_
+
+/* Amalgamated: #include "mjs/license.h" */
+
+/* Amalgamated: #include "common/platform.h" */
+
+#ifndef FAST
+#define FAST
+#endif
+
+#ifndef STATIC
+#define STATIC
+#endif
+
+#ifndef ENDL
+#define ENDL "\n"
+#endif
+
+#ifdef MJS_EXPOSE_PRIVATE
+#define MJS_PRIVATE
+#define MJS_EXTERN extern
+#else
+#define MJS_PRIVATE static
+#define MJS_EXTERN static
+#endif
+
+#endif /* MJS_INTERNAL_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/tok.h"
 #endif
 /*
@@ -1833,6 +1869,8 @@ int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
 
 #ifndef MJS_TOK_H_
 #define MJS_TOK_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
 
 struct pstate {
   const char *file_name; /* Source code file name */
@@ -1888,6 +1926,8 @@ enum {
 void pinit(const char *file_name, const char *buf, struct pstate *);
 int pnext(struct pstate *);
 
+MJS_PRIVATE int is_ident(int c);
+
 #endif /* MJS_TOK_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser_state.h"
@@ -1922,6 +1962,7 @@ fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
                            fr_word_ptr_t b, fr_opcode_t op);
 fr_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit);
 fr_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit);
+fr_word_ptr_t mjs_emit_var(struct mjs_parse_ctx *ctx, const char *ident);
 
 fr_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v);
 fr_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v);
@@ -1959,12 +2000,13 @@ extern struct fr_code MJS_code;
 #define MJS_OP_ifelse ((fr_opcode_t) 16)
 #define MJS_OP_loop ((fr_opcode_t) 17)
 #define MJS_OP_str ((fr_opcode_t) 18)
-#define MJS_OP_moo ((fr_opcode_t) 19)
-#define MJS_OP_NEQ_ ((fr_opcode_t) 20)
-#define MJS_OP_2dup ((fr_opcode_t) 21)
-#define MJS_OP_GE_ ((fr_opcode_t) 22)
-#define MJS_OP_repeat ((fr_opcode_t) 23)
-#define MJS_OP_demo ((fr_opcode_t) 24)
+#define MJS_OP_getvar ((fr_opcode_t) 19)
+#define MJS_OP_moo ((fr_opcode_t) 20)
+#define MJS_OP_NEQ_ ((fr_opcode_t) 21)
+#define MJS_OP_2dup ((fr_opcode_t) 22)
+#define MJS_OP_GE_ ((fr_opcode_t) 23)
+#define MJS_OP_repeat ((fr_opcode_t) 24)
+#define MJS_OP_demo ((fr_opcode_t) 25)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -1998,42 +2040,6 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
 #endif /* MJS_ERR_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/internal.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_INTERNAL_H_
-#define MJS_INTERNAL_H_
-
-/* Amalgamated: #include "mjs/license.h" */
-
-/* Amalgamated: #include "common/platform.h" */
-
-#ifndef FAST
-#define FAST
-#endif
-
-#ifndef STATIC
-#define STATIC
-#endif
-
-#ifndef ENDL
-#define ENDL "\n"
-#endif
-
-#ifdef MJS_EXPOSE_PRIVATE
-#define MJS_PRIVATE
-#define MJS_EXTERN extern
-#else
-#define MJS_PRIVATE static
-#define MJS_EXTERN static
-#endif
-
-#endif /* MJS_INTERNAL_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/val.h"
 #endif
@@ -2243,6 +2249,8 @@ struct mjs {
 struct mjs *mjs_create();
 void mjs_destroy(struct mjs *mjs);
 
+mjs_val_t mjs_get_global(struct mjs *mjs);
+
 #endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.h"
@@ -2343,6 +2351,11 @@ mjs_val_t mjs_mk_object(struct mjs *mjs);
  */
 mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
                   size_t name_len);
+
+/*
+ * Like mjs_get but with a JS string.
+ */
+mjs_val_t mjs_get_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name);
 
 /*
  * Set object property. Behaves just like JavaScript assignment.
@@ -5600,36 +5613,36 @@ typedef union {
 #define YY_ACTTAB_COUNT (1141)
 static const YYACTIONTYPE yy_action[] = {
  /*     0 */    53,   55,  118,  273,  118,   49,   51,   59,   57,  256,
- /*    10 */    23,   14,   65,  269,  125,  235,  275,  274,  134,  132,
- /*    20 */   131,   61,  252,  119,   18,  259,  260,  261,  191,  192,
+ /*    10 */    23,   14,   65,  269,  125,  191,  275,  274,  134,  132,
+ /*    20 */   131,   61,  252,  119,   18,  259,  260,  261,  192,  193,
  /*    30 */   266,  267,   53,   55,  117,  117,  125,   49,   51,   59,
- /*    40 */    57,  137,   23,   14,   65,  218,  219,  235,  254,   38,
+ /*    40 */    57,  137,   23,   14,   65,  219,  220,  191,  254,   38,
  /*    50 */   134,  132,  131,   61,  250,  119,   18,  259,  260,  261,
- /*    60 */   191,  192,  266,  267,   53,   55,  280,  121,  121,   49,
- /*    70 */    51,   59,   57,   62,   23,   14,   65,  194,  120,  235,
+ /*    60 */   192,  193,  266,  267,   53,   55,  280,  121,  121,   49,
+ /*    70 */    51,   59,   57,   62,   23,   14,   65,  195,  120,  191,
  /*    80 */   120,  268,  134,  132,  131,   61,  253,  119,   18,  259,
- /*    90 */   260,  261,  191,  192,  266,  267,    2,   53,   55,   13,
+ /*    90 */   260,  261,  192,  193,  266,  267,    2,   53,   55,   13,
  /*   100 */   369,  237,   49,   51,   59,   57,  370,   23,   14,   65,
- /*   110 */    19,  368,  235,  276,   64,  134,  132,  131,   61,  127,
- /*   120 */   119,   18,  259,  260,  261,  191,  192,  266,  267,   53,
+ /*   110 */    19,  368,  191,  276,   64,  134,  132,  131,   61,  127,
+ /*   120 */   119,   18,  259,  260,  261,  192,  193,  266,  267,   53,
  /*   130 */    55,   66,   20,  126,   49,   51,   59,   57,   63,   23,
- /*   140 */    14,   65,    3,   15,  235,   16,   17,  134,  132,  131,
- /*   150 */    61,   21,  119,   18,  259,  260,  261,  191,  192,  266,
+ /*   140 */    14,   65,    3,   15,  191,   16,   17,  134,  132,  131,
+ /*   150 */    61,   21,  119,   18,  259,  260,  261,  192,  193,  266,
  /*   160 */   267,   53,   55,   66,   22,  135,   49,   51,   59,   57,
  /*   170 */     5,   23,   14,   65,    7,   64,  124,   37,  282,  134,
  /*   180 */   132,  131,   61,  282,  119,   18,  259,  260,  261,  123,
- /*   190 */   122,  266,  267,   53,   55,  193,   67,  282,   49,   51,
- /*   200 */    59,   57,  282,   23,   14,   65,  282,  282,  235,  282,
+ /*   190 */   122,  266,  267,   53,   55,  194,   67,  282,   49,   51,
+ /*   200 */    59,   57,  282,   23,   14,   65,  282,  282,  191,  282,
  /*   210 */   282,  134,  132,  131,    1,  282,  119,   18,  259,  260,
- /*   220 */   261,  191,  192,  266,  267,   53,   55,  282,  282,  282,
+ /*   220 */   261,  192,  193,  266,  267,   53,   55,  282,  282,  282,
  /*   230 */    49,   51,   59,   57,  282,   23,   14,  282,  257,  282,
- /*   240 */   235,  282,  282,  282,  282,  282,   61,  282,  136,  282,
- /*   250 */   259,  260,  261,  191,  192,  266,  267,   47,   46,   45,
+ /*   240 */   191,  282,  282,  282,  282,  282,   61,  282,  136,  282,
+ /*   250 */   259,  260,  261,  192,  193,  266,  267,   47,   46,   45,
  /*   260 */    44,   54,   52,   50,   48,   60,   58,   56,   43,   42,
- /*   270 */    41,   40,   39,  218,  219,  282,  282,   38,   53,   55,
+ /*   270 */    41,   40,   39,  219,  220,  282,  282,   38,   53,   55,
  /*   280 */   282,  282,  282,   49,   51,   59,   57,  282,   23,   14,
- /*   290 */   282,  282,  282,  235,  282,  282,  282,  282,  282,   61,
- /*   300 */   282,  136,  282,  259,  260,  261,  191,  192,  266,  267,
+ /*   290 */   282,  282,  282,  191,  282,  282,  282,  282,  282,   61,
+ /*   300 */   282,  136,  282,  259,  260,  261,  192,  193,  266,  267,
  /*   310 */    36,   35,   34,   33,   32,   31,   30,   29,   28,   27,
  /*   320 */    26,   25,   36,   35,   34,   33,   32,   31,   30,   29,
  /*   330 */    28,   27,   26,   25,   36,   35,   34,   33,   32,   31,
@@ -5639,19 +5652,19 @@ static const YYACTIONTYPE yy_action[] = {
  /*   370 */   282,  282,   12,   24,  282,  282,  282,  282,    6,  282,
  /*   380 */   282,  282,   36,   35,   34,   33,   32,   31,   30,   29,
  /*   390 */    28,   27,   26,   25,   36,   35,   34,   33,   32,   31,
- /*   400 */    30,   29,   28,   27,   26,   25,   41,   40,   39,  218,
- /*   410 */   219,    9,  187,   38,  282,   72,   68,   68,  282,  282,
- /*   420 */    12,   24,  187,  198,   68,  282,   68,   68,   68,  117,
+ /*   400 */    30,   29,   28,   27,   26,   25,   41,   40,   39,  219,
+ /*   410 */   220,    9,  187,   38,  282,   72,   68,   68,  282,  282,
+ /*   420 */    12,   24,  187,  199,   68,  282,   68,   68,   68,  117,
  /*   430 */   117,  125,   12,   24,  282,  282,  282,  282,  190,  282,
  /*   440 */   282,  282,  282,  282,  282,   54,   52,   50,   48,   60,
- /*   450 */    58,   56,   43,   42,   41,   40,   39,  218,  219,  282,
+ /*   450 */    58,   56,   43,   42,   41,   40,   39,  219,  220,  282,
  /*   460 */   282,   38,   36,   35,   34,   33,   32,   31,   30,   29,
  /*   470 */    28,   27,   26,   25,   36,   35,   34,   33,   32,   31,
  /*   480 */    30,   29,   28,   27,   26,   25,  282,  282,  282,  282,
  /*   490 */   282,  282,  376,   11,  187,  282,  282,   72,   68,   68,
  /*   500 */    12,   24,  282,  282,  187,  282,   68,  242,   68,   68,
  /*   510 */    68,  282,   12,   24,   60,   58,   56,   43,   42,   41,
- /*   520 */    40,   39,  218,  219,  246,  282,   38,   72,   68,   68,
+ /*   520 */    40,   39,  219,  220,  246,  282,   38,   72,   68,   68,
  /*   530 */   282,  282,  246,  282,  246,  282,   68,  282,   68,   68,
  /*   540 */    68,  245,  282,  282,   72,   68,   68,  282,  282,  245,
  /*   550 */   282,  245,  282,   68,  282,   68,   68,   68,  282,  282,
@@ -5670,7 +5683,7 @@ static const YYACTIONTYPE yy_action[] = {
  /*   680 */    82,   68,   68,  282,  282,  282,  129,  282,  282,   68,
  /*   690 */   282,   68,   68,   68,  282,   82,   68,   68,  282,  282,
  /*   700 */   282,  130,  282,  282,   68,  282,   68,   68,   68,   43,
- /*   710 */    42,   41,   40,   39,  218,  219,  282,  282,   38,  282,
+ /*   710 */    42,   41,   40,   39,  219,  220,  282,  282,   38,  282,
  /*   720 */    69,   68,   68,  282,  282,   79,   68,   68,  282,   68,
  /*   730 */   282,   68,   68,   68,   68,  282,   68,   68,   68,   81,
  /*   740 */    68,   68,  282,  282,  282,   70,   68,   68,   68,  282,
@@ -5690,8 +5703,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*   880 */   282,  282,   94,   68,   68,  282,   68,  282,   68,   68,
  /*   890 */    68,   68,  282,   68,   68,   68,   95,   68,   68,  282,
  /*   900 */   282,   96,   68,   68,  282,   68,  282,   68,   68,   68,
- /*   910 */    68,  282,   68,   68,   68,  282,  234,  234,  282,  282,
- /*   920 */   282,  282,  108,  108,  234,  282,  234,  234,  234,  282,
+ /*   910 */    68,  282,   68,   68,   68,  282,  235,  235,  282,  282,
+ /*   920 */   282,  282,  108,  108,  235,  282,  235,  235,  235,  282,
  /*   930 */   108,  282,  108,  108,  108,  109,  109,  282,  282,  282,
  /*   940 */   282,  110,  110,  109,  282,  109,  109,  109,  282,  110,
  /*   950 */   282,  110,  110,  110,  104,  104,  282,  282,  282,  282,
@@ -5872,14 +5885,14 @@ static const YYACTIONTYPE yy_default[] = {
  /*    30 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
  /*    40 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
  /*    50 */   375,  375,  375,  375,  375,  375,  375,  375,  375,  375,
- /*    60 */   375,  366,  375,  375,  375,  375,  375,  375,  306,  375,
- /*    70 */   375,  375,  375,  375,  325,  324,  323,  322,  375,  372,
- /*    80 */   373,  367,  343,  335,  305,  304,  303,  302,  301,  300,
- /*    90 */   299,  298,  297,  296,  295,  294,  291,  318,  319,  320,
- /*   100 */   321,  315,  316,  317,  326,  283,  310,  309,  328,  327,
- /*   110 */   284,  312,  311,  308,  307,  375,  375,  375,  375,  375,
- /*   120 */   375,  375,  287,  286,  330,  375,  375,  375,  375,  375,
- /*   130 */   375,  375,  375,  338,  375,  375,  375,  292,
+ /*    60 */   375,  366,  375,  375,  375,  375,  375,  375,  307,  375,
+ /*    70 */   375,  375,  375,  375,  326,  325,  324,  323,  375,  372,
+ /*    80 */   373,  367,  343,  335,  306,  305,  304,  303,  302,  301,
+ /*    90 */   300,  299,  298,  297,  296,  295,  292,  319,  320,  321,
+ /*   100 */   322,  316,  317,  318,  327,  283,  311,  310,  329,  328,
+ /*   110 */   284,  313,  312,  309,  308,  375,  375,  375,  375,  375,
+ /*   120 */   375,  375,  288,  287,  286,  375,  375,  375,  375,  375,
+ /*   130 */   375,  375,  375,  338,  375,  375,  375,  293,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -6019,51 +6032,51 @@ static const char *const yyRuleName[] = {
  /*   3 */ "sexp ::= sexp PLUS sexp",
  /*   4 */ "sexp ::= sexp MUL sexp",
  /*   5 */ "sexp ::= OPEN_PAREN expr CLOSE_PAREN",
- /*   6 */ "literal ::= NUMBER",
- /*   7 */ "literal ::= STRING_LITERAL",
- /*   8 */ "stmt ::= LET letspecs SEMICOLON",
- /*   9 */ "letspecs ::= letspecs COMMA letspec",
- /*  10 */ "letspecs ::= letspec",
- /*  11 */ "letspec ::= IDENTIFIER ASSIGN expr",
- /*  12 */ "letspec ::= IDENTIFIER",
- /*  13 */ "stmt ::= expr SEMICOLON",
- /*  14 */ "expr ::= expr ASSIGN expr",
- /*  15 */ "expr ::= expr PLUS_ASSIGN expr",
- /*  16 */ "expr ::= expr MINUS_ASSIGN expr",
- /*  17 */ "expr ::= expr MUL_ASSIGN expr",
- /*  18 */ "expr ::= expr DIV_ASSIGN expr",
- /*  19 */ "expr ::= expr REM_ASSIGN expr",
- /*  20 */ "expr ::= expr LSHIFT_ASSIGN expr",
- /*  21 */ "expr ::= expr RSHIFT_ASSIGN expr",
- /*  22 */ "expr ::= expr URSHIFT_ASSIGN expr",
- /*  23 */ "expr ::= expr AND_ASSIGN expr",
- /*  24 */ "expr ::= expr XOR_ASSIGN expr",
- /*  25 */ "expr ::= expr OR_ASSIGN expr",
- /*  26 */ "expr ::= sexp",
- /*  27 */ "sexp ::= NOT sexp",
- /*  28 */ "sexp ::= TILDA sexp",
- /*  29 */ "sexp ::= MINUS sexp",
- /*  30 */ "sexp ::= PLUS sexp",
- /*  31 */ "sexp ::= MINUS_MINUS sexp",
- /*  32 */ "sexp ::= PLUS_PLUS sexp",
- /*  33 */ "sexp ::= sexp PLUS_PLUS",
- /*  34 */ "sexp ::= sexp MINUS_MINUS",
- /*  35 */ "sexp ::= sexp LSHIFT sexp",
- /*  36 */ "sexp ::= sexp RSHIFT sexp",
- /*  37 */ "sexp ::= sexp URSHIFT sexp",
- /*  38 */ "sexp ::= sexp LE sexp",
- /*  39 */ "sexp ::= sexp LT sexp",
- /*  40 */ "sexp ::= sexp GE sexp",
- /*  41 */ "sexp ::= sexp GT sexp",
- /*  42 */ "sexp ::= sexp EQ sexp",
- /*  43 */ "sexp ::= sexp NE sexp",
- /*  44 */ "sexp ::= sexp EQ_EQ sexp",
- /*  45 */ "sexp ::= sexp NE_NE sexp",
- /*  46 */ "sexp ::= sexp MINUS sexp",
- /*  47 */ "sexp ::= sexp DIV sexp",
- /*  48 */ "sexp ::= sexp REM sexp",
- /*  49 */ "sexp ::= sexp DOT sexp",
- /*  50 */ "sexp ::= IDENTIFIER",
+ /*   6 */ "sexp ::= IDENTIFIER",
+ /*   7 */ "literal ::= NUMBER",
+ /*   8 */ "literal ::= STRING_LITERAL",
+ /*   9 */ "stmt ::= LET letspecs SEMICOLON",
+ /*  10 */ "letspecs ::= letspecs COMMA letspec",
+ /*  11 */ "letspecs ::= letspec",
+ /*  12 */ "letspec ::= IDENTIFIER ASSIGN expr",
+ /*  13 */ "letspec ::= IDENTIFIER",
+ /*  14 */ "stmt ::= expr SEMICOLON",
+ /*  15 */ "expr ::= expr ASSIGN expr",
+ /*  16 */ "expr ::= expr PLUS_ASSIGN expr",
+ /*  17 */ "expr ::= expr MINUS_ASSIGN expr",
+ /*  18 */ "expr ::= expr MUL_ASSIGN expr",
+ /*  19 */ "expr ::= expr DIV_ASSIGN expr",
+ /*  20 */ "expr ::= expr REM_ASSIGN expr",
+ /*  21 */ "expr ::= expr LSHIFT_ASSIGN expr",
+ /*  22 */ "expr ::= expr RSHIFT_ASSIGN expr",
+ /*  23 */ "expr ::= expr URSHIFT_ASSIGN expr",
+ /*  24 */ "expr ::= expr AND_ASSIGN expr",
+ /*  25 */ "expr ::= expr XOR_ASSIGN expr",
+ /*  26 */ "expr ::= expr OR_ASSIGN expr",
+ /*  27 */ "expr ::= sexp",
+ /*  28 */ "sexp ::= NOT sexp",
+ /*  29 */ "sexp ::= TILDA sexp",
+ /*  30 */ "sexp ::= MINUS sexp",
+ /*  31 */ "sexp ::= PLUS sexp",
+ /*  32 */ "sexp ::= MINUS_MINUS sexp",
+ /*  33 */ "sexp ::= PLUS_PLUS sexp",
+ /*  34 */ "sexp ::= sexp PLUS_PLUS",
+ /*  35 */ "sexp ::= sexp MINUS_MINUS",
+ /*  36 */ "sexp ::= sexp LSHIFT sexp",
+ /*  37 */ "sexp ::= sexp RSHIFT sexp",
+ /*  38 */ "sexp ::= sexp URSHIFT sexp",
+ /*  39 */ "sexp ::= sexp LE sexp",
+ /*  40 */ "sexp ::= sexp LT sexp",
+ /*  41 */ "sexp ::= sexp GE sexp",
+ /*  42 */ "sexp ::= sexp GT sexp",
+ /*  43 */ "sexp ::= sexp EQ sexp",
+ /*  44 */ "sexp ::= sexp NE sexp",
+ /*  45 */ "sexp ::= sexp EQ_EQ sexp",
+ /*  46 */ "sexp ::= sexp NE_NE sexp",
+ /*  47 */ "sexp ::= sexp MINUS sexp",
+ /*  48 */ "sexp ::= sexp DIV sexp",
+ /*  49 */ "sexp ::= sexp REM sexp",
+ /*  50 */ "sexp ::= sexp DOT sexp",
  /*  51 */ "sexp ::= literal",
  /*  52 */ "expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN",
  /*  53 */ "callarglist ::= callarglist COMMA callarg",
@@ -6473,6 +6486,7 @@ static const struct {
   { 71, 3 },
   { 71, 3 },
   { 71, 3 },
+  { 71, 1 },
   { 72, 1 },
   { 72, 1 },
   { 67, 3 },
@@ -6517,7 +6531,6 @@ static const struct {
   { 71, 3 },
   { 71, 3 },
   { 71, 3 },
-  { 71, 1 },
   { 71, 1 },
   { 70, 4 },
   { 73, 3 },
@@ -6664,62 +6677,67 @@ static void yy_reduce(
 { yymsp[-2].minor.yy8=yymsp[-1].minor.yy8; }
 #line 1256 "mjs/mjs.lem.c"
         break;
-      case 6: /* literal ::= NUMBER */
-#line 165 "mjs/mjs.lem.c"
-{ yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
+      case 6: /* sexp ::= IDENTIFIER */
+#line 123 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_var(ctx, yymsp[0].minor.yy0.begin); }
 #line 1261 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
-      case 7: /* literal ::= STRING_LITERAL */
-#line 166 "mjs/mjs.lem.c"
-{ yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
+      case 7: /* literal ::= NUMBER */
+#line 165 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
 #line 1267 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
+      case 8: /* literal ::= STRING_LITERAL */
+#line 166 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
+#line 1273 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
+        break;
       default:
-      /* (8) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==8);
-      /* (9) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==9);
-      /* (10) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=10);
-      /* (11) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==11);
-      /* (12) letspec ::= IDENTIFIER */ yytestcase(yyruleno==12);
-      /* (13) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==13);
-      /* (14) expr ::= expr ASSIGN expr */ yytestcase(yyruleno==14);
-      /* (15) expr ::= expr PLUS_ASSIGN expr */ yytestcase(yyruleno==15);
-      /* (16) expr ::= expr MINUS_ASSIGN expr */ yytestcase(yyruleno==16);
-      /* (17) expr ::= expr MUL_ASSIGN expr */ yytestcase(yyruleno==17);
-      /* (18) expr ::= expr DIV_ASSIGN expr */ yytestcase(yyruleno==18);
-      /* (19) expr ::= expr REM_ASSIGN expr */ yytestcase(yyruleno==19);
-      /* (20) expr ::= expr LSHIFT_ASSIGN expr */ yytestcase(yyruleno==20);
-      /* (21) expr ::= expr RSHIFT_ASSIGN expr */ yytestcase(yyruleno==21);
-      /* (22) expr ::= expr URSHIFT_ASSIGN expr */ yytestcase(yyruleno==22);
-      /* (23) expr ::= expr AND_ASSIGN expr */ yytestcase(yyruleno==23);
-      /* (24) expr ::= expr XOR_ASSIGN expr */ yytestcase(yyruleno==24);
-      /* (25) expr ::= expr OR_ASSIGN expr */ yytestcase(yyruleno==25);
-      /* (26) expr ::= sexp */ yytestcase(yyruleno==26);
-      /* (27) sexp ::= NOT sexp */ yytestcase(yyruleno==27);
-      /* (28) sexp ::= TILDA sexp */ yytestcase(yyruleno==28);
-      /* (29) sexp ::= MINUS sexp */ yytestcase(yyruleno==29);
-      /* (30) sexp ::= PLUS sexp */ yytestcase(yyruleno==30);
-      /* (31) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==31);
-      /* (32) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==32);
-      /* (33) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==33);
-      /* (34) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==34);
-      /* (35) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==35);
-      /* (36) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==36);
-      /* (37) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==37);
-      /* (38) sexp ::= sexp LE sexp */ yytestcase(yyruleno==38);
-      /* (39) sexp ::= sexp LT sexp */ yytestcase(yyruleno==39);
-      /* (40) sexp ::= sexp GE sexp */ yytestcase(yyruleno==40);
-      /* (41) sexp ::= sexp GT sexp */ yytestcase(yyruleno==41);
-      /* (42) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==42);
-      /* (43) sexp ::= sexp NE sexp */ yytestcase(yyruleno==43);
-      /* (44) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==44);
-      /* (45) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==45);
-      /* (46) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==46);
-      /* (47) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==47);
-      /* (48) sexp ::= sexp REM sexp */ yytestcase(yyruleno==48);
-      /* (49) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==49);
-      /* (50) sexp ::= IDENTIFIER */ yytestcase(yyruleno==50);
+      /* (9) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==9);
+      /* (10) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==10);
+      /* (11) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=11);
+      /* (12) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==12);
+      /* (13) letspec ::= IDENTIFIER */ yytestcase(yyruleno==13);
+      /* (14) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==14);
+      /* (15) expr ::= expr ASSIGN expr */ yytestcase(yyruleno==15);
+      /* (16) expr ::= expr PLUS_ASSIGN expr */ yytestcase(yyruleno==16);
+      /* (17) expr ::= expr MINUS_ASSIGN expr */ yytestcase(yyruleno==17);
+      /* (18) expr ::= expr MUL_ASSIGN expr */ yytestcase(yyruleno==18);
+      /* (19) expr ::= expr DIV_ASSIGN expr */ yytestcase(yyruleno==19);
+      /* (20) expr ::= expr REM_ASSIGN expr */ yytestcase(yyruleno==20);
+      /* (21) expr ::= expr LSHIFT_ASSIGN expr */ yytestcase(yyruleno==21);
+      /* (22) expr ::= expr RSHIFT_ASSIGN expr */ yytestcase(yyruleno==22);
+      /* (23) expr ::= expr URSHIFT_ASSIGN expr */ yytestcase(yyruleno==23);
+      /* (24) expr ::= expr AND_ASSIGN expr */ yytestcase(yyruleno==24);
+      /* (25) expr ::= expr XOR_ASSIGN expr */ yytestcase(yyruleno==25);
+      /* (26) expr ::= expr OR_ASSIGN expr */ yytestcase(yyruleno==26);
+      /* (27) expr ::= sexp */ yytestcase(yyruleno==27);
+      /* (28) sexp ::= NOT sexp */ yytestcase(yyruleno==28);
+      /* (29) sexp ::= TILDA sexp */ yytestcase(yyruleno==29);
+      /* (30) sexp ::= MINUS sexp */ yytestcase(yyruleno==30);
+      /* (31) sexp ::= PLUS sexp */ yytestcase(yyruleno==31);
+      /* (32) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==32);
+      /* (33) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==33);
+      /* (34) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==34);
+      /* (35) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==35);
+      /* (36) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==36);
+      /* (37) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==37);
+      /* (38) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==38);
+      /* (39) sexp ::= sexp LE sexp */ yytestcase(yyruleno==39);
+      /* (40) sexp ::= sexp LT sexp */ yytestcase(yyruleno==40);
+      /* (41) sexp ::= sexp GE sexp */ yytestcase(yyruleno==41);
+      /* (42) sexp ::= sexp GT sexp */ yytestcase(yyruleno==42);
+      /* (43) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==43);
+      /* (44) sexp ::= sexp NE sexp */ yytestcase(yyruleno==44);
+      /* (45) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==45);
+      /* (46) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==46);
+      /* (47) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==47);
+      /* (48) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==48);
+      /* (49) sexp ::= sexp REM sexp */ yytestcase(yyruleno==49);
+      /* (50) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==50);
       /* (51) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=51);
       /* (52) expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */ yytestcase(yyruleno==52);
       /* (53) callarglist ::= callarglist COMMA callarg */ yytestcase(yyruleno==53);
@@ -6806,7 +6824,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 26 "mjs/mjs.lem.c"
 
-#line 1400 "mjs/mjs.lem.c"
+#line 1405 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6826,7 +6844,7 @@ static void yy_syntax_error(
 #line 29 "mjs/mjs.lem.c"
 
   ctx->syntax_error = TOKEN;
-#line 1420 "mjs/mjs.lem.c"
+#line 1425 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -6852,7 +6870,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 23 "mjs/mjs.lem.c"
 
-#line 1446 "mjs/mjs.lem.c"
+#line 1451 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7077,6 +7095,8 @@ fr_opcode_t MJS_opcodes[] = {
   MJS_OP_dup, MJS_OP_PUSHR, MJS_OP_call, MJS_OP_POPR, MJS_OP_swap, MJS_OP_quote, 0, 0, MJS_OP_if, MJS_OP_exit,
   /* 0010 -> : str ... ; */
   /*           <mjs_op_str> */ 
+  /* 0010 -> : getvar ... ; */
+  /*           <mjs_op_getvar> */ 
   /* 0010 -> : moo ... ; */
   MJS_OP_quote, 0, 66, MJS_OP_EQ_, MJS_OP_quote, -1, -9, MJS_OP_if, MJS_OP_exit,
   /* 0019 -> : <> ... ; */
@@ -7122,12 +7142,13 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0016 */ -18, 
   /* 0017 */ 0, 
   /* 0018 */ -19, 
-  /* 0019 */ 10, 
-  /* 0020 */ 19, 
-  /* 0021 */ 22, 
-  /* 0022 */ 30, 
-  /* 0023 */ 46, 
-  /* 0024 */ 66, 
+  /* 0019 */ -20, 
+  /* 0020 */ 10, 
+  /* 0021 */ 19, 
+  /* 0022 */ 22, 
+  /* 0023 */ 30, 
+  /* 0024 */ 46, 
+  /* 0025 */ 66, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -7149,6 +7170,7 @@ void fr_op_call(struct fr_vm *vm);
 void fr_op_if(struct fr_vm *vm);
 void fr_op_ifelse(struct fr_vm *vm);
 void mjs_op_str(struct fr_vm *vm);
+void mjs_op_getvar(struct fr_vm *vm);
 
 fr_native_t MJS_native_words[] = {
   /* -001 */ fr_op_quote,
@@ -7170,6 +7192,7 @@ fr_native_t MJS_native_words[] = {
   /* -017 */ fr_op_if,
   /* -018 */ fr_op_ifelse,
   /* -019 */ mjs_op_str,
+  /* -020 */ mjs_op_getvar,
 };
 
 const char *MJS_word_names[] = {
@@ -7193,12 +7216,13 @@ const char *MJS_word_names[] = {
   /* 0016 */ "ifelse", 
   /* 0017 */ "loop", 
   /* 0018 */ "str", 
-  /* 0019 */ "moo", 
-  /* 0020 */ "<>", 
-  /* 0021 */ "2dup", 
-  /* 0022 */ ">=", 
-  /* 0023 */ "repeat", 
-  /* 0024 */ "demo", 
+  /* 0019 */ "getvar", 
+  /* 0020 */ "moo", 
+  /* 0021 */ "<>", 
+  /* 0022 */ "2dup", 
+  /* 0023 */ ">=", 
+  /* 0024 */ "repeat", 
+  /* 0025 */ "demo", 
 };
 
 const char *MJS_pos_names[] = {
@@ -7379,6 +7403,8 @@ struct mjs *mjs_create() {
   mjs->object_arena.destructor = object_destructor;
   gc_arena_init(&mjs->property_arena, sizeof(struct mjs_property),
                 MJS_DEFAULT_PROPERTY_ARENA_SIZE, 10);
+
+  mjs->vals.global_object = mjs_mk_object(mjs);
   return mjs;
 }
 
@@ -7390,6 +7416,10 @@ void mjs_destroy(struct mjs *mjs) {
   gc_arena_destroy(mjs, &mjs->property_arena);
   free(mjs->error_msg);
   free(mjs);
+}
+
+mjs_val_t mjs_get_global(struct mjs *mjs) {
+  return mjs->vals.global_object;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/defroth_mjs.c"
@@ -8021,6 +8051,12 @@ mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
   }
 }
 
+mjs_val_t mjs_get_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name) {
+  size_t n;
+  const char *s = mjs_get_string(mjs, &name, &n);
+  return mjs_get(mjs, obj, s, n);
+}
+
 mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name,
                   size_t name_len, mjs_val_t val) {
   struct mjs_property *p;
@@ -8072,6 +8108,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/froth/vm.h" */
 /* Amalgamated: #include "mjs/froth/mem.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/object.h" */
 
 void mjs_op_str(struct fr_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
@@ -8086,6 +8123,14 @@ void mjs_op_str(struct fr_vm *vm) {
   } while (ch != '\0');
 
   fr_push(&vm->dstack, mjs_mk_string(mjs, buf, len - 1, 1));
+}
+
+void mjs_op_getvar(struct fr_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs_val_t scope = mjs_get_global(mjs);
+  mjs_val_t name = fr_pop(&vm->dstack);
+  mjs_val_t val = mjs_get_v(mjs, scope, name);
+  fr_push(&vm->dstack, val);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
@@ -8404,6 +8449,25 @@ fr_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit) {
     mjs_emit_uint8(ctx, buf[i]);
   }
   mjs_emit_uint8(ctx, 0);
+  mjs_emit(ctx, MJS_OP_exit);
+  return start;
+}
+
+fr_word_ptr_t mjs_emit_var(struct mjs_parse_ctx *ctx, const char *ident) {
+  /*
+   * Obviously we could encode a var reference more efficiently by creating
+   * a getvar word that takes the variable name from the instruction stream.
+   * The reason it is not so now is simply because of lazines.
+   */
+  fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
+
+  while (is_ident(*ident)) {
+    mjs_emit_uint8(ctx, *ident++);
+  }
+
+  mjs_emit_uint8(ctx, 0);
+
+  mjs_emit(ctx, MJS_OP_getvar);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
@@ -8810,7 +8874,7 @@ static int is_alpha(int c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static int is_ident(int c) {
+MJS_PRIVATE int is_ident(int c) {
   return c == '_' || c == '$' || is_alpha(c);
 }
 
