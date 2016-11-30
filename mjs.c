@@ -1725,10 +1725,11 @@ char *utfutf(char *s1, char *s2);
 
 #define FR_EXIT_RUN -1
 
-typedef int16_t fr_cell_t;
+typedef int64_t fr_cell_t;
+/* typedef int16_t fr_cell_t; */
 
 typedef int8_t fr_opcode_t;
-typedef fr_cell_t fr_word_ptr_t;
+typedef int16_t fr_word_ptr_t;
 
 struct fr_vm;
 typedef void (*fr_native_t)(struct fr_vm *vm);
@@ -1758,6 +1759,11 @@ struct fr_vm {
   fr_word_ptr_t ip;
   struct fr_stack dstack; /* data stack */
   struct fr_stack rstack; /* return stack */
+
+  int32_t (*to_int)(fr_cell_t);
+  fr_cell_t (*from_int)(int32_t);
+  void (*print_cell)(fr_cell_t);
+  int (*is_true)(fr_cell_t);
 };
 
 void fr_init_vm(struct fr_vm *vm, struct fr_code *code);
@@ -1769,7 +1775,7 @@ fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op);
 void fr_push(struct fr_stack *stack, fr_cell_t value);
 fr_cell_t fr_pop(struct fr_stack *stack);
 
-void fr_print_stack(struct fr_stack *stack);
+void fr_print_stack(struct fr_vm *vm, struct fr_stack *stack);
 
 #endif /* MJS_FROTH_VM_H_ */
 #ifdef MG_MODULE_LINES
@@ -2097,6 +2103,8 @@ typedef uint64_t mjs_val_t;
 /* JavaScript `undefined` value */
 #define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
 
+struct mjs;
+
 /*
  * Make `null` primitive value.
  *
@@ -2118,6 +2126,33 @@ mjs_val_t mjs_mk_undefined(void);
 
 /* Returns true if given value is a primitive `undefined` value */
 int mjs_is_undefined(mjs_val_t v);
+
+/* Make numeric primitive value */
+mjs_val_t mjs_mk_number(struct mjs *mjs, double num);
+
+/*
+ * Returns number value stored in `mjs_val_t` as `double`.
+ *
+ * Returns NaN for non-numbers.
+ */
+double mjs_get_double(struct mjs *mjs, mjs_val_t v);
+
+/*
+ * Returns number value stored in `mjs_val_t` as `int`. If the number value is
+ * not an integer, the fraction part will be discarded.
+ *
+ * If the given value is a non-number, or NaN, the result is undefined.
+ */
+int mjs_get_int(struct mjs *mjs, mjs_val_t v);
+
+/*
+ * Like mjs_get_int but ensures that the returned type
+ * is a 32-bit signed integer.
+ */
+int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v);
+
+/* Returns true if given value is a primitive number value */
+int mjs_is_number(mjs_val_t v);
 
 MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
@@ -5080,6 +5115,26 @@ static void fr_init_stack(struct fr_stack *stack) {
   stack->pos = 0;
 }
 
+void fr_destroy_vm(struct fr_vm *vm) {
+  fr_destroy_mem(vm->iram);
+}
+
+static int32_t default_fr_to_int(fr_cell_t cell) {
+  return ~cell;
+}
+
+static fr_cell_t default_fr_from_int(int32_t i) {
+  return ~i;
+}
+
+static void default_fr_print_cell(fr_cell_t cell) {
+  printf("%d", (int) default_fr_to_int(cell));
+}
+
+static int default_fr_is_true(fr_cell_t cell) {
+  return !!default_fr_to_int(cell);
+}
+
 void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
   memset(vm, 0, sizeof(*vm));
   vm->code = code;
@@ -5092,10 +5147,11 @@ void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
     fr_mmap(&vm->iram, code->opcodes, code->opcodes_len,
             FR_MEM_RO | FR_MEM_FOREIGN);
   }
-}
 
-void fr_destroy_vm(struct fr_vm *vm) {
-  fr_destroy_mem(vm->iram);
+  vm->to_int = default_fr_to_int;
+  vm->from_int = default_fr_from_int;
+  vm->print_cell = default_fr_print_cell;
+  vm->is_true = default_fr_is_true;
 }
 
 static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
@@ -5133,14 +5189,14 @@ static void fr_trace(struct fr_vm *vm) {
 }
 
 void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
-  fr_push(&vm->rstack, vm->ip);
+  fr_push(&vm->rstack, vm->from_int(vm->ip));
   vm->ip = word;
 }
 
 void fr_enter(struct fr_vm *vm, fr_word_ptr_t word) {
   if (word >= 0 && fr_fetch(vm, vm->ip) == 0 && vm->rstack.pos > 0) {
     LOG(LL_DEBUG, ("tail recursion"));
-    vm->ip = fr_pop(&vm->rstack);
+    vm->ip = vm->to_int(fr_pop(&vm->rstack));
   }
 
   if (word < 0) {
@@ -5158,7 +5214,7 @@ void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
   vm->ip = word;
 
   /* push sentinel so we can exit the loop */
-  fr_push(&vm->rstack, FR_EXIT_RUN);
+  fr_push(&vm->rstack, vm->from_int(FR_EXIT_RUN));
 
   while (vm->ip != FR_EXIT_RUN && fr_is_mapped(vm->iram, vm->ip)) {
     fr_trace(vm);
@@ -5192,12 +5248,13 @@ fr_cell_t fr_pop(struct fr_stack *stack) {
   return stack->stack[stack->pos];
 }
 
-void fr_print_stack(struct fr_stack *stack) {
+void fr_print_stack(struct fr_vm *vm, struct fr_stack *stack) {
   size_t i;
   /* gforth style stack print */
   printf("<%zu> ", stack->pos);
   for (i = 0; i < stack->pos; i++) {
-    printf("%d ", stack->stack[i]);
+    vm->print_cell(stack->stack[i]);
+    printf(" ");
   }
 }
 
@@ -5207,18 +5264,18 @@ void fr_op_todo(struct fr_vm *vm) {
 }
 
 void fr_op_quote(struct fr_vm *vm) {
-  fr_cell_t lit;
+  int16_t lit;
   (void) vm;
   lit = (uint8_t) fr_fetch(vm, vm->ip);
   lit <<= 8;
   lit |= (uint8_t) fr_fetch(vm, vm->ip + 1);
   vm->ip += 2;
   LOG(LL_DEBUG, ("quoting %d", lit));
-  fr_push(&vm->dstack, lit);
+  fr_push(&vm->dstack, vm->from_int(lit));
 }
 
 void fr_op_exit(struct fr_vm *vm) {
-  vm->ip = fr_pop(&vm->rstack);
+  vm->ip = vm->to_int(fr_pop(&vm->rstack));
 }
 
 void fr_op_drop(struct fr_vm *vm) {
@@ -5268,52 +5325,52 @@ void fr_op_popr(struct fr_vm *vm) {
 
 void fr_op_print(struct fr_vm *vm) {
   fr_cell_t v = fr_pop(&vm->dstack);
-  LOG(LL_DEBUG, ("%d", v));
-  printf("%d\n", v);
+  vm->print_cell(v);
 }
 
 void fr_op_print_stack(struct fr_vm *vm) {
-  fr_print_stack(&vm->dstack);
+  fr_print_stack(vm, &vm->dstack);
 }
 
 void fr_op_eq(struct fr_vm *vm) {
   fr_cell_t b = fr_pop(&vm->dstack);
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_push(&vm->dstack, a == b ? -1 : 0);
+  fr_push(&vm->dstack, vm->from_int(a == b ? -1 : 0));
 }
 
 void fr_op_lt(struct fr_vm *vm) {
   fr_cell_t b = fr_pop(&vm->dstack);
   fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a < b ? -1 : 0);
+  fr_push(&vm->dstack, vm->from_int(vm->to_int(a) < vm->to_int(b) ? -1 : 0));
 }
 
 void fr_op_invert(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, ~a);
+  fr_push(&vm->dstack, vm->from_int(~vm->to_int(a)));
 }
 
 void fr_op_add(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_cell_t b = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a + b);
+  fr_push(&vm->dstack, vm->from_int(vm->to_int(a) + vm->to_int(b)));
 }
 
 void fr_op_mul(struct fr_vm *vm) {
   fr_cell_t a = fr_pop(&vm->dstack);
   fr_cell_t b = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, a * b);
+  fr_push(&vm->dstack, vm->from_int(vm->to_int(a) * vm->to_int(b)));
 }
 
 void fr_op_call(struct fr_vm *vm) {
-  fr_enter(vm, fr_pop(&vm->dstack));
+  fr_enter(vm, vm->to_int(fr_pop(&vm->dstack)));
 }
 
 void fr_op_if(struct fr_vm *vm) {
   fr_cell_t iftrue = fr_pop(&vm->dstack);
   fr_cell_t cond = fr_pop(&vm->dstack);
-  if (cond) {
-    fr_enter(vm, iftrue);
+  if (vm->is_true(cond)) {
+    fr_enter(vm, vm->to_int(iftrue));
   }
 }
 
@@ -5321,7 +5378,7 @@ void fr_op_ifelse(struct fr_vm *vm) {
   fr_cell_t iffalse = fr_pop(&vm->dstack);
   fr_cell_t iftrue = fr_pop(&vm->dstack);
   fr_cell_t cond = fr_pop(&vm->dstack);
-  fr_enter(vm, (cond ? iftrue : iffalse));
+  fr_enter(vm, (vm->is_true(cond) ? vm->to_int(iftrue) : vm->to_int(iffalse)));
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/ops.c"
@@ -7245,6 +7302,7 @@ struct fr_code MJS_code = {
 /* Amalgamated: #include "mjs/froth/mem.h" */
 /* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/mm.h" */
+/* Amalgamated: #include "mjs/val.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/vm_bcode.h" */
 
@@ -7260,9 +7318,36 @@ static void object_destructor(struct mjs *mjs, void *ptr) {
   (void) ptr;
 }
 
+int32_t fr_to_int(fr_cell_t cell) {
+  mjs_val_t v = (mjs_val_t) cell;
+  return mjs_get_int32(NULL, v);
+}
+
+fr_cell_t fr_from_int(int32_t i) {
+  return mjs_mk_number(NULL, i);
+}
+
+void fr_print_cell(fr_cell_t cell) {
+  mjs_val_t v = (mjs_val_t) cell;
+  if (mjs_is_number(v)) {
+    printf("%d", mjs_get_int(NULL, v));
+  } else {
+    printf("<val_t>");
+  }
+}
+
+int fr_is_true(fr_cell_t cell) {
+  return !!mjs_get_int32(NULL, (mjs_val_t) cell);
+}
+
 struct mjs *mjs_create() {
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   fr_init_vm(&mjs->vm, &MJS_code);
+  mjs->vm.to_int = fr_to_int;
+  mjs->vm.from_int = fr_from_int;
+  mjs->vm.print_cell = fr_print_cell;
+  mjs->vm.is_true = fr_is_true;
+
   mjs->last_code = mjs->vm.iram->num_pages * FR_PAGE_SIZE;
 
   mbuf_init(&mjs->owned_strings, 0);
@@ -8769,6 +8854,52 @@ mjs_val_t mjs_mk_undefined(void) {
 
 int mjs_is_undefined(mjs_val_t v) {
   return v == MJS_UNDEFINED;
+}
+
+mjs_val_t mjs_mk_number(struct mjs *mjs, double v) {
+  mjs_val_t res;
+  (void) mjs;
+  /* not every NaN is a JS NaN */
+  if (isnan(v)) {
+    res = MJS_TAG_NAN;
+  } else {
+    union {
+      double d;
+      mjs_val_t r;
+    } u;
+    u.d = v;
+    res = u.r;
+  }
+  return res;
+}
+
+static double get_double(mjs_val_t v) {
+  union {
+    double d;
+    mjs_val_t v;
+  } u;
+  u.v = v;
+  /* Due to NaN packing, any non-numeric value is already a valid NaN value */
+  return u.d;
+}
+
+double mjs_get_double(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  return get_double(v);
+}
+
+int mjs_get_int(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  return (int) get_double(v);
+}
+
+int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  return (int32_t) get_double(v);
+}
+
+int mjs_is_number(mjs_val_t v) {
+  return v == MJS_TAG_NAN || !isnan(get_double(v));
 }
 
 MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
