@@ -1956,6 +1956,156 @@ extern struct fr_code MJS_code;
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/err.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_ERR_H_
+#define MJS_ERR_H_
+
+enum mjs_err {
+  MJS_OK,
+  MJS_SYNTAX_ERROR,
+  MJS_INTERNAL_ERROR,
+  MJS_EXEC_EXCEPTION,
+};
+
+typedef enum mjs_err mjs_err_t;
+
+struct mjs;
+
+mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+
+/*
+ * return a string representation of an error.
+ * the error string might be overwritten by calls to `mjs_set_errorf`.
+ */
+const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
+
+#endif /* MJS_ERR_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/internal.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_INTERNAL_H_
+#define MJS_INTERNAL_H_
+
+/* Amalgamated: #include "mjs/license.h" */
+
+/* Amalgamated: #include "common/platform.h" */
+
+#ifndef FAST
+#define FAST
+#endif
+
+#ifndef STATIC
+#define STATIC
+#endif
+
+#ifdef MJS_EXPOSE_PRIVATE
+#define MJS_PRIVATE
+#define MJS_EXTERN extern
+#else
+#define MJS_PRIVATE static
+#define MJS_EXTERN static
+#endif
+
+#ifndef MJS_DISABLE_STR_ALLOC_SEQ
+/* TODO(mkm): put back to 0 when port is done */
+#define MJS_DISABLE_STR_ALLOC_SEQ 1
+#endif
+
+#endif /* MJS_INTERNAL_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/val.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_VAL_H_
+#define MJS_VAL_H_
+
+/* Amalgamated: #include "common/platform.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+
+/*
+ *  Double-precision floating-point number, IEEE 754
+ *
+ *  64 bit (8 bytes) in total
+ *  1  bit sign
+ *  11 bits exponent
+ *  52 bits mantissa
+ *      7         6        5        4        3        2        1        0
+ *  seeeeeee|eeeemmmm|mmmmmmmm|mmmmmmmm|mmmmmmmm|mmmmmmmm|mmmmmmmm|mmmmmmmm
+ *
+ * If an exponent is all-1 and mantissa is all-0, then it is an INFINITY:
+ *  11111111|11110000|00000000|00000000|00000000|00000000|00000000|00000000
+ *
+ * If an exponent is all-1 and mantissa's MSB is 1, it is a quiet NaN:
+ *  11111111|11111000|00000000|00000000|00000000|00000000|00000000|00000000
+ *
+ *  MJS NaN-packing:
+ *    sign and exponent is 0xfff
+ *    4 bits specify type (tag), must be non-zero
+ *    48 bits specify value
+ *
+ *  11111111|1111tttt|vvvvvvvv|vvvvvvvv|vvvvvvvv|vvvvvvvv|vvvvvvvv|vvvvvvvv
+ *   NaN marker |type|  48-bit placeholder for values: pointers, strings
+ *
+ * On 64-bit platforms, pointers are really 48 bit only, so they can fit,
+ * provided they are sign extended
+ */
+
+typedef uint64_t mjs_val_t;
+
+/*
+ * A tag is made of the sign bit and the 4 lower order bits of byte 6.
+ * So in total we have 32 possible tags.
+ *
+ * Tag (1,0) however cannot hold a zero payload otherwise it's interpreted as an
+ * INFINITY; for simplicity we're just not going to use that combination.
+ */
+#define MAKE_TAG(s, t) \
+  ((uint64_t)(s) << 63 | (uint64_t) 0x7ff0 << 48 | (uint64_t)(t) << 48)
+
+#define MJS_TAG_OBJECT MAKE_TAG(1, 0xF)
+#define MJS_TAG_FOREIGN MAKE_TAG(1, 0xE)
+#define MJS_TAG_UNDEFINED MAKE_TAG(1, 0xD)
+#define MJS_TAG_BOOLEAN MAKE_TAG(1, 0xC)
+#define MJS_TAG_NAN MAKE_TAG(1, 0xB)
+#define MJS_TAG_STRING_I MAKE_TAG(1, 0xA)  /* Inlined string len < 5 */
+#define MJS_TAG_STRING_5 MAKE_TAG(1, 0x9)  /* Inlined string len 5 */
+#define MJS_TAG_STRING_O MAKE_TAG(1, 0x8)  /* Owned string */
+#define MJS_TAG_STRING_F MAKE_TAG(1, 0x7)  /* Foreign string */
+#define MJS_TAG_STRING_C MAKE_TAG(1, 0x6)  /* String chunk */
+#define MJS_TAG_FUNCTION MAKE_TAG(1, 0x5)  /* JavaScript function */
+#define MJS_TAG_CFUNCTION MAKE_TAG(1, 0x4) /* C function */
+#define MJS_TAG_STRING_D MAKE_TAG(1, 0x3)  /* Dictionary string  */
+#define MJS_TAG_NOVALUE MAKE_TAG(1, 0x1)   /* Sentinel for no value */
+#define MJS_TAG_MASK MAKE_TAG(1, 0xF)
+
+#define _MJS_NULL MJS_TAG_FOREIGN
+#define _MJS_UNDEFINED MJS_TAG_UNDEFINED
+
+/* JavaScript `null` value */
+#define MJS_NULL ((uint64_t) 0xfffe << 48)
+
+/* JavaScript `undefined` value */
+#define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
+
+MJS_PRIVATE void *get_ptr(mjs_val_t v);
+
+#endif /* MJS_VAL_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/core.h"
 #endif
 /*
@@ -1966,22 +2116,18 @@ extern struct fr_code MJS_code;
 #ifndef MJS_CORE_H_
 #define MJS_CORE_H_
 
-/* Amalgamated: #include "mjs/license.h" */
+/* Amalgamated: #include "common/mbuf.h" */
+/* Amalgamated: #include "mjs/err.h" */
 /* Amalgamated: #include "mjs/froth/vm.h" */
-
-enum mjs_err {
-  MJS_OK,
-  MJS_SYNTAX_ERROR,
-  MJS_INTERNAL_ERROR,
-};
-
-typedef uint64_t mjs_val_t;
-
-typedef enum mjs_err mjs_err_t;
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/val.h" */
 
 struct mjs {
   struct fr_vm vm;
   fr_word_ptr_t last_code;
+
+  struct mbuf owned_strings;   /* Sequence of (varint len, char data[]) */
+  struct mbuf foreign_strings; /* Sequence of (varint len, char *data) */
 
   char *error_msg;
   mjs_err_t error_msg_err;
@@ -1989,14 +2135,6 @@ struct mjs {
 
 struct mjs *mjs_create();
 void mjs_destroy(struct mjs *mjs);
-
-mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
-
-/*
- * return a string representation of an error.
- * the error string might be overwritten by calls to `mjs_set_errorf`.
- */
-const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
 #endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
@@ -2123,6 +2261,185 @@ void mjsParser(
     );
 
 #endif /* MJS_PARSER_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/str_util.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_STR_UTIL_H_
+#define MJS_STR_UTIL_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+enum embstr_flags {
+  EMBSTR_ZERO_TERM = (1 << 0),
+  EMBSTR_UNESCAPE = (1 << 1),
+};
+
+struct mbuf;
+
+MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
+                              size_t len, uint8_t /*enum embstr_flags*/ flags);
+#endif /* MJS_STR_UTIL_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/varint.h"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_VARINT_H_
+#define MJS_VARINT_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+MJS_PRIVATE int encode_varint(size_t len, unsigned char *p);
+MJS_PRIVATE size_t decode_varint(const unsigned char *p, int *llen);
+MJS_PRIVATE int calc_llen(size_t len);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* MJS_VARINT_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/string.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_STRING_H_
+#define MJS_STRING_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/str_util.h" */
+/* Amalgamated: #include "mjs/val.h" */
+
+struct mjs;
+
+/*
+ * Creates a string primitive value.
+ * `str` must point to the utf8 string of length `len`.
+ * If `len` is ~0, `str` is assumed to be NUL-terminated and `strlen(str)` is
+ * used.
+ *
+ * If `copy` is non-zero, the string data is copied and owned by the GC. The
+ * caller can free the string data afterwards. Otherwise (`copy` is zero), the
+ * caller owns the string data, and is responsible for not freeing it while it
+ * is used.
+ */
+mjs_val_t mjs_mk_string(struct mjs *mjs, const char *str, size_t len, int copy);
+
+/* Returns true if given value is a primitive string value */
+int mjs_is_string(mjs_val_t v);
+
+/*
+ * Returns a pointer to the string stored in `mjs_val_t`.
+ *
+ * String length returned in `len`, which is allowed to be NULL. Returns NULL
+ * if the value is not a string.
+ *
+ * JS strings can contain embedded NUL chars and may or may not be NUL
+ * terminated.
+ *
+ * CAUTION: creating new JavaScript object, array, or string may kick in a
+ * garbage collector, which in turn may relocate string data and invalidate
+ * pointer returned by `mjs_get_string()`.
+ *
+ * Short JS strings are embedded inside the `mjs_val_t` value itself. This
+ * is why a pointer to a `mjs_val_t` is required. It also means that the string
+ * data will become invalid once that `mjs_val_t` value goes out of scope.
+ */
+const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *len);
+
+/*
+ * Returns a pointer to the string stored in `mjs_val_t`.
+ *
+ * Returns NULL if the value is not a string or if the string is not compatible
+ * with a C string.
+ *
+ * C compatible strings contain exactly one NUL char, in terminal position.
+ *
+ * All strings owned by the MJS engine (see `mjs_mk_string()`) are guaranteed to
+ * be NUL terminated. Out of these, those that don't include embedded NUL chars
+ * are guaranteed to be C compatible.
+ */
+const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
+
+#endif /* MJS_STRING_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs//internal.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_INTERNAL_H_
+#define MJS_INTERNAL_H_
+
+/* Amalgamated: #include "mjs/license.h" */
+
+/* Amalgamated: #include "common/platform.h" */
+
+#ifndef FAST
+#define FAST
+#endif
+
+#ifndef STATIC
+#define STATIC
+#endif
+
+#ifdef MJS_EXPOSE_PRIVATE
+#define MJS_PRIVATE
+#define MJS_EXTERN extern
+#else
+#define MJS_PRIVATE static
+#define MJS_EXTERN static
+#endif
+
+#ifndef MJS_DISABLE_STR_ALLOC_SEQ
+/* TODO(mkm): put back to 0 when port is done */
+#define MJS_DISABLE_STR_ALLOC_SEQ 1
+#endif
+
+#endif /* MJS_INTERNAL_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs//varint.h"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_VARINT_H_
+#define MJS_VARINT_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+MJS_PRIVATE int encode_varint(size_t len, unsigned char *p);
+MJS_PRIVATE size_t decode_varint(const unsigned char *p, int *llen);
+MJS_PRIVATE int calc_llen(size_t len);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* MJS_VARINT_H_ */
 #ifndef MG_EXPORT_INTERNAL_HEADERS
 #ifdef MG_MODULE_LINES
 #line 1 "common/cs_dbg.c"
@@ -6747,14 +7064,24 @@ struct mjs *mjs_create() {
   struct mjs *res = calloc(1, sizeof(*res));
   fr_init_vm(&res->vm, &MJS_code);
   res->last_code = res->vm.iram->num_pages * FR_PAGE_SIZE;
+  mbuf_init(&res->owned_strings, 0);
+  mbuf_init(&res->foreign_strings, 0);
   return res;
 }
 
 void mjs_destroy(struct mjs *mjs) {
   fr_destroy_vm(&mjs->vm);
+  mbuf_free(&mjs->owned_strings);
+  mbuf_free(&mjs->foreign_strings);
   free(mjs->error_msg);
   free(mjs);
 }
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/err.c"
+#endif
+/* Amalgamated: #include "common/str_util.h" */
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/err.h" */
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
   va_list ap;
@@ -7157,6 +7484,368 @@ fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v) {
   return start;
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/str_util.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "common/mbuf.h" */
+/* Amalgamated: #include "common/utf.h" */
+/* Amalgamated: #include "mjs/str_util.h" */
+/* Amalgamated: #include "mjs/varint.h" */
+
+enum unescape_error {
+  SLRE_INVALID_HEX_DIGIT,
+  SLRE_INVALID_ESC_CHAR,
+  SLRE_UNTERM_ESC_SEQ,
+};
+
+static int hex(int c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  return -SLRE_INVALID_HEX_DIGIT;
+}
+
+static int nextesc(const char **p) {
+  const unsigned char *s = (unsigned char *) (*p)++;
+  switch (*s) {
+    case 0:
+      return -SLRE_UNTERM_ESC_SEQ;
+    case 'c':
+      ++*p;
+      return *s & 31;
+    case 'b':
+      return '\b';
+    case 't':
+      return '\t';
+    case 'n':
+      return '\n';
+    case 'v':
+      return '\v';
+    case 'f':
+      return '\f';
+    case 'r':
+      return '\r';
+    case '\\':
+      return '\\';
+    case 'u':
+      if (isxdigit(s[1]) && isxdigit(s[2]) && isxdigit(s[3]) &&
+          isxdigit(s[4])) {
+        (*p) += 4;
+        return hex(s[1]) << 12 | hex(s[2]) << 8 | hex(s[3]) << 4 | hex(s[4]);
+      }
+      return -SLRE_INVALID_HEX_DIGIT;
+    case 'x':
+      if (isxdigit(s[1]) && isxdigit(s[2])) {
+        (*p) += 2;
+        return (hex(s[1]) << 4) | hex(s[2]);
+      }
+      return -SLRE_INVALID_HEX_DIGIT;
+    default:
+      return -SLRE_INVALID_ESC_CHAR;
+  }
+}
+
+MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to) {
+  const char *end = s + len;
+  size_t n = 0;
+  char tmp[4];
+  Rune r;
+
+  while (s < end) {
+    s += chartorune(&r, s);
+    if (r == '\\' && s < end) {
+      switch (*s) {
+        case '"':
+          s++, r = '"';
+          break;
+        case '\'':
+          s++, r = '\'';
+          break;
+        case '\n':
+          s++, r = '\n';
+          break;
+        default: {
+          const char *tmp_s = s;
+          int i = nextesc(&s);
+          switch (i) {
+            case -SLRE_INVALID_ESC_CHAR:
+              r = '\\';
+              s = tmp_s;
+              n += runetochar(to == NULL ? tmp : to + n, &r);
+              s += chartorune(&r, s);
+              break;
+            case -SLRE_INVALID_HEX_DIGIT:
+            default:
+              r = i;
+          }
+        }
+      }
+    }
+    n += runetochar(to == NULL ? tmp : to + n, &r);
+  }
+
+  return n;
+}
+
+MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
+                              size_t len, uint8_t /*enum embstr_flags*/ flags) {
+  char *old_base = m->buf;
+  uint8_t p_backed_by_mbuf = p >= old_base && p < old_base + m->len;
+  size_t n = (flags & EMBSTR_UNESCAPE) ? unescape(p, len, NULL) : len;
+
+  /* Calculate how many bytes length takes */
+  int k = calc_llen(n);
+
+  /* total length: varing length + string len + zero-term */
+  size_t tot_len = k + n + !!(flags & EMBSTR_ZERO_TERM);
+
+  /* Allocate buffer */
+  mbuf_insert(m, offset, NULL, tot_len);
+
+  /* Fixup p if it was relocated by mbuf_insert() above */
+  if (p_backed_by_mbuf) {
+    p += m->buf - old_base;
+  }
+
+  /* Write length */
+  encode_varint(n, (unsigned char *) m->buf + offset);
+
+  /* Write string */
+  if (p != 0) {
+    if (flags & EMBSTR_UNESCAPE) {
+      unescape(p, len, m->buf + offset + k);
+    } else {
+      memcpy(m->buf + offset + k, p, len);
+    }
+  }
+
+  /* add NULL-terminator if needed */
+  if (flags & EMBSTR_ZERO_TERM) {
+    m->buf[offset + tot_len - 1] = '\0';
+  }
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/string.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "common/utf.h" */
+/* Amalgamated: #include "common/mg_str.h" */
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/varint.h" */
+
+/* TODO(lsm): NaN payload location depends on endianness, make crossplatform */
+#define GET_VAL_NAN_PAYLOAD(v) ((char *) &(v))
+
+/*
+ * Size of the extra space for strings mbuf that is needed to avoid frequent
+ * reallocations
+ */
+#define _MJS_STRING_BUF_RESERVE 500
+
+/*
+ * The GC code uses part of the string val_t to store debugging info.
+ * TODO(mkm): Move this function to the GC module, when we'll have one.
+ */
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
+  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK)
+#if !MJS_DISABLE_STR_ALLOC_SEQ
+         & 0xFFFFFFFF
+#endif
+      ;
+}
+
+/*
+ * Dictionary of read-only strings with length > 5.
+ * NOTE(lsm): must be sorted lexicographically, because
+ * v_find_string_in_dictionary performs binary search over this list.
+ */
+/* clang-format off */
+MJS_PRIVATE const struct mg_str v_dictionary_strings[] = {
+    MG_MK_STR("print"),
+};
+/* clang-format on */
+
+static int v_find_string_in_dictionary(const char *s, size_t len) {
+  size_t start = 0, end = ARRAY_SIZE(v_dictionary_strings);
+
+  while (s != NULL && start < end) {
+    size_t mid = start + (end - start) / 2;
+    const struct mg_str *v = &v_dictionary_strings[mid];
+    size_t min_len = len < v->len ? len : v->len;
+    int comparison_result = memcmp(s, v->p, min_len);
+    if (comparison_result == 0) {
+      comparison_result = len - v->len;
+    }
+    if (comparison_result < 0) {
+      end = mid;
+    } else if (comparison_result > 0) {
+      start = mid + 1;
+    } else {
+      return mid;
+    }
+  }
+  return -1;
+}
+
+int mjs_is_string(mjs_val_t v) {
+  uint64_t t = v & MJS_TAG_MASK;
+  return t == MJS_TAG_STRING_I || t == MJS_TAG_STRING_F ||
+         t == MJS_TAG_STRING_O || t == MJS_TAG_STRING_5 ||
+         t == MJS_TAG_STRING_D;
+}
+
+mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
+  struct mbuf *m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
+  mjs_val_t offset = m->len, tag = MJS_TAG_STRING_F;
+  int dict_index;
+
+  if (len == ~((size_t) 0)) len = strlen(p);
+
+  if (len <= 4) {
+    char *s = GET_VAL_NAN_PAYLOAD(offset) + 1;
+    offset = 0;
+    if (p != 0) {
+      memcpy(s, p, len);
+    }
+    s[-1] = len;
+    tag = MJS_TAG_STRING_I;
+  } else if (len == 5) {
+    char *s = GET_VAL_NAN_PAYLOAD(offset);
+    offset = 0;
+    if (p != 0) {
+      memcpy(s, p, len);
+    }
+    tag = MJS_TAG_STRING_5;
+  } else if ((dict_index = v_find_string_in_dictionary(p, len)) >= 0) {
+    offset = 0;
+    GET_VAL_NAN_PAYLOAD(offset)[0] = dict_index;
+    tag = MJS_TAG_STRING_D;
+  } else if (copy) {
+    /*
+     * Before embedding new string, check if the reallocation is needed.  If
+     * so, perform the reallocation by calling `mbuf_resize` manually, since we
+     * need to preallocate some extra space (`_MJS_STRING_BUF_RESERVE`)
+     */
+    if ((m->len + len) > m->size) {
+      mbuf_resize(m, m->len + len + _MJS_STRING_BUF_RESERVE);
+    }
+    embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
+    tag = MJS_TAG_STRING_O;
+#if !MJS_DISABLE_STR_ALLOC_SEQ
+    /* TODO(imax): panic if offset >= 2^32. */
+    offset |= ((mjs_val_t) gc_next_allocation_seqn(mjs, p, len)) << 32;
+#endif
+  } else {
+    /* foreign string */
+    if (sizeof(void *) <= 4 && len <= UINT16_MAX) {
+      /* small foreign strings can fit length and ptr in the mjs_val_t */
+      offset = (uint64_t) len << 32 | (uint64_t)(uintptr_t) p;
+    } else {
+      /* bigger strings need indirection that uses ram */
+      size_t pos = m->len;
+      int llen = calc_llen(len);
+
+      /* allocate space for len and ptr */
+      mbuf_insert(m, pos, NULL, llen + sizeof(p));
+
+      encode_varint(len, (uint8_t *) (m->buf + pos));
+      memcpy(m->buf + pos + llen, &p, sizeof(p));
+    }
+    tag = MJS_TAG_STRING_F;
+  }
+
+  /* NOTE(lsm): don't use pointer_to_value, 32-bit ptrs will truncate */
+  return (offset & ~MJS_TAG_MASK) | tag;
+}
+
+/* Get a pointer to string and string length. */
+const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
+  uint64_t tag = v[0] & MJS_TAG_MASK;
+  const char *p = NULL;
+  int llen;
+  size_t size = 0;
+
+  if (!mjs_is_string(*v)) {
+    goto clean;
+  }
+
+  if (tag == MJS_TAG_STRING_I) {
+    p = GET_VAL_NAN_PAYLOAD(*v) + 1;
+    size = p[-1];
+  } else if (tag == MJS_TAG_STRING_5) {
+    p = GET_VAL_NAN_PAYLOAD(*v);
+    size = 5;
+  } else if (tag == MJS_TAG_STRING_D) {
+    int index = ((unsigned char *) GET_VAL_NAN_PAYLOAD(*v))[0];
+    size = v_dictionary_strings[index].len;
+    p = v_dictionary_strings[index].p;
+  } else if (tag == MJS_TAG_STRING_O) {
+    size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
+    char *s = mjs->owned_strings.buf + offset;
+
+#if !MJS_DISABLE_STR_ALLOC_SEQ
+    gc_check_valid_allocation_seqn(mjs, (*v >> 32) & 0xFFFF);
+#endif
+    size = decode_varint((uint8_t *) s, &llen);
+    p = s + llen;
+  } else if (tag == MJS_TAG_STRING_F) {
+    /*
+     * short foreign strings on <=32-bit machines can be encoded in a compact
+     * form:
+     *
+     *     7         6        5        4        3        2        1        0
+     *  11111111|1111tttt|llllllll|llllllll|ssssssss|ssssssss|ssssssss|ssssssss
+     *
+     * Strings longer than 2^26 will be indireceted through the foreign_strings
+     * mbuf.
+     *
+     * We don't use a different tag to represent those two cases. Instead, all
+     * foreign strings represented with the help of the foreign_strings mbuf
+     * will have the upper 16-bits of the payload set to zero. This allows us to
+     * represent up to 477 million foreign strings longer than 64k.
+     */
+    uint16_t len = (*v >> 32) & 0xFFFF;
+    if (sizeof(void *) <= 4 && len != 0) {
+      size = (size_t) len;
+      p = (const char *) (uintptr_t) *v;
+    } else {
+      size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
+      char *s = mjs->foreign_strings.buf + offset;
+
+      size = decode_varint((uint8_t *) s, &llen);
+      memcpy(&p, s + llen, sizeof(p));
+    }
+  } else {
+    assert(0);
+  }
+
+clean:
+  if (sizep != NULL) {
+    *sizep = size;
+  }
+  return p;
+}
+
+const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *value) {
+  size_t size;
+  const char *s = mjs_get_string(mjs, value, &size);
+  if (s == NULL) return NULL;
+  if (s[size] != 0 || strlen(s) != size) {
+    return NULL;
+  }
+  return s;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/tok.c"
 #endif
 #include <stdlib.h>
@@ -7302,4 +7991,83 @@ int pnext(struct pstate *p) {
 
   return tok;
 }
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/val.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/val.h" */
+
+MJS_PRIVATE void *get_ptr(mjs_val_t v) {
+  return (void *) (uintptr_t)(v & 0xFFFFFFFFFFFFUL);
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/varint.c"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs//internal.h" */
+/* Amalgamated: #include "mjs//varint.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+/*
+ * Strings in AST are encoded as tuples (length, string).
+ * Length is variable-length: if high bit is set in a byte, next byte is used.
+ * Maximum string length with such encoding is 2 ^ (7 * 4) == 256 MiB,
+ * assuming that sizeof(size_t) == 4.
+ * Small string length (less then 128 bytes) is encoded in 1 byte.
+ */
+MJS_PRIVATE size_t decode_varint(const unsigned char *p, int *llen) {
+  size_t i = 0, string_len = 0;
+
+  do {
+    /*
+     * Each byte of varint contains 7 bits, in little endian order.
+     * MSB is a continuation bit: it tells whether next byte is used.
+     */
+    string_len |= (p[i] & 0x7f) << (7 * i);
+    /*
+     * First we increment i, then check whether it is within boundary and
+     * whether decoded byte had continuation bit set.
+     */
+  } while (++i < sizeof(size_t) && (p[i - 1] & 0x80));
+  *llen = i;
+
+  return string_len;
+}
+
+/* Return number of bytes to store length */
+MJS_PRIVATE int calc_llen(size_t len) {
+  int n = 0;
+
+  do {
+    n++;
+  } while (len >>= 7);
+
+  return n;
+}
+
+MJS_PRIVATE int encode_varint(size_t len, unsigned char *p) {
+  int i, llen = calc_llen(len);
+
+  for (i = 0; i < llen; i++) {
+    p[i] = (len & 0x7f) | (i < llen - 1 ? 0x80 : 0);
+    len >>= 7;
+  }
+
+  return llen;
+}
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 #endif /* MG_EXPORT_INTERNAL_HEADERS */
