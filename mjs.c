@@ -1999,27 +1999,33 @@ extern struct fr_code MJS_code;
 #define MJS_OP_lt ((fr_opcode_t) 11)
 #define MJS_OP_invert ((fr_opcode_t) 12)
 #define MJS_OP_add ((fr_opcode_t) 13)
-#define MJS_OP_mul ((fr_opcode_t) 14)
-#define MJS_OP_call ((fr_opcode_t) 15)
-#define MJS_OP_if ((fr_opcode_t) 16)
-#define MJS_OP_ifelse ((fr_opcode_t) 17)
-#define MJS_OP_loop ((fr_opcode_t) 18)
-#define MJS_OP_str ((fr_opcode_t) 19)
-#define MJS_OP_getvar ((fr_opcode_t) 20)
-#define MJS_OP_setvar ((fr_opcode_t) 21)
-#define MJS_OP_mkobj ((fr_opcode_t) 22)
-#define MJS_OP_addprop ((fr_opcode_t) 23)
-#define MJS_OP_setprop ((fr_opcode_t) 24)
-#define MJS_OP_getprop ((fr_opcode_t) 25)
-#define MJS_OP_sub ((fr_opcode_t) 26)
-#define MJS_OP_div ((fr_opcode_t) 27)
-#define MJS_OP_rem ((fr_opcode_t) 28)
-#define MJS_OP_lshift ((fr_opcode_t) 29)
-#define MJS_OP_rshift ((fr_opcode_t) 30)
-#define MJS_OP_urshift ((fr_opcode_t) 31)
-#define MJS_OP_and ((fr_opcode_t) 32)
-#define MJS_OP_or ((fr_opcode_t) 33)
-#define MJS_OP_xor ((fr_opcode_t) 34)
+#define MJS_OP_sub ((fr_opcode_t) 14)
+#define MJS_OP_mul ((fr_opcode_t) 15)
+#define MJS_OP_call ((fr_opcode_t) 16)
+#define MJS_OP_if ((fr_opcode_t) 17)
+#define MJS_OP_ifelse ((fr_opcode_t) 18)
+#define MJS_OP_loop ((fr_opcode_t) 19)
+#define MJS_OP_ndrop ((fr_opcode_t) 20)
+#define MJS_OP_str ((fr_opcode_t) 21)
+#define MJS_OP_getvar ((fr_opcode_t) 22)
+#define MJS_OP_setvar ((fr_opcode_t) 23)
+#define MJS_OP_mkobj ((fr_opcode_t) 24)
+#define MJS_OP_addprop ((fr_opcode_t) 25)
+#define MJS_OP_setprop ((fr_opcode_t) 26)
+#define MJS_OP_getprop ((fr_opcode_t) 27)
+#define MJS_OP_jscall ((fr_opcode_t) 28)
+#define MJS_OP_trimargs ((fr_opcode_t) 29)
+#define MJS_OP_jsprint ((fr_opcode_t) 30)
+#define MJS_OP_inc ((fr_opcode_t) 31)
+#define MJS_OP_swapinc ((fr_opcode_t) 32)
+#define MJS_OP_div ((fr_opcode_t) 33)
+#define MJS_OP_rem ((fr_opcode_t) 34)
+#define MJS_OP_lshift ((fr_opcode_t) 35)
+#define MJS_OP_rshift ((fr_opcode_t) 36)
+#define MJS_OP_urshift ((fr_opcode_t) 37)
+#define MJS_OP_and ((fr_opcode_t) 38)
+#define MJS_OP_or ((fr_opcode_t) 39)
+#define MJS_OP_xor ((fr_opcode_t) 40)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -2182,6 +2188,37 @@ int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v);
 
 /* Returns true if given value is a primitive number value */
 int mjs_is_number(mjs_val_t v);
+
+/*
+ * Make JavaScript value that holds C/C++ `void *` pointer.
+ *
+ * A foreign value is completely opaque and JS code cannot do anything useful
+ * with it except holding it in properties and passing it around.
+ * It behaves like a sealed object with no properties.
+ *
+ * NOTE:
+ * Only valid pointers (as defined by each supported architecture) will fully
+ * preserved. In particular, all supported 64-bit architectures (x86_64, ARM-64)
+ * actually define a 48-bit virtual address space.
+ * Foreign values will be sign-extended as required, i.e creating a foreign
+ * value of something like `(void *) -1` will work as expected. This is
+ * important because in some 64-bit OSs (e.g. Solaris) the user stack grows
+ * downwards from the end of the address space.
+ *
+ * If you need to store exactly sizeof(void*) bytes of raw data where
+ * `sizeof(void*)` >= 8, please use byte arrays instead.
+ */
+mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *ptr);
+
+/*
+ * Returns `void *` pointer stored in `mjs_val_t`.
+ *
+ * Returns NULL if the value is not a foreign pointer.
+ */
+void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v);
+
+/* Returns true if given value holds `void *` pointer */
+int mjs_is_foreign(mjs_val_t v);
 
 MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
@@ -5410,14 +5447,20 @@ void fr_op_invert(struct fr_vm *vm) {
 }
 
 void fr_op_add(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
   fr_cell_t b = fr_pop(&vm->dstack);
+  fr_cell_t a = fr_pop(&vm->dstack);
   fr_push(&vm->dstack, fr_from_int(fr_to_int(a) + fr_to_int(b)));
 }
 
-void fr_op_mul(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
+void fr_op_sub(struct fr_vm *vm) {
   fr_cell_t b = fr_pop(&vm->dstack);
+  fr_cell_t a = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) - fr_to_int(b)));
+}
+
+void fr_op_mul(struct fr_vm *vm) {
+  fr_cell_t b = fr_pop(&vm->dstack);
+  fr_cell_t a = fr_pop(&vm->dstack);
   fr_push(&vm->dstack, fr_from_int(fr_to_int(a) * fr_to_int(b)));
 }
 
@@ -5438,6 +5481,11 @@ void fr_op_ifelse(struct fr_vm *vm) {
   fr_cell_t iftrue = fr_pop(&vm->dstack);
   fr_cell_t cond = fr_pop(&vm->dstack);
   fr_enter(vm, (fr_is_true(cond) ? fr_to_int(iftrue) : fr_to_int(iffalse)));
+}
+
+void fr_op_ndrop(struct fr_vm *vm) {
+  fr_cell_t n = fr_pop(&vm->dstack);
+  vm->dstack.pos -= fr_to_int(n);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.c"
@@ -7207,6 +7255,8 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <fr_op_invert> */ 
   /* 0000 -> : + ... ; */
   /*           <fr_op_add> */ 
+  /* 0000 -> : - ... ; */
+  /*           <fr_op_sub> */ 
   /* 0000 -> : * ... ; */
   /*           <fr_op_mul> */ 
   /* 0000 -> : call ... ; */
@@ -7217,6 +7267,8 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <fr_op_ifelse> */ 
   /* 0000 -> : loop ... ; */
   MJS_OP_dup, MJS_OP_pushr, MJS_OP_call, MJS_OP_popr, MJS_OP_swap, MJS_OP_quote, 0, 0, MJS_OP_quote, -1, -3, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0013 -> : ndrop ... ; */
+  /*           <fr_op_ndrop> */ 
   /* 0013 -> : str ... ; */
   /*           <mjs_op_str> */ 
   /* 0013 -> : getvar ... ; */
@@ -7231,25 +7283,33 @@ fr_opcode_t MJS_opcodes[] = {
   MJS_OP_dup, MJS_OP_pushr, MJS_OP_addprop, MJS_OP_popr, MJS_OP_exit,
   /* 0018 -> : getprop ... ; */
   /*           <mjs_op_getprop> */ 
-  /* 0018 -> : sub ... ; */
+  /* 0018 -> : jscall ... ; */
+  /*           <mjs_op_jscall> */ 
+  /* 0018 -> : trimargs ... ; */
+  MJS_OP_sub, MJS_OP_ndrop, MJS_OP_exit,
+  /* 0021 -> : jsprint ... ; */
+  MJS_OP_quote, 0, 1, MJS_OP_trimargs, MJS_OP_print, MJS_OP_exit,
+  /* 0027 -> : inc ... ; */
+  MJS_OP_quote, 0, 1, MJS_OP_add, MJS_OP_exit,
+  /* 0032 -> : swapinc ... ; */
+  MJS_OP_swap, MJS_OP_inc, MJS_OP_exit,
+  /* 0035 -> : div ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : div ... ; */
+  /* 0035 -> : rem ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : rem ... ; */
+  /* 0035 -> : lshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : lshift ... ; */
+  /* 0035 -> : rshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : rshift ... ; */
+  /* 0035 -> : urshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : urshift ... ; */
+  /* 0035 -> : and ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : and ... ; */
+  /* 0035 -> : or ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : or ... ; */
+  /* 0035 -> : xor ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0018 -> : xor ... ; */
-  /*           <mjs_op_todo> */ 
-}; /* 18 * sizeof(fr_opcode_t) */
+}; /* 35 * sizeof(fr_opcode_t) */
 
 fr_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -7271,23 +7331,29 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0015 */ -17, 
   /* 0016 */ -18, 
   /* 0017 */ -19, 
-  /* 0018 */ 0, 
-  /* 0019 */ -20, 
+  /* 0018 */ -20, 
+  /* 0019 */ 0, 
   /* 0020 */ -21, 
   /* 0021 */ -22, 
   /* 0022 */ -23, 
   /* 0023 */ -24, 
-  /* 0024 */ 13, 
-  /* 0025 */ -25, 
-  /* 0026 */ -26, 
+  /* 0024 */ -25, 
+  /* 0025 */ -26, 
+  /* 0026 */ 13, 
   /* 0027 */ -27, 
   /* 0028 */ -28, 
-  /* 0029 */ -29, 
-  /* 0030 */ -30, 
-  /* 0031 */ -31, 
-  /* 0032 */ -32, 
-  /* 0033 */ -33, 
-  /* 0034 */ -34, 
+  /* 0029 */ 18, 
+  /* 0030 */ 21, 
+  /* 0031 */ 27, 
+  /* 0032 */ 32, 
+  /* 0033 */ -29, 
+  /* 0034 */ -30, 
+  /* 0035 */ -31, 
+  /* 0036 */ -32, 
+  /* 0037 */ -33, 
+  /* 0038 */ -34, 
+  /* 0039 */ -35, 
+  /* 0040 */ -36, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -7305,17 +7371,19 @@ void fr_op_eq(struct fr_vm *vm);
 void fr_op_lt(struct fr_vm *vm);
 void fr_op_invert(struct fr_vm *vm);
 void fr_op_add(struct fr_vm *vm);
+void fr_op_sub(struct fr_vm *vm);
 void fr_op_mul(struct fr_vm *vm);
 void fr_op_call(struct fr_vm *vm);
 void fr_op_if(struct fr_vm *vm);
 void fr_op_ifelse(struct fr_vm *vm);
+void fr_op_ndrop(struct fr_vm *vm);
 void mjs_op_str(struct fr_vm *vm);
 void mjs_op_getvar(struct fr_vm *vm);
 void mjs_op_setvar(struct fr_vm *vm);
 void mjs_op_mkobj(struct fr_vm *vm);
 void mjs_op_addprop(struct fr_vm *vm);
 void mjs_op_getprop(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
+void mjs_op_jscall(struct fr_vm *vm);
 void mjs_op_todo(struct fr_vm *vm);
 void mjs_op_todo(struct fr_vm *vm);
 void mjs_op_todo(struct fr_vm *vm);
@@ -7341,25 +7409,27 @@ fr_native_t MJS_native_words[] = {
   /* -013 */ fr_op_lt,
   /* -014 */ fr_op_invert,
   /* -015 */ fr_op_add,
-  /* -016 */ fr_op_mul,
-  /* -017 */ fr_op_call,
-  /* -018 */ fr_op_if,
-  /* -019 */ fr_op_ifelse,
-  /* -020 */ mjs_op_str,
-  /* -021 */ mjs_op_getvar,
-  /* -022 */ mjs_op_setvar,
-  /* -023 */ mjs_op_mkobj,
-  /* -024 */ mjs_op_addprop,
-  /* -025 */ mjs_op_getprop,
-  /* -026 */ mjs_op_todo,
-  /* -027 */ mjs_op_todo,
-  /* -028 */ mjs_op_todo,
+  /* -016 */ fr_op_sub,
+  /* -017 */ fr_op_mul,
+  /* -018 */ fr_op_call,
+  /* -019 */ fr_op_if,
+  /* -020 */ fr_op_ifelse,
+  /* -021 */ fr_op_ndrop,
+  /* -022 */ mjs_op_str,
+  /* -023 */ mjs_op_getvar,
+  /* -024 */ mjs_op_setvar,
+  /* -025 */ mjs_op_mkobj,
+  /* -026 */ mjs_op_addprop,
+  /* -027 */ mjs_op_getprop,
+  /* -028 */ mjs_op_jscall,
   /* -029 */ mjs_op_todo,
   /* -030 */ mjs_op_todo,
   /* -031 */ mjs_op_todo,
   /* -032 */ mjs_op_todo,
   /* -033 */ mjs_op_todo,
   /* -034 */ mjs_op_todo,
+  /* -035 */ mjs_op_todo,
+  /* -036 */ mjs_op_todo,
 };
 
 const char *MJS_word_names[] = {
@@ -7378,27 +7448,33 @@ const char *MJS_word_names[] = {
   /* 0011 */ "<", 
   /* 0012 */ "invert", 
   /* 0013 */ "+", 
-  /* 0014 */ "*", 
-  /* 0015 */ "call", 
-  /* 0016 */ "if", 
-  /* 0017 */ "ifelse", 
-  /* 0018 */ "loop", 
-  /* 0019 */ "str", 
-  /* 0020 */ "getvar", 
-  /* 0021 */ "setvar", 
-  /* 0022 */ "mkobj", 
-  /* 0023 */ "addprop", 
-  /* 0024 */ "setprop", 
-  /* 0025 */ "getprop", 
-  /* 0026 */ "sub", 
-  /* 0027 */ "div", 
-  /* 0028 */ "rem", 
-  /* 0029 */ "lshift", 
-  /* 0030 */ "rshift", 
-  /* 0031 */ "urshift", 
-  /* 0032 */ "and", 
-  /* 0033 */ "or", 
-  /* 0034 */ "xor", 
+  /* 0014 */ "-", 
+  /* 0015 */ "*", 
+  /* 0016 */ "call", 
+  /* 0017 */ "if", 
+  /* 0018 */ "ifelse", 
+  /* 0019 */ "loop", 
+  /* 0020 */ "ndrop", 
+  /* 0021 */ "str", 
+  /* 0022 */ "getvar", 
+  /* 0023 */ "setvar", 
+  /* 0024 */ "mkobj", 
+  /* 0025 */ "addprop", 
+  /* 0026 */ "setprop", 
+  /* 0027 */ "getprop", 
+  /* 0028 */ "jscall", 
+  /* 0029 */ "trimargs", 
+  /* 0030 */ "jsprint", 
+  /* 0031 */ "inc", 
+  /* 0032 */ "swapinc", 
+  /* 0033 */ "div", 
+  /* 0034 */ "rem", 
+  /* 0035 */ "lshift", 
+  /* 0036 */ "rshift", 
+  /* 0037 */ "urshift", 
+  /* 0038 */ "and", 
+  /* 0039 */ "or", 
+  /* 0040 */ "xor", 
 };
 
 const char *MJS_pos_names[] = {
@@ -7420,6 +7496,23 @@ const char *MJS_pos_names[] = {
   "setprop+2", 
   "setprop+3", 
   "setprop+4", 
+  "trimargs", 
+  "trimargs+1", 
+  "trimargs+2", 
+  "jsprint", 
+  "jsprint+1", 
+  "jsprint+2", 
+  "jsprint+3", 
+  "jsprint+4", 
+  "jsprint+5", 
+  "inc", 
+  "inc+1", 
+  "inc+2", 
+  "inc+3", 
+  "inc+4", 
+  "swapinc", 
+  "swapinc+1", 
+  "swapinc+2", 
 };
 
 struct fr_code MJS_code = {
@@ -7496,6 +7589,11 @@ struct mjs *mjs_create() {
   return mjs_create_opt(opts);
 }
 
+MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
+  fr_word_ptr_t jsprint = fr_lookup_word(&mjs->vm, MJS_OP_jsprint);
+  mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, jsprint));
+}
+
 struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   fr_init_vm(&mjs->vm, (opts.code ? opts.code : &MJS_code));
@@ -7513,6 +7611,8 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
                 MJS_DEFAULT_PROPERTY_ARENA_SIZE, 10);
 
   mjs->vals.global_object = mjs_mk_object(mjs);
+
+  mjs_init_globals(mjs, mjs->vals.global_object);
   return mjs;
 }
 
@@ -8275,6 +8375,26 @@ void mjs_op_getprop(struct fr_vm *vm) {
   mjs_val_t name = fr_pop(&vm->dstack);
   mjs_val_t obj = fr_pop(&vm->dstack);
   fr_push(&vm->dstack, mjs_get_v(mjs, obj, name));
+}
+
+void mjs_op_jscall(struct fr_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  fr_print_stack(vm, &vm->dstack);
+  printf("\n");
+
+  mjs_val_t func = fr_pop(&vm->dstack);
+  if (mjs_is_number(func)) {
+    vm->ip = fr_to_int(func);
+  } else if (mjs_is_foreign(func)) {
+    void (*native)(struct fr_vm *vm);
+    native = mjs_get_ptr(mjs, func);
+    native(vm);
+  } else if (mjs_is_string(func)) {
+    /* TODO: implement FFI */
+  } else {
+    /* TODO: add mjs_die so that we can exit from exec with an error */
+    abort();
+  }
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
@@ -9290,6 +9410,23 @@ MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
 
 MJS_PRIVATE void *get_ptr(mjs_val_t v) {
   return (void *) (uintptr_t)(v & 0xFFFFFFFFFFFFUL);
+}
+
+void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  if (!mjs_is_foreign(v)) {
+    return NULL;
+  }
+  return get_ptr(v);
+}
+
+mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
+  (void) mjs;
+  return pointer_to_value(p) | MJS_TAG_FOREIGN;
+}
+
+int mjs_is_foreign(mjs_val_t v) {
+  return (v & MJS_TAG_MASK) == MJS_TAG_FOREIGN;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/varint.c"
