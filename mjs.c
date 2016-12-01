@@ -2006,15 +2006,19 @@ extern struct fr_code MJS_code;
 #define MJS_OP_str ((fr_opcode_t) 19)
 #define MJS_OP_getvar ((fr_opcode_t) 20)
 #define MJS_OP_setvar ((fr_opcode_t) 21)
-#define MJS_OP_sub ((fr_opcode_t) 22)
-#define MJS_OP_div ((fr_opcode_t) 23)
-#define MJS_OP_rem ((fr_opcode_t) 24)
-#define MJS_OP_lshift ((fr_opcode_t) 25)
-#define MJS_OP_rshift ((fr_opcode_t) 26)
-#define MJS_OP_urshift ((fr_opcode_t) 27)
-#define MJS_OP_and ((fr_opcode_t) 28)
-#define MJS_OP_or ((fr_opcode_t) 29)
-#define MJS_OP_xor ((fr_opcode_t) 30)
+#define MJS_OP_mkobj ((fr_opcode_t) 22)
+#define MJS_OP_addprop ((fr_opcode_t) 23)
+#define MJS_OP_setprop ((fr_opcode_t) 24)
+#define MJS_OP_getprop ((fr_opcode_t) 25)
+#define MJS_OP_sub ((fr_opcode_t) 26)
+#define MJS_OP_div ((fr_opcode_t) 27)
+#define MJS_OP_rem ((fr_opcode_t) 28)
+#define MJS_OP_lshift ((fr_opcode_t) 29)
+#define MJS_OP_rshift ((fr_opcode_t) 30)
+#define MJS_OP_urshift ((fr_opcode_t) 31)
+#define MJS_OP_and ((fr_opcode_t) 32)
+#define MJS_OP_or ((fr_opcode_t) 33)
+#define MJS_OP_xor ((fr_opcode_t) 34)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -7197,25 +7201,33 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_getvar> */ 
   /* 0013 -> : setvar ... ; */
   /*           <mjs_op_setvar> */ 
-  /* 0013 -> : sub ... ; */
+  /* 0013 -> : mkobj ... ; */
+  /*           <mjs_op_mkobj> */ 
+  /* 0013 -> : addprop ... ; */
+  /*           <mjs_op_addprop> */ 
+  /* 0013 -> : setprop ... ; */
+  MJS_OP_dup, MJS_OP_pushr, MJS_OP_addprop, MJS_OP_popr, MJS_OP_exit,
+  /* 0018 -> : getprop ... ; */
+  /*           <mjs_op_getprop> */ 
+  /* 0018 -> : sub ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : div ... ; */
+  /* 0018 -> : div ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : rem ... ; */
+  /* 0018 -> : rem ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : lshift ... ; */
+  /* 0018 -> : lshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : rshift ... ; */
+  /* 0018 -> : rshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : urshift ... ; */
+  /* 0018 -> : urshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : and ... ; */
+  /* 0018 -> : and ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : or ... ; */
+  /* 0018 -> : or ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0013 -> : xor ... ; */
+  /* 0018 -> : xor ... ; */
   /*           <mjs_op_todo> */ 
-}; /* 13 * sizeof(fr_opcode_t) */
+}; /* 18 * sizeof(fr_opcode_t) */
 
 fr_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -7243,13 +7255,17 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0021 */ -22, 
   /* 0022 */ -23, 
   /* 0023 */ -24, 
-  /* 0024 */ -25, 
-  /* 0025 */ -26, 
-  /* 0026 */ -27, 
-  /* 0027 */ -28, 
-  /* 0028 */ -29, 
-  /* 0029 */ -30, 
-  /* 0030 */ -31, 
+  /* 0024 */ 13, 
+  /* 0025 */ -25, 
+  /* 0026 */ -26, 
+  /* 0027 */ -27, 
+  /* 0028 */ -28, 
+  /* 0029 */ -29, 
+  /* 0030 */ -30, 
+  /* 0031 */ -31, 
+  /* 0032 */ -32, 
+  /* 0033 */ -33, 
+  /* 0034 */ -34, 
 };
 
 void fr_op_quote(struct fr_vm *vm);
@@ -7274,6 +7290,9 @@ void fr_op_ifelse(struct fr_vm *vm);
 void mjs_op_str(struct fr_vm *vm);
 void mjs_op_getvar(struct fr_vm *vm);
 void mjs_op_setvar(struct fr_vm *vm);
+void mjs_op_mkobj(struct fr_vm *vm);
+void mjs_op_addprop(struct fr_vm *vm);
+void mjs_op_getprop(struct fr_vm *vm);
 void mjs_op_todo(struct fr_vm *vm);
 void mjs_op_todo(struct fr_vm *vm);
 void mjs_op_todo(struct fr_vm *vm);
@@ -7307,15 +7326,18 @@ fr_native_t MJS_native_words[] = {
   /* -020 */ mjs_op_str,
   /* -021 */ mjs_op_getvar,
   /* -022 */ mjs_op_setvar,
-  /* -023 */ mjs_op_todo,
-  /* -024 */ mjs_op_todo,
-  /* -025 */ mjs_op_todo,
+  /* -023 */ mjs_op_mkobj,
+  /* -024 */ mjs_op_addprop,
+  /* -025 */ mjs_op_getprop,
   /* -026 */ mjs_op_todo,
   /* -027 */ mjs_op_todo,
   /* -028 */ mjs_op_todo,
   /* -029 */ mjs_op_todo,
   /* -030 */ mjs_op_todo,
   /* -031 */ mjs_op_todo,
+  /* -032 */ mjs_op_todo,
+  /* -033 */ mjs_op_todo,
+  /* -034 */ mjs_op_todo,
 };
 
 const char *MJS_word_names[] = {
@@ -7342,15 +7364,19 @@ const char *MJS_word_names[] = {
   /* 0019 */ "str", 
   /* 0020 */ "getvar", 
   /* 0021 */ "setvar", 
-  /* 0022 */ "sub", 
-  /* 0023 */ "div", 
-  /* 0024 */ "rem", 
-  /* 0025 */ "lshift", 
-  /* 0026 */ "rshift", 
-  /* 0027 */ "urshift", 
-  /* 0028 */ "and", 
-  /* 0029 */ "or", 
-  /* 0030 */ "xor", 
+  /* 0022 */ "mkobj", 
+  /* 0023 */ "addprop", 
+  /* 0024 */ "setprop", 
+  /* 0025 */ "getprop", 
+  /* 0026 */ "sub", 
+  /* 0027 */ "div", 
+  /* 0028 */ "rem", 
+  /* 0029 */ "lshift", 
+  /* 0030 */ "rshift", 
+  /* 0031 */ "urshift", 
+  /* 0032 */ "and", 
+  /* 0033 */ "or", 
+  /* 0034 */ "xor", 
 };
 
 const char *MJS_pos_names[] = {
@@ -7367,6 +7393,11 @@ const char *MJS_pos_names[] = {
   "loop+10", 
   "loop+11", 
   "loop+12", 
+  "setprop", 
+  "setprop+1", 
+  "setprop+2", 
+  "setprop+3", 
+  "setprop+4", 
 };
 
 struct fr_code MJS_code = {
@@ -8199,6 +8230,27 @@ void mjs_op_setvar(struct fr_vm *vm) {
   mjs_val_t name = fr_pop(&vm->dstack);
   mjs_set_v(mjs, scope, name, val);
   fr_push(&vm->dstack, val);
+}
+
+void mjs_op_mkobj(struct fr_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  fr_push(&vm->dstack, mjs_mk_object(mjs));
+}
+
+void mjs_op_addprop(struct fr_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs_val_t val = fr_pop(&vm->dstack);
+  mjs_val_t name = fr_pop(&vm->dstack);
+  mjs_val_t obj = fr_pop(&vm->dstack);
+  mjs_set_v(mjs, obj, name, val);
+  fr_push(&vm->dstack, obj);
+}
+
+void mjs_op_getprop(struct fr_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs_val_t name = fr_pop(&vm->dstack);
+  mjs_val_t obj = fr_pop(&vm->dstack);
+  fr_push(&vm->dstack, mjs_get_v(mjs, obj, name));
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
