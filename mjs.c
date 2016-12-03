@@ -8554,6 +8554,27 @@ void mjs_op_jscall(struct fr_vm *vm) {
   size_t stack_pos = vm->dstack.pos - 1 /* nargs */;
 
   assert(stack_pos >= nargs);
+  /*
+   * the jscall word has this stack effect: ( argN .. arg2 arg1 N f -- res)
+   * it takes the `f` to figure out who to call, and passes the rest to the
+   * function being called, including the nargs number so that the function can
+   * process variable number of arguments.
+   * However, it would be very annoying and error-prone if every function should
+   * cleanup the stack of unwanted arguments. Thus we stash the position the
+   * stack should have once `jscall` returns (all arguments consumed).
+   *
+   * However, we cannot restore the stack in this very function, since we don't
+   * call a function from C, but instead we "branch" the interpreter to the `f`
+   * implementation. When `f` returns it just continues to execute right after
+   * the place that called `jscall`.
+   *
+   * I.e. once we start executing `f`, we cannot do anything more here. However,
+   * if we push another word to the return stack, that word will be executed
+   * when `f`, returns. Thus we push: /jscall_exit, which is a word that
+   * restores the stack using the position we saved earlier (also on the return
+   * stack). It preserves the return value of `f` which was at the top of the
+   * stack.
+   */
   fr_push(&vm->rstack, fr_from_int(stack_pos - nargs));
   fr_push(&vm->rstack, fr_from_int(fr_lookup_word(vm, MJS_OP_jscall_exit)));
 
