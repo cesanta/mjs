@@ -1725,15 +1725,15 @@ char *utfutf(char *s1, char *s2);
 #endif /* __cplusplus */
 #endif /* CS_COMMON_UTF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/vm.h"
+#line 1 "mjs/froth/froth.h"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_FROTH_VM_H_
-#define MJS_FROTH_VM_H_
+#ifndef MJS_FROTH_FROTH_H_
+#define MJS_FROTH_FROTH_H_
 
 /* Amalgamated: #include "common/platform.h" */
 
@@ -1799,7 +1799,7 @@ fr_cell_t fr_from_int(int32_t i);
 void fr_print_cell(struct fr_vm *vm, fr_cell_t cell);
 int fr_is_true(fr_cell_t cell);
 
-#endif /* MJS_FROTH_VM_H_ */
+#endif /* MJS_FROTH_FROTH_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/froth/mem.h"
 #endif
@@ -1812,7 +1812,7 @@ int fr_is_true(fr_cell_t cell);
 #define MJS_FROTH_MEM_H_
 
 /* Amalgamated: #include "common/platform.h" */
-/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/froth.h" */
 
 #define FR_PAGE_SIZE 512
 
@@ -1958,7 +1958,7 @@ MJS_PRIVATE int is_ident(int c);
 #ifndef MJS_PARSER_STATE_H_
 #define MJS_PARSER_STATE_H_
 
-/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/froth.h" */
 /* Amalgamated: #include "mjs/tok.h" */
 
 struct mjs_token {
@@ -1998,7 +1998,7 @@ fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
 #ifndef MJS_GEN_OPCODES_H_
 #define MJS_GEN_OPCODES_H_
 
-/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/froth.h" */
 
 extern struct fr_code MJS_code;
 
@@ -2295,7 +2295,7 @@ struct gc_arena {
 
 /* Amalgamated: #include "common/mbuf.h" */
 /* Amalgamated: #include "mjs/err.h" */
-/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/froth.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/val.h" */
 /* Amalgamated: #include "mjs/mm.h" */
@@ -5165,104 +5165,7 @@ const char *utfnshift(const char *s, long m) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/mem.c"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * Froth code has access to a 16-bit addressable memory,
- * mostly for storing code. The froth memory contains both
- * statically generated read-only code (possibly mapped on flash from
- * the rodata section) and dynamically generated code.
- *
- * This file contains MMU-liked abstraction that allows the VM to
- * address a unified 16-bit byte-addressed memory backed by a set
- * of smaller pages. Each page can point to either a read-only
- * code section, a buffer on heap and it's also possible to extend it in
- * the future to access external storage that doesn't provide a memory
- * interface to the CPU (e.g. byte ordiented filesystem API), useful
- * on many embedded platforms such as CC3200.
- */
-
-#include <assert.h>
-
-/* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
-
-struct fr_mem *fr_create_mem() {
-  size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
-  struct fr_mem *mem = (struct fr_mem *) calloc(1, size);
-  mem->num_pages = 0;
-  return mem;
-}
-
-void fr_destroy_mem(struct fr_mem *mem) {
-  size_t i;
-  for (i = 0; i < mem->num_pages; i++) {
-    if (!(mem->pages[i].flags & FR_MEM_FOREIGN)) {
-      free(mem->pages[i].base);
-    }
-  }
-  free(mem);
-}
-
-static void fr_realloc_mem(struct fr_mem **mem) {
-  size_t size =
-      sizeof(struct fr_mem) + sizeof(struct fr_page) * ((*mem)->num_pages - 1);
-  *mem = (struct fr_mem *) realloc(*mem, size);
-}
-
-fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
-  size_t i;
-  size_t start_page = (*mem)->num_pages;
-  size_t num_pages =
-      data_len / FR_PAGE_SIZE + (data_len % FR_PAGE_SIZE == 0 ? 0 : 1);
-
-  LOG(LL_DEBUG, ("mapping %d pages", num_pages));
-
-  (*mem)->num_pages += num_pages;
-  fr_realloc_mem(mem);
-
-  for (i = 0; i < num_pages; i++) {
-    struct fr_page *page = &(*mem)->pages[start_page + i];
-    page->flags = flags;
-    page->base = (char *) data + i * FR_PAGE_SIZE;
-  }
-
-  return start_page * FR_PAGE_SIZE;
-}
-
-int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  return page < mem->num_pages;
-}
-
-char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  uint16_t off = addr % FR_PAGE_SIZE;
-  assert(page < mem->num_pages);
-  return ((char *) mem->pages[page].base)[off];
-}
-
-void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  uint16_t off = addr % FR_PAGE_SIZE;
-  assert(page < mem->num_pages);
-
-  /* TODO: make this disabled in release builds */
-  if (mem->pages[page].flags & FR_MEM_RO) {
-    LOG(LL_DEBUG,
-        ("Trapping write access to read only froth memory at addr 0x%X", addr));
-    return;
-  }
-
-  ((char *) mem->pages[page].base)[off] = value;
-}
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/vm.c"
+#line 1 "mjs/froth/froth.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5283,7 +5186,7 @@ void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "mjs/froth/mem.h" */
-/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/froth.h" */
 
 static void fr_init_stack(struct fr_stack *stack) {
   stack->size = ARRAY_SIZE(stack->stack);
@@ -5558,6 +5461,103 @@ void fr_op_ifelse(struct fr_vm *vm) {
 void fr_op_ndrop(struct fr_vm *vm) {
   fr_cell_t n = fr_pop(&vm->dstack);
   vm->dstack.pos -= fr_to_int(n);
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/froth/mem.c"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/*
+ * Froth code has access to a 16-bit addressable memory,
+ * mostly for storing code. The froth memory contains both
+ * statically generated read-only code (possibly mapped on flash from
+ * the rodata section) and dynamically generated code.
+ *
+ * This file contains MMU-liked abstraction that allows the VM to
+ * address a unified 16-bit byte-addressed memory backed by a set
+ * of smaller pages. Each page can point to either a read-only
+ * code section, a buffer on heap and it's also possible to extend it in
+ * the future to access external storage that doesn't provide a memory
+ * interface to the CPU (e.g. byte ordiented filesystem API), useful
+ * on many embedded platforms such as CC3200.
+ */
+
+#include <assert.h>
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "mjs/froth/mem.h" */
+
+struct fr_mem *fr_create_mem() {
+  size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
+  struct fr_mem *mem = (struct fr_mem *) calloc(1, size);
+  mem->num_pages = 0;
+  return mem;
+}
+
+void fr_destroy_mem(struct fr_mem *mem) {
+  size_t i;
+  for (i = 0; i < mem->num_pages; i++) {
+    if (!(mem->pages[i].flags & FR_MEM_FOREIGN)) {
+      free(mem->pages[i].base);
+    }
+  }
+  free(mem);
+}
+
+static void fr_realloc_mem(struct fr_mem **mem) {
+  size_t size =
+      sizeof(struct fr_mem) + sizeof(struct fr_page) * ((*mem)->num_pages - 1);
+  *mem = (struct fr_mem *) realloc(*mem, size);
+}
+
+fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
+  size_t i;
+  size_t start_page = (*mem)->num_pages;
+  size_t num_pages =
+      data_len / FR_PAGE_SIZE + (data_len % FR_PAGE_SIZE == 0 ? 0 : 1);
+
+  LOG(LL_DEBUG, ("mapping %d pages", num_pages));
+
+  (*mem)->num_pages += num_pages;
+  fr_realloc_mem(mem);
+
+  for (i = 0; i < num_pages; i++) {
+    struct fr_page *page = &(*mem)->pages[start_page + i];
+    page->flags = flags;
+    page->base = (char *) data + i * FR_PAGE_SIZE;
+  }
+
+  return start_page * FR_PAGE_SIZE;
+}
+
+int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  return page < mem->num_pages;
+}
+
+char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t off = addr % FR_PAGE_SIZE;
+  assert(page < mem->num_pages);
+  return ((char *) mem->pages[page].base)[off];
+}
+
+void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
+  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t off = addr % FR_PAGE_SIZE;
+  assert(page < mem->num_pages);
+
+  /* TODO: make this disabled in release builds */
+  if (mem->pages[page].flags & FR_MEM_RO) {
+    LOG(LL_DEBUG,
+        ("Trapping write access to read only froth memory at addr 0x%X", addr));
+    return;
+  }
+
+  ((char *) mem->pages[page].base)[off] = value;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/mjs.lem.c"
@@ -8484,7 +8484,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "mjs/core.h" */
 /* Amalgamated: #include "mjs/froth/mem.h" */
-/* Amalgamated: #include "mjs/froth/vm.h" */
+/* Amalgamated: #include "mjs/froth/froth.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
