@@ -1725,15 +1725,15 @@ char *utfutf(char *s1, char *s2);
 #endif /* __cplusplus */
 #endif /* CS_COMMON_UTF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/froth.h"
+#line 1 "mjs/forse/forse.h"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_FROTH_FROTH_H_
-#define MJS_FROTH_FROTH_H_
+#ifndef MJS_FORSE_FORSE_H_
+#define MJS_FORSE_FORSE_H_
 
 /* Amalgamated: #include "common/platform.h" */
 
@@ -1799,20 +1799,20 @@ fr_cell_t fr_from_int(int32_t i);
 void fr_print_cell(struct fr_vm *vm, fr_cell_t cell);
 int fr_is_true(fr_cell_t cell);
 
-#endif /* MJS_FROTH_FROTH_H_ */
+#endif /* MJS_FORSE_FORSE_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/mem.h"
+#line 1 "mjs/forse/mem.h"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_FROTH_MEM_H_
-#define MJS_FROTH_MEM_H_
+#ifndef MJS_FORSE_MEM_H_
+#define MJS_FORSE_MEM_H_
 
 /* Amalgamated: #include "common/platform.h" */
-/* Amalgamated: #include "mjs/froth/froth.h" */
+/* Amalgamated: #include "mjs/forse/forse.h" */
 
 #define FR_PAGE_SIZE 512
 
@@ -1840,7 +1840,7 @@ void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value);
 /* return false if the address is unmapped */
 int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
 
-#endif /* MJS_FROTH_MEM_H_ */
+#endif /* MJS_FORSE_MEM_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/internal.h"
 #endif
@@ -1958,7 +1958,7 @@ MJS_PRIVATE int is_ident(int c);
 #ifndef MJS_PARSER_STATE_H_
 #define MJS_PARSER_STATE_H_
 
-/* Amalgamated: #include "mjs/froth/froth.h" */
+/* Amalgamated: #include "mjs/forse/forse.h" */
 /* Amalgamated: #include "mjs/tok.h" */
 
 struct mjs_token {
@@ -1998,7 +1998,7 @@ fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
 #ifndef MJS_GEN_OPCODES_H_
 #define MJS_GEN_OPCODES_H_
 
-/* Amalgamated: #include "mjs/froth/froth.h" */
+/* Amalgamated: #include "mjs/forse/forse.h" */
 
 extern struct fr_code MJS_code;
 
@@ -2295,7 +2295,7 @@ struct gc_arena {
 
 /* Amalgamated: #include "common/mbuf.h" */
 /* Amalgamated: #include "mjs/err.h" */
-/* Amalgamated: #include "mjs/froth/froth.h" */
+/* Amalgamated: #include "mjs/forse/forse.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/val.h" */
 /* Amalgamated: #include "mjs/mm.h" */
@@ -5165,7 +5165,7 @@ const char *utfnshift(const char *s, long m) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/froth.c"
+#line 1 "mjs/forse/forse.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5173,20 +5173,20 @@ const char *utfnshift(const char *s, long m) {
  */
 
 /*
- * Froth is a simple FORTH-like language borrowing a few ideas from Factor
+ * Forse is a simple FORTH-like language borrowing a few ideas from Factor
  * (https://factorcode.org/).
- * Froth is not a general purpose programming language but instead it is used
+ * Forse is not a general purpose programming language but instead it is used
  * to implement the MJS virtual machine.
  *
- * The binary encoding is documented in the froth compiler (see the
+ * The binary encoding is documented in the forse compiler (see the
  * `fr_codegen` docstring).
  */
 
 #include <assert.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
-/* Amalgamated: #include "mjs/froth/froth.h" */
+/* Amalgamated: #include "mjs/forse/mem.h" */
+/* Amalgamated: #include "mjs/forse/forse.h" */
 
 static void fr_init_stack(struct fr_stack *stack) {
   stack->size = ARRAY_SIZE(stack->stack);
@@ -5463,7 +5463,7 @@ void fr_op_ndrop(struct fr_vm *vm) {
   vm->dstack.pos -= fr_to_int(n);
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/froth/mem.c"
+#line 1 "mjs/forse/mem.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5471,8 +5471,8 @@ void fr_op_ndrop(struct fr_vm *vm) {
  */
 
 /*
- * Froth code has access to a 16-bit addressable memory,
- * mostly for storing code. The froth memory contains both
+ * Forse code has access to a 16-bit addressable memory,
+ * mostly for storing code. The forse memory contains both
  * statically generated read-only code (possibly mapped on flash from
  * the rodata section) and dynamically generated code.
  *
@@ -5488,7 +5488,7 @@ void fr_op_ndrop(struct fr_vm *vm) {
 #include <assert.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
+/* Amalgamated: #include "mjs/forse/mem.h" */
 
 struct fr_mem *fr_create_mem() {
   size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
@@ -5553,7 +5553,7 @@ void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
   /* TODO: make this disabled in release builds */
   if (mem->pages[page].flags & FR_MEM_RO) {
     LOG(LL_DEBUG,
-        ("Trapping write access to read only froth memory at addr 0x%X", addr));
+        ("Trapping write access to read only forse memory at addr 0x%X", addr));
     return;
   }
 
@@ -7701,7 +7701,7 @@ struct fr_code MJS_code = {
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
+/* Amalgamated: #include "mjs/forse/mem.h" */
 /* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/mm.h" */
 /* Amalgamated: #include "mjs/val.h" */
@@ -7799,13 +7799,13 @@ mjs_val_t mjs_get_global(struct mjs *mjs) {
   return mjs->vals.global_object;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/defroth_mjs.c"
+#line 1 "mjs/deforse_mjs.c"
 #endif
 #include <stdio.h>
 
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
-int defroth_custom(char b, FILE *in, int *pos) {
+int deforse_custom(char b, FILE *in, int *pos) {
   if (b == MJS_OP_str) {
     char buf[128];
     char ch;
@@ -8477,14 +8477,14 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
  */
 
 /*
- * This file contains froth words implemented in C.
- * The functions here must be referenced from //mjs:vm.frt.
+ * This file contains forse words implemented in C.
+ * The functions here must be referenced from //mjs:vm.forse.
  */
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
-/* Amalgamated: #include "mjs/froth/froth.h" */
+/* Amalgamated: #include "mjs/forse/mem.h" */
+/* Amalgamated: #include "mjs/forse/forse.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
@@ -8620,24 +8620,24 @@ void mjs_op_null(struct fr_vm *vm) {
  *
  * A bottom up parser naturally builds a tree from the leaves up to the
  * root. The code is emitted precisely in that sequence, from the leaves
- * up. Each "node" of the tree is an anonymous froth word.
+ * up. Each "node" of the tree is an anonymous forse word.
  *
  * For example `1` is a literal number expression, thus `: anon 1 ;`.
- * These are 2 froth instructions: the literal and the exit opcode (the `;`).
+ * These are 2 forse instructions: the literal and the exit opcode (the `;`).
  * (How that encodes down to bytes is irrelevant in this discussion, see the
- * froth compiler; however an interesting note is that in most cases the
+ * forse compiler; however an interesting note is that in most cases the
  * call to a previously defined subexpression can be encoded in one byte, a
  * negative offset).
  *
  * Another example: the `1+2` expression would be classically represented with a
  * binary node `+` and two pointers to the left and right subexpressions.
- * We do the same thing here but with executable froth code:
+ * We do the same thing here but with executable forse code:
  *
  * ```
  * : anon3 anon1 anon2 + ;
  * ```
  *
- * These are 4 froth words: a call to the left subexpression, a call to the
+ * These are 4 forse words: a call to the left subexpression, a call to the
  * right subexpression, the add operation and exit.
  *
  * And so forth. This technique can easily encode arbitrary expressions by
@@ -8660,7 +8660,7 @@ void mjs_op_null(struct fr_vm *vm) {
  *
  * ```
  * $ blaze run //mjs:mjs_shell -- -c -e '1;2;3;4;' >/tmp/dump.bin
- * $ blaze run //mjs:defroth /tmp/dump.bin
+ * $ blaze run //mjs:deforse /tmp/dump.bin
  * : anon1 1 ;
  * : anon2 anon1 ;
  * : anon3 2 ;
@@ -8683,7 +8683,7 @@ void mjs_op_null(struct fr_vm *vm) {
  *
  * ```
  * $ blaze run //mjs:mjs_shell -- -c -e '1+2;3+4;' >/tmp/dump.bin
- * $ blaze run //mjs:defroth /tmp/dump.bin
+ * $ blaze run //mjs:deforse /tmp/dump.bin
  * : anon1 1 ;
  * : anon2 2 ;
  * : anon3 anon1 anon2 + ;
@@ -8709,7 +8709,7 @@ void mjs_op_null(struct fr_vm *vm) {
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "common/cs_file.h" */
-/* Amalgamated: #include "mjs/froth/mem.h" */
+/* Amalgamated: #include "mjs/forse/mem.h" */
 /* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
