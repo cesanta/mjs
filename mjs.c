@@ -2008,19 +2008,19 @@ extern struct fr_code MJS_code;
 #define MJS_OP_dup ((fr_opcode_t) 2)
 #define MJS_OP_swap ((fr_opcode_t) 3)
 #define MJS_OP_over ((fr_opcode_t) 4)
-#define MJS_OP_pushr ((fr_opcode_t) 5)
-#define MJS_OP_popr ((fr_opcode_t) 6)
-#define MJS_OP_save ((fr_opcode_t) 7)
-#define MJS_OP_restore ((fr_opcode_t) 8)
+#define MJS_OP_GT_r ((fr_opcode_t) 5)
+#define MJS_OP_r_GT ((fr_opcode_t) 6)
+#define MJS_OP_sp_AT ((fr_opcode_t) 7)
+#define MJS_OP_sp_SET ((fr_opcode_t) 8)
 #define MJS_OP_print ((fr_opcode_t) 9)
 #define MJS_OP_cr ((fr_opcode_t) 10)
-#define MJS_OP_print_stack ((fr_opcode_t) 11)
-#define MJS_OP_eq ((fr_opcode_t) 12)
-#define MJS_OP_lt ((fr_opcode_t) 13)
+#define MJS_OP_DOT_s ((fr_opcode_t) 11)
+#define MJS_OP_EQ ((fr_opcode_t) 12)
+#define MJS_OP_LT ((fr_opcode_t) 13)
 #define MJS_OP_invert ((fr_opcode_t) 14)
-#define MJS_OP_add ((fr_opcode_t) 15)
-#define MJS_OP_sub ((fr_opcode_t) 16)
-#define MJS_OP_mul ((fr_opcode_t) 17)
+#define MJS_OP_PLUS ((fr_opcode_t) 15)
+#define MJS_OP_MINUS ((fr_opcode_t) 16)
+#define MJS_OP_STAR ((fr_opcode_t) 17)
 #define MJS_OP_call ((fr_opcode_t) 18)
 #define MJS_OP_if ((fr_opcode_t) 19)
 #define MJS_OP_ifelse ((fr_opcode_t) 20)
@@ -6827,19 +6827,19 @@ static void yy_reduce(
         break;
       case 4: /* expr ::= lhs PLUS_ASSIGN expr */
 #line 81 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_add); }
+{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_PLUS); }
 #line 1268 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy94 = yylhsminor.yy94;
         break;
       case 5: /* expr ::= lhs MINUS_ASSIGN expr */
 #line 82 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_sub); }
+{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_MINUS); }
 #line 1274 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy94 = yylhsminor.yy94;
         break;
       case 6: /* expr ::= lhs MUL_ASSIGN expr */
 #line 83 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_mul); }
+{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_STAR); }
 #line 1280 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy94 = yylhsminor.yy94;
         break;
@@ -6899,13 +6899,13 @@ static void yy_reduce(
         break;
       case 16: /* sexp ::= sexp PLUS sexp */
 #line 119 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_bin(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_add); }
+{ yylhsminor.yy94=mjs_emit_bin(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_PLUS); }
 #line 1340 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy94 = yylhsminor.yy94;
         break;
       case 17: /* sexp ::= sexp MUL sexp */
 #line 121 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_bin(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_mul); }
+{ yylhsminor.yy94=mjs_emit_bin(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_STAR); }
 #line 1346 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy94 = yylhsminor.yy94;
         break;
@@ -7379,7 +7379,7 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0000 -> : ifelse ... ; */
   /*           <fr_op_ifelse> */ 
   /* 0000 -> : loop ... ; */
-  MJS_OP_dup, MJS_OP_pushr, MJS_OP_call, MJS_OP_popr, MJS_OP_swap, MJS_OP_quote, 0, 0, MJS_OP_quote, -1, -3, MJS_OP_ifelse, MJS_OP_exit,
+  MJS_OP_dup, MJS_OP_GT_r, MJS_OP_call, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_quote, 0, 0, MJS_OP_quote, -1, -3, MJS_OP_ifelse, MJS_OP_exit,
   /* 0013 -> : ndrop ... ; */
   /*           <fr_op_ndrop> */ 
   /* 0013 -> : str ... ; */
@@ -7393,13 +7393,13 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0013 -> : addprop ... ; */
   /*           <mjs_op_addprop> */ 
   /* 0013 -> : setprop ... ; */
-  MJS_OP_dup, MJS_OP_pushr, MJS_OP_addprop, MJS_OP_drop, MJS_OP_popr, MJS_OP_exit,
+  MJS_OP_dup, MJS_OP_GT_r, MJS_OP_addprop, MJS_OP_drop, MJS_OP_r_GT, MJS_OP_exit,
   /* 0019 -> : getprop ... ; */
   /*           <mjs_op_getprop> */ 
   /* 0019 -> : jscall ... ; */
   /*           <mjs_op_jscall> */ 
   /* 0019 -> : jscall_exit ... ; */
-  MJS_OP_popr, MJS_OP_swap, MJS_OP_pushr, MJS_OP_restore, MJS_OP_popr, MJS_OP_exit,
+  MJS_OP_r_GT, MJS_OP_swap, MJS_OP_GT_r, MJS_OP_sp_SET, MJS_OP_r_GT, MJS_OP_exit,
   /* 0025 -> : undefined ... ; */
   /*           <mjs_op_undefined> */ 
   /* 0025 -> : null ... ; */
@@ -7407,7 +7407,7 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0025 -> : anon_0 ... ; */
   MJS_OP_print, MJS_OP_exit,
   /* 0027 -> : jsprint ... ; */
-  MJS_OP_quote, 0, 0, MJS_OP_eq, MJS_OP_invert, MJS_OP_quote, 0, 25, MJS_OP_if, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
+  MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, 25, MJS_OP_if, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
   /* 0039 -> : zero ... ; */
   MJS_OP_quote, 0, 0, MJS_OP_exit,
   /* 0043 -> : one ... ; */
@@ -7415,7 +7415,7 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0047 -> : nop ... ; */
   MJS_OP_zero, MJS_OP_drop, MJS_OP_exit,
   /* 0050 -> : inc ... ; */
-  MJS_OP_quote, 0, 1, MJS_OP_add, MJS_OP_exit,
+  MJS_OP_quote, 0, 1, MJS_OP_PLUS, MJS_OP_exit,
   /* 0055 -> : swapinc ... ; */
   MJS_OP_swap, MJS_OP_inc, MJS_OP_exit,
   /* 0058 -> : div ... ; */
