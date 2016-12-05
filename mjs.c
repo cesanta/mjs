@@ -7393,48 +7393,48 @@ fr_opcode_t MJS_opcodes[] = {
   /* 0013 -> : addprop ... ; */
   /*           <mjs_op_addprop> */ 
   /* 0013 -> : setprop ... ; */
-  MJS_OP_dup, MJS_OP_pushr, MJS_OP_addprop, MJS_OP_popr, MJS_OP_exit,
-  /* 0018 -> : getprop ... ; */
+  MJS_OP_dup, MJS_OP_pushr, MJS_OP_addprop, MJS_OP_drop, MJS_OP_popr, MJS_OP_exit,
+  /* 0019 -> : getprop ... ; */
   /*           <mjs_op_getprop> */ 
-  /* 0018 -> : jscall ... ; */
+  /* 0019 -> : jscall ... ; */
   /*           <mjs_op_jscall> */ 
-  /* 0018 -> : jscall_exit ... ; */
+  /* 0019 -> : jscall_exit ... ; */
   MJS_OP_popr, MJS_OP_swap, MJS_OP_pushr, MJS_OP_restore, MJS_OP_popr, MJS_OP_exit,
-  /* 0024 -> : undefined ... ; */
+  /* 0025 -> : undefined ... ; */
   /*           <mjs_op_undefined> */ 
-  /* 0024 -> : null ... ; */
+  /* 0025 -> : null ... ; */
   /*           <mjs_op_null> */ 
-  /* 0024 -> : anon_0 ... ; */
+  /* 0025 -> : anon_0 ... ; */
   MJS_OP_print, MJS_OP_exit,
-  /* 0026 -> : jsprint ... ; */
-  MJS_OP_quote, 0, 0, MJS_OP_eq, MJS_OP_invert, MJS_OP_quote, 0, 24, MJS_OP_if, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
-  /* 0038 -> : zero ... ; */
+  /* 0027 -> : jsprint ... ; */
+  MJS_OP_quote, 0, 0, MJS_OP_eq, MJS_OP_invert, MJS_OP_quote, 0, 25, MJS_OP_if, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
+  /* 0039 -> : zero ... ; */
   MJS_OP_quote, 0, 0, MJS_OP_exit,
-  /* 0042 -> : one ... ; */
+  /* 0043 -> : one ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_exit,
-  /* 0046 -> : nop ... ; */
+  /* 0047 -> : nop ... ; */
   MJS_OP_zero, MJS_OP_drop, MJS_OP_exit,
-  /* 0049 -> : inc ... ; */
+  /* 0050 -> : inc ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_add, MJS_OP_exit,
-  /* 0054 -> : swapinc ... ; */
+  /* 0055 -> : swapinc ... ; */
   MJS_OP_swap, MJS_OP_inc, MJS_OP_exit,
-  /* 0057 -> : div ... ; */
+  /* 0058 -> : div ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : rem ... ; */
+  /* 0058 -> : rem ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : lshift ... ; */
+  /* 0058 -> : lshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : rshift ... ; */
+  /* 0058 -> : rshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : urshift ... ; */
+  /* 0058 -> : urshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : and ... ; */
+  /* 0058 -> : and ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : or ... ; */
+  /* 0058 -> : or ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0057 -> : xor ... ; */
+  /* 0058 -> : xor ... ; */
   /*           <mjs_op_todo> */ 
-}; /* 57 * sizeof(fr_opcode_t) */
+}; /* 58 * sizeof(fr_opcode_t) */
 
 fr_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -7469,15 +7469,15 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0028 */ 13, 
   /* 0029 */ -29, 
   /* 0030 */ -30, 
-  /* 0031 */ 18, 
+  /* 0031 */ 19, 
   /* 0032 */ -31, 
   /* 0033 */ -32, 
-  /* 0034 */ 26, 
-  /* 0035 */ 38, 
-  /* 0036 */ 42, 
-  /* 0037 */ 46, 
-  /* 0038 */ 49, 
-  /* 0039 */ 54, 
+  /* 0034 */ 27, 
+  /* 0035 */ 39, 
+  /* 0036 */ 43, 
+  /* 0037 */ 47, 
+  /* 0038 */ 50, 
+  /* 0039 */ 55, 
   /* 0040 */ -33, 
   /* 0041 */ -34, 
   /* 0042 */ -35, 
@@ -7643,6 +7643,7 @@ const char *MJS_pos_names[] = {
   "setprop+2", 
   "setprop+3", 
   "setprop+4", 
+  "setprop+5", 
   "jscall_exit", 
   "jscall_exit+1", 
   "jscall_exit+2", 
