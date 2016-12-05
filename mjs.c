@@ -8670,7 +8670,7 @@ void mjs_op_jscall(struct fr_vm *vm) {
     vm->ip = fr_to_int(func);
   } else if (mjs_is_foreign(func)) {
     void (*native)(struct fr_vm *vm);
-    native = mjs_get_ptr(mjs, func);
+    native = (void (*)(struct fr_vm *vm))mjs_get_ptr(mjs, func);
     native(vm);
   } else if (mjs_is_string(func)) {
     /* TODO: implement FFI */
