@@ -7799,13 +7799,13 @@ mjs_val_t mjs_get_global(struct mjs *mjs) {
   return mjs->vals.global_object;
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/deforse_mjs.c"
+#line 1 "mjs/disasm_mjs.c"
 #endif
 #include <stdio.h>
 
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
-int deforse_custom(char b, FILE *in, int *pos) {
+int disasm_custom(char b, FILE *in, int *pos) {
   if (b == MJS_OP_str) {
     char buf[128];
     char ch;
@@ -8660,7 +8660,7 @@ void mjs_op_null(struct fr_vm *vm) {
  *
  * ```
  * $ blaze run //mjs:mjs_shell -- -c -e '1;2;3;4;' >/tmp/dump.bin
- * $ blaze run //mjs:deforse /tmp/dump.bin
+ * $ blaze run //mjs:disasm /tmp/dump.bin
  * : anon1 1 ;
  * : anon2 anon1 ;
  * : anon3 2 ;
@@ -8683,7 +8683,7 @@ void mjs_op_null(struct fr_vm *vm) {
  *
  * ```
  * $ blaze run //mjs:mjs_shell -- -c -e '1+2;3+4;' >/tmp/dump.bin
- * $ blaze run //mjs:deforse /tmp/dump.bin
+ * $ blaze run //mjs:disasm /tmp/dump.bin
  * : anon1 1 ;
  * : anon2 2 ;
  * : anon3 anon1 anon2 + ;
