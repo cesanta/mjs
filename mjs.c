@@ -1725,15 +1725,15 @@ char *utfutf(char *s1, char *s2);
 #endif /* __cplusplus */
 #endif /* CS_COMMON_UTF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/miniforth/miniforth.h"
+#line 1 "mjs/bf/bf.h"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_MINIFORTH_MINIFORTH_H_
-#define MJS_MINIFORTH_MINIFORTH_H_
+#ifndef MJS_BRAINFARTH_BRAINFARTH_H_
+#define MJS_BRAINFARTH_BRAINFARTH_H_
 
 /* Amalgamated: #include "common/platform.h" */
 
@@ -1741,107 +1741,107 @@ char *utfutf(char *s1, char *s2);
 
 #define FR_EXIT_RUN -1
 
-typedef int64_t fr_cell_t;
-/* typedef int16_t fr_cell_t; */
+typedef int64_t br_cell_t;
+/* typedef int16_t br_cell_t; */
 
-typedef int8_t fr_opcode_t;
-typedef int16_t fr_word_ptr_t;
+typedef int8_t br_opcode_t;
+typedef int16_t br_word_ptr_t;
 
-struct fr_vm;
-typedef void (*fr_native_t)(struct fr_vm *vm);
+struct br_vm;
+typedef void (*br_native_t)(struct br_vm *vm);
 
-struct fr_code {
-  fr_opcode_t *opcodes;      /* all word bodies */
+struct br_code {
+  br_opcode_t *opcodes;      /* all word bodies */
   size_t opcodes_len;        /* max 32768 */
-  fr_word_ptr_t *table;      /* points to opcodes */
+  br_word_ptr_t *table;      /* points to opcodes */
   size_t table_len;          /* max 127 */
-  fr_native_t *native_words; /* native words */
+  br_native_t *native_words; /* native words */
   size_t native_words_len;
 
   const char **word_names; /* table_len number of entries, for tracing */
   const char **pos_names;  /* opcodes_len number of entries, for tracing */
 };
 
-struct fr_stack {
-  fr_cell_t stack[FR_STACK_SIZE];
+struct br_stack {
+  br_cell_t stack[FR_STACK_SIZE];
   size_t pos;
   size_t size;
 };
 
-struct fr_vm {
-  struct fr_code *code;
-  struct fr_mem *iram;
+struct br_vm {
+  struct br_code *code;
+  struct br_mem *iram;
 
-  fr_word_ptr_t ip;
-  struct fr_stack dstack; /* data stack */
-  struct fr_stack rstack; /* return stack */
-  fr_cell_t tmp;
+  br_word_ptr_t ip;
+  struct br_stack dstack; /* data stack */
+  struct br_stack rstack; /* return stack */
+  br_cell_t tmp;
 
   void *user_data;
 };
 
-void fr_init_vm(struct fr_vm *vm, struct fr_code *code);
-void fr_destroy_vm(struct fr_vm *vm);
-void fr_run(struct fr_vm *vm, fr_word_ptr_t word);
+void br_init_vm(struct br_vm *vm, struct br_code *code);
+void br_destroy_vm(struct br_vm *vm);
+void br_run(struct br_vm *vm, br_word_ptr_t word);
 
-fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op);
+br_word_ptr_t br_lookup_word(struct br_vm *vm, br_opcode_t op);
 
-void fr_push(struct fr_stack *stack, fr_cell_t value);
-fr_cell_t fr_pop(struct fr_stack *stack);
+void br_push(struct br_stack *stack, br_cell_t value);
+br_cell_t br_pop(struct br_stack *stack);
 /* returns the top of the stack value */
-fr_cell_t fr_tos(struct fr_stack *stack);
+br_cell_t br_tos(struct br_stack *stack);
 
-void fr_print_stack(struct fr_vm *vm, struct fr_stack *stack);
+void br_print_stack(struct br_vm *vm, struct br_stack *stack);
 
 /* these should be implemented by whoever embeds the VM */
 
-int32_t fr_to_int(fr_cell_t cell);
-fr_cell_t fr_from_int(int32_t i);
-void fr_print_cell(struct fr_vm *vm, fr_cell_t cell);
-int fr_is_true(fr_cell_t cell);
+int32_t br_to_int(br_cell_t cell);
+br_cell_t br_from_int(int32_t i);
+void br_print_cell(struct br_vm *vm, br_cell_t cell);
+int br_is_true(br_cell_t cell);
 
-#endif /* MJS_MINIFORTH_MINIFORTH_H_ */
+#endif /* MJS_BRAINFARTH_BRAINFARTH_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/miniforth/mem.h"
+#line 1 "mjs/bf/mem.h"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_MINIFORTH_MEM_H_
-#define MJS_MINIFORTH_MEM_H_
+#ifndef MJS_BRAINFARTH_MEM_H_
+#define MJS_BRAINFARTH_MEM_H_
 
 /* Amalgamated: #include "common/platform.h" */
-/* Amalgamated: #include "mjs/miniforth/miniforth.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
 
 #define FR_PAGE_SIZE 512
 
 #define FR_MEM_RO (1 << 0)
 #define FR_MEM_FOREIGN (1 << 1)
 
-struct fr_page {
+struct br_page {
   void *base;
   uint16_t flags;
 };
 
-struct fr_mem {
+struct br_mem {
   size_t num_pages;
-  struct fr_page pages[1];  // zero sized arrays are non-standard
+  struct br_page pages[1];  // zero sized arrays are non-standard
 };
 
-struct fr_mem *fr_create_mem();
-void fr_destroy_mem(struct fr_mem *mem);
+struct br_mem *br_create_mem();
+void br_destroy_mem(struct br_mem *mem);
 
-fr_cell_t fr_mmap(struct fr_mem **mem, void *buf, size_t buf_len, int flags);
+br_cell_t br_mmap(struct br_mem **mem, void *buf, size_t buf_len, int flags);
 
-char fr_read_byte(struct fr_mem *mem, fr_cell_t addr);
-void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value);
+char br_read_byte(struct br_mem *mem, br_cell_t addr);
+void br_write_byte(struct br_mem *mem, br_cell_t addr, char value);
 
 /* return false if the address is unmapped */
-int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr);
+int br_is_mapped(struct br_mem *mem, br_cell_t addr);
 
-#endif /* MJS_MINIFORTH_MEM_H_ */
+#endif /* MJS_BRAINFARTH_MEM_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/internal.h"
 #endif
@@ -1959,7 +1959,7 @@ MJS_PRIVATE int is_ident(int c);
 #ifndef MJS_PARSER_STATE_H_
 #define MJS_PARSER_STATE_H_
 
-/* Amalgamated: #include "mjs/miniforth/miniforth.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
 /* Amalgamated: #include "mjs/tok.h" */
 
 struct mjs_token {
@@ -1971,26 +1971,26 @@ struct mjs_parse_ctx {
   struct mjs_token syntax_error;
   struct pstate pstate;
   struct mjs *mjs;
-  fr_word_ptr_t gen;
-  fr_word_ptr_t entry;
+  br_word_ptr_t gen;
+  br_word_ptr_t entry;
 };
 
-fr_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, fr_opcode_t op);
-fr_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, fr_word_ptr_t dst);
-fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
-                           fr_word_ptr_t b, fr_opcode_t op);
-fr_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit);
-fr_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit);
-fr_word_ptr_t mjs_emit_var(struct mjs_parse_ctx *ctx, const char *ident);
-fr_word_ptr_t mjs_emit_ident(struct mjs_parse_ctx *ctx, const char *ident);
-fr_word_ptr_t mjs_emit_assign(struct mjs_parse_ctx *ctx, fr_word_ptr_t lhs,
-                              fr_word_ptr_t val, fr_opcode_t op);
-fr_word_ptr_t mjs_emit_str_or_ident(struct mjs_parse_ctx *ctx, const char *lit);
+br_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, br_opcode_t op);
+br_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, br_word_ptr_t dst);
+br_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, br_word_ptr_t a,
+                           br_word_ptr_t b, br_opcode_t op);
+br_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit);
+br_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit);
+br_word_ptr_t mjs_emit_var(struct mjs_parse_ctx *ctx, const char *ident);
+br_word_ptr_t mjs_emit_ident(struct mjs_parse_ctx *ctx, const char *ident);
+br_word_ptr_t mjs_emit_assign(struct mjs_parse_ctx *ctx, br_word_ptr_t lhs,
+                              br_word_ptr_t val, br_opcode_t op);
+br_word_ptr_t mjs_emit_str_or_ident(struct mjs_parse_ctx *ctx, const char *lit);
 
-fr_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v);
-fr_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v);
-fr_word_ptr_t mjs_emit_uint32(struct mjs_parse_ctx *ctx, uint32_t v);
-fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
+br_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v);
+br_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v);
+br_word_ptr_t mjs_emit_uint32(struct mjs_parse_ctx *ctx, uint32_t v);
+br_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
 
 #endif /* MJS_PARSER_STATE_H_ */
 #ifdef MG_MODULE_LINES
@@ -1999,76 +1999,76 @@ fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
 #ifndef MJS_GEN_OPCODES_H_
 #define MJS_GEN_OPCODES_H_
 
-/* Amalgamated: #include "mjs/miniforth/miniforth.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
 
-extern struct fr_code MJS_code;
+extern struct br_code MJS_code;
 
-#define MJS_OP_quote ((fr_opcode_t) -1)
-#define MJS_OP_exit ((fr_opcode_t) 0)
-#define MJS_OP_drop ((fr_opcode_t) 1)
-#define MJS_OP_dup ((fr_opcode_t) 2)
-#define MJS_OP_swap ((fr_opcode_t) 3)
-#define MJS_OP_over ((fr_opcode_t) 4)
-#define MJS_OP_MINUS_rot ((fr_opcode_t) 5)
-#define MJS_OP_rot ((fr_opcode_t) 6)
-#define MJS_OP_GT_r ((fr_opcode_t) 7)
-#define MJS_OP_r_GT ((fr_opcode_t) 8)
-#define MJS_OP_sp_AT ((fr_opcode_t) 9)
-#define MJS_OP_sp_SET ((fr_opcode_t) 10)
-#define MJS_OP_rp_AT ((fr_opcode_t) 11)
-#define MJS_OP_rp_SET ((fr_opcode_t) 12)
-#define MJS_OP_tmp_SET ((fr_opcode_t) 13)
-#define MJS_OP_tmp_AT ((fr_opcode_t) 14)
-#define MJS_OP_print ((fr_opcode_t) 15)
-#define MJS_OP_cr ((fr_opcode_t) 16)
-#define MJS_OP_DOT_s ((fr_opcode_t) 17)
-#define MJS_OP_EQ ((fr_opcode_t) 18)
-#define MJS_OP_LT ((fr_opcode_t) 19)
-#define MJS_OP_GT ((fr_opcode_t) 20)
-#define MJS_OP_invert ((fr_opcode_t) 21)
-#define MJS_OP_PLUS ((fr_opcode_t) 22)
-#define MJS_OP_MINUS ((fr_opcode_t) 23)
-#define MJS_OP_STAR ((fr_opcode_t) 24)
-#define MJS_OP_call ((fr_opcode_t) 25)
-#define MJS_OP_if ((fr_opcode_t) 26)
-#define MJS_OP_ifelse ((fr_opcode_t) 27)
-#define MJS_OP_loop ((fr_opcode_t) 28)
-#define MJS_OP_ndrop ((fr_opcode_t) 29)
-#define MJS_OP_str ((fr_opcode_t) 30)
-#define MJS_OP_scope_AT ((fr_opcode_t) 31)
-#define MJS_OP_scope_SET ((fr_opcode_t) 32)
-#define MJS_OP_frame_AT ((fr_opcode_t) 33)
-#define MJS_OP_frame_SET ((fr_opcode_t) 34)
-#define MJS_OP_mkobj ((fr_opcode_t) 35)
-#define MJS_OP_addprop ((fr_opcode_t) 36)
-#define MJS_OP_setprop ((fr_opcode_t) 37)
-#define MJS_OP_getprop ((fr_opcode_t) 38)
-#define MJS_OP_getvar ((fr_opcode_t) 39)
-#define MJS_OP_setvar ((fr_opcode_t) 40)
-#define MJS_OP_jscall ((fr_opcode_t) 41)
-#define MJS_OP_jscall_exit ((fr_opcode_t) 42)
-#define MJS_OP_jsenter ((fr_opcode_t) 43)
-#define MJS_OP_jsexit ((fr_opcode_t) 44)
-#define MJS_OP_setarg ((fr_opcode_t) 45)
-#define MJS_OP_undefined ((fr_opcode_t) 46)
-#define MJS_OP_null ((fr_opcode_t) 47)
-#define MJS_OP_2dup ((fr_opcode_t) 48)
-#define MJS_OP_GTEQ ((fr_opcode_t) 49)
-#define MJS_OP_repeat ((fr_opcode_t) 50)
-#define MJS_OP_jsprint ((fr_opcode_t) 51)
-#define MJS_OP_zero ((fr_opcode_t) 52)
-#define MJS_OP_one ((fr_opcode_t) 53)
-#define MJS_OP_nop ((fr_opcode_t) 54)
-#define MJS_OP_inc ((fr_opcode_t) 55)
-#define MJS_OP_swapinc ((fr_opcode_t) 56)
-#define MJS_OP_div ((fr_opcode_t) 57)
-#define MJS_OP_rem ((fr_opcode_t) 58)
-#define MJS_OP_lshift ((fr_opcode_t) 59)
-#define MJS_OP_rshift ((fr_opcode_t) 60)
-#define MJS_OP_urshift ((fr_opcode_t) 61)
-#define MJS_OP_and ((fr_opcode_t) 62)
-#define MJS_OP_or ((fr_opcode_t) 63)
-#define MJS_OP_xor ((fr_opcode_t) 64)
+#define MJS_OP_quote ((br_opcode_t) -1)
+#define MJS_OP_exit ((br_opcode_t) 0)
+#define MJS_OP_drop ((br_opcode_t) 1)
+#define MJS_OP_dup ((br_opcode_t) 2)
+#define MJS_OP_swap ((br_opcode_t) 3)
+#define MJS_OP_over ((br_opcode_t) 4)
+#define MJS_OP_MINUS_rot ((br_opcode_t) 5)
+#define MJS_OP_rot ((br_opcode_t) 6)
+#define MJS_OP_GT_r ((br_opcode_t) 7)
+#define MJS_OP_r_GT ((br_opcode_t) 8)
+#define MJS_OP_sp_AT ((br_opcode_t) 9)
+#define MJS_OP_sp_SET ((br_opcode_t) 10)
+#define MJS_OP_rp_AT ((br_opcode_t) 11)
+#define MJS_OP_rp_SET ((br_opcode_t) 12)
+#define MJS_OP_tmp_SET ((br_opcode_t) 13)
+#define MJS_OP_tmp_AT ((br_opcode_t) 14)
+#define MJS_OP_print ((br_opcode_t) 15)
+#define MJS_OP_cr ((br_opcode_t) 16)
+#define MJS_OP_DOT_s ((br_opcode_t) 17)
+#define MJS_OP_EQ ((br_opcode_t) 18)
+#define MJS_OP_LT ((br_opcode_t) 19)
+#define MJS_OP_GT ((br_opcode_t) 20)
+#define MJS_OP_invert ((br_opcode_t) 21)
+#define MJS_OP_PLUS ((br_opcode_t) 22)
+#define MJS_OP_MINUS ((br_opcode_t) 23)
+#define MJS_OP_STAR ((br_opcode_t) 24)
+#define MJS_OP_call ((br_opcode_t) 25)
+#define MJS_OP_if ((br_opcode_t) 26)
+#define MJS_OP_ifelse ((br_opcode_t) 27)
+#define MJS_OP_loop ((br_opcode_t) 28)
+#define MJS_OP_ndrop ((br_opcode_t) 29)
+#define MJS_OP_str ((br_opcode_t) 30)
+#define MJS_OP_scope_AT ((br_opcode_t) 31)
+#define MJS_OP_scope_SET ((br_opcode_t) 32)
+#define MJS_OP_frame_AT ((br_opcode_t) 33)
+#define MJS_OP_frame_SET ((br_opcode_t) 34)
+#define MJS_OP_mkobj ((br_opcode_t) 35)
+#define MJS_OP_addprop ((br_opcode_t) 36)
+#define MJS_OP_setprop ((br_opcode_t) 37)
+#define MJS_OP_getprop ((br_opcode_t) 38)
+#define MJS_OP_getvar ((br_opcode_t) 39)
+#define MJS_OP_setvar ((br_opcode_t) 40)
+#define MJS_OP_jscall ((br_opcode_t) 41)
+#define MJS_OP_jscall_exit ((br_opcode_t) 42)
+#define MJS_OP_jsenter ((br_opcode_t) 43)
+#define MJS_OP_jsexit ((br_opcode_t) 44)
+#define MJS_OP_setarg ((br_opcode_t) 45)
+#define MJS_OP_undefined ((br_opcode_t) 46)
+#define MJS_OP_null ((br_opcode_t) 47)
+#define MJS_OP_2dup ((br_opcode_t) 48)
+#define MJS_OP_GTEQ ((br_opcode_t) 49)
+#define MJS_OP_repeat ((br_opcode_t) 50)
+#define MJS_OP_jsprint ((br_opcode_t) 51)
+#define MJS_OP_zero ((br_opcode_t) 52)
+#define MJS_OP_one ((br_opcode_t) 53)
+#define MJS_OP_nop ((br_opcode_t) 54)
+#define MJS_OP_inc ((br_opcode_t) 55)
+#define MJS_OP_swapinc ((br_opcode_t) 56)
+#define MJS_OP_div ((br_opcode_t) 57)
+#define MJS_OP_rem ((br_opcode_t) 58)
+#define MJS_OP_lshift ((br_opcode_t) 59)
+#define MJS_OP_rshift ((br_opcode_t) 60)
+#define MJS_OP_urshift ((br_opcode_t) 61)
+#define MJS_OP_and ((br_opcode_t) 62)
+#define MJS_OP_or ((br_opcode_t) 63)
+#define MJS_OP_xor ((br_opcode_t) 64)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -2313,7 +2313,7 @@ struct gc_arena {
 
 /* Amalgamated: #include "common/mbuf.h" */
 /* Amalgamated: #include "mjs/err.h" */
-/* Amalgamated: #include "mjs/miniforth/miniforth.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/val.h" */
 /* Amalgamated: #include "mjs/mm.h" */
@@ -2325,8 +2325,8 @@ struct mjs_vals {
 };
 
 struct mjs {
-  struct fr_vm vm;
-  fr_word_ptr_t last_code;
+  struct br_vm vm;
+  br_word_ptr_t last_code;
 
   struct mbuf owned_strings;   /* Sequence of (varint len, char data[]) */
   struct mbuf foreign_strings; /* Sequence of (varint len, char *data) */
@@ -2345,7 +2345,7 @@ struct mjs *mjs_create();
 
 struct mjs_create_opts {
   /* use non-default bytecode definition file, testing-only */
-  struct fr_code *code;
+  struct br_code *code;
 };
 struct mjs *mjs_create_opt(struct mjs_create_opts opts);
 
@@ -2691,8 +2691,8 @@ mjs_err_t mjs_parse(struct mjs *mjs, const char *src,
 mjs_err_t mjs_parse_file(struct mjs *mjs, const char *file,
                          struct mjs_parse_ctx *ctx);
 
-void mjs_dump_bcode(struct mjs *mjs, const char *filename, fr_word_ptr_t start,
-                    fr_word_ptr_t end);
+void mjs_dump_bcode(struct mjs *mjs, const char *filename, br_word_ptr_t start,
+                    br_word_ptr_t end);
 
 /* generated by lemon */
 void *mjsParserAlloc(void *(*mallocProc)(size_t));
@@ -5185,7 +5185,7 @@ const char *utfnshift(const char *s, long m) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/miniforth/miniforth.c"
+#line 1 "mjs/bf/bf.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5193,60 +5193,60 @@ const char *utfnshift(const char *s, long m) {
  */
 
 /*
- * Miniforth is a simple FORTH-like language borrowing a few ideas from Factor
+ * Brainfarth is a simple FORTH-like language borrowing a few ideas from Factor
  * (https://factorcode.org/).
- * Miniforth is not a general purpose programming language but instead it is used
- * to implement the MJS virtual machine.
+ * Brainfarth is not a general purpose programming language but instead it is
+ * used to implement the MJS virtual machine.
  *
- * The binary encoding is documented in the miniforth compiler (see the
- * `fr_codegen` docstring).
+ * The binary encoding is documented in the bf compiler (see the
+ * `br_codegen` docstring).
  */
 
 #include <assert.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/miniforth/mem.h" */
-/* Amalgamated: #include "mjs/miniforth/miniforth.h" */
+/* Amalgamated: #include "mjs/bf/mem.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
 
-static void fr_init_stack(struct fr_stack *stack) {
+static void br_init_stack(struct br_stack *stack) {
   stack->size = ARRAY_SIZE(stack->stack);
   stack->pos = 0;
 }
 
-void fr_destroy_vm(struct fr_vm *vm) {
-  fr_destroy_mem(vm->iram);
+void br_destroy_vm(struct br_vm *vm) {
+  br_destroy_mem(vm->iram);
 }
 
-void fr_init_vm(struct fr_vm *vm, struct fr_code *code) {
+void br_init_vm(struct br_vm *vm, struct br_code *code) {
   memset(vm, 0, sizeof(*vm));
   vm->code = code;
 
-  fr_init_stack(&vm->dstack);
-  fr_init_stack(&vm->rstack);
+  br_init_stack(&vm->dstack);
+  br_init_stack(&vm->rstack);
 
-  vm->iram = fr_create_mem();
+  vm->iram = br_create_mem();
   if (code != NULL && code->opcodes != NULL) {
-    fr_mmap(&vm->iram, code->opcodes, code->opcodes_len,
+    br_mmap(&vm->iram, code->opcodes, code->opcodes_len,
             FR_MEM_RO | FR_MEM_FOREIGN);
   }
 }
 
-static fr_opcode_t fr_fetch(struct fr_vm *vm, fr_word_ptr_t word) {
+static br_opcode_t br_fetch(struct br_vm *vm, br_word_ptr_t word) {
   if (word < 0) {
     return FR_EXIT_RUN;
   }
-  return (fr_opcode_t) fr_read_byte(vm->iram, word);
+  return (br_opcode_t) br_read_byte(vm->iram, word);
 }
 
-static void fr_trace(struct fr_vm *vm) {
-  fr_opcode_t op = fr_fetch(vm, vm->ip);
-  fr_word_ptr_t word = fr_lookup_word(vm, op);
+static void br_trace(struct br_vm *vm) {
+  br_opcode_t op = br_fetch(vm, vm->ip);
+  br_word_ptr_t word = br_lookup_word(vm, op);
   char sword[128], pad[64];
   const char *pos_name = "???";
   const char *name = (op >= -1 ? vm->code->word_names[op + 1] : "<rel>");
 
   if (word < 0) {
-    fr_native_t func = vm->code->native_words[-word - 1];
+    br_native_t func = vm->code->native_words[-word - 1];
     snprintf(sword, sizeof(sword), "%s <%p>", name, func);
   } else {
     snprintf(sword, sizeof(sword), "%s (%04d)", name, word);
@@ -5265,45 +5265,45 @@ static void fr_trace(struct fr_vm *vm) {
                  (uint8_t) op, sword));
 }
 
-void fr_enter_thread(struct fr_vm *vm, fr_word_ptr_t word) {
-  fr_push(&vm->rstack, fr_from_int(vm->ip));
+void br_enter_thread(struct br_vm *vm, br_word_ptr_t word) {
+  br_push(&vm->rstack, br_from_int(vm->ip));
   vm->ip = word;
 }
 
-void fr_enter(struct fr_vm *vm, fr_word_ptr_t word) {
-  if (word >= 0 && fr_fetch(vm, vm->ip) == 0 && vm->rstack.pos > 0) {
+void br_enter(struct br_vm *vm, br_word_ptr_t word) {
+  if (word >= 0 && br_fetch(vm, vm->ip) == 0 && vm->rstack.pos > 0) {
     LOG(LL_DEBUG, ("tail recursion"));
-    vm->ip = fr_to_int(fr_pop(&vm->rstack));
+    vm->ip = br_to_int(br_pop(&vm->rstack));
   }
 
   if (word < 0) {
-    fr_native_t nat = vm->code->native_words[-word - 1];
+    br_native_t nat = vm->code->native_words[-word - 1];
     LOG(LL_DEBUG, ("calling native function %p", nat));
     nat(vm);
   } else {
     LOG(LL_DEBUG, ("%d is threaded word", word));
-    fr_enter_thread(vm, word);
+    br_enter_thread(vm, word);
   }
 }
 
-void fr_run(struct fr_vm *vm, fr_word_ptr_t word) {
-  fr_opcode_t op;
+void br_run(struct br_vm *vm, br_word_ptr_t word) {
+  br_opcode_t op;
   vm->ip = word;
 
   /* push sentinel so we can exit the loop */
-  fr_push(&vm->rstack, fr_from_int(FR_EXIT_RUN));
+  br_push(&vm->rstack, br_from_int(FR_EXIT_RUN));
 
-  while (vm->ip != FR_EXIT_RUN && fr_is_mapped(vm->iram, vm->ip)) {
-    fr_trace(vm);
+  while (vm->ip != FR_EXIT_RUN && br_is_mapped(vm->iram, vm->ip)) {
+    br_trace(vm);
 
-    op = fr_fetch(vm, vm->ip);
+    op = br_fetch(vm, vm->ip);
     vm->ip++;
-    word = fr_lookup_word(vm, op);
-    fr_enter(vm, word);
+    word = br_lookup_word(vm, op);
+    br_enter(vm, word);
   }
 }
 
-fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op) {
+br_word_ptr_t br_lookup_word(struct br_vm *vm, br_opcode_t op) {
   if (op < -1) {
     return vm->ip - 1 + op;
   } else {
@@ -5311,215 +5311,215 @@ fr_word_ptr_t fr_lookup_word(struct fr_vm *vm, fr_opcode_t op) {
   }
 }
 
-void fr_push(struct fr_stack *stack, fr_cell_t value) {
+void br_push(struct br_stack *stack, br_cell_t value) {
   stack->stack[stack->pos] = value;
   stack->pos++;
 }
 
-fr_cell_t fr_pop(struct fr_stack *stack) {
+br_cell_t br_pop(struct br_stack *stack) {
   assert(stack->pos > 0);
   stack->pos--;
   return stack->stack[stack->pos];
 }
 
-fr_cell_t fr_tos(struct fr_stack *stack) {
+br_cell_t br_tos(struct br_stack *stack) {
   assert(stack->pos > 0);
   return stack->stack[stack->pos - 1];
 }
 
-void fr_print_stack(struct fr_vm *vm, struct fr_stack *stack) {
+void br_print_stack(struct br_vm *vm, struct br_stack *stack) {
   size_t i;
   /* gforth style stack print */
   printf("<%zu> ", stack->pos);
   for (i = 0; i < stack->pos; i++) {
-    fr_print_cell(vm, stack->stack[i]);
+    br_print_cell(vm, stack->stack[i]);
     printf(" ");
   }
 }
 
-void fr_op_todo(struct fr_vm *vm) {
+void br_op_todo(struct br_vm *vm) {
   (void) vm;
   LOG(LL_ERROR, ("TODO: stub"));
 }
 
-void fr_op_quote(struct fr_vm *vm) {
+void br_op_quote(struct br_vm *vm) {
   int16_t lit;
   (void) vm;
-  lit = (uint8_t) fr_fetch(vm, vm->ip);
+  lit = (uint8_t) br_fetch(vm, vm->ip);
   lit <<= 8;
-  lit |= (uint8_t) fr_fetch(vm, vm->ip + 1);
+  lit |= (uint8_t) br_fetch(vm, vm->ip + 1);
   vm->ip += 2;
   LOG(LL_DEBUG, ("quoting %d", lit));
-  fr_push(&vm->dstack, fr_from_int(lit));
+  br_push(&vm->dstack, br_from_int(lit));
 }
 
-void fr_op_exit(struct fr_vm *vm) {
-  vm->ip = fr_to_int(fr_pop(&vm->rstack));
+void br_op_exit(struct br_vm *vm) {
+  vm->ip = br_to_int(br_pop(&vm->rstack));
 }
 
-void fr_op_drop(struct fr_vm *vm) {
-  fr_pop(&vm->dstack);
+void br_op_drop(struct br_vm *vm) {
+  br_pop(&vm->dstack);
 }
 
-void fr_op_dup(struct fr_vm *vm) {
-  fr_cell_t v = fr_pop(&vm->dstack);
+void br_op_dup(struct br_vm *vm) {
+  br_cell_t v = br_pop(&vm->dstack);
   /*
    * could be done more efficiently but this way we reuse the asserts and guards
    * in the stack primitives.
    */
-  fr_push(&vm->dstack, v);
-  fr_push(&vm->dstack, v);
+  br_push(&vm->dstack, v);
+  br_push(&vm->dstack, v);
 }
 
-void fr_op_swap(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_cell_t b = fr_pop(&vm->dstack);
+void br_op_swap(struct br_vm *vm) {
+  br_cell_t a = br_pop(&vm->dstack);
+  br_cell_t b = br_pop(&vm->dstack);
   /*
    * could be done more efficiently but this way we reuse the asserts and guards
    * in the stack primitives.
    */
-  fr_push(&vm->dstack, a);
-  fr_push(&vm->dstack, b);
+  br_push(&vm->dstack, a);
+  br_push(&vm->dstack, b);
 }
 
-void fr_op_over(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
+void br_op_over(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
   /*
    * could be done more efficiently but this way we reuse the asserts and guards
    * in the stack primitives.
    */
-  fr_push(&vm->dstack, a);
-  fr_push(&vm->dstack, b);
-  fr_push(&vm->dstack, a);
+  br_push(&vm->dstack, a);
+  br_push(&vm->dstack, b);
+  br_push(&vm->dstack, a);
 }
 
-void fr_op_neg_rot(struct fr_vm *vm) {
-  fr_cell_t c = fr_pop(&vm->dstack);
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
+void br_op_neg_rot(struct br_vm *vm) {
+  br_cell_t c = br_pop(&vm->dstack);
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
   /*
    * could be done more efficiently but this way we reuse the asserts and guards
    * in the stack primitives.
    */
-  fr_push(&vm->dstack, c);
-  fr_push(&vm->dstack, a);
-  fr_push(&vm->dstack, b);
+  br_push(&vm->dstack, c);
+  br_push(&vm->dstack, a);
+  br_push(&vm->dstack, b);
 }
 
-void fr_op_pushr(struct fr_vm *vm) {
-  fr_push(&vm->rstack, fr_pop(&vm->dstack));
+void br_op_pushr(struct br_vm *vm) {
+  br_push(&vm->rstack, br_pop(&vm->dstack));
 }
 
-void fr_op_popr(struct fr_vm *vm) {
-  fr_push(&vm->dstack, fr_pop(&vm->rstack));
+void br_op_popr(struct br_vm *vm) {
+  br_push(&vm->dstack, br_pop(&vm->rstack));
 }
 
-void fr_op_sp_save(struct fr_vm *vm) {
-  fr_push(&vm->dstack, fr_from_int(vm->dstack.pos));
+void br_op_sp_save(struct br_vm *vm) {
+  br_push(&vm->dstack, br_from_int(vm->dstack.pos));
 }
 
-void fr_op_sp_restore(struct fr_vm *vm) {
-  vm->dstack.pos = fr_to_int(fr_pop(&vm->dstack));
+void br_op_sp_restore(struct br_vm *vm) {
+  vm->dstack.pos = br_to_int(br_pop(&vm->dstack));
 }
 
-void fr_op_rp_save(struct fr_vm *vm) {
-  fr_push(&vm->dstack, fr_from_int(vm->rstack.pos));
+void br_op_rp_save(struct br_vm *vm) {
+  br_push(&vm->dstack, br_from_int(vm->rstack.pos));
 }
 
-void fr_op_rp_restore(struct fr_vm *vm) {
-  vm->rstack.pos = fr_to_int(fr_pop(&vm->dstack));
+void br_op_rp_restore(struct br_vm *vm) {
+  vm->rstack.pos = br_to_int(br_pop(&vm->dstack));
 }
 
-void fr_op_stash(struct fr_vm *vm) {
-  vm->tmp = fr_pop(&vm->dstack);
+void br_op_stash(struct br_vm *vm) {
+  vm->tmp = br_pop(&vm->dstack);
 }
 
-void fr_op_unstash(struct fr_vm *vm) {
-  fr_push(&vm->dstack, vm->tmp);
-  vm->tmp = fr_from_int(0);
+void br_op_unstash(struct br_vm *vm) {
+  br_push(&vm->dstack, vm->tmp);
+  vm->tmp = br_from_int(0);
 }
 
-void fr_op_print(struct fr_vm *vm) {
-  fr_cell_t v = fr_pop(&vm->dstack);
-  fr_print_cell(vm, v);
+void br_op_print(struct br_vm *vm) {
+  br_cell_t v = br_pop(&vm->dstack);
+  br_print_cell(vm, v);
 }
 
-void fr_op_cr(struct fr_vm *vm) {
+void br_op_cr(struct br_vm *vm) {
   (void) vm;
   printf("\n");
 }
 
-void fr_op_print_stack(struct fr_vm *vm) {
-  fr_print_stack(vm, &vm->dstack);
+void br_op_print_stack(struct br_vm *vm) {
+  br_print_stack(vm, &vm->dstack);
 }
 
-void fr_op_eq(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(a == b ? -1 : 0));
+void br_op_eq(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(a == b ? -1 : 0));
 }
 
-void fr_op_lt(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) < fr_to_int(b) ? -1 : 0));
+void br_op_lt(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(br_to_int(a) < br_to_int(b) ? -1 : 0));
 }
 
-void fr_op_gt(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) > fr_to_int(b) ? -1 : 0));
+void br_op_gt(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(br_to_int(a) > br_to_int(b) ? -1 : 0));
 }
 
-void fr_op_invert(struct fr_vm *vm) {
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(~fr_to_int(a)));
+void br_op_invert(struct br_vm *vm) {
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(~br_to_int(a)));
 }
 
-void fr_op_add(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) + fr_to_int(b)));
+void br_op_add(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(br_to_int(a) + br_to_int(b)));
 }
 
-void fr_op_sub(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) - fr_to_int(b)));
+void br_op_sub(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(br_to_int(a) - br_to_int(b)));
 }
 
-void fr_op_mul(struct fr_vm *vm) {
-  fr_cell_t b = fr_pop(&vm->dstack);
-  fr_cell_t a = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, fr_from_int(fr_to_int(a) * fr_to_int(b)));
+void br_op_mul(struct br_vm *vm) {
+  br_cell_t b = br_pop(&vm->dstack);
+  br_cell_t a = br_pop(&vm->dstack);
+  br_push(&vm->dstack, br_from_int(br_to_int(a) * br_to_int(b)));
 }
 
-void fr_op_call(struct fr_vm *vm) {
-  fr_enter(vm, fr_to_int(fr_pop(&vm->dstack)));
+void br_op_call(struct br_vm *vm) {
+  br_enter(vm, br_to_int(br_pop(&vm->dstack)));
 }
 
-void fr_op_if(struct fr_vm *vm) {
-  fr_cell_t iftrue = fr_pop(&vm->dstack);
-  fr_cell_t cond = fr_pop(&vm->dstack);
-  if (fr_is_true(cond)) {
-    fr_enter(vm, fr_to_int(iftrue));
+void br_op_if(struct br_vm *vm) {
+  br_cell_t iftrue = br_pop(&vm->dstack);
+  br_cell_t cond = br_pop(&vm->dstack);
+  if (br_is_true(cond)) {
+    br_enter(vm, br_to_int(iftrue));
   }
 }
 
-void fr_op_ifelse(struct fr_vm *vm) {
-  fr_cell_t iffalse = fr_pop(&vm->dstack);
-  fr_cell_t iftrue = fr_pop(&vm->dstack);
-  fr_cell_t cond = fr_pop(&vm->dstack);
-  fr_enter(vm, (fr_is_true(cond) ? fr_to_int(iftrue) : fr_to_int(iffalse)));
+void br_op_ifelse(struct br_vm *vm) {
+  br_cell_t iffalse = br_pop(&vm->dstack);
+  br_cell_t iftrue = br_pop(&vm->dstack);
+  br_cell_t cond = br_pop(&vm->dstack);
+  br_enter(vm, (br_is_true(cond) ? br_to_int(iftrue) : br_to_int(iffalse)));
 }
 
-void fr_op_ndrop(struct fr_vm *vm) {
-  fr_cell_t n = fr_pop(&vm->dstack);
-  vm->dstack.pos -= fr_to_int(n);
+void br_op_ndrop(struct br_vm *vm) {
+  br_cell_t n = br_pop(&vm->dstack);
+  vm->dstack.pos -= br_to_int(n);
 }
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/miniforth/mem.c"
+#line 1 "mjs/bf/mem.c"
 #endif
 /*
  * Copyright (c) 2014-2016 Cesanta Software Limited
@@ -5527,8 +5527,8 @@ void fr_op_ndrop(struct fr_vm *vm) {
  */
 
 /*
- * Miniforth code has access to a 16-bit addressable memory,
- * mostly for storing code. The miniforth memory contains both
+ * Brainfarth code has access to a 16-bit addressable memory,
+ * mostly for storing code. The bf memory contains both
  * statically generated read-only code (possibly mapped on flash from
  * the rodata section) and dynamically generated code.
  *
@@ -5544,16 +5544,16 @@ void fr_op_ndrop(struct fr_vm *vm) {
 #include <assert.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/miniforth/mem.h" */
+/* Amalgamated: #include "mjs/bf/mem.h" */
 
-struct fr_mem *fr_create_mem() {
-  size_t size = sizeof(struct fr_mem) - sizeof(struct fr_page);
-  struct fr_mem *mem = (struct fr_mem *) calloc(1, size);
+struct br_mem *br_create_mem() {
+  size_t size = sizeof(struct br_mem) - sizeof(struct br_page);
+  struct br_mem *mem = (struct br_mem *) calloc(1, size);
   mem->num_pages = 0;
   return mem;
 }
 
-void fr_destroy_mem(struct fr_mem *mem) {
+void br_destroy_mem(struct br_mem *mem) {
   size_t i;
   for (i = 0; i < mem->num_pages; i++) {
     if (!(mem->pages[i].flags & FR_MEM_FOREIGN)) {
@@ -5563,13 +5563,13 @@ void fr_destroy_mem(struct fr_mem *mem) {
   free(mem);
 }
 
-static void fr_realloc_mem(struct fr_mem **mem) {
+static void br_realloc_mem(struct br_mem **mem) {
   size_t size =
-      sizeof(struct fr_mem) + sizeof(struct fr_page) * ((*mem)->num_pages - 1);
-  *mem = (struct fr_mem *) realloc(*mem, size);
+      sizeof(struct br_mem) + sizeof(struct br_page) * ((*mem)->num_pages - 1);
+  *mem = (struct br_mem *) realloc(*mem, size);
 }
 
-fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
+br_cell_t br_mmap(struct br_mem **mem, void *data, size_t data_len, int flags) {
   size_t i;
   size_t start_page = (*mem)->num_pages;
   size_t num_pages =
@@ -5578,10 +5578,10 @@ fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
   LOG(LL_DEBUG, ("mapping %d pages", num_pages));
 
   (*mem)->num_pages += num_pages;
-  fr_realloc_mem(mem);
+  br_realloc_mem(mem);
 
   for (i = 0; i < num_pages; i++) {
-    struct fr_page *page = &(*mem)->pages[start_page + i];
+    struct br_page *page = &(*mem)->pages[start_page + i];
     page->flags = flags;
     page->base = (char *) data + i * FR_PAGE_SIZE;
   }
@@ -5589,19 +5589,19 @@ fr_cell_t fr_mmap(struct fr_mem **mem, void *data, size_t data_len, int flags) {
   return start_page * FR_PAGE_SIZE;
 }
 
-int fr_is_mapped(struct fr_mem *mem, fr_cell_t addr) {
+int br_is_mapped(struct br_mem *mem, br_cell_t addr) {
   uint16_t page = addr / FR_PAGE_SIZE;
   return page < mem->num_pages;
 }
 
-char fr_read_byte(struct fr_mem *mem, fr_cell_t addr) {
+char br_read_byte(struct br_mem *mem, br_cell_t addr) {
   uint16_t page = addr / FR_PAGE_SIZE;
   uint16_t off = addr % FR_PAGE_SIZE;
   assert(page < mem->num_pages);
   return ((char *) mem->pages[page].base)[off];
 }
 
-void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
+void br_write_byte(struct br_mem *mem, br_cell_t addr, char value) {
   uint16_t page = addr / FR_PAGE_SIZE;
   uint16_t off = addr % FR_PAGE_SIZE;
   assert(page < mem->num_pages);
@@ -5609,7 +5609,7 @@ void fr_write_byte(struct fr_mem *mem, fr_cell_t addr, char value) {
   /* TODO: make this disabled in release builds */
   if (mem->pages[page].flags & FR_MEM_RO) {
     LOG(LL_DEBUG,
-        ("Trapping write access to read only miniforth memory at addr 0x%X", addr));
+        ("Trapping write access to read only bf memory at addr 0x%X", addr));
     return;
   }
 
@@ -5718,7 +5718,7 @@ typedef union {
   int yyinit;
   mjsParserTOKENTYPE yy0;
   const char * yy28;
-  fr_word_ptr_t yy94;
+  br_word_ptr_t yy36;
 } YYMINORTYPE;
 #ifndef YYSTACKDEPTH
 #define YYSTACKDEPTH 100
@@ -6855,201 +6855,201 @@ static void yy_reduce(
         YYMINORTYPE yylhsminor;
       case 0: /* program ::= stmtlist */
 #line 59 "mjs/mjs.lem.c"
-{ ctx->state = 1; ctx->entry = yymsp[0].minor.yy94; }
+{ ctx->state = 1; ctx->entry = yymsp[0].minor.yy36; }
 #line 1240 "mjs/mjs.lem.c"
         break;
       case 1: /* stmtlist ::= stmtlist stmt */
 #line 61 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy94=mjs_emit_call(ctx, yymsp[-1].minor.yy94);
+  yylhsminor.yy36=mjs_emit_call(ctx, yymsp[-1].minor.yy36);
   mjs_emit(ctx, MJS_OP_drop);
-  mjs_emit_call(ctx,yymsp[0].minor.yy94);
+  mjs_emit_call(ctx,yymsp[0].minor.yy36);
   mjs_emit(ctx, MJS_OP_exit);
 }
 #line 1250 "mjs/mjs.lem.c"
-  yymsp[-1].minor.yy94 = yylhsminor.yy94;
+  yymsp[-1].minor.yy36 = yylhsminor.yy36;
         break;
       case 2: /* stmtlist ::= stmt */
 #line 67 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_call(ctx, yymsp[0].minor.yy94); mjs_emit(ctx, MJS_OP_exit); }
+{ yylhsminor.yy36=mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_exit); }
 #line 1256 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 3: /* expr ::= lhs ASSIGN expr */
 #line 80 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, 0); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, 0); }
 #line 1262 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 4: /* expr ::= lhs PLUS_ASSIGN expr */
 #line 81 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_PLUS); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_PLUS); }
 #line 1268 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 5: /* expr ::= lhs MINUS_ASSIGN expr */
 #line 82 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_MINUS); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_MINUS); }
 #line 1274 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 6: /* expr ::= lhs MUL_ASSIGN expr */
 #line 83 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_STAR); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_STAR); }
 #line 1280 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 7: /* expr ::= lhs DIV_ASSIGN expr */
 #line 84 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_div); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_div); }
 #line 1286 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 8: /* expr ::= lhs REM_ASSIGN expr */
 #line 85 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_rem); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_rem); }
 #line 1292 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 9: /* expr ::= lhs LSHIFT_ASSIGN expr */
 #line 86 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_lshift); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_lshift); }
 #line 1298 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 10: /* expr ::= lhs RSHIFT_ASSIGN expr */
 #line 87 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_rshift); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_rshift); }
 #line 1304 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 11: /* expr ::= lhs URSHIFT_ASSIGN expr */
 #line 88 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_urshift); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_urshift); }
 #line 1310 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 12: /* expr ::= lhs AND_ASSIGN expr */
 #line 89 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_and); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_and); }
 #line 1316 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 13: /* expr ::= lhs XOR_ASSIGN expr */
 #line 90 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_xor); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_xor); }
 #line 1322 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 14: /* expr ::= lhs OR_ASSIGN expr */
 #line 91 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_assign(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_or); }
+{ yylhsminor.yy36=mjs_emit_assign(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_or); }
 #line 1328 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 15: /* lhs ::= IDENTIFIER */
 #line 93 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_ident(ctx, yymsp[0].minor.yy0.begin); }
+{ yylhsminor.yy36=mjs_emit_ident(ctx, yymsp[0].minor.yy0.begin); }
 #line 1334 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 16: /* sexp ::= sexp PLUS sexp */
 #line 119 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_bin(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_PLUS); }
+{ yylhsminor.yy36=mjs_emit_bin(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_PLUS); }
 #line 1340 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 17: /* sexp ::= sexp MUL sexp */
 #line 121 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_bin(ctx, yymsp[-2].minor.yy94, yymsp[0].minor.yy94, MJS_OP_STAR); }
+{ yylhsminor.yy36=mjs_emit_bin(ctx, yymsp[-2].minor.yy36, yymsp[0].minor.yy36, MJS_OP_STAR); }
 #line 1346 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 18: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
       case 26: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==26);
 #line 125 "mjs/mjs.lem.c"
-{ yymsp[-2].minor.yy94=yymsp[-1].minor.yy94; }
+{ yymsp[-2].minor.yy36=yymsp[-1].minor.yy36; }
 #line 1353 "mjs/mjs.lem.c"
         break;
       case 19: /* sexp ::= IDENTIFIER */
 #line 127 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_var(ctx, yymsp[0].minor.yy0.begin); }
+{ yylhsminor.yy36=mjs_emit_var(ctx, yymsp[0].minor.yy0.begin); }
 #line 1358 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 20: /* expr ::= expr OPEN_PAREN CLOSE_PAREN */
 #line 131 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy94=mjs_emit(ctx, MJS_OP_zero);
-  mjs_emit_call(ctx, yymsp[-2].minor.yy94);
+  yylhsminor.yy36=mjs_emit(ctx, MJS_OP_zero);
+  mjs_emit_call(ctx, yymsp[-2].minor.yy36);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
 #line 1369 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 21: /* expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */
 #line 138 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy94=mjs_emit(ctx, MJS_OP_zero);
-  mjs_emit_call(ctx, yymsp[-1].minor.yy94);
-  mjs_emit_call(ctx, yymsp[-3].minor.yy94);
+  yylhsminor.yy36=mjs_emit(ctx, MJS_OP_zero);
+  mjs_emit_call(ctx, yymsp[-1].minor.yy36);
+  mjs_emit_call(ctx, yymsp[-3].minor.yy36);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
 #line 1381 "mjs/mjs.lem.c"
-  yymsp[-3].minor.yy94 = yylhsminor.yy94;
+  yymsp[-3].minor.yy36 = yylhsminor.yy36;
         break;
       case 22: /* callarglist ::= callarglist COMMA callarg */
 #line 145 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_call(ctx, yymsp[0].minor.yy94); mjs_emit(ctx, MJS_OP_swapinc); mjs_emit_call(ctx, yymsp[-2].minor.yy94); mjs_emit(ctx, MJS_OP_exit); }
+{ yylhsminor.yy36=mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_swapinc); mjs_emit_call(ctx, yymsp[-2].minor.yy36); mjs_emit(ctx, MJS_OP_exit); }
 #line 1387 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 23: /* callarglist ::= callarg */
 #line 146 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_call(ctx, yymsp[0].minor.yy94); mjs_emit(ctx, MJS_OP_swapinc); mjs_emit(ctx, MJS_OP_exit); }
+{ yylhsminor.yy36=mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_swapinc); mjs_emit(ctx, MJS_OP_exit); }
 #line 1393 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 24: /* literal ::= NUMBER */
 #line 181 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
+{ yylhsminor.yy36=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
 #line 1399 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 25: /* literal ::= STRING_LITERAL */
 #line 182 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
+{ yylhsminor.yy36=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
 #line 1405 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 27: /* objspeclist ::= objspeclist COMMA objspec */
 #line 193 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy94=mjs_emit_call(ctx, yymsp[-2].minor.yy94);
-  mjs_emit_call(ctx, yymsp[0].minor.yy94);
+  yylhsminor.yy36=mjs_emit_call(ctx, yymsp[-2].minor.yy36);
+  mjs_emit_call(ctx, yymsp[0].minor.yy36);
   mjs_emit(ctx, MJS_OP_exit);
 }
 #line 1415 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 28: /* objspeclist ::= objspec */
 #line 198 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit_call(ctx, yymsp[0].minor.yy94); mjs_emit(ctx, MJS_OP_exit); }
+{ yylhsminor.yy36=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_exit); }
 #line 1421 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy94 = yylhsminor.yy94;
+  yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
       case 29: /* objspeclist ::= */
 #line 199 "mjs/mjs.lem.c"
-{ yymsp[1].minor.yy94=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit(ctx, MJS_OP_exit);}
+{ yymsp[1].minor.yy36=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit(ctx, MJS_OP_exit);}
 #line 1427 "mjs/mjs.lem.c"
         break;
       case 30: /* objspec ::= objspeclhs COLON expr */
 #line 201 "mjs/mjs.lem.c"
-{ yylhsminor.yy94=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy28); mjs_emit_call(ctx, yymsp[0].minor.yy94); mjs_emit(ctx, MJS_OP_addprop); mjs_emit(ctx, MJS_OP_exit); }
+{ yylhsminor.yy36=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy28); mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_addprop); mjs_emit(ctx, MJS_OP_exit); }
 #line 1432 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy94 = yylhsminor.yy94;
+  yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       default:
       /* (31) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==31);
@@ -7389,69 +7389,69 @@ void mjsParser(
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm.gen.c"
 #endif
 /* Amalgamated: #include "mjs/vm.gen.h" */
-fr_opcode_t MJS_opcodes[] = {
+br_opcode_t MJS_opcodes[] = {
   /* 0000 -> : quote ... ; */
-  /*           <fr_op_quote> */ 
+  /*           <br_op_quote> */ 
   /* 0000 -> : exit ... ; */
-  /*           <fr_op_exit> */ 
+  /*           <br_op_exit> */ 
   /* 0000 -> : drop ... ; */
-  /*           <fr_op_drop> */ 
+  /*           <br_op_drop> */ 
   /* 0000 -> : dup ... ; */
-  /*           <fr_op_dup> */ 
+  /*           <br_op_dup> */ 
   /* 0000 -> : swap ... ; */
-  /*           <fr_op_swap> */ 
+  /*           <br_op_swap> */ 
   /* 0000 -> : over ... ; */
-  /*           <fr_op_over> */ 
+  /*           <br_op_over> */ 
   /* 0000 -> : -rot ... ; */
-  /*           <fr_op_neg_rot> */ 
+  /*           <br_op_neg_rot> */ 
   /* 0000 -> : rot ... ; */
   MJS_OP_MINUS_rot, MJS_OP_MINUS_rot, MJS_OP_exit,
   /* 0003 -> : >r ... ; */
-  /*           <fr_op_pushr> */ 
+  /*           <br_op_pushr> */ 
   /* 0003 -> : r> ... ; */
-  /*           <fr_op_popr> */ 
+  /*           <br_op_popr> */ 
   /* 0003 -> : sp@ ... ; */
-  /*           <fr_op_sp_save> */ 
+  /*           <br_op_sp_save> */ 
   /* 0003 -> : sp! ... ; */
-  /*           <fr_op_sp_restore> */ 
+  /*           <br_op_sp_restore> */ 
   /* 0003 -> : rp@ ... ; */
-  /*           <fr_op_rp_save> */ 
+  /*           <br_op_rp_save> */ 
   /* 0003 -> : rp! ... ; */
-  /*           <fr_op_rp_restore> */ 
+  /*           <br_op_rp_restore> */ 
   /* 0003 -> : tmp! ... ; */
-  /*           <fr_op_stash> */ 
+  /*           <br_op_stash> */ 
   /* 0003 -> : tmp@ ... ; */
-  /*           <fr_op_unstash> */ 
+  /*           <br_op_unstash> */ 
   /* 0003 -> : print ... ; */
-  /*           <fr_op_print> */ 
+  /*           <br_op_print> */ 
   /* 0003 -> : cr ... ; */
-  /*           <fr_op_cr> */ 
+  /*           <br_op_cr> */ 
   /* 0003 -> : .s ... ; */
-  /*           <fr_op_print_stack> */ 
+  /*           <br_op_print_stack> */ 
   /* 0003 -> : = ... ; */
-  /*           <fr_op_eq> */ 
+  /*           <br_op_eq> */ 
   /* 0003 -> : < ... ; */
-  /*           <fr_op_lt> */ 
+  /*           <br_op_lt> */ 
   /* 0003 -> : > ... ; */
-  /*           <fr_op_gt> */ 
+  /*           <br_op_gt> */ 
   /* 0003 -> : invert ... ; */
-  /*           <fr_op_invert> */ 
+  /*           <br_op_invert> */ 
   /* 0003 -> : + ... ; */
-  /*           <fr_op_add> */ 
+  /*           <br_op_add> */ 
   /* 0003 -> : - ... ; */
-  /*           <fr_op_sub> */ 
+  /*           <br_op_sub> */ 
   /* 0003 -> : * ... ; */
-  /*           <fr_op_mul> */ 
+  /*           <br_op_mul> */ 
   /* 0003 -> : call ... ; */
-  /*           <fr_op_call> */ 
+  /*           <br_op_call> */ 
   /* 0003 -> : if ... ; */
-  /*           <fr_op_if> */ 
+  /*           <br_op_if> */ 
   /* 0003 -> : ifelse ... ; */
-  /*           <fr_op_ifelse> */ 
+  /*           <br_op_ifelse> */ 
   /* 0003 -> : loop ... ; */
   MJS_OP_dup, MJS_OP_GT_r, MJS_OP_call, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_quote, 0, 3, MJS_OP_quote, -1, -3, MJS_OP_ifelse, MJS_OP_exit,
   /* 0016 -> : ndrop ... ; */
-  /*           <fr_op_ndrop> */ 
+  /*           <br_op_ndrop> */ 
   /* 0016 -> : str ... ; */
   /*           <mjs_op_str> */ 
   /* 0016 -> : scope@ ... ; */
@@ -7536,9 +7536,9 @@ fr_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_todo> */ 
   /* 0173 -> : xor ... ; */
   /*           <mjs_op_todo> */ 
-}; /* 173 * sizeof(fr_opcode_t) */
+}; /* 173 * sizeof(br_opcode_t) */
 
-fr_word_ptr_t MJS_word_ptrs[] = {
+br_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
   /* 0000 */ -2, 
   /* 0001 */ -3, 
@@ -7607,85 +7607,85 @@ fr_word_ptr_t MJS_word_ptrs[] = {
   /* 0064 */ -48, 
 };
 
-void fr_op_quote(struct fr_vm *vm);
-void fr_op_exit(struct fr_vm *vm);
-void fr_op_drop(struct fr_vm *vm);
-void fr_op_dup(struct fr_vm *vm);
-void fr_op_swap(struct fr_vm *vm);
-void fr_op_over(struct fr_vm *vm);
-void fr_op_neg_rot(struct fr_vm *vm);
-void fr_op_pushr(struct fr_vm *vm);
-void fr_op_popr(struct fr_vm *vm);
-void fr_op_sp_save(struct fr_vm *vm);
-void fr_op_sp_restore(struct fr_vm *vm);
-void fr_op_rp_save(struct fr_vm *vm);
-void fr_op_rp_restore(struct fr_vm *vm);
-void fr_op_stash(struct fr_vm *vm);
-void fr_op_unstash(struct fr_vm *vm);
-void fr_op_print(struct fr_vm *vm);
-void fr_op_cr(struct fr_vm *vm);
-void fr_op_print_stack(struct fr_vm *vm);
-void fr_op_eq(struct fr_vm *vm);
-void fr_op_lt(struct fr_vm *vm);
-void fr_op_gt(struct fr_vm *vm);
-void fr_op_invert(struct fr_vm *vm);
-void fr_op_add(struct fr_vm *vm);
-void fr_op_sub(struct fr_vm *vm);
-void fr_op_mul(struct fr_vm *vm);
-void fr_op_call(struct fr_vm *vm);
-void fr_op_if(struct fr_vm *vm);
-void fr_op_ifelse(struct fr_vm *vm);
-void fr_op_ndrop(struct fr_vm *vm);
-void mjs_op_str(struct fr_vm *vm);
-void mjs_op_getscope(struct fr_vm *vm);
-void mjs_op_setscope(struct fr_vm *vm);
-void mjs_op_getframe(struct fr_vm *vm);
-void mjs_op_setframe(struct fr_vm *vm);
-void mjs_op_mkobj(struct fr_vm *vm);
-void mjs_op_setprop(struct fr_vm *vm);
-void mjs_op_getprop(struct fr_vm *vm);
-void mjs_op_jscall(struct fr_vm *vm);
-void mjs_op_undefined(struct fr_vm *vm);
-void mjs_op_null(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
-void mjs_op_todo(struct fr_vm *vm);
+void br_op_quote(struct br_vm *vm);
+void br_op_exit(struct br_vm *vm);
+void br_op_drop(struct br_vm *vm);
+void br_op_dup(struct br_vm *vm);
+void br_op_swap(struct br_vm *vm);
+void br_op_over(struct br_vm *vm);
+void br_op_neg_rot(struct br_vm *vm);
+void br_op_pushr(struct br_vm *vm);
+void br_op_popr(struct br_vm *vm);
+void br_op_sp_save(struct br_vm *vm);
+void br_op_sp_restore(struct br_vm *vm);
+void br_op_rp_save(struct br_vm *vm);
+void br_op_rp_restore(struct br_vm *vm);
+void br_op_stash(struct br_vm *vm);
+void br_op_unstash(struct br_vm *vm);
+void br_op_print(struct br_vm *vm);
+void br_op_cr(struct br_vm *vm);
+void br_op_print_stack(struct br_vm *vm);
+void br_op_eq(struct br_vm *vm);
+void br_op_lt(struct br_vm *vm);
+void br_op_gt(struct br_vm *vm);
+void br_op_invert(struct br_vm *vm);
+void br_op_add(struct br_vm *vm);
+void br_op_sub(struct br_vm *vm);
+void br_op_mul(struct br_vm *vm);
+void br_op_call(struct br_vm *vm);
+void br_op_if(struct br_vm *vm);
+void br_op_ifelse(struct br_vm *vm);
+void br_op_ndrop(struct br_vm *vm);
+void mjs_op_str(struct br_vm *vm);
+void mjs_op_getscope(struct br_vm *vm);
+void mjs_op_setscope(struct br_vm *vm);
+void mjs_op_getframe(struct br_vm *vm);
+void mjs_op_setframe(struct br_vm *vm);
+void mjs_op_mkobj(struct br_vm *vm);
+void mjs_op_setprop(struct br_vm *vm);
+void mjs_op_getprop(struct br_vm *vm);
+void mjs_op_jscall(struct br_vm *vm);
+void mjs_op_undefined(struct br_vm *vm);
+void mjs_op_null(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
+void mjs_op_todo(struct br_vm *vm);
 
-fr_native_t MJS_native_words[] = {
-  /* -001 */ fr_op_quote,
-  /* -002 */ fr_op_exit,
-  /* -003 */ fr_op_drop,
-  /* -004 */ fr_op_dup,
-  /* -005 */ fr_op_swap,
-  /* -006 */ fr_op_over,
-  /* -007 */ fr_op_neg_rot,
-  /* -008 */ fr_op_pushr,
-  /* -009 */ fr_op_popr,
-  /* -010 */ fr_op_sp_save,
-  /* -011 */ fr_op_sp_restore,
-  /* -012 */ fr_op_rp_save,
-  /* -013 */ fr_op_rp_restore,
-  /* -014 */ fr_op_stash,
-  /* -015 */ fr_op_unstash,
-  /* -016 */ fr_op_print,
-  /* -017 */ fr_op_cr,
-  /* -018 */ fr_op_print_stack,
-  /* -019 */ fr_op_eq,
-  /* -020 */ fr_op_lt,
-  /* -021 */ fr_op_gt,
-  /* -022 */ fr_op_invert,
-  /* -023 */ fr_op_add,
-  /* -024 */ fr_op_sub,
-  /* -025 */ fr_op_mul,
-  /* -026 */ fr_op_call,
-  /* -027 */ fr_op_if,
-  /* -028 */ fr_op_ifelse,
-  /* -029 */ fr_op_ndrop,
+br_native_t MJS_native_words[] = {
+  /* -001 */ br_op_quote,
+  /* -002 */ br_op_exit,
+  /* -003 */ br_op_drop,
+  /* -004 */ br_op_dup,
+  /* -005 */ br_op_swap,
+  /* -006 */ br_op_over,
+  /* -007 */ br_op_neg_rot,
+  /* -008 */ br_op_pushr,
+  /* -009 */ br_op_popr,
+  /* -010 */ br_op_sp_save,
+  /* -011 */ br_op_sp_restore,
+  /* -012 */ br_op_rp_save,
+  /* -013 */ br_op_rp_restore,
+  /* -014 */ br_op_stash,
+  /* -015 */ br_op_unstash,
+  /* -016 */ br_op_print,
+  /* -017 */ br_op_cr,
+  /* -018 */ br_op_print_stack,
+  /* -019 */ br_op_eq,
+  /* -020 */ br_op_lt,
+  /* -021 */ br_op_gt,
+  /* -022 */ br_op_invert,
+  /* -023 */ br_op_add,
+  /* -024 */ br_op_sub,
+  /* -025 */ br_op_mul,
+  /* -026 */ br_op_call,
+  /* -027 */ br_op_if,
+  /* -028 */ br_op_ifelse,
+  /* -029 */ br_op_ndrop,
   /* -030 */ mjs_op_str,
   /* -031 */ mjs_op_getscope,
   /* -032 */ mjs_op_setscope,
@@ -7952,7 +7952,7 @@ const char *MJS_pos_names[] = {
   "swapinc+2", 
 };
 
-struct fr_code MJS_code = {
+struct br_code MJS_code = {
   MJS_opcodes, sizeof(MJS_opcodes)/sizeof(MJS_opcodes[0]),
   MJS_word_ptrs, sizeof(MJS_word_ptrs)/sizeof(MJS_word_ptrs[0]),
   MJS_native_words, sizeof(MJS_native_words)/sizeof(MJS_native_words),
@@ -7969,7 +7969,7 @@ struct fr_code MJS_code = {
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/miniforth/mem.h" */
+/* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/mm.h" */
 /* Amalgamated: #include "mjs/val.h" */
@@ -7989,16 +7989,16 @@ static void object_destructor(struct mjs *mjs, void *ptr) {
   (void) ptr;
 }
 
-int32_t fr_to_int(fr_cell_t cell) {
+int32_t br_to_int(br_cell_t cell) {
   mjs_val_t v = (mjs_val_t) cell;
   return mjs_get_int32(NULL, v);
 }
 
-fr_cell_t fr_from_int(int32_t i) {
+br_cell_t br_from_int(int32_t i) {
   return mjs_mk_number(NULL, i);
 }
 
-void fr_print_cell(struct fr_vm *vm, fr_cell_t cell) {
+void br_print_cell(struct br_vm *vm, br_cell_t cell) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   mjs_val_t v = (mjs_val_t) cell;
   if (mjs_is_number(v)) {
@@ -8016,7 +8016,7 @@ void fr_print_cell(struct fr_vm *vm, fr_cell_t cell) {
   }
 }
 
-int fr_is_true(fr_cell_t cell) {
+int br_is_true(br_cell_t cell) {
   return !!mjs_get_int32(NULL, (mjs_val_t) cell);
 }
 
@@ -8027,13 +8027,13 @@ struct mjs *mjs_create() {
 }
 
 MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
-  fr_word_ptr_t jsprint = fr_lookup_word(&mjs->vm, MJS_OP_jsprint);
+  br_word_ptr_t jsprint = br_lookup_word(&mjs->vm, MJS_OP_jsprint);
   mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, jsprint));
 }
 
 struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
   struct mjs *mjs = calloc(1, sizeof(*mjs));
-  fr_init_vm(&mjs->vm, (opts.code ? opts.code : &MJS_code));
+  br_init_vm(&mjs->vm, (opts.code ? opts.code : &MJS_code));
   mjs->vm.user_data = (void *) mjs;
 
   mjs->last_code = mjs->vm.iram->num_pages * FR_PAGE_SIZE;
@@ -8055,7 +8055,7 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
 }
 
 void mjs_destroy(struct mjs *mjs) {
-  fr_destroy_vm(&mjs->vm);
+  br_destroy_vm(&mjs->vm);
   mbuf_free(&mjs->owned_strings);
   mbuf_free(&mjs->foreign_strings);
   gc_arena_destroy(mjs, &mjs->object_arena);
@@ -8150,9 +8150,9 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
   }
 
   LOG(LL_DEBUG, ("running %d", ctx.entry));
-  fr_run(&mjs->vm, ctx.entry);
+  br_run(&mjs->vm, ctx.entry);
   if (res != NULL) {
-    *(int64_t *) res = fr_pop(&mjs->vm.dstack);
+    *(int64_t *) res = br_pop(&mjs->vm.dstack);
   }
 
   return err;
@@ -8746,72 +8746,72 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
  */
 
 /*
- * This file contains miniforth words implemented in C.
- * The functions here must be referenced from //mjs:vm.mfo.
+ * This file contains bf words implemented in C.
+ * The functions here must be referenced from //mjs:vm.bf.
  */
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/miniforth/mem.h" */
-/* Amalgamated: #include "mjs/miniforth/miniforth.h" */
+/* Amalgamated: #include "mjs/bf/mem.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
-void mjs_op_todo(struct fr_vm *vm) {
+void mjs_op_todo(struct br_vm *vm) {
   (void) vm;
   LOG(LL_ERROR, ("TODO"));
 }
 
-void mjs_op_str(struct fr_vm *vm) {
+void mjs_op_str(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   char ch;
   char buf[MJS_STRING_LITERAL_MAX_LEN];
   size_t len = 0;
   do {
-    ch = (char) fr_read_byte(vm->iram, vm->ip++);
+    ch = (char) br_read_byte(vm->iram, vm->ip++);
     if (len < MJS_STRING_LITERAL_MAX_LEN) {
       buf[len++] = ch;
     }
   } while (ch != '\0');
 
-  fr_push(&vm->dstack, mjs_mk_string(mjs, buf, len - 1, 1));
+  br_push(&vm->dstack, mjs_mk_string(mjs, buf, len - 1, 1));
 }
 
-void mjs_op_mkobj(struct fr_vm *vm) {
+void mjs_op_mkobj(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  fr_push(&vm->dstack, mjs_mk_object(mjs));
+  br_push(&vm->dstack, mjs_mk_object(mjs));
 }
 
-void mjs_op_addprop(struct fr_vm *vm) {
+void mjs_op_addprop(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs_val_t val = fr_pop(&vm->dstack);
-  mjs_val_t name = fr_pop(&vm->dstack);
-  mjs_val_t obj = fr_pop(&vm->dstack);
+  mjs_val_t val = br_pop(&vm->dstack);
+  mjs_val_t name = br_pop(&vm->dstack);
+  mjs_val_t obj = br_pop(&vm->dstack);
   mjs_set_v(mjs, obj, name, val);
-  fr_push(&vm->dstack, obj);
+  br_push(&vm->dstack, obj);
 }
 
-void mjs_op_setprop(struct fr_vm *vm) {
+void mjs_op_setprop(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs_val_t val = fr_pop(&vm->dstack);
-  mjs_val_t name = fr_pop(&vm->dstack);
-  mjs_val_t obj = fr_pop(&vm->dstack);
+  mjs_val_t val = br_pop(&vm->dstack);
+  mjs_val_t name = br_pop(&vm->dstack);
+  mjs_val_t obj = br_pop(&vm->dstack);
   mjs_set_v(mjs, obj, name, val);
-  fr_push(&vm->dstack, val);
+  br_push(&vm->dstack, val);
 }
 
-void mjs_op_getprop(struct fr_vm *vm) {
+void mjs_op_getprop(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs_val_t name = fr_pop(&vm->dstack);
-  mjs_val_t obj = fr_pop(&vm->dstack);
-  fr_push(&vm->dstack, mjs_get_v(mjs, obj, name));
+  mjs_val_t name = br_pop(&vm->dstack);
+  mjs_val_t obj = br_pop(&vm->dstack);
+  br_push(&vm->dstack, mjs_get_v(mjs, obj, name));
 }
 
-void mjs_op_jscall(struct fr_vm *vm) {
+void mjs_op_jscall(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs_val_t func = fr_pop(&vm->dstack);
-  size_t nargs = fr_to_int(fr_tos(&vm->dstack));
+  mjs_val_t func = br_pop(&vm->dstack);
+  size_t nargs = br_to_int(br_tos(&vm->dstack));
   size_t stack_pos = vm->dstack.pos - 1 /* nargs */;
 
   assert(stack_pos >= nargs);
@@ -8836,14 +8836,14 @@ void mjs_op_jscall(struct fr_vm *vm) {
    * stack). It preserves the return value of `f` which was at the top of the
    * stack.
    */
-  fr_push(&vm->rstack, fr_from_int(stack_pos - nargs));
-  fr_push(&vm->rstack, fr_from_int(fr_lookup_word(vm, MJS_OP_jscall_exit)));
+  br_push(&vm->rstack, br_from_int(stack_pos - nargs));
+  br_push(&vm->rstack, br_from_int(br_lookup_word(vm, MJS_OP_jscall_exit)));
 
   if (mjs_is_number(func)) {
-    vm->ip = fr_to_int(func);
+    vm->ip = br_to_int(func);
   } else if (mjs_is_foreign(func)) {
-    void (*native)(struct fr_vm *vm);
-    native = (void (*) (struct fr_vm *vm)) mjs_get_ptr(mjs, func);
+    void (*native)(struct br_vm *vm);
+    native = (void (*) (struct br_vm *vm)) mjs_get_ptr(mjs, func);
     native(vm);
   } else if (mjs_is_string(func)) {
     /* TODO: implement FFI */
@@ -8853,32 +8853,32 @@ void mjs_op_jscall(struct fr_vm *vm) {
   }
 }
 
-void mjs_op_getscope(struct fr_vm *vm) {
+void mjs_op_getscope(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  fr_push(&vm->dstack, mjs->vals.scope);
+  br_push(&vm->dstack, mjs->vals.scope);
 }
 
-void mjs_op_setscope(struct fr_vm *vm) {
+void mjs_op_setscope(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs->vals.scope = fr_pop(&vm->dstack);
+  mjs->vals.scope = br_pop(&vm->dstack);
 }
 
-void mjs_op_getframe(struct fr_vm *vm) {
+void mjs_op_getframe(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  fr_push(&vm->dstack, mjs->vals.call_frame);
+  br_push(&vm->dstack, mjs->vals.call_frame);
 }
 
-void mjs_op_setframe(struct fr_vm *vm) {
+void mjs_op_setframe(struct br_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs->vals.call_frame = fr_pop(&vm->dstack);
+  mjs->vals.call_frame = br_pop(&vm->dstack);
 }
 
-void mjs_op_undefined(struct fr_vm *vm) {
-  fr_push(&vm->dstack, mjs_mk_undefined());
+void mjs_op_undefined(struct br_vm *vm) {
+  br_push(&vm->dstack, mjs_mk_undefined());
 }
 
-void mjs_op_null(struct fr_vm *vm) {
-  fr_push(&vm->dstack, mjs_mk_null());
+void mjs_op_null(struct br_vm *vm) {
+  br_push(&vm->dstack, mjs_mk_null());
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
@@ -8901,24 +8901,24 @@ void mjs_op_null(struct fr_vm *vm) {
  *
  * A bottom up parser naturally builds a tree from the leaves up to the
  * root. The code is emitted precisely in that sequence, from the leaves
- * up. Each "node" of the tree is an anonymous miniforth word.
+ * up. Each "node" of the tree is an anonymous bf word.
  *
  * For example `1` is a literal number expression, thus `: anon 1 ;`.
- * These are 2 miniforth instructions: the literal and the exit opcode (the `;`).
+ * These are 2 bf instructions: the literal and the exit opcode (the `;`).
  * (How that encodes down to bytes is irrelevant in this discussion, see the
- * miniforth compiler; however an interesting note is that in most cases the
+ * bf compiler; however an interesting note is that in most cases the
  * call to a previously defined subexpression can be encoded in one byte, a
  * negative offset).
  *
  * Another example: the `1+2` expression would be classically represented with a
  * binary node `+` and two pointers to the left and right subexpressions.
- * We do the same thing here but with executable miniforth code:
+ * We do the same thing here but with executable bf code:
  *
  * ```
  * : anon3 anon1 anon2 + ;
  * ```
  *
- * These are 4 miniforth words: a call to the left subexpression, a call to the
+ * These are 4 bf words: a call to the left subexpression, a call to the
  * right subexpression, the add operation and exit.
  *
  * And so forth. This technique can easily encode arbitrary expressions by
@@ -8990,7 +8990,7 @@ void mjs_op_null(struct fr_vm *vm) {
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "common/cs_file.h" */
-/* Amalgamated: #include "mjs/miniforth/mem.h" */
+/* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
@@ -9132,24 +9132,24 @@ mjs_err_t mjs_parse_file(struct mjs *mjs, const char *path,
   return err;
 }
 
-void mjs_dump_bcode(struct mjs *mjs, const char *filename, fr_word_ptr_t start,
-                    fr_word_ptr_t end) {
-  fr_word_ptr_t i;
+void mjs_dump_bcode(struct mjs *mjs, const char *filename, br_word_ptr_t start,
+                    br_word_ptr_t end) {
+  br_word_ptr_t i;
   FILE *out = fopen(filename, "w");
 
   for (i = start; i < end; i++) {
-    uint8_t b = (uint8_t) fr_read_byte(mjs->vm.iram, i);
+    uint8_t b = (uint8_t) br_read_byte(mjs->vm.iram, i);
     fwrite(&b, 1, 1, out);
   }
   fclose(out);
 }
 
-fr_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, fr_opcode_t op) {
+br_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, br_opcode_t op) {
   LOG(LL_DEBUG, ("emitting opcode %d at %d", op, ctx->gen));
   return mjs_emit_uint8(ctx, (uint8_t) op);
 }
 
-fr_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, fr_word_ptr_t dst) {
+br_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, br_word_ptr_t dst) {
   size_t delta;
   /* LOG(LL_ERROR, ("EMITTING CALL TO %d", dst)); */
   /* assert(dst < ctx->gen); */
@@ -9158,15 +9158,15 @@ fr_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, fr_word_ptr_t dst) {
   if (delta <= 128) {
     return mjs_emit_uint8(ctx, (uint8_t)(int8_t)(-delta));
   } else {
-    fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
+    br_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
     mjs_emit_uint16(ctx, dst);
     return start;
   }
 }
 
-fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
-                           fr_word_ptr_t b, fr_opcode_t op) {
-  fr_word_ptr_t start = ctx->gen;
+br_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, br_word_ptr_t a,
+                           br_word_ptr_t b, br_opcode_t op) {
+  br_word_ptr_t start = ctx->gen;
   mjs_emit_call(ctx, a);
   mjs_emit_call(ctx, b);
   mjs_emit(ctx, op);
@@ -9174,16 +9174,16 @@ fr_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, fr_word_ptr_t a,
   return start;
 }
 
-fr_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit) {
+br_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit) {
   int n = atoi(lit);
-  fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
+  br_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
   mjs_emit_uint16(ctx, (uint16_t) n);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_str_inline(struct mjs_parse_ctx *ctx, const char *lit) {
-  fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
+br_word_ptr_t mjs_emit_str_inline(struct mjs_parse_ctx *ctx, const char *lit) {
+  br_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
   char quote = lit[0];
   size_t len = 0, ulen, i;
   char buf[MJS_STRING_LITERAL_MAX_LEN];
@@ -9201,15 +9201,15 @@ fr_word_ptr_t mjs_emit_str_inline(struct mjs_parse_ctx *ctx, const char *lit) {
   return start;
 }
 
-fr_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit) {
-  fr_word_ptr_t start = mjs_emit_str_inline(ctx, lit);
+br_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit) {
+  br_word_ptr_t start = mjs_emit_str_inline(ctx, lit);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_ident_inline(struct mjs_parse_ctx *ctx,
+br_word_ptr_t mjs_emit_ident_inline(struct mjs_parse_ctx *ctx,
                                     const char *ident) {
-  fr_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
+  br_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
 
   while (is_ident(*ident)) {
     mjs_emit_uint8(ctx, *ident++);
@@ -9219,13 +9219,13 @@ fr_word_ptr_t mjs_emit_ident_inline(struct mjs_parse_ctx *ctx,
   return start;
 }
 
-fr_word_ptr_t mjs_emit_ident(struct mjs_parse_ctx *ctx, const char *ident) {
-  fr_word_ptr_t start = mjs_emit_ident_inline(ctx, ident);
+br_word_ptr_t mjs_emit_ident(struct mjs_parse_ctx *ctx, const char *ident) {
+  br_word_ptr_t start = mjs_emit_ident_inline(ctx, ident);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_str_or_ident(struct mjs_parse_ctx *ctx,
+br_word_ptr_t mjs_emit_str_or_ident(struct mjs_parse_ctx *ctx,
                                     const char *lit) {
   if (lit[0] == '"' || lit[0] == '\'') {
     return mjs_emit_str_inline(ctx, lit);
@@ -9234,21 +9234,21 @@ fr_word_ptr_t mjs_emit_str_or_ident(struct mjs_parse_ctx *ctx,
   }
 }
 
-fr_word_ptr_t mjs_emit_var(struct mjs_parse_ctx *ctx, const char *ident) {
+br_word_ptr_t mjs_emit_var(struct mjs_parse_ctx *ctx, const char *ident) {
   /*
    * Obviously we could encode a var reference more efficiently by creating
    * a getvar word that takes the variable name from the instruction stream.
    * The reason it is not so now is simply because of lazines.
    */
-  fr_word_ptr_t start = mjs_emit_ident_inline(ctx, ident);
+  br_word_ptr_t start = mjs_emit_ident_inline(ctx, ident);
   mjs_emit(ctx, MJS_OP_getvar);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_assign(struct mjs_parse_ctx *ctx, fr_word_ptr_t lhs,
-                              fr_word_ptr_t val, fr_opcode_t op) {
-  fr_word_ptr_t start = mjs_emit_call(ctx, lhs);
+br_word_ptr_t mjs_emit_assign(struct mjs_parse_ctx *ctx, br_word_ptr_t lhs,
+                              br_word_ptr_t val, br_opcode_t op) {
+  br_word_ptr_t start = mjs_emit_call(ctx, lhs);
   if (op != 0) {
     mjs_emit(ctx, MJS_OP_dup);
     mjs_emit(ctx, MJS_OP_getvar);
@@ -9262,30 +9262,30 @@ fr_word_ptr_t mjs_emit_assign(struct mjs_parse_ctx *ctx, fr_word_ptr_t lhs,
   return start;
 }
 
-fr_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v) {
-  fr_word_ptr_t start = ctx->gen;
-  if (!fr_is_mapped(ctx->mjs->vm.iram, ctx->gen)) {
-    fr_mmap(&ctx->mjs->vm.iram, calloc(1, FR_PAGE_SIZE), FR_PAGE_SIZE, 0);
+br_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v) {
+  br_word_ptr_t start = ctx->gen;
+  if (!br_is_mapped(ctx->mjs->vm.iram, ctx->gen)) {
+    br_mmap(&ctx->mjs->vm.iram, calloc(1, FR_PAGE_SIZE), FR_PAGE_SIZE, 0);
   }
   LOG(LL_DEBUG, ("emitting byte %02X at %d", v, ctx->gen));
-  fr_write_byte(ctx->mjs->vm.iram, ctx->gen++, v);
+  br_write_byte(ctx->mjs->vm.iram, ctx->gen++, v);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v) {
-  fr_word_ptr_t start = mjs_emit_uint8(ctx, v >> 8);
+br_word_ptr_t mjs_emit_uint16(struct mjs_parse_ctx *ctx, uint16_t v) {
+  br_word_ptr_t start = mjs_emit_uint8(ctx, v >> 8);
   mjs_emit_uint8(ctx, v & 0xff);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_uint32(struct mjs_parse_ctx *ctx, uint32_t v) {
-  fr_word_ptr_t start = mjs_emit_uint16(ctx, v >> 16);
+br_word_ptr_t mjs_emit_uint32(struct mjs_parse_ctx *ctx, uint32_t v) {
+  br_word_ptr_t start = mjs_emit_uint16(ctx, v >> 16);
   mjs_emit_uint16(ctx, v & 0xffff);
   return start;
 }
 
-fr_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v) {
-  fr_word_ptr_t start = mjs_emit_uint32(ctx, v >> 32);
+br_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v) {
+  br_word_ptr_t start = mjs_emit_uint32(ctx, v >> 32);
   mjs_emit_uint32(ctx, v & 0xffffffff);
   return start;
 }
