@@ -5817,73 +5817,73 @@ typedef union {
 *********** Begin parsing tables **********************************************/
 #define YY_ACTTAB_COUNT (1206)
 static const YYACTIONTYPE yy_action[] = {
- /*     0 */    54,   56,   12,   35,  214,   50,   52,   60,   58,  255,
+ /*     0 */    54,   56,   12,   35,  214,   50,   52,   60,   58,  257,
  /*    10 */    34,   14,   66,  128,  128,   76,  126,  126,  137,  135,
- /*    20 */   134,   62,  212,  121,   18,  269,  270,  271,  215,  216,
- /*    30 */   276,  277,   54,   56,  119,  219,  218,   50,   52,   60,
- /*    40 */    58,   63,   34,   14,   66,   12,   35,   76,  268,  217,
- /*    50 */   137,  135,  134,   62,  263,  121,   18,  269,  270,  271,
- /*    60 */   215,  216,  276,  277,   54,   56,  284,   12,   35,   50,
+ /*    20 */   134,   62,  212,  121,   18,  269,  270,  271,  217,  218,
+ /*    30 */   276,  277,   54,   56,  119,  221,  220,   50,   52,   60,
+ /*    40 */    58,   63,   34,   14,   66,   12,   35,   76,  216,  219,
+ /*    50 */   137,  135,  134,   62,  265,  121,   18,  269,  270,  271,
+ /*    60 */   217,  218,  276,  277,   54,   56,  284,   12,   35,   50,
  /*    70 */    52,   60,   58,    4,   34,   14,   66,   12,   35,   76,
- /*    80 */   227,  140,  137,  135,  134,   62,  213,  121,   18,  269,
- /*    90 */   270,  271,  215,  216,  276,  277,   30,   54,   56,  280,
+ /*    80 */   229,  140,  137,  135,  134,   62,  213,  121,   18,  269,
+ /*    90 */   270,  271,  217,  218,  276,  277,   30,   54,   56,  280,
  /*   100 */    12,   35,   50,   52,   60,   58,    6,   34,   14,   66,
  /*   110 */    12,   35,   76,   12,   35,  137,  135,  134,   62,  206,
- /*   120 */   121,   18,  269,  270,  271,  215,  216,  276,  277,   54,
- /*   130 */    56,  278,  265,   65,   50,   52,   60,   58,  130,   34,
- /*   140 */    14,   66,  236,  237,   76,  279,   38,  137,  135,  134,
- /*   150 */    62,  223,  121,   18,  269,  270,  271,  215,  216,  276,
+ /*   120 */   121,   18,  269,  270,  271,  217,  218,  276,  277,   54,
+ /*   130 */    56,  278,  267,   65,   50,   52,   60,   58,  130,   34,
+ /*   140 */    14,   66,  238,  239,   76,  279,   38,  137,  135,  134,
+ /*   150 */    62,  225,  121,   18,  269,  270,  271,  217,  218,  276,
  /*   160 */   277,   54,   56,  120,  375,  120,   50,   52,   60,   58,
  /*   170 */    31,   34,   14,   66,    2,  123,   74,  123,   64,  137,
- /*   180 */   135,  134,   62,    3,  121,   18,  269,  270,  271,  215,
+ /*   180 */   135,  134,   62,    3,  121,   18,  269,  270,  271,  217,
  /*   190 */   127,  276,  277,   54,   56,   13,   15,  209,   50,   52,
  /*   200 */    60,   58,   16,   34,   14,   66,   17,   32,   76,    5,
  /*   210 */    33,  137,  135,  134,    1,    7,  121,   18,  269,  270,
- /*   220 */   271,  215,  216,  276,  277,   54,   56,   67,   65,  129,
+ /*   220 */   271,  217,  218,  276,  277,   54,   56,   67,   65,  129,
  /*   230 */    50,   52,   60,   58,   37,   34,   14,   67,  286,  138,
- /*   240 */    76,  208,  222,   68,  286,  286,   62,  286,  139,  286,
- /*   250 */   269,  270,  271,  215,  216,  276,  277,   54,   56,  286,
+ /*   240 */    76,  208,  224,   68,  286,  286,   62,  286,  139,  286,
+ /*   250 */   269,  270,  271,  217,  218,  276,  277,   54,   56,  286,
  /*   260 */   286,  286,   50,   52,   60,   58,  286,   34,   14,  286,
- /*   270 */   267,  286,   76,  286,  286,  286,  286,  286,   62,  286,
- /*   280 */   139,  286,  269,  270,  271,  215,  216,  276,  277,   47,
+ /*   270 */   215,  286,   76,  286,  286,  286,  286,  286,   62,  286,
+ /*   280 */   139,  286,  269,  270,  271,  217,  218,  276,  277,   47,
  /*   290 */    46,   45,   44,   53,   51,   49,   48,   59,   57,   55,
- /*   300 */    43,   42,   41,   40,   39,  236,  237,  286,  286,   61,
+ /*   300 */    43,   42,   41,   40,   39,  238,  239,  286,  286,   61,
  /*   310 */    54,   56,  286,  286,  286,   50,   52,   60,   58,  286,
  /*   320 */    34,   14,  286,  286,  286,   76,  286,  286,  286,  286,
- /*   330 */   286,   62,  286,  139,  286,  269,  270,  271,  215,  216,
+ /*   330 */   286,   62,  286,  139,  286,  269,  270,  271,  217,  218,
  /*   340 */   276,  277,   54,   56,  286,  286,  286,   50,   52,   60,
  /*   350 */    58,  286,   34,   14,  286,  286,  286,  207,  286,  286,
  /*   360 */   286,  286,  286,   62,  286,  139,  286,  269,  270,  271,
- /*   370 */   215,  216,  276,  277,   54,   56,  286,  286,  286,   50,
+ /*   370 */   217,  218,  276,  277,   54,   56,  286,  286,  286,   50,
  /*   380 */    52,   60,   58,  286,   34,   14,  286,  286,  286,   75,
  /*   390 */   286,  286,  286,  286,  286,   62,  286,  139,  286,  269,
- /*   400 */   270,  271,  215,  216,  276,  277,   53,   51,   49,   48,
- /*   410 */    59,   57,   55,   43,   42,   41,   40,   39,  236,  237,
+ /*   400 */   270,  271,  217,  218,  276,  277,   53,   51,   49,   48,
+ /*   410 */    59,   57,   55,   43,   42,   41,   40,   39,  238,  239,
  /*   420 */   286,  286,   38,  128,  286,    9,  190,  286,  286,   93,
  /*   430 */    77,   69,   69,  286,  286,  286,  286,  190,  286,   69,
- /*   440 */   286,   69,   69,   69,  119,  219,  299,  299,  299,  299,
+ /*   440 */   286,   69,   69,   69,  119,  221,  299,  299,  299,  299,
  /*   450 */   299,  299,  299,  299,  299,  299,  299,  299,  286,  286,
  /*   460 */   286,  286,  381,   11,  190,  286,  286,   93,   77,   69,
  /*   470 */    69,  286,  286,  286,  286,  190,  286,   69,  286,   69,
- /*   480 */    69,   69,  286,  324,  324,  324,  324,  324,  324,  324,
- /*   490 */   324,  324,  324,  324,  324,  103,   77,   69,   69,  102,
+ /*   480 */    69,   69,  286,  326,  326,  326,  326,  326,  326,  326,
+ /*   490 */   326,  326,  326,  326,  326,  103,   77,   69,   69,  102,
  /*   500 */   211,  286,  286,  286,  286,   69,  374,   69,   69,   69,
  /*   510 */   299,  299,  299,  299,  299,  299,  299,  299,  299,  299,
  /*   520 */   299,  299,   36,   29,   28,   27,   26,   25,   24,   23,
  /*   530 */    22,   21,   20,   19,  286,    8,  190,  286,  286,   93,
  /*   540 */    77,   69,   69,  286,  286,  286,  286,  190,  286,   69,
- /*   550 */   286,   69,   69,   69,  259,  286,  286,   93,   77,   69,
- /*   560 */    69,  286,  286,  259,  286,  259,  286,   69,  286,   69,
- /*   570 */    69,   69,   43,   42,   41,   40,   39,  236,  237,  258,
- /*   580 */   286,   38,   93,   77,   69,   69,  286,  286,  258,  286,
- /*   590 */   258,  286,   69,  286,   69,   69,   69,  257,  286,  286,
- /*   600 */    93,   77,   69,   69,  286,  286,  257,  286,  257,  286,
+ /*   550 */   286,   69,   69,   69,  261,  286,  286,   93,   77,   69,
+ /*   560 */    69,  286,  286,  261,  286,  261,  286,   69,  286,   69,
+ /*   570 */    69,   69,   43,   42,   41,   40,   39,  238,  239,  260,
+ /*   580 */   286,   38,   93,   77,   69,   69,  286,  286,  260,  286,
+ /*   590 */   260,  286,   69,  286,   69,   69,   69,  259,  286,  286,
+ /*   600 */    93,   77,   69,   69,  286,  286,  259,  286,  259,  286,
  /*   610 */    69,  286,   69,   69,   69,  286,  136,  286,  286,   93,
  /*   620 */    77,   69,   69,  286,  286,  136,  286,  136,  286,   69,
  /*   630 */   286,   69,   69,   69,  286,   10,  190,  286,  286,   93,
  /*   640 */    77,   69,   69,  286,  286,  286,  286,  190,  286,   69,
  /*   650 */   286,   69,   69,   69,   59,   57,   55,   43,   42,   41,
- /*   660 */    40,   39,  236,  237,  189,  286,   38,   93,   77,   69,
+ /*   660 */    40,   39,  238,  239,  189,  286,   38,   93,   77,   69,
  /*   670 */    69,  286,  286,  286,  286,  189,  286,   69,  286,   69,
  /*   680 */    69,   69,  103,   77,   69,   69,  286,  210,  117,   77,
  /*   690 */    69,   69,   69,  286,   69,   69,   69,  286,   69,  286,
@@ -5897,7 +5897,7 @@ static const YYACTIONTYPE yy_action[] = {
  /*   770 */   286,   69,   69,   69,  105,   77,   69,   69,  286,  106,
  /*   780 */    77,   69,   69,  286,   69,  286,   69,   69,   69,   69,
  /*   790 */   286,   69,   69,   69,  286,  107,   77,   69,   69,   41,
- /*   800 */    40,   39,  236,  237,  286,   69,   38,   69,   69,   69,
+ /*   800 */    40,   39,  238,  239,  286,   69,   38,   69,   69,   69,
  /*   810 */   108,   77,   69,   69,  286,  286,  286,  286,  286,  286,
  /*   820 */    69,  286,   69,   69,   69,  109,   77,   69,   69,  286,
  /*   830 */   286,  110,   77,   69,   69,   69,  286,   69,   69,   69,
@@ -5916,8 +5916,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*   960 */   286,  286,  286,  286,   69,  286,   69,   69,   69,  124,
  /*   970 */    77,   69,   69,  286,  286,  125,   77,   69,   69,   69,
  /*   980 */   286,   69,   69,   69,  286,   69,  286,   69,   69,   69,
- /*   990 */   252,  252,  286,  286,  286,   95,   95,  286,  252,  286,
- /*  1000 */   252,  252,  252,   95,  286,   95,   95,   95,  286,   96,
+ /*   990 */   254,  254,  286,  286,  286,   95,   95,  286,  254,  286,
+ /*  1000 */   254,  254,  254,   95,  286,   95,   95,   95,  286,   96,
  /*  1010 */    96,  286,  286,  286,   97,   97,  286,   96,  286,   96,
  /*  1020 */    96,   96,   97,  286,   97,   97,   97,   85,   85,  286,
  /*  1030 */   286,  286,  286,  286,  286,   85,  286,   85,   85,   85,
@@ -6097,21 +6097,21 @@ static const short yy_reduce_ofst[] = {
  /*    60 */  1120,  917,  -52,  -51,   83,   95,  -53,   50,   81,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   380,  316,  380,  380,  380,  380,  380,  380,  380,  380,
- /*    10 */   380,  380,  380,  380,  379,  356,  356,  356,  380,  380,
+ /*     0 */   380,  318,  380,  380,  380,  380,  380,  380,  380,  380,
+ /*    10 */   380,  380,  380,  380,  379,  358,  358,  358,  380,  380,
  /*    20 */   380,  380,  380,  380,  380,  380,  380,  380,  380,  380,
  /*    30 */   380,  380,  380,  380,  380,  380,  380,  380,  380,  380,
  /*    40 */   380,  380,  380,  380,  380,  380,  380,  380,  380,  380,
  /*    50 */   380,  380,  380,  380,  380,  380,  380,  380,  380,  380,
- /*    60 */   380,  380,  316,  380,  380,  380,  380,  380,  380,  325,
- /*    70 */   344,  343,  342,  341,  303,  303,  303,  380,  337,  338,
- /*    80 */   340,  339,  334,  335,  336,  345,  300,  329,  328,  380,
- /*    90 */   380,  380,  380,  380,  380,  347,  346,  301,  331,  330,
- /*   100 */   327,  326,  380,  350,  298,  297,  296,  295,  294,  293,
- /*   110 */   292,  291,  290,  289,  288,  377,  380,  378,  317,  380,
- /*   120 */   380,  380,  357,  380,  287,  321,  380,  312,  380,  380,
- /*   130 */   380,  380,  380,  380,  380,  380,  352,  380,  380,  380,
- /*   140 */   322,
+ /*    60 */   380,  380,  318,  380,  380,  380,  380,  380,  380,  327,
+ /*    70 */   346,  345,  344,  343,  303,  303,  303,  380,  339,  340,
+ /*    80 */   342,  341,  336,  337,  338,  347,  300,  331,  330,  380,
+ /*    90 */   380,  380,  380,  380,  380,  349,  348,  301,  333,  332,
+ /*   100 */   329,  328,  380,  352,  298,  297,  296,  295,  294,  293,
+ /*   110 */   292,  291,  290,  289,  288,  377,  380,  378,  319,  380,
+ /*   120 */   380,  380,  359,  380,  287,  323,  380,  314,  380,  380,
+ /*   130 */   380,  380,  380,  380,  380,  380,  354,  380,  380,  380,
+ /*   140 */   324,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -6273,60 +6273,60 @@ static const char *const yyRuleName[] = {
  /*  24 */ "funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
  /*  25 */ "func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY",
  /*  26 */ "argspec ::= IDENTIFIER",
- /*  27 */ "literal ::= NUMBER",
- /*  28 */ "literal ::= STRING_LITERAL",
- /*  29 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
- /*  30 */ "objspeclist ::= objspeclist COMMA objspec",
- /*  31 */ "objspeclist ::= objspec",
- /*  32 */ "objspeclist ::=",
- /*  33 */ "objspec ::= objspeclhs COLON expr",
- /*  34 */ "stmt ::= LET letspecs SEMICOLON",
- /*  35 */ "letspecs ::= letspecs COMMA letspec",
- /*  36 */ "letspecs ::= letspec",
- /*  37 */ "letspec ::= IDENTIFIER ASSIGN expr",
- /*  38 */ "letspec ::= IDENTIFIER",
- /*  39 */ "stmt ::= expr SEMICOLON",
- /*  40 */ "lhs ::= sexp DOT IDENTIFIER",
- /*  41 */ "expr ::= sexp",
- /*  42 */ "sexp ::= NOT sexp",
- /*  43 */ "sexp ::= TILDA sexp",
- /*  44 */ "sexp ::= MINUS sexp",
- /*  45 */ "sexp ::= PLUS sexp",
- /*  46 */ "sexp ::= MINUS_MINUS sexp",
- /*  47 */ "sexp ::= PLUS_PLUS sexp",
- /*  48 */ "sexp ::= sexp PLUS_PLUS",
- /*  49 */ "sexp ::= sexp MINUS_MINUS",
- /*  50 */ "sexp ::= sexp LSHIFT sexp",
- /*  51 */ "sexp ::= sexp RSHIFT sexp",
- /*  52 */ "sexp ::= sexp URSHIFT sexp",
- /*  53 */ "sexp ::= sexp LE sexp",
- /*  54 */ "sexp ::= sexp LT sexp",
- /*  55 */ "sexp ::= sexp GE sexp",
- /*  56 */ "sexp ::= sexp GT sexp",
- /*  57 */ "sexp ::= sexp EQ sexp",
- /*  58 */ "sexp ::= sexp NE sexp",
- /*  59 */ "sexp ::= sexp EQ_EQ sexp",
- /*  60 */ "sexp ::= sexp NE_NE sexp",
- /*  61 */ "sexp ::= sexp MINUS sexp",
- /*  62 */ "sexp ::= sexp DIV sexp",
- /*  63 */ "sexp ::= sexp REM sexp",
- /*  64 */ "sexp ::= sexp DOT sexp",
- /*  65 */ "sexp ::= literal",
- /*  66 */ "callarg ::= expr",
- /*  67 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
- /*  68 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block",
- /*  69 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block",
- /*  70 */ "stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block",
- /*  71 */ "stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block",
- /*  72 */ "optexpr ::=",
- /*  73 */ "optexpr ::= expr",
- /*  74 */ "block ::= stmt",
- /*  75 */ "block ::= OPEN_CURLY stmtlist CLOSE_CURLY",
- /*  76 */ "stmt ::= funcdecl",
- /*  77 */ "arglist ::= arglist COMMA argspec",
- /*  78 */ "arglist ::= argspec",
- /*  79 */ "stmt ::= RETURN SEMICOLON",
- /*  80 */ "stmt ::= RETURN expr SEMICOLON",
+ /*  27 */ "stmt ::= RETURN SEMICOLON",
+ /*  28 */ "stmt ::= RETURN expr SEMICOLON",
+ /*  29 */ "literal ::= NUMBER",
+ /*  30 */ "literal ::= STRING_LITERAL",
+ /*  31 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
+ /*  32 */ "objspeclist ::= objspeclist COMMA objspec",
+ /*  33 */ "objspeclist ::= objspec",
+ /*  34 */ "objspeclist ::=",
+ /*  35 */ "objspec ::= objspeclhs COLON expr",
+ /*  36 */ "stmt ::= LET letspecs SEMICOLON",
+ /*  37 */ "letspecs ::= letspecs COMMA letspec",
+ /*  38 */ "letspecs ::= letspec",
+ /*  39 */ "letspec ::= IDENTIFIER ASSIGN expr",
+ /*  40 */ "letspec ::= IDENTIFIER",
+ /*  41 */ "stmt ::= expr SEMICOLON",
+ /*  42 */ "lhs ::= sexp DOT IDENTIFIER",
+ /*  43 */ "expr ::= sexp",
+ /*  44 */ "sexp ::= NOT sexp",
+ /*  45 */ "sexp ::= TILDA sexp",
+ /*  46 */ "sexp ::= MINUS sexp",
+ /*  47 */ "sexp ::= PLUS sexp",
+ /*  48 */ "sexp ::= MINUS_MINUS sexp",
+ /*  49 */ "sexp ::= PLUS_PLUS sexp",
+ /*  50 */ "sexp ::= sexp PLUS_PLUS",
+ /*  51 */ "sexp ::= sexp MINUS_MINUS",
+ /*  52 */ "sexp ::= sexp LSHIFT sexp",
+ /*  53 */ "sexp ::= sexp RSHIFT sexp",
+ /*  54 */ "sexp ::= sexp URSHIFT sexp",
+ /*  55 */ "sexp ::= sexp LE sexp",
+ /*  56 */ "sexp ::= sexp LT sexp",
+ /*  57 */ "sexp ::= sexp GE sexp",
+ /*  58 */ "sexp ::= sexp GT sexp",
+ /*  59 */ "sexp ::= sexp EQ sexp",
+ /*  60 */ "sexp ::= sexp NE sexp",
+ /*  61 */ "sexp ::= sexp EQ_EQ sexp",
+ /*  62 */ "sexp ::= sexp NE_NE sexp",
+ /*  63 */ "sexp ::= sexp MINUS sexp",
+ /*  64 */ "sexp ::= sexp DIV sexp",
+ /*  65 */ "sexp ::= sexp REM sexp",
+ /*  66 */ "sexp ::= sexp DOT sexp",
+ /*  67 */ "sexp ::= literal",
+ /*  68 */ "callarg ::= expr",
+ /*  69 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
+ /*  70 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block",
+ /*  71 */ "stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block",
+ /*  72 */ "stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block",
+ /*  73 */ "stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block",
+ /*  74 */ "optexpr ::=",
+ /*  75 */ "optexpr ::= expr",
+ /*  76 */ "block ::= stmt",
+ /*  77 */ "block ::= OPEN_CURLY stmtlist CLOSE_CURLY",
+ /*  78 */ "stmt ::= funcdecl",
+ /*  79 */ "arglist ::= arglist COMMA argspec",
+ /*  80 */ "arglist ::= argspec",
  /*  81 */ "literal ::= NULL",
  /*  82 */ "literal ::= UNDEFINED",
  /*  83 */ "literal ::= THIS",
@@ -6728,6 +6728,8 @@ static const struct {
   { 79, 8 },
   { 81, 7 },
   { 82, 1 },
+  { 68, 2 },
+  { 68, 3 },
   { 74, 1 },
   { 74, 1 },
   { 84, 3 },
@@ -6780,8 +6782,6 @@ static const struct {
   { 68, 1 },
   { 80, 3 },
   { 80, 1 },
-  { 68, 2 },
-  { 68, 3 },
   { 74, 1 },
   { 74, 1 },
   { 74, 1 },
@@ -6973,7 +6973,7 @@ static void yy_reduce(
   yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 18: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
-      case 29: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==29);
+      case 31: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==31);
 #line 125 "mjs/mjs.lem.c"
 { yymsp[-2].minor.yy36=yymsp[-1].minor.yy36; }
 #line 1353 "mjs/mjs.lem.c"
@@ -7041,93 +7041,101 @@ static void yy_reduce(
 #line 1415 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 27: /* literal ::= NUMBER */
+      case 27: /* stmt ::= RETURN SEMICOLON */
+#line 180 "mjs/mjs.lem.c"
+{yymsp[-1].minor.yy36=mjs_emit(ctx, MJS_OP_undefined); mjs_emit(ctx, MJS_OP_jsexit); mjs_emit(ctx, MJS_OP_exit);}
+#line 1421 "mjs/mjs.lem.c"
+        break;
+      case 28: /* stmt ::= RETURN expr SEMICOLON */
+#line 181 "mjs/mjs.lem.c"
+{yymsp[-2].minor.yy36=mjs_emit_call(ctx, yymsp[-1].minor.yy36); mjs_emit(ctx, MJS_OP_jsexit); mjs_emit(ctx, MJS_OP_exit);}
+#line 1426 "mjs/mjs.lem.c"
+        break;
+      case 29: /* literal ::= NUMBER */
 #line 187 "mjs/mjs.lem.c"
 { yylhsminor.yy36=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 1421 "mjs/mjs.lem.c"
+#line 1431 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 28: /* literal ::= STRING_LITERAL */
+      case 30: /* literal ::= STRING_LITERAL */
 #line 188 "mjs/mjs.lem.c"
 { yylhsminor.yy36=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 1427 "mjs/mjs.lem.c"
+#line 1437 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 30: /* objspeclist ::= objspeclist COMMA objspec */
+      case 32: /* objspeclist ::= objspeclist COMMA objspec */
 #line 199 "mjs/mjs.lem.c"
 {
   yylhsminor.yy36=mjs_emit_call(ctx, yymsp[-2].minor.yy36);
   mjs_emit_call(ctx, yymsp[0].minor.yy36);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1437 "mjs/mjs.lem.c"
+#line 1447 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
-      case 31: /* objspeclist ::= objspec */
+      case 33: /* objspeclist ::= objspec */
 #line 204 "mjs/mjs.lem.c"
 { yylhsminor.yy36=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_exit); }
-#line 1443 "mjs/mjs.lem.c"
+#line 1453 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 32: /* objspeclist ::= */
+      case 34: /* objspeclist ::= */
 #line 205 "mjs/mjs.lem.c"
 { yymsp[1].minor.yy36=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit(ctx, MJS_OP_exit);}
-#line 1449 "mjs/mjs.lem.c"
+#line 1459 "mjs/mjs.lem.c"
         break;
-      case 33: /* objspec ::= objspeclhs COLON expr */
+      case 35: /* objspec ::= objspeclhs COLON expr */
 #line 207 "mjs/mjs.lem.c"
 { yylhsminor.yy36=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy28); mjs_emit_call(ctx, yymsp[0].minor.yy36); mjs_emit(ctx, MJS_OP_addprop); mjs_emit(ctx, MJS_OP_exit); }
-#line 1454 "mjs/mjs.lem.c"
+#line 1464 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       default:
-      /* (34) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==34);
-      /* (35) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==35);
-      /* (36) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=36);
-      /* (37) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==37);
-      /* (38) letspec ::= IDENTIFIER */ yytestcase(yyruleno==38);
-      /* (39) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==39);
-      /* (40) lhs ::= sexp DOT IDENTIFIER */ yytestcase(yyruleno==40);
-      /* (41) expr ::= sexp */ yytestcase(yyruleno==41);
-      /* (42) sexp ::= NOT sexp */ yytestcase(yyruleno==42);
-      /* (43) sexp ::= TILDA sexp */ yytestcase(yyruleno==43);
-      /* (44) sexp ::= MINUS sexp */ yytestcase(yyruleno==44);
-      /* (45) sexp ::= PLUS sexp */ yytestcase(yyruleno==45);
-      /* (46) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==46);
-      /* (47) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==47);
-      /* (48) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==48);
-      /* (49) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==49);
-      /* (50) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==50);
-      /* (51) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==51);
-      /* (52) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==52);
-      /* (53) sexp ::= sexp LE sexp */ yytestcase(yyruleno==53);
-      /* (54) sexp ::= sexp LT sexp */ yytestcase(yyruleno==54);
-      /* (55) sexp ::= sexp GE sexp */ yytestcase(yyruleno==55);
-      /* (56) sexp ::= sexp GT sexp */ yytestcase(yyruleno==56);
-      /* (57) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==57);
-      /* (58) sexp ::= sexp NE sexp */ yytestcase(yyruleno==58);
-      /* (59) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==59);
-      /* (60) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==60);
-      /* (61) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==61);
-      /* (62) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==62);
-      /* (63) sexp ::= sexp REM sexp */ yytestcase(yyruleno==63);
-      /* (64) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==64);
-      /* (65) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=65);
-      /* (66) callarg ::= expr */ yytestcase(yyruleno==66);
-      /* (67) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==67);
-      /* (68) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==68);
-      /* (69) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */ yytestcase(yyruleno==69);
-      /* (70) stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==70);
-      /* (71) stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block */ yytestcase(yyruleno==71);
-      /* (72) optexpr ::= */ yytestcase(yyruleno==72);
-      /* (73) optexpr ::= expr */ yytestcase(yyruleno==73);
-      /* (74) block ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=74);
-      /* (75) block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==75);
-      /* (76) stmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=76);
-      /* (77) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==77);
-      /* (78) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=78);
-      /* (79) stmt ::= RETURN SEMICOLON */ yytestcase(yyruleno==79);
-      /* (80) stmt ::= RETURN expr SEMICOLON */ yytestcase(yyruleno==80);
+      /* (36) stmt ::= LET letspecs SEMICOLON */ yytestcase(yyruleno==36);
+      /* (37) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==37);
+      /* (38) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=38);
+      /* (39) letspec ::= IDENTIFIER ASSIGN expr */ yytestcase(yyruleno==39);
+      /* (40) letspec ::= IDENTIFIER */ yytestcase(yyruleno==40);
+      /* (41) stmt ::= expr SEMICOLON */ yytestcase(yyruleno==41);
+      /* (42) lhs ::= sexp DOT IDENTIFIER */ yytestcase(yyruleno==42);
+      /* (43) expr ::= sexp */ yytestcase(yyruleno==43);
+      /* (44) sexp ::= NOT sexp */ yytestcase(yyruleno==44);
+      /* (45) sexp ::= TILDA sexp */ yytestcase(yyruleno==45);
+      /* (46) sexp ::= MINUS sexp */ yytestcase(yyruleno==46);
+      /* (47) sexp ::= PLUS sexp */ yytestcase(yyruleno==47);
+      /* (48) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==48);
+      /* (49) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==49);
+      /* (50) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==50);
+      /* (51) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==51);
+      /* (52) sexp ::= sexp LSHIFT sexp */ yytestcase(yyruleno==52);
+      /* (53) sexp ::= sexp RSHIFT sexp */ yytestcase(yyruleno==53);
+      /* (54) sexp ::= sexp URSHIFT sexp */ yytestcase(yyruleno==54);
+      /* (55) sexp ::= sexp LE sexp */ yytestcase(yyruleno==55);
+      /* (56) sexp ::= sexp LT sexp */ yytestcase(yyruleno==56);
+      /* (57) sexp ::= sexp GE sexp */ yytestcase(yyruleno==57);
+      /* (58) sexp ::= sexp GT sexp */ yytestcase(yyruleno==58);
+      /* (59) sexp ::= sexp EQ sexp */ yytestcase(yyruleno==59);
+      /* (60) sexp ::= sexp NE sexp */ yytestcase(yyruleno==60);
+      /* (61) sexp ::= sexp EQ_EQ sexp */ yytestcase(yyruleno==61);
+      /* (62) sexp ::= sexp NE_NE sexp */ yytestcase(yyruleno==62);
+      /* (63) sexp ::= sexp MINUS sexp */ yytestcase(yyruleno==63);
+      /* (64) sexp ::= sexp DIV sexp */ yytestcase(yyruleno==64);
+      /* (65) sexp ::= sexp REM sexp */ yytestcase(yyruleno==65);
+      /* (66) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==66);
+      /* (67) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=67);
+      /* (68) callarg ::= expr */ yytestcase(yyruleno==68);
+      /* (69) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==69);
+      /* (70) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==70);
+      /* (71) stmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */ yytestcase(yyruleno==71);
+      /* (72) stmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */ yytestcase(yyruleno==72);
+      /* (73) stmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block */ yytestcase(yyruleno==73);
+      /* (74) optexpr ::= */ yytestcase(yyruleno==74);
+      /* (75) optexpr ::= expr */ yytestcase(yyruleno==75);
+      /* (76) block ::= stmt (OPTIMIZED OUT) */ assert(yyruleno!=76);
+      /* (77) block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==77);
+      /* (78) stmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=78);
+      /* (79) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==79);
+      /* (80) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=80);
       /* (81) literal ::= NULL */ yytestcase(yyruleno==81);
       /* (82) literal ::= UNDEFINED */ yytestcase(yyruleno==82);
       /* (83) literal ::= THIS */ yytestcase(yyruleno==83);
@@ -7185,7 +7193,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 1562 "mjs/mjs.lem.c"
+#line 1570 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7205,7 +7213,7 @@ static void yy_syntax_error(
 #line 31 "mjs/mjs.lem.c"
 
   ctx->syntax_error = TOKEN;
-#line 1582 "mjs/mjs.lem.c"
+#line 1590 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7231,7 +7239,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 1608 "mjs/mjs.lem.c"
+#line 1616 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
