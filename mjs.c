@@ -2355,6 +2355,11 @@ void mjs_destroy(struct mjs *mjs);
 
 mjs_val_t mjs_get_global(struct mjs *mjs);
 
+void mjs_push(struct mjs *mjs, mjs_val_t val);
+mjs_val_t mjs_pop(struct mjs *mjs);
+mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res);
+
 #endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.h"
@@ -8097,6 +8102,35 @@ void mjs_destroy(struct mjs *mjs) {
 
 mjs_val_t mjs_get_global(struct mjs *mjs) {
   return mjs->vals.global_object;
+}
+
+void mjs_push(struct mjs *mjs, mjs_val_t val) {
+  br_push(&mjs->vm.dstack, val);
+}
+
+mjs_val_t mjs_pop(struct mjs *mjs) {
+  return br_pop(&mjs->vm.dstack);
+}
+
+mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs) {
+  mjs_val_t arg = mjs_mk_undefined();
+  int n = mjs_get_int(mjs, *nargs);
+  if (n > 0) {
+    arg = mjs_pop(mjs);
+    n--;
+    *nargs = mjs_mk_number(mjs, n);
+  }
+  return arg;
+}
+
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res) {
+  mjs_val_t r;
+  br_push(&mjs->vm.dstack, mjs_mk_number(mjs, nargs));
+  br_push(&mjs->vm.dstack, func);
+  br_run(&mjs->vm, MJS_OP_jscall);
+  r = br_pop(&mjs->vm.dstack);
+  if (res != NULL) *res = r;
+  return MJS_OK;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/disasm_mjs.c"
