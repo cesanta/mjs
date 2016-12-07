@@ -9543,6 +9543,14 @@ static int next_tok(struct pstate *p) {
     case DT('|','='): return TOK_OR_ASSIGN;
     case DT('%','='): return TOK_REM_ASSIGN;
 
+    case DT('=','='): return TOK_EQ;
+    case DT('!','='): return TOK_NE;
+    case DT('<','='): return TOK_LE;
+    case DT('>','='): return TOK_GE;
+
+    case '<': return TOK_LT;
+    case '>': return TOK_GT;
+
     case TOK_NUM: return TOK_NUMBER;
     case TOK_STR: return TOK_STRING_LITERAL;
     case TOK_IDENT: return TOK_IDENTIFIER;
