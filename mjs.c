@@ -2005,6 +2005,80 @@ bf_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
 
 extern struct bf_code MJS_code;
 
+#define MJS_WORD_PTR_quote (0)
+#define MJS_WORD_PTR_exit (0)
+#define MJS_WORD_PTR_drop (0)
+#define MJS_WORD_PTR_dup (0)
+#define MJS_WORD_PTR_swap (0)
+#define MJS_WORD_PTR_over (0)
+#define MJS_WORD_PTR_MINUS_rot (0)
+#define MJS_WORD_PTR_rot (0)
+#define MJS_WORD_PTR_GT_r (3)
+#define MJS_WORD_PTR_r_GT (3)
+#define MJS_WORD_PTR_sp_AT (3)
+#define MJS_WORD_PTR_sp_SET (3)
+#define MJS_WORD_PTR_rp_AT (3)
+#define MJS_WORD_PTR_rp_SET (3)
+#define MJS_WORD_PTR_tmp_SET (3)
+#define MJS_WORD_PTR_tmp_AT (3)
+#define MJS_WORD_PTR_print (3)
+#define MJS_WORD_PTR_cr (3)
+#define MJS_WORD_PTR_DOT_s (3)
+#define MJS_WORD_PTR_EQ (3)
+#define MJS_WORD_PTR_LT (3)
+#define MJS_WORD_PTR_GT (3)
+#define MJS_WORD_PTR_invert (3)
+#define MJS_WORD_PTR_PLUS (3)
+#define MJS_WORD_PTR_MINUS (3)
+#define MJS_WORD_PTR_STAR (3)
+#define MJS_WORD_PTR_call (3)
+#define MJS_WORD_PTR_if (3)
+#define MJS_WORD_PTR_ifelse (3)
+#define MJS_WORD_PTR_loop (3)
+#define MJS_WORD_PTR_ndrop (16)
+#define MJS_WORD_PTR_str (16)
+#define MJS_WORD_PTR_scope_AT (16)
+#define MJS_WORD_PTR_scope_SET (16)
+#define MJS_WORD_PTR_frame_AT (16)
+#define MJS_WORD_PTR_frame_SET (16)
+#define MJS_WORD_PTR_mkobj (16)
+#define MJS_WORD_PTR_addprop (16)
+#define MJS_WORD_PTR_setprop (24)
+#define MJS_WORD_PTR_getprop (24)
+#define MJS_WORD_PTR_getvar (24)
+#define MJS_WORD_PTR_setvar (24)
+#define MJS_WORD_PTR_jscall (24)
+#define MJS_WORD_PTR_jscall_exit (24)
+#define MJS_WORD_PTR_jsenter (29)
+#define MJS_WORD_PTR_jsexit (43)
+#define MJS_WORD_PTR_anon_0 (50)
+#define MJS_WORD_PTR_anon_1 (52)
+#define MJS_WORD_PTR_setarg (54)
+#define MJS_WORD_PTR_ffi (74)
+#define MJS_WORD_PTR_undefined (76)
+#define MJS_WORD_PTR_null (76)
+#define MJS_WORD_PTR_2dup (76)
+#define MJS_WORD_PTR_dec (79)
+#define MJS_WORD_PTR_GTEQ (84)
+#define MJS_WORD_PTR_anon_2 (87)
+#define MJS_WORD_PTR_anon_3 (104)
+#define MJS_WORD_PTR_repeat (111)
+#define MJS_WORD_PTR_anon_4 (124)
+#define MJS_WORD_PTR_anon_5 (129)
+#define MJS_WORD_PTR_jsprint (141)
+#define MJS_WORD_PTR_zero (148)
+#define MJS_WORD_PTR_one (152)
+#define MJS_WORD_PTR_nop (156)
+#define MJS_WORD_PTR_inc (159)
+#define MJS_WORD_PTR_swapinc (164)
+#define MJS_WORD_PTR_div (167)
+#define MJS_WORD_PTR_rem (167)
+#define MJS_WORD_PTR_lshift (167)
+#define MJS_WORD_PTR_rshift (167)
+#define MJS_WORD_PTR_urshift (167)
+#define MJS_WORD_PTR_and (167)
+#define MJS_WORD_PTR_or (167)
+#define MJS_WORD_PTR_xor (167)
 #define MJS_OP_quote ((bf_opcode_t) -1)
 #define MJS_OP_exit ((bf_opcode_t) 0)
 #define MJS_OP_drop ((bf_opcode_t) 1)
@@ -7581,55 +7655,57 @@ bf_opcode_t MJS_opcodes[] = {
   MJS_OP_rot, MJS_OP_exit,
   /* 0054 -> : setarg ... ; */
   MJS_OP_rot, MJS_OP_one, MJS_OP_MINUS, MJS_OP_dup, MJS_OP_GT_r, MJS_OP_quote, 0, 0, MJS_OP_LT, MJS_OP_quote, 0, 50, MJS_OP_quote, 0, 52, MJS_OP_ifelse, MJS_OP_addprop, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_exit,
-  /* 0074 -> : undefined ... ; */
+  /* 0074 -> : ffi ... ; */
+  MJS_OP_drop, MJS_OP_exit,
+  /* 0076 -> : undefined ... ; */
   /*           <mjs_op_undefined> */ 
-  /* 0074 -> : null ... ; */
+  /* 0076 -> : null ... ; */
   /*           <mjs_op_null> */ 
-  /* 0074 -> : 2dup ... ; */
+  /* 0076 -> : 2dup ... ; */
   MJS_OP_over, MJS_OP_over, MJS_OP_exit,
-  /* 0077 -> : dec ... ; */
+  /* 0079 -> : dec ... ; */
   MJS_OP_quote, -1, -1, MJS_OP_PLUS, MJS_OP_exit,
-  /* 0082 -> : >= ... ; */
+  /* 0084 -> : >= ... ; */
   MJS_OP_LT, MJS_OP_invert, MJS_OP_exit,
-  /* 0085 -> : anon_2 ... ; */
+  /* 0087 -> : anon_2 ... ; */
   MJS_OP_2dup, MJS_OP_GT_r, MJS_OP_GT_r, MJS_OP_call, MJS_OP_r_GT, MJS_OP_r_GT, MJS_OP_swap, -15, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GTEQ, MJS_OP_GT_r, MJS_OP_swap, MJS_OP_r_GT, MJS_OP_exit,
-  /* 0102 -> : anon_3 ... ; */
-  -25, MJS_OP_swap, MJS_OP_quote, 0, 85, MJS_OP_loop, MJS_OP_exit,
-  /* 0109 -> : repeat ... ; */
-  MJS_OP_swap, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GT, MJS_OP_quote, 0, 102, MJS_OP_if, MJS_OP_drop, MJS_OP_drop, MJS_OP_exit,
-  /* 0122 -> : anon_4 ... ; */
+  /* 0104 -> : anon_3 ... ; */
+  -25, MJS_OP_swap, MJS_OP_quote, 0, 87, MJS_OP_loop, MJS_OP_exit,
+  /* 0111 -> : repeat ... ; */
+  MJS_OP_swap, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GT, MJS_OP_quote, 0, 104, MJS_OP_if, MJS_OP_drop, MJS_OP_drop, MJS_OP_exit,
+  /* 0124 -> : anon_4 ... ; */
   MJS_OP_str, /* " " */  ' ', 0, MJS_OP_print, MJS_OP_exit,
-  /* 0127 -> : anon_5 ... ; */
-  MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, 122, MJS_OP_if, MJS_OP_exit,
-  /* 0139 -> : jsprint ... ; */
-  MJS_OP_quote, 0, 127, MJS_OP_repeat, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
-  /* 0146 -> : zero ... ; */
+  /* 0129 -> : anon_5 ... ; */
+  MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, 124, MJS_OP_if, MJS_OP_exit,
+  /* 0141 -> : jsprint ... ; */
+  MJS_OP_quote, 0, -127, MJS_OP_repeat, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
+  /* 0148 -> : zero ... ; */
   MJS_OP_quote, 0, 0, MJS_OP_exit,
-  /* 0150 -> : one ... ; */
+  /* 0152 -> : one ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_exit,
-  /* 0154 -> : nop ... ; */
+  /* 0156 -> : nop ... ; */
   MJS_OP_zero, MJS_OP_drop, MJS_OP_exit,
-  /* 0157 -> : inc ... ; */
+  /* 0159 -> : inc ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_PLUS, MJS_OP_exit,
-  /* 0162 -> : swapinc ... ; */
+  /* 0164 -> : swapinc ... ; */
   MJS_OP_swap, MJS_OP_inc, MJS_OP_exit,
-  /* 0165 -> : div ... ; */
+  /* 0167 -> : div ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : rem ... ; */
+  /* 0167 -> : rem ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : lshift ... ; */
+  /* 0167 -> : lshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : rshift ... ; */
+  /* 0167 -> : rshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : urshift ... ; */
+  /* 0167 -> : urshift ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : and ... ; */
+  /* 0167 -> : and ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : or ... ; */
+  /* 0167 -> : or ... ; */
   /*           <mjs_op_todo> */ 
-  /* 0165 -> : xor ... ; */
+  /* 0167 -> : xor ... ; */
   /*           <mjs_op_todo> */ 
-}; /* 165 * sizeof(bf_opcode_t) */
+}; /* 167 * sizeof(bf_opcode_t) */
 
 bf_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -7681,15 +7757,15 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0045 */ 54, 
   /* 0046 */ -41, 
   /* 0047 */ -42, 
-  /* 0048 */ 74, 
-  /* 0049 */ 82, 
-  /* 0050 */ 109, 
-  /* 0051 */ 139, 
-  /* 0052 */ 146, 
-  /* 0053 */ 150, 
-  /* 0054 */ 154, 
-  /* 0055 */ 157, 
-  /* 0056 */ 162, 
+  /* 0048 */ 76, 
+  /* 0049 */ 84, 
+  /* 0050 */ 111, 
+  /* 0051 */ 141, 
+  /* 0052 */ 148, 
+  /* 0053 */ 152, 
+  /* 0054 */ 156, 
+  /* 0055 */ 159, 
+  /* 0056 */ 164, 
   /* 0057 */ -43, 
   /* 0058 */ -44, 
   /* 0059 */ -45, 
@@ -7948,6 +8024,8 @@ const char *MJS_pos_names[] = {
   "setarg+17", 
   "setarg+18", 
   "setarg+19", 
+  "ffi", 
+  "ffi+1", 
   "2dup", 
   "2dup+1", 
   "2dup+2", 
@@ -8260,8 +8338,8 @@ struct mjs *mjs_create() {
 }
 
 MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
-  bf_word_ptr_t jsprint = bf_lookup_word(&mjs->vm, MJS_OP_jsprint);
-  mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, jsprint));
+  mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_jsprint));
+  mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
 }
 
 struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
@@ -9255,7 +9333,7 @@ void mjs_op_jscall(struct bf_vm *vm) {
    * stack.
    */
   bf_push(&vm->rstack, bf_from_int(stack_pos - nargs));
-  bf_push(&vm->rstack, bf_from_int(bf_lookup_word(vm, MJS_OP_jscall_exit)));
+  bf_push(&vm->rstack, bf_from_int(MJS_WORD_PTR_jscall_exit));
 
   if (mjs_is_number(func)) {
     vm->ip = bf_to_int(func);
