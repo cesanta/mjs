@@ -2074,6 +2074,39 @@ extern struct br_code MJS_code;
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi/ffi.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FFI_FFI_H_
+#define MJS_FFI_FFI_H_
+
+/* Amalgamated: #include "common/platform.h" */
+
+typedef void (*ffi_fn_t)(void);
+
+struct ffi_arg {
+  int size;
+  int is_float;
+  union {
+    uint64_t i;
+    double d;
+  } v;
+};
+
+int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
+             struct ffi_arg *args);
+
+void ffi_set_int32(struct ffi_arg *arg, uint32_t v);
+void ffi_set_int64(struct ffi_arg *arg, uint64_t v);
+void ffi_set_ptr(struct ffi_arg *arg, void *v);
+void ffi_set_double(struct ffi_arg *arg, uint64_t v);
+
+#endif /* MJS_FFI_FFI_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/err.h"
 #endif
 /*
@@ -2338,6 +2371,8 @@ struct mjs {
 
   struct mbuf owned_values; /* buffer for GC roots owned by C code */
   struct mjs_vals vals;
+
+  void *(*dlsym)(void *handle, const char *symbol);
 
   char *error_msg;
   mjs_err_t error_msg_err;
@@ -2717,6 +2752,25 @@ void mjsParser(
     );
 
 #endif /* MJS_PARSER_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FFI_H_
+#define MJS_FFI_H_
+
+/* Amalgamated: #include "mjs/val.h" */
+
+void mjs_set_ffi_resolver(struct mjs *mjs,
+                          void *(*dlsym)(void *handle, const char *symbol));
+
+void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig);
+
+#endif /* MJS_FFI_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/varint.h"
 #endif
@@ -7994,6 +8048,150 @@ struct br_code MJS_code = {
   MJS_word_names, MJS_pos_names,
 };
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi/ffi.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/ffi/ffi.h" */
+
+typedef uintptr_t word_t;
+
+void ffi_set_int32(struct ffi_arg *arg, uint32_t v) {
+  arg->size = 4;
+  arg->is_float = 0;
+  arg->v.i = v;
+}
+
+void ffi_set_int64(struct ffi_arg *arg, uint64_t v) {
+  arg->size = 8;
+  arg->is_float = 0;
+  arg->v.i = v;
+}
+
+void ffi_set_ptr(struct ffi_arg *arg, void *v) {
+  if (sizeof(v) == 8) {
+    ffi_set_int64(arg, (uint64_t)(uintptr_t) v);
+  } else {
+    ffi_set_int32(arg, (uint32_t)(uintptr_t) v);
+  }
+}
+
+void ffi_set_double(struct ffi_arg *arg, uint64_t v) {
+  arg->size = 8;
+  arg->is_float = 1;
+  arg->v.d = v;
+}
+
+/*
+ * The ARM ABI uses only 4 32-bit registers for paramter passing.
+ * Xtensa call0 calling-convention (as used by Espressif) has 6.
+ *
+ * Focusing only on implementing FFI with registers means we can simplify a lot.
+ *
+ * ARM has some quasi-alignment rules when mixing double and integers as
+ * arguments. Only:
+ *   a) double, int32_t, int32_t
+ *   b) int32_t, double
+ * would fit in 4 registers. (the same goes for uint64_t).
+ *
+ * In order to simplify further, when a double-width argument is present, we
+ * allow only two arguments.
+ */
+
+/*
+ * We need to support x86_64 in order to support local tests.
+ * x86_64 has more and wider registers, but unlike the two main
+ * embedded platforms we target it has a separate register file for
+ * integer values and for floating point values (both for passing args and
+ * return values). E.g. if a double value is passed as a second argument
+ * it gets passed in the first available floating point register.
+ *
+ * I.e, the compiler generates exactly the same code for:
+ *
+ * void foo(int a, double b) {...}
+ *
+ * and
+ *
+ * void foo(double b, int a) {...}
+ *
+ *
+ */
+
+typedef word_t (*i0_t)(word_t, word_t, word_t, word_t);
+typedef word_t (*i1_t)(double, word_t);
+typedef word_t (*i2_t)(double, double);
+
+typedef double (*d0_t)(word_t, word_t, word_t, word_t);
+typedef double (*d1_t)(double, word_t);
+typedef double (*d2_t)(double, double);
+
+int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
+             struct ffi_arg *args) {
+  int i, doubles = 0;
+
+  if (nargs > 4) return -1;
+  for (i = 0; i < nargs; i++) {
+    doubles += !!args[i].is_float;
+  }
+  if (doubles > 2) return -1;
+  if (doubles > 0 && nargs > 2) return -1;
+
+  if (!res->is_float) {
+    word_t r;
+    switch (doubles) {
+      case 0: {
+        i0_t f = (i0_t) func;
+        r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+              (word_t) args[3].v.i);
+        break;
+      }
+      case 1: {
+        i1_t f = (i1_t) func;
+        if (args[0].is_float) {
+          r = f(args[0].v.d, (word_t) args[1].v.i);
+        } else {
+          r = f(args[1].v.d, (word_t) args[0].v.i);
+        }
+        break;
+      }
+      case 2: {
+        i2_t f = (i2_t) func;
+        r = f(args[0].v.d, args[1].v.d);
+      } break;
+    }
+    res->v.i = (uint64_t) r;
+  } else {
+    double r;
+    switch (doubles) {
+      case 0: {
+        d0_t f = (d0_t) func;
+        r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+              (word_t) args[3].v.i);
+        break;
+      }
+      case 1: {
+        d1_t f = (d1_t) func;
+        if (args[0].is_float) {
+          r = f(args[0].v.d, (word_t) args[1].v.i);
+        } else {
+          r = f(args[1].v.d, (word_t) args[0].v.i);
+        }
+        break;
+      }
+      case 2: {
+        d2_t f = (d2_t) func;
+        r = f(args[0].v.d, args[1].v.d);
+      } break;
+    }
+    res->v.d = r;
+  }
+
+  return 0;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/core.c"
 #endif
 /*
@@ -8234,6 +8432,85 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
   err = mjs_exec_buf(mjs, body, len, res);
   free(body);
   return err;
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <dlfcn.h>
+#endif
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "common/str_util.h" */
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/ffi.h" */
+/* Amalgamated: #include "mjs/ffi/ffi.h" */
+/* Amalgamated: #include "mjs/string.h" */
+
+/*
+ * on linux this is enabled only if __USE_GNU is defined, but we cannot set it
+ * because dlfcn could have been included already.
+ */
+#ifndef RTLD_DEFAULT
+#define RTLD_DEFAULT NULL
+#endif
+
+void mjs_set_ffi_resolver(struct mjs *mjs,
+                          void *(*dlsym)(void *handle, const char *symbol)) {
+  mjs->dlsym = dlsym;
+}
+
+void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
+  const char *s = mjs_get_cstring(mjs, &sig);
+  const char *n, *e;
+  char *buf = NULL;
+  ffi_fn_t fn;
+  int i, nargs;
+  struct ffi_arg res;
+  struct ffi_arg args[4];
+  mjs_val_t argvs[4];
+
+  n = strchr(s, ' ');
+  if (n == NULL) {
+    n = s;
+  } else {
+    n++;
+  }
+  e = strchr(n, '(');
+  if (e == NULL) {
+    e = n + strlen(n);
+  }
+
+  mg_asprintf(&buf, 0, "%.*s", (int) (e - n), n);
+
+  res.size = 4;
+  res.is_float = 0;
+  res.v.i = 0;
+
+  nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  for (i = 0; i < nargs; i++) {
+    mjs_val_t a = mjs_pop(mjs);
+    if (mjs_is_string(a)) {
+      argvs[i] = a;
+      ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
+    } else {
+      // ....
+    }
+  }
+
+  fn = (ffi_fn_t) mjs->dlsym(RTLD_DEFAULT, buf);
+  if (fn == NULL) {
+    LOG(LL_ERROR, ("cannot resolve function %s", buf));
+  }
+
+  ffi_call(fn, nargs, &res, args);
+
+  mjs_push(mjs, mjs_mk_undefined());
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.c"
@@ -8819,6 +9096,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/bf/bf.h" */
 /* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/util.h" */
@@ -8954,7 +9232,7 @@ void mjs_op_jscall(struct br_vm *vm) {
     native = (void (*) (struct br_vm *vm)) mjs_get_ptr(mjs, func);
     native(vm);
   } else if (mjs_is_string(func)) {
-    /* TODO: implement FFI */
+    mjs_ffi_call(mjs, func);
   } else if (mjs_is_undefined(func)) {
     printf("undefined is not a function\n");
     abort();
