@@ -8467,12 +8467,13 @@ void mjs_set_ffi_resolver(struct mjs *mjs,
 
 void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   const char *s = mjs_get_cstring(mjs, &sig);
-  const char *n, *e;
+  const char *n, *e, *a = NULL;
   char *buf = NULL;
   ffi_fn_t fn;
   int i, nargs;
   struct ffi_arg res;
   struct ffi_arg args[4];
+  mjs_val_t resv = mjs_mk_undefined();
   mjs_val_t argvs[4];
 
   n = strchr(s, ' ');
@@ -8484,9 +8485,9 @@ void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   e = strchr(n, '(');
   if (e == NULL) {
     e = n + strlen(n);
+  } else {
+    a = e + 1;
   }
-
-  mg_asprintf(&buf, 0, "%.*s", (int) (e - n), n);
 
   res.size = 4;
   res.is_float = 0;
@@ -8494,23 +8495,54 @@ void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
 
   nargs = mjs_get_int(mjs, mjs_pop(mjs));
   for (i = 0; i < nargs; i++) {
-    mjs_val_t a = mjs_pop(mjs);
-    if (mjs_is_string(a)) {
-      argvs[i] = a;
+    const char *ae;
+    if (a == NULL) {
+      LOG(LL_ERROR, ("bad signature '%s', got %d actuals", s, nargs));
+      goto clean;
+    }
+    while (*a == ' ') a++;
+    ae = a;
+    while (*ae && *ae != ',' && *ae != ')') ae++;
+
+    mjs_val_t arg = mjs_pop(mjs);
+    if (strncmp(a, "int", ae - a) == 0) {
+      ffi_set_int32(&args[i], mjs_get_int(mjs, arg));
+    } else if (strncmp(a, "char*", 5) == 0 || strncmp(a, "char *", 6) == 0) {
+      if (!mjs_is_string(arg)) {
+        LOG(LL_ERROR, ("actual arg not a string"));
+        goto clean;
+      }
+      argvs[i] = arg;
       ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
     } else {
-      // ....
+      LOG(LL_ERROR, ("unsupported type %.*s", (int) (ae - a), a));
+      goto clean;
     }
+
+    while (*a && *a != ',' && *a != ')') a++;
+    a++;
+    if (*a == '\0') a = NULL;
   }
 
+  if (mjs->dlsym == NULL) {
+    LOG(LL_ERROR, ("resolver not set, call mjs_set_ffi_resolver"));
+    goto clean;
+  }
+
+  mg_asprintf(&buf, 0, "%.*s", (int) (e - n), n);
   fn = (ffi_fn_t) mjs->dlsym(RTLD_DEFAULT, buf);
+  free(buf);
+
   if (fn == NULL) {
     LOG(LL_ERROR, ("cannot resolve function %s", buf));
+    goto clean;
   }
 
   ffi_call(fn, nargs, &res, args);
 
-  mjs_push(mjs, mjs_mk_undefined());
+  resv = mjs_mk_number(mjs, res.v.i);
+clean:
+  mjs_push(mjs, resv);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.c"
