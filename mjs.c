@@ -1586,6 +1586,23 @@ int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n);
 #define CS_ENABLE_TO64 0
 #endif
 
+/*
+ * Expands to a string representation of its argument: e.g.
+ * `CS_STRINGIFY_LIT(5) expands to "5"`
+ */
+#define CS_STRINGIFY_LIT(x) #x
+
+/*
+ * Expands to a string representation of its argument, which is allowed
+ * to be a macro: e.g.
+ *
+ * #define FOO 123
+ * CS_STRINGIFY_MACRO(FOO)
+ *
+ * expands to 123.
+ */
+#define CS_STRINGIFY_MACRO(x) CS_STRINGIFY_LIT(x)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
