@@ -1755,6 +1755,9 @@ typedef int64_t bf_cell_t;
 typedef int8_t bf_opcode_t;
 typedef int16_t bf_word_ptr_t;
 
+/* Min integer which can be represented by `bf_opcode_t` */
+#define BF_MIN_LOCAL_OFFSET ((bf_opcode_t)(1 << (sizeof(bf_opcode_t)*8 - 1)))
+
 struct bf_vm;
 typedef void (*bf_native_t)(struct bf_vm *vm);
 
@@ -9839,13 +9842,13 @@ bf_word_ptr_t mjs_emit_quote(struct mjs_parse_ctx *ctx, bf_word_ptr_t dst) {
 }
 
 bf_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, bf_word_ptr_t dst) {
-  size_t delta;
+  int offset;
   /* LOG(LL_ERROR, ("EMITTING CALL TO %d", dst)); */
   /* assert(dst < ctx->gen); */
-  delta = ctx->gen - dst;
+  offset = dst - ctx->gen;
   LOG(LL_DEBUG, ("emitting call to %d at %d", dst, ctx->gen));
-  if (delta <= 128) {
-    return mjs_emit_uint8(ctx, (uint8_t)(int8_t)(-delta));
+  if (offset >= BF_MIN_LOCAL_OFFSET) {
+    return mjs_emit_uint8(ctx, (bf_opcode_t)offset);
   } else {
     bf_word_ptr_t start = mjs_emit_quote(ctx, dst);
     mjs_emit(ctx, MJS_OP_call);
