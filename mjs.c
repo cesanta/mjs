@@ -705,6 +705,7 @@ int sl_set_ssl_opts(struct mg_connection *nc);
 #include <fcntl.h>
 #include <inttypes.h>
 #include <machine/endian.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
