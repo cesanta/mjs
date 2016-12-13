@@ -851,7 +851,7 @@ int inet_pton(int af, const char *src, void *dst);
  */
 #ifdef __cplusplus
 /* Amalgamated: #include "mbed.h" */
-#endif
+#endif /* __cplusplus */
 
 #include <assert.h>
 #include <ctype.h>
@@ -1498,13 +1498,12 @@ char *cs_mmap_file(const char *path, size_t *size);
 #ifndef CS_COMMON_MBUF_H_
 #define CS_COMMON_MBUF_H_
 
+#include <stdlib.h>
+/* Amalgamated: #include "common/platform.h" */
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include <stdlib.h>
-
-/* Amalgamated: #include "common/platform.h" */
 
 #ifndef MBUF_SIZE_MULTIPLIER
 #define MBUF_SIZE_MULTIPLIER 1.5
