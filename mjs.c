@@ -2734,46 +2734,17 @@ MJS_PRIVATE struct mjs_property *mjs_get_own_property(struct mjs *mjs,
 
 #endif /* MJS_OBJECT_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/str_util.h"
+#line 1 "mjs/string_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_STR_UTIL_H_
-#define MJS_STR_UTIL_H_
+#ifndef MJS_STRING_PUBLIC_H_
+#define MJS_STRING_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/internal.h" */
-
-enum embstr_flags {
-  EMBSTR_ZERO_TERM = (1 << 0),
-  EMBSTR_UNESCAPE = (1 << 1),
-};
-
-struct mbuf;
-
-MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);
-
-MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
-                              size_t len, uint8_t /*enum embstr_flags*/ flags);
-#endif /* MJS_STR_UTIL_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/string.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_STRING_H_
-#define MJS_STRING_H_
-
-/* Amalgamated: #include "mjs/internal.h" */
-/* Amalgamated: #include "mjs/str_util.h" */
-/* Amalgamated: #include "mjs/core.h" */
-
-struct mjs;
+/* Amalgamated: #include "mjs/core_public.h" */
 
 #define MJS_STRING_LITERAL_MAX_LEN 64
 
@@ -2833,6 +2804,20 @@ const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
  * behaviour.
  */
 int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
+
+#endif /* MJS_STRING_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/string.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_STRING_H_
+#define MJS_STRING_H_
+
+/* Amalgamated: #include "mjs/string_public.h" */
 
 /*
  * Size of the extra space for strings mbuf that is needed to avoid frequent
@@ -3030,19 +3015,18 @@ MJS_PRIVATE int calc_llen(size_t len);
 
 #endif /* MJS_VARINT_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/util.h"
+#line 1 "mjs/util_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_UTIL_H_
-#define MJS_UTIL_H_
+#ifndef MJS_UTIL_PUBLIC_H_
+#define MJS_UTIL_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core.h" */
-
-struct mjs;
+/* Amalgamated: #include "mjs/core_public.h" */
+#include <stdio.h>
 
 /* Output a string representation of the value to stdout. */
 void mjs_print(struct mjs *mjs, mjs_val_t v);
@@ -3056,7 +3040,51 @@ void mjs_fprint(FILE *f, struct mjs *mjs, mjs_val_t v);
 /* Output a string representation of the value to a file followed by nl */
 void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v);
 
+#endif /* MJS_UTIL_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/util.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_UTIL_H_
+#define MJS_UTIL_H_
+
+/* Amalgamated: #include "mjs/util_public.h" */
+
+/*
+ * At the moment, all utility functions are public, and are declared in
+ * `util_public.h`
+ */
+
 #endif /* MJS_UTIL_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/str_util.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_STR_UTIL_H_
+#define MJS_STR_UTIL_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+enum embstr_flags {
+  EMBSTR_ZERO_TERM = (1 << 0),
+  EMBSTR_UNESCAPE = (1 << 1),
+};
+
+struct mbuf;
+
+MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);
+
+MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
+                              size_t len, uint8_t /*enum embstr_flags*/ flags);
+#endif /* MJS_STR_UTIL_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs//internal.h"
 #endif
@@ -9798,6 +9826,7 @@ void mjs_op_null(struct bf_vm *vm) {
 /* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/str_util.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
 static unsigned long mjs_get_column(const char *code, const char *pos) {
@@ -10397,6 +10426,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
 /* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/str_util.h" */
 /* Amalgamated: #include "mjs/varint.h" */
 
 /* TODO(lsm): NaN payload location depends on endianness, make crossplatform */
