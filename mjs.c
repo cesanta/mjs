@@ -2280,49 +2280,18 @@ void ffi_set_double(struct ffi_arg *arg, uint64_t v);
 
 #endif /* MJS_FFI_FFI_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/err.h"
+#line 1 "mjs/core_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_ERR_H_
-#define MJS_ERR_H_
+#ifndef MJS_CORE_PUBLIC_H_
+#define MJS_CORE_PUBLIC_H_
 
-enum mjs_err {
-  MJS_OK,
-  MJS_SYNTAX_ERROR,
-  MJS_INTERNAL_ERROR,
-  MJS_REFERENCE_ERROR,
-};
-
-typedef enum mjs_err mjs_err_t;
-
-struct mjs;
-
-mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
-
-/*
- * return a string representation of an error.
- * the error string might be overwritten by calls to `mjs_set_errorf`.
- */
-const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
-
-#endif /* MJS_ERR_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/val.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_VAL_H_
-#define MJS_VAL_H_
-
-/* Amalgamated: #include "common/platform.h" */
-/* Amalgamated: #include "mjs/internal.h" */
+#include <stdint.h>
+/* Amalgamated: #include "mjs/license.h" */
 
 /*
  *  Double-precision floating-point number, IEEE 754
@@ -2354,6 +2323,108 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
 typedef uint64_t mjs_val_t;
 
+/* This if-0 is a dirty workaround to force etags to pick `struct mjs` */
+#if 0
+/* Opaque structure. MJS engine context. */
+struct mjs {
+  /* ... */
+};
+#endif
+
+struct mjs;
+
+enum mjs_err {
+  MJS_OK,
+  MJS_SYNTAX_ERROR,
+  MJS_INTERNAL_ERROR,
+  MJS_REFERENCE_ERROR,
+};
+
+typedef enum mjs_err mjs_err_t;
+
+/* Create MJS instance */
+struct mjs *mjs_create();
+
+struct mjs_create_opts {
+  /* use non-default bytecode definition file, testing-only */
+  struct bf_code *code;
+};
+
+/*
+ * Like `msj_create()`, but allows to customize initial MJS state, see `struct
+ * mjs_create_opts`.
+ */
+struct mjs *mjs_create_opt(struct mjs_create_opts opts);
+
+/* Destroy MJS instance */
+void mjs_destroy(struct mjs *mjs);
+
+mjs_val_t mjs_get_global(struct mjs *mjs);
+
+void mjs_push(struct mjs *mjs, mjs_val_t val);
+mjs_val_t mjs_pop(struct mjs *mjs);
+mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res);
+
+mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+
+/*
+ * return a string representation of an error.
+ * the error string might be overwritten by calls to `mjs_set_errorf`.
+ */
+const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
+
+#endif /* MJS_CORE_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/mm.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_MM_H_
+#define MJS_MM_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+struct mjs;
+
+typedef void (*gc_cell_destructor_t)(struct mjs *mjs, void *);
+
+struct gc_block {
+  struct gc_block *next;
+  struct gc_cell *base;
+  size_t size;
+};
+
+struct gc_arena {
+  struct gc_block *blocks;
+  size_t size_increment;
+  struct gc_cell *free; /* head of free list */
+  size_t cell_size;
+
+  gc_cell_destructor_t destructor;
+};
+
+#endif /* MJS_MM_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/core.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_CORE_H_
+#define MJS_CORE_H_
+
+/* Amalgamated: #include "common/mbuf.h" */
+/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/bf/bf.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+
 /*
  * A tag is made of the sign bit and the 4 lower order bits of byte 6.
  * So in total we have 32 possible tags.
@@ -2362,7 +2433,7 @@ typedef uint64_t mjs_val_t;
  * INFINITY; for simplicity we're just not going to use that combination.
  */
 #define MAKE_TAG(s, t) \
-  ((uint64_t)(s) << 63 | (uint64_t) 0x7ff0 << 48 | (uint64_t)(t) << 48)
+    ((uint64_t)(s) << 63 | (uint64_t) 0x7ff0 << 48 | (uint64_t)(t) << 48)
 
 #define MJS_TAG_OBJECT MAKE_TAG(1, 0xF)
 #define MJS_TAG_FOREIGN MAKE_TAG(1, 0xE)
@@ -2383,13 +2454,104 @@ typedef uint64_t mjs_val_t;
 #define _MJS_NULL MJS_TAG_FOREIGN
 #define _MJS_UNDEFINED MJS_TAG_UNDEFINED
 
+struct mjs_vals {
+  mjs_val_t global_object;
+  mjs_val_t scope;      /* current scope, chained on rstack */
+  mjs_val_t call_frame; /* top-most call frame */
+};
+
+struct mjs {
+  struct bf_vm vm;
+  bf_word_ptr_t last_code;
+
+  struct mbuf owned_strings;   /* Sequence of (varint len, char data[]) */
+  struct mbuf foreign_strings; /* Sequence of (varint len, char *data) */
+
+  struct gc_arena object_arena;
+  struct gc_arena property_arena;
+
+  struct mbuf owned_values; /* buffer for GC roots owned by C code */
+  struct mjs_vals vals;
+
+  void *(*dlsym)(void *handle, const char *symbol);
+
+  char *error_msg;
+  mjs_err_t error_msg_err;
+};
+
+#endif /* MJS_CORE_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/gc.h"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_GC_H_
+#define MJS_GC_H_
+
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+
+/*
+ * performs arithmetics on gc_cell pointers as if they were arena->cell_size
+ * bytes wide
+ */
+#define GC_CELL_OP(arena, cell, op, arg) \
+  ((struct gc_cell *) (((char *) (cell)) op((arg) * (arena)->cell_size)))
+
+struct gc_cell {
+  union {
+    struct gc_cell *link;
+    uintptr_t word;
+  } head;
+};
+
+/*
+ * Perform garbage collection.
+ * Pass true to full in order to reclaim unused heap back to the OS.
+ */
+void mjs_gc(struct mjs *mjs, int full);
+
+MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
+MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
+
+MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
+
+MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
+MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
+MJS_PRIVATE void gc_sweep(struct mjs *, struct gc_arena *, size_t);
+MJS_PRIVATE void *gc_alloc_cell(struct mjs *, struct gc_arena *);
+
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v);
+
+/* return 0 if v is an object/function with a bad pointer */
+MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
+
+/* checks whether a pointer is within the ranges of an arena */
+MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
+
+#endif /* MJS_GC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/primitive_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_PRIMITIVE_PUBLIC_H_
+#define MJS_PRIMITIVE_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/core_public.h" */
+
 /* JavaScript `null` value */
 #define MJS_NULL ((uint64_t) 0xfffe << 48)
 
 /* JavaScript `undefined` value */
 #define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
-
-struct mjs;
 
 /*
  * Make `null` primitive value.
@@ -2471,183 +2633,33 @@ void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v);
 /* Returns true if given value holds `void *` pointer */
 int mjs_is_foreign(mjs_val_t v);
 
+#endif /* MJS_PRIMITIVE_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/primitive.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/primitive_public.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+
 MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
-
-#endif /* MJS_VAL_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/mm.h"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_MM_H_
-#define MJS_MM_H_
-
-/* Amalgamated: #include "mjs/internal.h" */
-
-struct mjs;
-
-typedef void (*gc_cell_destructor_t)(struct mjs *mjs, void *);
-
-struct gc_block {
-  struct gc_block *next;
-  struct gc_cell *base;
-  size_t size;
-};
-
-struct gc_arena {
-  struct gc_block *blocks;
-  size_t size_increment;
-  struct gc_cell *free; /* head of free list */
-  size_t cell_size;
-
-  gc_cell_destructor_t destructor;
-};
-
-#endif /* MJS_MM_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/core.h"
+#line 1 "mjs/object_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
  * All rights reserved
  */
 
-#ifndef MJS_CORE_H_
-#define MJS_CORE_H_
+#ifndef MJS_OBJECT_PUBLIC_H_
+#define MJS_OBJECT_PUBLIC_H_
 
-/* Amalgamated: #include "common/mbuf.h" */
-/* Amalgamated: #include "mjs/err.h" */
-/* Amalgamated: #include "mjs/bf/bf.h" */
-/* Amalgamated: #include "mjs/internal.h" */
-/* Amalgamated: #include "mjs/val.h" */
-/* Amalgamated: #include "mjs/mm.h" */
-
-struct mjs_vals {
-  mjs_val_t global_object;
-  mjs_val_t scope;      /* current scope, chained on rstack */
-  mjs_val_t call_frame; /* top-most call frame */
-};
-
-struct mjs {
-  struct bf_vm vm;
-  bf_word_ptr_t last_code;
-
-  struct mbuf owned_strings;   /* Sequence of (varint len, char data[]) */
-  struct mbuf foreign_strings; /* Sequence of (varint len, char *data) */
-
-  struct gc_arena object_arena;
-  struct gc_arena property_arena;
-
-  struct mbuf owned_values; /* buffer for GC roots owned by C code */
-  struct mjs_vals vals;
-
-  void *(*dlsym)(void *handle, const char *symbol);
-
-  char *error_msg;
-  mjs_err_t error_msg_err;
-};
-
-struct mjs *mjs_create();
-
-struct mjs_create_opts {
-  /* use non-default bytecode definition file, testing-only */
-  struct bf_code *code;
-};
-struct mjs *mjs_create_opt(struct mjs_create_opts opts);
-
-void mjs_destroy(struct mjs *mjs);
-
-mjs_val_t mjs_get_global(struct mjs *mjs);
-
-void mjs_push(struct mjs *mjs, mjs_val_t val);
-mjs_val_t mjs_pop(struct mjs *mjs);
-mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res);
-
-#endif /* MJS_CORE_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/gc.h"
-#endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_GC_H_
-#define MJS_GC_H_
-
-/* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/internal.h" */
-/* Amalgamated: #include "mjs/mm.h" */
-
-/*
- * performs arithmetics on gc_cell pointers as if they were arena->cell_size
- * bytes wide
- */
-#define GC_CELL_OP(arena, cell, op, arg) \
-  ((struct gc_cell *) (((char *) (cell)) op((arg) * (arena)->cell_size)))
-
-struct gc_cell {
-  union {
-    struct gc_cell *link;
-    uintptr_t word;
-  } head;
-};
-
-/*
- * Perform garbage collection.
- * Pass true to full in order to reclaim unused heap back to the OS.
- */
-void mjs_gc(struct mjs *mjs, int full);
-
-MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
-MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
-
-MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
-
-MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
-MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
-MJS_PRIVATE void gc_sweep(struct mjs *, struct gc_arena *, size_t);
-MJS_PRIVATE void *gc_alloc_cell(struct mjs *, struct gc_arena *);
-
-MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v);
-
-/* return 0 if v is an object/function with a bad pointer */
-MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
-
-/* checks whether a pointer is within the ranges of an arena */
-MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
-
-#endif /* MJS_GC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/object.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_OBJECT_H_
-#define MJS_OBJECT_H_
-
-/* Amalgamated: #include "mjs/err.h" */
-/* Amalgamated: #include "mjs/val.h" */
-
-struct mjs;
-
-struct mjs_property {
-  struct mjs_property *next; /* Linkage in struct mjs_object::properties */
-  mjs_val_t name;            /* Property name (a string) */
-  mjs_val_t value;           /* Property value */
-};
-
-struct mjs_object {
-  struct mjs_property *properties;
-};
+/* Amalgamated: #include "mjs/core_public.h" */
+#include <stddef.h>
 
 /*
  * Returns true if the given value is an object or function.
@@ -2667,7 +2679,7 @@ mjs_val_t mjs_mk_object(struct mjs *mjs);
  * `strlen(name)` is used.
  */
 mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
-                  size_t name_len);
+    size_t name_len);
 
 /*
  * Like mjs_get but with a JS string.
@@ -2678,13 +2690,41 @@ mjs_val_t mjs_get_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name);
  * Set object property. Behaves just like JavaScript assignment.
  */
 mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len,
-                  mjs_val_t val);
+    mjs_val_t val);
 
 /*
  * Like mjs_set but the name is already a JS string.
  */
 mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
-                    mjs_val_t val);
+    mjs_val_t val);
+
+
+#endif /* MJS_OBJECT_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/object.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_OBJECT_H_
+#define MJS_OBJECT_H_
+
+/* Amalgamated: #include "mjs/object_public.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+
+struct mjs;
+
+struct mjs_property {
+  struct mjs_property *next; /* Linkage in struct mjs_object::properties */
+  mjs_val_t name;            /* Property name (a string) */
+  mjs_val_t value;           /* Property value */
+};
+
+struct mjs_object {
+  struct mjs_property *properties;
+};
 
 MJS_PRIVATE struct mjs_object *get_object_struct(mjs_val_t v);
 MJS_PRIVATE struct mjs_property *mjs_get_own_property(struct mjs *mjs,
@@ -2731,7 +2771,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
 
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/str_util.h" */
-/* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/core.h" */
 
 struct mjs;
 
@@ -2802,6 +2842,25 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 #endif /* MJS_STRING_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/exec_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_EXEC_PUBLIC_H_
+#define MJS_EXEC_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/core_public.h" */
+
+mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
+    mjs_val_t *res);
+mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
+
+#endif /* MJS_EXEC_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/exec.h"
 #endif
 /*
@@ -2812,12 +2871,12 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 #ifndef MJS_EXEC_H_
 #define MJS_EXEC_H_
 
-/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/exec_public.h" */
 
-mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
-                       mjs_val_t *res);
-mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
+/*
+ * At the moment, all exec functions are public, and are declared in
+ * `exec_public.h`
+ */
 
 #endif /* MJS_EXEC_H_ */
 #ifdef MG_MODULE_LINES
@@ -2936,7 +2995,7 @@ void mjsParser(
 #ifndef MJS_FFI_H_
 #define MJS_FFI_H_
 
-/* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/core.h" */
 
 void mjs_set_ffi_resolver(struct mjs *mjs,
                           void *(*dlsym)(void *handle, const char *symbol));
@@ -2981,7 +3040,7 @@ MJS_PRIVATE int calc_llen(size_t len);
 #ifndef MJS_UTIL_H_
 #define MJS_UTIL_H_
 
-/* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/core.h" */
 
 struct mjs;
 
@@ -8531,7 +8590,7 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
 /* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/mm.h" */
-/* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
@@ -8656,35 +8715,6 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res) {
   if (res != NULL) *res = r;
   return MJS_OK;
 }
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/disasm_mjs.c"
-#endif
-#include <stdio.h>
-
-/* Amalgamated: #include "mjs/vm.gen.h" */
-
-int disasm_custom(char b, FILE *in, int *pos) {
-  if (b == MJS_OP_str) {
-    char buf[128];
-    char ch;
-    int p = 0;
-    do {
-      fread(&ch, 1, 1, in);
-      buf[p++] = ch;
-    } while (ch != '\0');
-
-    printf("\"%s\" ", buf);
-    *pos += p;
-    return 1;
-  }
-  return 0;
-}
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/err.c"
-#endif
-/* Amalgamated: #include "common/str_util.h" */
-/* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/err.h" */
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
   va_list ap;
@@ -8712,6 +8742,29 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err) {
     }
   }
   return "unset";
+}
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/disasm_mjs.c"
+#endif
+#include <stdio.h>
+
+/* Amalgamated: #include "mjs/vm.gen.h" */
+
+int disasm_custom(char b, FILE *in, int *pos) {
+  if (b == MJS_OP_str) {
+    char buf[128];
+    char ch;
+    int p = 0;
+    do {
+      fread(&ch, 1, 1, in);
+      buf[p++] = ch;
+    } while (ch != '\0');
+
+    printf("\"%s\" ", buf);
+    *pos += p;
+    return 1;
+  }
+  return 0;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/exec.c"
@@ -8777,6 +8830,7 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
 /* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/ffi/ffi.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 
 /*
  * on linux this is enabled only if __USE_GNU is defined, but we cannot set it
@@ -8886,6 +8940,7 @@ clean:
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/mm.h" */
 /* Amalgamated: #include "mjs/object.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/varint.h" */
 
@@ -9309,6 +9364,7 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *ptr) {
 /* Amalgamated: #include "mjs/mm.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 
 MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
@@ -9454,6 +9510,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/bf/bf.h" */
 /* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 /* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
@@ -10083,6 +10140,106 @@ bf_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v) {
   return start;
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/primitive.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/core.h" */
+
+mjs_val_t mjs_mk_null(void) {
+  return MJS_NULL;
+}
+
+int mjs_is_null(mjs_val_t v) {
+  return v == MJS_NULL;
+}
+
+mjs_val_t mjs_mk_undefined(void) {
+  return MJS_UNDEFINED;
+}
+
+int mjs_is_undefined(mjs_val_t v) {
+  return v == MJS_UNDEFINED;
+}
+
+mjs_val_t mjs_mk_number(struct mjs *mjs, double v) {
+  mjs_val_t res;
+  (void) mjs;
+  /* not every NaN is a JS NaN */
+  if (isnan(v)) {
+    res = MJS_TAG_NAN;
+  } else {
+    union {
+      double d;
+      mjs_val_t r;
+    } u;
+    u.d = v;
+    res = u.r;
+  }
+  return res;
+}
+
+static double get_double(mjs_val_t v) {
+  union {
+    double d;
+    mjs_val_t v;
+  } u;
+  u.v = v;
+  /* Due to NaN packing, any non-numeric value is already a valid NaN value */
+  return u.d;
+}
+
+double mjs_get_double(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  return get_double(v);
+}
+
+int mjs_get_int(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  return (int) get_double(v);
+}
+
+int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  return (int32_t) get_double(v);
+}
+
+int mjs_is_number(mjs_val_t v) {
+  return v == MJS_TAG_NAN || !isnan(get_double(v));
+}
+
+MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
+  uint64_t n = ((uint64_t)(uintptr_t) p);
+
+  assert((n & MJS_TAG_MASK) == 0 || (n & MJS_TAG_MASK) == (~0 & MJS_TAG_MASK));
+  return n & ~MJS_TAG_MASK;
+}
+
+MJS_PRIVATE void *get_ptr(mjs_val_t v) {
+  return (void *) (uintptr_t)(v & 0xFFFFFFFFFFFFUL);
+}
+
+void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v) {
+  (void) mjs;
+  if (!mjs_is_foreign(v)) {
+    return NULL;
+  }
+  return get_ptr(v);
+}
+
+mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
+  (void) mjs;
+  return pointer_to_value(p) | MJS_TAG_FOREIGN;
+}
+
+int mjs_is_foreign(mjs_val_t v) {
+  return (v & MJS_TAG_MASK) == MJS_TAG_FOREIGN;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/str_util.c"
 #endif
 /*
@@ -10585,7 +10742,8 @@ int pnext(struct pstate *p) {
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/util.h" */
-/* Amalgamated: #include "mjs/val.h" */
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 
 void mjs_print(struct mjs *mjs, mjs_val_t v) {
   mjs_fprint(stdout, mjs, v);
@@ -10608,105 +10766,6 @@ void mjs_println(struct mjs *mjs, mjs_val_t v) {
 void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v) {
   mjs_fprint(f, mjs, v);
   fprintf(f, ENDL);
-}
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/val.c"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-/* Amalgamated: #include "mjs/val.h" */
-
-mjs_val_t mjs_mk_null(void) {
-  return MJS_NULL;
-}
-
-int mjs_is_null(mjs_val_t v) {
-  return v == MJS_NULL;
-}
-
-mjs_val_t mjs_mk_undefined(void) {
-  return MJS_UNDEFINED;
-}
-
-int mjs_is_undefined(mjs_val_t v) {
-  return v == MJS_UNDEFINED;
-}
-
-mjs_val_t mjs_mk_number(struct mjs *mjs, double v) {
-  mjs_val_t res;
-  (void) mjs;
-  /* not every NaN is a JS NaN */
-  if (isnan(v)) {
-    res = MJS_TAG_NAN;
-  } else {
-    union {
-      double d;
-      mjs_val_t r;
-    } u;
-    u.d = v;
-    res = u.r;
-  }
-  return res;
-}
-
-static double get_double(mjs_val_t v) {
-  union {
-    double d;
-    mjs_val_t v;
-  } u;
-  u.v = v;
-  /* Due to NaN packing, any non-numeric value is already a valid NaN value */
-  return u.d;
-}
-
-double mjs_get_double(struct mjs *mjs, mjs_val_t v) {
-  (void) mjs;
-  return get_double(v);
-}
-
-int mjs_get_int(struct mjs *mjs, mjs_val_t v) {
-  (void) mjs;
-  return (int) get_double(v);
-}
-
-int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v) {
-  (void) mjs;
-  return (int32_t) get_double(v);
-}
-
-int mjs_is_number(mjs_val_t v) {
-  return v == MJS_TAG_NAN || !isnan(get_double(v));
-}
-
-MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
-  uint64_t n = ((uint64_t)(uintptr_t) p);
-
-  assert((n & MJS_TAG_MASK) == 0 || (n & MJS_TAG_MASK) == (~0 & MJS_TAG_MASK));
-  return n & ~MJS_TAG_MASK;
-}
-
-MJS_PRIVATE void *get_ptr(mjs_val_t v) {
-  return (void *) (uintptr_t)(v & 0xFFFFFFFFFFFFUL);
-}
-
-void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v) {
-  (void) mjs;
-  if (!mjs_is_foreign(v)) {
-    return NULL;
-  }
-  return get_ptr(v);
-}
-
-mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
-  (void) mjs;
-  return pointer_to_value(p) | MJS_TAG_FOREIGN;
-}
-
-int mjs_is_foreign(mjs_val_t v) {
-  return (v & MJS_TAG_MASK) == MJS_TAG_FOREIGN;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/varint.c"
