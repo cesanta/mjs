@@ -6781,9 +6781,12 @@ static void yy_destructor(
 /********* Begin destructor definitions ***************************************/
     case 66: /* program */
 {
-#line 40 "mjs/mjs.lem.c"
- (void)ctx; 
-#line 841 "mjs/mjs.lem.c"
+#line 41 "mjs/mjs.lem.c"
+
+  (void) ctx;
+  (void) yypminor;
+
+#line 844 "mjs/mjs.lem.c"
 }
       break;
 /********* End destructor definitions *****************************************/
@@ -6954,10 +6957,10 @@ static void yyStackOverflow(yyParser *yypParser){
    /* Here code is inserted which will execute if the parser
    ** stack every overflows */
 /******** Begin %stack_overflow code ******************************************/
-#line 35 "mjs/mjs.lem.c"
+#line 36 "mjs/mjs.lem.c"
 
   printf("Giving up.  Parser stack overflow\n");
-#line 1015 "mjs/mjs.lem.c"
+#line 1018 "mjs/mjs.lem.c"
 /******** End %stack_overflow code ********************************************/
    mjsParserARG_STORE; /* Suppress warning about unused %extra_argument var */
 }
@@ -7198,190 +7201,190 @@ static void yy_reduce(
 /********** Begin reduce actions **********************************************/
         YYMINORTYPE yylhsminor;
       case 0: /* program ::= stmtlist */
-#line 59 "mjs/mjs.lem.c"
+#line 63 "mjs/mjs.lem.c"
 { ctx->state = 1; ctx->entry = yymsp[0].minor.yy80; }
-#line 1258 "mjs/mjs.lem.c"
+#line 1261 "mjs/mjs.lem.c"
         break;
       case 1: /* cstmtlist ::= sstmtlist SEMICOLON cstmt */
       case 3: /* sstmtlist ::= cstmtlist SEMICOLON sstmt */ yytestcase(yyruleno==3);
       case 4: /* sstmtlist ::= sstmtlist SEMICOLON sstmt */ yytestcase(yyruleno==4);
-#line 77 "mjs/mjs.lem.c"
+#line 81 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_add_stmt(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80); }
-#line 1265 "mjs/mjs.lem.c"
+#line 1268 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 2: /* cstmtlist ::= cstmtlist cstmt */
       case 5: /* sstmtlist ::= cstmtlist sstmt */ yytestcase(yyruleno==5);
-#line 78 "mjs/mjs.lem.c"
+#line 82 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_add_stmt(ctx, yymsp[-1].minor.yy80, yymsp[0].minor.yy80); }
-#line 1272 "mjs/mjs.lem.c"
+#line 1275 "mjs/mjs.lem.c"
   yymsp[-1].minor.yy80 = yylhsminor.yy80;
         break;
       case 6: /* cstmtlist ::= cstmt */
       case 7: /* sstmtlist ::= sstmt */ yytestcase(yyruleno==7);
-#line 82 "mjs/mjs.lem.c"
+#line 86 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_call(ctx, yymsp[0].minor.yy80); mjs_emit(ctx, MJS_OP_exit); }
-#line 1279 "mjs/mjs.lem.c"
+#line 1282 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 8: /* sstmtlist ::= sstmtlist SEMICOLON */
-#line 85 "mjs/mjs.lem.c"
+#line 89 "mjs/mjs.lem.c"
 { yylhsminor.yy80=yymsp[-1].minor.yy80; }
-#line 1285 "mjs/mjs.lem.c"
+#line 1288 "mjs/mjs.lem.c"
   yymsp[-1].minor.yy80 = yylhsminor.yy80;
         break;
       case 9: /* expr ::= lhs ASSIGN expr */
-#line 98 "mjs/mjs.lem.c"
+#line 102 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, 0); }
-#line 1291 "mjs/mjs.lem.c"
+#line 1294 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 10: /* expr ::= lhs PLUS_ASSIGN expr */
-#line 99 "mjs/mjs.lem.c"
+#line 103 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_PLUS); }
-#line 1297 "mjs/mjs.lem.c"
+#line 1300 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 11: /* expr ::= lhs MINUS_ASSIGN expr */
-#line 100 "mjs/mjs.lem.c"
+#line 104 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_MINUS); }
-#line 1303 "mjs/mjs.lem.c"
+#line 1306 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 12: /* expr ::= lhs MUL_ASSIGN expr */
-#line 101 "mjs/mjs.lem.c"
+#line 105 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_STAR); }
-#line 1309 "mjs/mjs.lem.c"
+#line 1312 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 13: /* expr ::= lhs DIV_ASSIGN expr */
-#line 102 "mjs/mjs.lem.c"
+#line 106 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_div); }
-#line 1315 "mjs/mjs.lem.c"
+#line 1318 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 14: /* expr ::= lhs REM_ASSIGN expr */
-#line 103 "mjs/mjs.lem.c"
+#line 107 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_rem); }
-#line 1321 "mjs/mjs.lem.c"
+#line 1324 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 15: /* expr ::= lhs LSHIFT_ASSIGN expr */
-#line 104 "mjs/mjs.lem.c"
+#line 108 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_lshift); }
-#line 1327 "mjs/mjs.lem.c"
+#line 1330 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 16: /* expr ::= lhs RSHIFT_ASSIGN expr */
-#line 105 "mjs/mjs.lem.c"
+#line 109 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_rshift); }
-#line 1333 "mjs/mjs.lem.c"
+#line 1336 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 17: /* expr ::= lhs URSHIFT_ASSIGN expr */
-#line 106 "mjs/mjs.lem.c"
+#line 110 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_urshift); }
-#line 1339 "mjs/mjs.lem.c"
+#line 1342 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 18: /* expr ::= lhs AND_ASSIGN expr */
-#line 107 "mjs/mjs.lem.c"
+#line 111 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_and); }
-#line 1345 "mjs/mjs.lem.c"
+#line 1348 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 19: /* expr ::= lhs XOR_ASSIGN expr */
-#line 108 "mjs/mjs.lem.c"
+#line 112 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_xor); }
-#line 1351 "mjs/mjs.lem.c"
+#line 1354 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 20: /* expr ::= lhs OR_ASSIGN expr */
-#line 109 "mjs/mjs.lem.c"
+#line 113 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_assign(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_or); }
-#line 1357 "mjs/mjs.lem.c"
+#line 1360 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 21: /* lhs ::= IDENTIFIER */
-#line 111 "mjs/mjs.lem.c"
+#line 115 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_ident(ctx, yymsp[0].minor.yy0.begin); }
-#line 1363 "mjs/mjs.lem.c"
+#line 1366 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 22: /* sexp ::= sexp LE sexp */
-#line 129 "mjs/mjs.lem.c"
+#line 133 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_LTEQ); }
-#line 1369 "mjs/mjs.lem.c"
+#line 1372 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 23: /* sexp ::= sexp LT sexp */
-#line 130 "mjs/mjs.lem.c"
+#line 134 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_LT); }
-#line 1375 "mjs/mjs.lem.c"
+#line 1378 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 24: /* sexp ::= sexp GE sexp */
-#line 131 "mjs/mjs.lem.c"
+#line 135 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_GTEQ); }
-#line 1381 "mjs/mjs.lem.c"
+#line 1384 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 25: /* sexp ::= sexp GT sexp */
-#line 132 "mjs/mjs.lem.c"
+#line 136 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_GT); }
-#line 1387 "mjs/mjs.lem.c"
+#line 1390 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 26: /* sexp ::= sexp EQ sexp */
-#line 133 "mjs/mjs.lem.c"
+#line 137 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_EQ); }
-#line 1393 "mjs/mjs.lem.c"
+#line 1396 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 27: /* sexp ::= sexp NE sexp */
-#line 134 "mjs/mjs.lem.c"
+#line 138 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_SETEQ); }
-#line 1399 "mjs/mjs.lem.c"
+#line 1402 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 28: /* sexp ::= sexp PLUS sexp */
-#line 137 "mjs/mjs.lem.c"
+#line 141 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_PLUS); }
-#line 1405 "mjs/mjs.lem.c"
+#line 1408 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 29: /* sexp ::= sexp MUL sexp */
-#line 139 "mjs/mjs.lem.c"
+#line 143 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_bin(ctx, yymsp[-2].minor.yy80, yymsp[0].minor.yy80, MJS_OP_STAR); }
-#line 1411 "mjs/mjs.lem.c"
+#line 1414 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 30: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
       case 39: /* block ::= OPEN_CURLY stmtlist CLOSE_CURLY */ yytestcase(yyruleno==39);
       case 47: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==47);
-#line 143 "mjs/mjs.lem.c"
+#line 147 "mjs/mjs.lem.c"
 { yymsp[-2].minor.yy80=yymsp[-1].minor.yy80; }
-#line 1419 "mjs/mjs.lem.c"
+#line 1422 "mjs/mjs.lem.c"
         break;
       case 31: /* sexp ::= IDENTIFIER */
-#line 145 "mjs/mjs.lem.c"
+#line 149 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_var(ctx, yymsp[0].minor.yy0.begin); }
-#line 1424 "mjs/mjs.lem.c"
+#line 1427 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 32: /* expr ::= expr OPEN_PAREN CLOSE_PAREN */
-#line 149 "mjs/mjs.lem.c"
+#line 153 "mjs/mjs.lem.c"
 {
   yylhsminor.yy80=mjs_emit(ctx, MJS_OP_zero);
   mjs_emit_call(ctx, yymsp[-2].minor.yy80);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1435 "mjs/mjs.lem.c"
+#line 1438 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 33: /* expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */
-#line 156 "mjs/mjs.lem.c"
+#line 160 "mjs/mjs.lem.c"
 {
   yylhsminor.yy80=mjs_emit(ctx, MJS_OP_zero);
   mjs_emit_call(ctx, yymsp[-1].minor.yy80);
@@ -7389,33 +7392,33 @@ static void yy_reduce(
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1447 "mjs/mjs.lem.c"
+#line 1450 "mjs/mjs.lem.c"
   yymsp[-3].minor.yy80 = yylhsminor.yy80;
         break;
       case 34: /* callarglist ::= callarglist COMMA callarg */
-#line 163 "mjs/mjs.lem.c"
+#line 167 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_call(ctx, yymsp[0].minor.yy80); mjs_emit(ctx, MJS_OP_swapinc); mjs_emit_call(ctx, yymsp[-2].minor.yy80); mjs_emit(ctx, MJS_OP_exit); }
-#line 1453 "mjs/mjs.lem.c"
+#line 1456 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 35: /* callarglist ::= callarg */
-#line 164 "mjs/mjs.lem.c"
+#line 168 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_call(ctx, yymsp[0].minor.yy80); mjs_emit(ctx, MJS_OP_swapinc); mjs_emit(ctx, MJS_OP_exit); }
-#line 1459 "mjs/mjs.lem.c"
+#line 1462 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 36: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block */
-#line 170 "mjs/mjs.lem.c"
+#line 174 "mjs/mjs.lem.c"
 {
   yymsp[-4].minor.yy80=mjs_emit_call(ctx, yymsp[-2].minor.yy80);
   mjs_emit_quote(ctx, yymsp[0].minor.yy80);
   mjs_emit(ctx, MJS_OP_ifstmt);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1470 "mjs/mjs.lem.c"
+#line 1473 "mjs/mjs.lem.c"
         break;
       case 37: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block ELSE block */
-#line 176 "mjs/mjs.lem.c"
+#line 180 "mjs/mjs.lem.c"
 {
   yymsp[-6].minor.yy80=mjs_emit_call(ctx, yymsp[-4].minor.yy80);
   mjs_emit_quote(ctx, yymsp[-2].minor.yy80);
@@ -7423,15 +7426,15 @@ static void yy_reduce(
   mjs_emit(ctx, MJS_OP_ifelse);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1481 "mjs/mjs.lem.c"
+#line 1484 "mjs/mjs.lem.c"
         break;
       case 38: /* cstmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block */
-#line 183 "mjs/mjs.lem.c"
+#line 187 "mjs/mjs.lem.c"
 { yymsp[-4].minor.yy80=mjs_emit_quote(ctx, yymsp[0].minor.yy80); mjs_emit_quote(ctx, yymsp[-2].minor.yy80); mjs_emit(ctx, MJS_OP_while); mjs_emit(ctx, MJS_OP_exit); }
-#line 1486 "mjs/mjs.lem.c"
+#line 1489 "mjs/mjs.lem.c"
         break;
       case 40: /* funcdecl ::= FUNCTION IDENTIFIER OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 196 "mjs/mjs.lem.c"
+#line 200 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t f = mjs_emit_func(ctx, yymsp[-4].minor.yy80, yymsp[-1].minor.yy80);
   yymsp[-7].minor.yy80 = mjs_emit_str_or_ident(ctx, yymsp[-6].minor.yy0.begin);
@@ -7439,66 +7442,66 @@ static void yy_reduce(
   mjs_emit(ctx, MJS_OP_setvar);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1497 "mjs/mjs.lem.c"
+#line 1500 "mjs/mjs.lem.c"
         break;
       case 41: /* func_literal ::= FUNCTION OPEN_PAREN arglist CLOSE_PAREN OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 204 "mjs/mjs.lem.c"
+#line 208 "mjs/mjs.lem.c"
 { yymsp[-6].minor.yy80=mjs_emit_func(ctx, yymsp[-4].minor.yy80, yymsp[-1].minor.yy80); }
-#line 1502 "mjs/mjs.lem.c"
+#line 1505 "mjs/mjs.lem.c"
         break;
       case 42: /* argspec ::= IDENTIFIER */
-#line 208 "mjs/mjs.lem.c"
+#line 212 "mjs/mjs.lem.c"
 {yylhsminor.yy80=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin); mjs_emit(ctx, MJS_OP_setarg); mjs_emit(ctx, MJS_OP_exit);}
-#line 1507 "mjs/mjs.lem.c"
+#line 1510 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 43: /* sstmt ::= RETURN */
-#line 210 "mjs/mjs.lem.c"
+#line 214 "mjs/mjs.lem.c"
 {yymsp[0].minor.yy80=mjs_emit(ctx, MJS_OP_undefined); mjs_emit(ctx, MJS_OP_jsexit); mjs_emit(ctx, MJS_OP_exit);}
-#line 1513 "mjs/mjs.lem.c"
+#line 1516 "mjs/mjs.lem.c"
         break;
       case 44: /* sstmt ::= RETURN expr */
-#line 211 "mjs/mjs.lem.c"
+#line 215 "mjs/mjs.lem.c"
 {yymsp[-1].minor.yy80=mjs_emit_call(ctx, yymsp[0].minor.yy80); mjs_emit(ctx, MJS_OP_jsexit); mjs_emit(ctx, MJS_OP_exit);}
-#line 1518 "mjs/mjs.lem.c"
+#line 1521 "mjs/mjs.lem.c"
         break;
       case 45: /* literal ::= NUMBER */
-#line 217 "mjs/mjs.lem.c"
+#line 221 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 1523 "mjs/mjs.lem.c"
+#line 1526 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 46: /* literal ::= STRING_LITERAL */
-#line 218 "mjs/mjs.lem.c"
+#line 222 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 1529 "mjs/mjs.lem.c"
+#line 1532 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 48: /* objspeclist ::= objspeclist COMMA objspec */
-#line 229 "mjs/mjs.lem.c"
+#line 233 "mjs/mjs.lem.c"
 {
   yylhsminor.yy80=mjs_emit_call(ctx, yymsp[-2].minor.yy80);
   mjs_emit_call(ctx, yymsp[0].minor.yy80);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1539 "mjs/mjs.lem.c"
+#line 1542 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       case 49: /* objspeclist ::= objspec */
-#line 234 "mjs/mjs.lem.c"
+#line 238 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit_call(ctx, yymsp[0].minor.yy80); mjs_emit(ctx, MJS_OP_exit); }
-#line 1545 "mjs/mjs.lem.c"
+#line 1548 "mjs/mjs.lem.c"
   yymsp[0].minor.yy80 = yylhsminor.yy80;
         break;
       case 50: /* objspeclist ::= */
-#line 235 "mjs/mjs.lem.c"
+#line 239 "mjs/mjs.lem.c"
 { yymsp[1].minor.yy80=mjs_emit(ctx, MJS_OP_mkobj); mjs_emit(ctx, MJS_OP_exit);}
-#line 1551 "mjs/mjs.lem.c"
+#line 1554 "mjs/mjs.lem.c"
         break;
       case 51: /* objspec ::= objspeclhs COLON expr */
-#line 237 "mjs/mjs.lem.c"
+#line 241 "mjs/mjs.lem.c"
 { yylhsminor.yy80=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy132); mjs_emit_call(ctx, yymsp[0].minor.yy80); mjs_emit(ctx, MJS_OP_addprop); mjs_emit(ctx, MJS_OP_exit); }
-#line 1556 "mjs/mjs.lem.c"
+#line 1559 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy80 = yylhsminor.yy80;
         break;
       default:
@@ -7597,7 +7600,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 1655 "mjs/mjs.lem.c"
+#line 1658 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7617,7 +7620,8 @@ static void yy_syntax_error(
 #line 31 "mjs/mjs.lem.c"
 
   ctx->syntax_error = TOKEN;
-#line 1675 "mjs/mjs.lem.c"
+  (void) yymajor;
+#line 1679 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7643,7 +7647,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 1701 "mjs/mjs.lem.c"
+#line 1705 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -9958,6 +9962,8 @@ mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
   LOG(LL_DEBUG, ("start at %d", ctx->mjs->last_code));
 
   ctx->mjs->last_code = ctx->gen;
+
+  (void) len;
   return err;
 }
 
