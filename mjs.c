@@ -10770,7 +10770,14 @@ int pnext(struct pstate *p) {
   } else if (p->pos[0] == '\'' || p->pos[0] == '"') {
     tok = getstr(p);
   } else if (is_ident(p->pos[0])) {
-    tok = getident(p) + is_reserved_word_token(p->tok_ptr, p->tok_len);
+    tok = getident(p);
+    /*
+     * NOTE: getident() has side effects on `p`, and `is_reserved_word_token()`
+     * relies on them. Since in C the order of evaluation of the operands is
+     * undefined, `is_reserved_word_token()` should be called in a separate
+     * statement.
+     */
+    tok += is_reserved_word_token(p->tok_ptr, p->tok_len);
   } else if (strchr(",.:;{}[]()", p->pos[0]) != NULL) {
     tok = p->pos[0];
   } else if ((tmp = longtok(p, "&", "&=")) != TOK_EOF ||
