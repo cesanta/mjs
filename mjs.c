@@ -2377,6 +2377,41 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 
 #endif /* MJS_CORE_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FFI_PUBLIC_H_
+#define MJS_FFI_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/core_public.h" */
+
+typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
+
+void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
+
+#endif /* MJS_FFI_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FFI_H_
+#define MJS_FFI_H_
+
+/* Amalgamated: #include "mjs/ffi_public.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+
+MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig);
+
+#endif /* MJS_FFI_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/mm.h"
 #endif
 /*
@@ -2423,6 +2458,7 @@ struct gc_arena {
 /* Amalgamated: #include "common/mbuf.h" */
 /* Amalgamated: #include "mjs/core_public.h" */
 /* Amalgamated: #include "mjs/bf/bf.h" */
+/* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/mm.h" */
 
@@ -2474,7 +2510,7 @@ struct mjs {
   struct mbuf owned_values; /* buffer for GC roots owned by C code */
   struct mjs_vals vals;
 
-  void *(*dlsym)(void *handle, const char *symbol);
+  mjs_ffi_resolver_t *dlsym;
 
   char *error_msg;
   mjs_err_t error_msg_err;
@@ -2970,25 +3006,6 @@ void mjsParser(
     );
 
 #endif /* MJS_PARSER_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/ffi.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_FFI_H_
-#define MJS_FFI_H_
-
-/* Amalgamated: #include "mjs/core.h" */
-
-void mjs_set_ffi_resolver(struct mjs *mjs,
-                          void *(*dlsym)(void *handle, const char *symbol));
-
-void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig);
-
-#endif /* MJS_FFI_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/varint.h"
 #endif
@@ -8862,6 +8879,7 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "common/str_util.h" */
+/* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/core.h" */
 /* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/ffi/ffi.h" */
@@ -8876,12 +8894,11 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
 #define RTLD_DEFAULT NULL
 #endif
 
-void mjs_set_ffi_resolver(struct mjs *mjs,
-                          void *(*dlsym)(void *handle, const char *symbol)) {
+void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym) {
   mjs->dlsym = dlsym;
 }
 
-void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
+MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   const char *s = mjs_get_cstring(mjs, &sig);
   const char *n, *e, *a = NULL;
   char *buf = NULL;

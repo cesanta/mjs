@@ -256,6 +256,24 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/ffi_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FFI_PUBLIC_H_
+#define MJS_FFI_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/core_public.h" */
+
+typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
+
+void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
+
+#endif /* MJS_FFI_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/object_public.h"
 #endif
 /*
