@@ -8549,7 +8549,6 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
   for (i = 0; i < nargs; i++) {
     doubles += !!args[i].is_float;
   }
-  if (doubles > 2) return -1;
   if (doubles > 0 && nargs > 2) return -1;
 
   if (!res->is_float) {
@@ -8574,6 +8573,8 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
         i2_t f = (i2_t) func;
         r = f(args[0].v.d, args[1].v.d);
       } break;
+      default:
+        return -1;
     }
     res->v.i = (uint64_t) r;
   } else {
@@ -8598,6 +8599,8 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
         d2_t f = (d2_t) func;
         r = f(args[0].v.d, args[1].v.d);
       } break;
+      default:
+        return -1;
     }
     res->v.d = r;
   }
