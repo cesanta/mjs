@@ -9621,7 +9621,6 @@ MJS_PRIVATE struct mjs_property *mjs_lookup_property(struct mjs *mjs,
   p = mjs_get_own_property(mjs, scope, s, n);
   if (p != NULL) return p;
   return mjs_get_own_property(mjs, mjs_get_global(mjs), s, n);
-  return NULL;
 }
 
 void mjs_op_getvar(struct bf_vm *vm) {
