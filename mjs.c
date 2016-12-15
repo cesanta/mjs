@@ -8841,6 +8841,7 @@ int disasm_custom(char b, FILE *in, int *pos) {
 mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
                        mjs_val_t *res) {
   mjs_err_t err;
+  bf_cell_t r;
   struct mjs_parse_ctx ctx;
 
   LOG(LL_DEBUG, ("parsing %s", src));
@@ -8851,8 +8852,9 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
 
   LOG(LL_DEBUG, ("running %d", ctx.entry));
   bf_run(&mjs->vm, ctx.entry);
+  r = bf_pop(&mjs->vm.dstack);
   if (res != NULL) {
-    *(int64_t *) res = bf_pop(&mjs->vm.dstack);
+    *(bf_cell_t *) res = r;
   }
 
   return err;
