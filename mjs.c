@@ -2375,7 +2375,6 @@ mjs_val_t mjs_get_global(struct mjs *mjs);
 void mjs_push(struct mjs *mjs, mjs_val_t val);
 mjs_val_t mjs_pop(struct mjs *mjs);
 mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res);
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
@@ -2894,6 +2893,8 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
     mjs_val_t *res);
 mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
+
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
@@ -8848,16 +8849,6 @@ mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs) {
   return arg;
 }
 
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res) {
-  mjs_val_t r;
-  bf_push(&mjs->vm.dstack, mjs_mk_number(mjs, nargs));
-  bf_push(&mjs->vm.dstack, func);
-  bf_run(&mjs->vm, MJS_OP_jscall);
-  r = bf_pop(&mjs->vm.dstack);
-  if (res != NULL) *res = r;
-  return MJS_OK;
-}
-
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
@@ -8921,6 +8912,8 @@ int disasm_custom(char b, FILE *in, int *pos) {
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "mjs/exec.h" */
 /* Amalgamated: #include "mjs/parser.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/vm.gen.h" */
 
 mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
                        mjs_val_t *res) {
@@ -8956,6 +8949,25 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
   free(body);
   return err;
 }
+
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...) {
+  va_list ap;
+  mjs_val_t r;
+  int i;
+  LOG(LL_DEBUG, ("applying func %d", mjs_get_int(mjs, func)));
+  va_start (ap, nargs);
+  for (i = 0; i < nargs; i++) {
+    bf_push(&mjs->vm.dstack, va_arg(ap, mjs_val_t));
+  }
+  bf_push(&mjs->vm.dstack, mjs_mk_number(mjs, nargs));
+  bf_push(&mjs->vm.dstack, func);
+  bf_run(&mjs->vm, MJS_OP_jscall);
+  r = bf_pop(&mjs->vm.dstack);
+  if (res != NULL) *res = r;
+  va_end(ap);
+  return MJS_OK;
+}
+
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/ffi.c"
 #endif

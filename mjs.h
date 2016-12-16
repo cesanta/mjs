@@ -106,7 +106,6 @@ mjs_val_t mjs_get_global(struct mjs *mjs);
 void mjs_push(struct mjs *mjs, mjs_val_t val);
 mjs_val_t mjs_pop(struct mjs *mjs);
 mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res);
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
@@ -225,7 +224,6 @@ mjs_val_t mjs_get_global(struct mjs *mjs);
 void mjs_push(struct mjs *mjs, mjs_val_t val);
 mjs_val_t mjs_pop(struct mjs *mjs);
 mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t func, int nargs, mjs_val_t *res);
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
@@ -253,6 +251,8 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
     mjs_val_t *res);
 mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
+
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
