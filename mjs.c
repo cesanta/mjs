@@ -7520,87 +7520,96 @@ static void yy_reduce(
       case 44: /* argspec ::= IDENTIFIER */
 #line 240 "mjs/mjs.lem.c"
 {
+  /*
+   * emit `"varname" setarg`
+   * NOTE: do not emit `exit`, it'll be emitted by arglistparen, after
+   * all `setarg`s.
+   */
   yylhsminor.yy86=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_setarg);
 }
-#line 1549 "mjs/mjs.lem.c"
+#line 1554 "mjs/mjs.lem.c"
   yymsp[0].minor.yy86 = yylhsminor.yy86;
         break;
       case 45: /* arglistparen ::= OPEN_PAREN arglist CLOSE_PAREN */
-#line 245 "mjs/mjs.lem.c"
+#line 250 "mjs/mjs.lem.c"
 {
+  /* will return the beginning of the arglist */
   yymsp[-2].minor.yy86 = yymsp[-1].minor.yy86;
-  mjs_emit(ctx, MJS_OP_exit);
+  if (yymsp[-1].minor.yy86 != BF_INVALID_WORD_PTR) {
+    /* terminate `"foo" setarg "bar" setarg` with an exit */
+    mjs_emit(ctx, MJS_OP_exit);
+  }
 }
-#line 1558 "mjs/mjs.lem.c"
+#line 1567 "mjs/mjs.lem.c"
         break;
       case 46: /* sstmt ::= RETURN */
-#line 250 "mjs/mjs.lem.c"
+#line 259 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy86=mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_jsexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1567 "mjs/mjs.lem.c"
+#line 1576 "mjs/mjs.lem.c"
         break;
       case 47: /* sstmt ::= RETURN expr */
-#line 255 "mjs/mjs.lem.c"
+#line 264 "mjs/mjs.lem.c"
 {
   yymsp[-1].minor.yy86=mjs_emit_call(ctx, yymsp[0].minor.yy86);
   mjs_emit(ctx, MJS_OP_jsexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1576 "mjs/mjs.lem.c"
+#line 1585 "mjs/mjs.lem.c"
         break;
       case 48: /* literal ::= NUMBER */
-#line 265 "mjs/mjs.lem.c"
+#line 274 "mjs/mjs.lem.c"
 { yylhsminor.yy86=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 1581 "mjs/mjs.lem.c"
+#line 1590 "mjs/mjs.lem.c"
   yymsp[0].minor.yy86 = yylhsminor.yy86;
         break;
       case 49: /* literal ::= STRING_LITERAL */
-#line 266 "mjs/mjs.lem.c"
+#line 275 "mjs/mjs.lem.c"
 { yylhsminor.yy86=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 1587 "mjs/mjs.lem.c"
+#line 1596 "mjs/mjs.lem.c"
   yymsp[0].minor.yy86 = yylhsminor.yy86;
         break;
       case 51: /* objspeclist ::= objspeclist COMMA objspec */
-#line 277 "mjs/mjs.lem.c"
+#line 286 "mjs/mjs.lem.c"
 {
   yylhsminor.yy86=mjs_emit_call(ctx, yymsp[-2].minor.yy86);
   mjs_emit_call(ctx, yymsp[0].minor.yy86);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1597 "mjs/mjs.lem.c"
+#line 1606 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy86 = yylhsminor.yy86;
         break;
       case 52: /* objspeclist ::= objspec */
-#line 282 "mjs/mjs.lem.c"
+#line 291 "mjs/mjs.lem.c"
 {
   yylhsminor.yy86=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit_call(ctx, yymsp[0].minor.yy86);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1607 "mjs/mjs.lem.c"
+#line 1616 "mjs/mjs.lem.c"
   yymsp[0].minor.yy86 = yylhsminor.yy86;
         break;
       case 53: /* objspeclist ::= */
-#line 287 "mjs/mjs.lem.c"
+#line 296 "mjs/mjs.lem.c"
 {
   yymsp[1].minor.yy86=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1616 "mjs/mjs.lem.c"
+#line 1625 "mjs/mjs.lem.c"
         break;
       case 54: /* objspec ::= objspeclhs COLON expr */
-#line 292 "mjs/mjs.lem.c"
+#line 301 "mjs/mjs.lem.c"
 {
   yylhsminor.yy86=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy110);
   mjs_emit_call(ctx, yymsp[0].minor.yy86);
   mjs_emit(ctx, MJS_OP_addprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1626 "mjs/mjs.lem.c"
+#line 1635 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy86 = yylhsminor.yy86;
         break;
       default:
@@ -7698,7 +7707,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 1724 "mjs/mjs.lem.c"
+#line 1733 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7719,7 +7728,7 @@ static void yy_syntax_error(
 
   ctx->syntax_error = TOKEN;
   (void) yymajor;
-#line 1745 "mjs/mjs.lem.c"
+#line 1754 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7745,7 +7754,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 1771 "mjs/mjs.lem.c"
+#line 1780 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
