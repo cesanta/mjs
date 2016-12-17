@@ -2041,6 +2041,7 @@ void pinit(const char *file_name, const char *buf, struct pstate *);
 int pnext(struct pstate *);
 
 MJS_PRIVATE int is_ident(int c);
+MJS_PRIVATE int is_digit(int c);
 
 #endif /* MJS_TOK_H_ */
 #ifdef MG_MODULE_LINES
@@ -10191,7 +10192,7 @@ bf_word_ptr_t mjs_emit_ident_inline(struct mjs_parse_ctx *ctx,
                                     const char *ident) {
   bf_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
 
-  while (is_ident(*ident)) {
+  while (is_ident(*ident) || is_digit(*ident)) {
     mjs_emit_uint8(ctx, *ident++);
   }
 
@@ -10775,7 +10776,7 @@ static int is_space(int c) {
   return c == ' ' || c == '\r' || c == '\n' || c == '\t';
 }
 
-static int is_digit(int c) {
+MJS_PRIVATE int is_digit(int c) {
   return c >= '0' && c <= '9';
 }
 
@@ -10824,7 +10825,7 @@ static int is_reserved_word_token(const char *s, int len) {
 }
 
 static int getident(struct pstate *p) {
-  while (is_ident(p->pos[0])) p->pos++;
+  while (is_ident(p->pos[0]) || is_digit(p->pos[0])) p->pos++;
   p->tok_len = p->pos - p->tok_ptr;
   p->pos--;
   return TOK_IDENT;
