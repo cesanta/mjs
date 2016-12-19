@@ -2418,7 +2418,13 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 /* Amalgamated: #include "mjs/ffi_public.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 
+struct bf_vm;
+
 MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig);
+
+MJS_PRIVATE void mjs_ffi_cb_void_void(struct bf_vm *vm);
+MJS_PRIVATE void mjs_ffi_cb_arg(struct bf_vm *vm);
+MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm);
 
 #endif /* MJS_FFI_H_ */
 #ifdef MG_MODULE_LINES
@@ -8731,6 +8737,7 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/gc.h" */
 /* Amalgamated: #include "mjs/mm.h" */
@@ -8791,6 +8798,9 @@ struct mjs *mjs_create() {
 MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_jsprint));
   mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
+  mjs_set(mjs, g, "ffi_cb_void_void", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_void_void));
+  mjs_set(mjs, g, "ffi_cb_arg", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_arg));
+  mjs_set(mjs, g, "ffi_cb_arg_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_arg_free));
 }
 
 struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
@@ -8985,6 +8995,7 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/exec.h" */
 /* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/ffi/ffi.h" */
 /* Amalgamated: #include "mjs/string.h" */
@@ -9051,6 +9062,12 @@ MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
       }
       argvs[i] = arg;
       ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
+    } else if (strncmp(a, "void*", 5) == 0 || strncmp(a, "void *", 6) == 0) {
+      if (!mjs_is_foreign(arg)) {
+        LOG(LL_ERROR, ("actual arg is not a ptr"));
+        goto clean;
+      }
+      ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
     } else {
       LOG(LL_ERROR, ("unsupported type %.*s", (int) (ae - a), a));
       goto clean;
@@ -9080,6 +9097,107 @@ MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   resv = mjs_mk_number(mjs, res.v.i);
 clean:
   mjs_push(mjs, resv);
+}
+
+struct ffi_cb_args {
+  struct mjs *mjs;
+  mjs_val_t func;
+  mjs_val_t user_data;
+};
+
+static void ffi_cb_impl_void_void(void *param) {
+  struct ffi_cb_args *cbargs = (struct ffi_cb_args *)param;
+  LOG(LL_DEBUG, ("calling JS callback void-void %d from C", mjs_get_int(cbargs->mjs, cbargs->func)));
+  mjs_call(cbargs->mjs, NULL, cbargs->func, 1, cbargs->user_data);
+}
+
+/*
+ * ffi_cb_void_void returns an implementation of C callback with the signature
+ * void (*)(void *user_data);
+ */
+MJS_PRIVATE void mjs_ffi_cb_void_void(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+
+  /* drop all provided args, if any */
+  while (nargs--) {
+    mjs_pop(mjs);
+  }
+
+  /* put the callback impl */
+  bf_push(&vm->dstack, mjs_mk_foreign(mjs, ffi_cb_impl_void_void));
+}
+
+/*
+ * ffi_cb_arg takes a callback MJS function and an optional user data
+ * (which may be any MJS value), and returns a foreign pointer which should
+ * be used as a C callback user data.
+ */
+MJS_PRIVATE void mjs_ffi_cb_arg(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+
+  /*
+   * freed by mjs_ffi_cb_arg_free(), which should be called by the user
+   * TODO(dfrank): try to improve
+   */
+  struct ffi_cb_args *cbargs = calloc(1, sizeof(*cbargs));
+  cbargs->mjs = mjs;
+
+  if (nargs < 1) {
+    /* TODO(dfrank): return an error */
+    LOG(LL_ERROR, ("missing argument 'func'"));
+    bf_push(&vm->dstack, mjs_mk_undefined());
+    return;
+  }
+
+  /* get MJS callback */
+  cbargs->func = mjs_pop(mjs);
+  nargs--;
+
+  /* get user_data for MJS callback: by default, it's `undefined` */
+  cbargs->user_data = MJS_UNDEFINED;
+  if (nargs > 0) {
+    cbargs->user_data = mjs_pop(mjs);
+    nargs--;
+  }
+
+  /* drop all provided args, if any */
+  while (nargs--) {
+    mjs_pop(mjs);
+  }
+
+  /* push the cbargs pointer */
+  bf_push(&vm->dstack, mjs_mk_foreign(mjs, cbargs));
+}
+
+/*
+ * ffi_cb_arg_free frees the foreign pointer returned by
+ * ffi_cb_arg()
+ */
+MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+
+  if (nargs < 1) {
+    /* TODO(dfrank): return an error */
+    LOG(LL_ERROR, ("missing argument 'arg'"));
+    bf_push(&vm->dstack, mjs_mk_undefined());
+    return;
+  }
+
+  /* get user data to free */
+  mjs_val_t arg_ptr = mjs_pop(mjs);
+  nargs--;
+
+  /* drop all provided args, if any */
+  while (nargs--) {
+    mjs_pop(mjs);
+  }
+
+  free(mjs_get_ptr(mjs, arg_ptr));
+
+  mjs_push(mjs, MJS_UNDEFINED);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.c"
