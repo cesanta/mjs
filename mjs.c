@@ -1863,6 +1863,15 @@ struct bf_stack {
   size_t size;
 };
 
+/*
+ * Called after "entering" each word
+ */
+typedef void (bf_cb_op_t)(struct bf_vm *vm);
+
+struct bf_callbacks {
+  bf_cb_op_t *after_bf_enter;
+};
+
 struct bf_vm {
   struct bf_code *code;
   struct bf_mem *iram;
@@ -1872,10 +1881,17 @@ struct bf_vm {
   struct bf_stack rstack; /* return stack */
   bf_cell_t tmp;
 
+  struct bf_callbacks cb;
   void *user_data;
 };
 
-void bf_init_vm(struct bf_vm *vm, struct bf_code *code);
+/*
+ * Initialize brainforth VM.
+ *
+ * `cb` might be `NULL`. If it's not NULL, the pointer is not retained by the
+ * bf, so the caller may free it right after `bf_init_vm()` returned.
+ */
+void bf_init_vm(struct bf_vm *vm, struct bf_code *code, struct bf_callbacks *cb);
 void bf_destroy_vm(struct bf_vm *vm);
 void bf_run(struct bf_vm *vm, bf_word_ptr_t word);
 
@@ -5574,6 +5590,10 @@ const char *utfnshift(const char *s, long m) {
 /* Amalgamated: #include "mjs/bf/mem.h" */
 /* Amalgamated: #include "mjs/bf/bf.h" */
 
+static void bf_cb_stub(struct bf_vm *vm) {
+  (void) vm;
+}
+
 static void bf_init_stack(struct bf_stack *stack) {
   stack->size = ARRAY_SIZE(stack->stack);
   stack->pos = 0;
@@ -5583,9 +5603,19 @@ void bf_destroy_vm(struct bf_vm *vm) {
   bf_destroy_mem(vm->iram);
 }
 
-void bf_init_vm(struct bf_vm *vm, struct bf_code *code) {
+void bf_init_vm(struct bf_vm *vm, struct bf_code *code, struct bf_callbacks *cb) {
   memset(vm, 0, sizeof(*vm));
   vm->code = code;
+
+  /* Copy provided callbacks, if any */
+  if (cb != NULL) {
+    memcpy(&vm->cb, cb, sizeof(vm->cb));
+  }
+
+  /* Provide default no-op callback implementations */
+  if (vm->cb.after_bf_enter == NULL) {
+    vm->cb.after_bf_enter = bf_cb_stub;
+  }
 
   bf_init_stack(&vm->dstack);
   bf_init_stack(&vm->rstack);
@@ -5666,6 +5696,9 @@ void bf_run(struct bf_vm *vm, bf_word_ptr_t word) {
     vm->ip++;
     word = bf_lookup_word(vm, op);
     bf_enter(vm, word);
+
+    /* Call user-provided callback */
+    vm->cb.after_bf_enter(vm);
   }
 }
 
@@ -8803,9 +8836,27 @@ MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "ffi_cb_arg_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_arg_free));
 }
 
+static void cb_after_bf_enter(struct bf_vm *vm) {
+  /*
+   * TODO(dfrank) if the "aggressive GC" mode is active, perform GC
+   */
+#if 0
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs_gc(mjs, 1 /* true */);
+#endif
+
+  (void) vm;
+}
+
 struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
   struct mjs *mjs = calloc(1, sizeof(*mjs));
-  bf_init_vm(&mjs->vm, (opts.code ? opts.code : &MJS_code));
+
+  {
+    struct bf_callbacks cb;
+    memset(&cb, 0, sizeof(cb));
+    cb.after_bf_enter = cb_after_bf_enter;
+    bf_init_vm(&mjs->vm, (opts.code ? opts.code : &MJS_code), &cb);
+  }
   mjs->vm.user_data = (void *) mjs;
 
   mjs->last_code = mjs->vm.iram->num_pages * FR_PAGE_SIZE;
