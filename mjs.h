@@ -107,6 +107,82 @@ void mjs_push(struct mjs *mjs, mjs_val_t val);
 mjs_val_t mjs_pop(struct mjs *mjs);
 mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
 
+/*
+ * Tells the GC about an MJS value variable/field owned by C code.
+ *
+ * The user's C code should own mjs_val_t variables if the value's lifetime
+ * crosses any invocation of `mjs_exec()` and friends, including `mjs_call()`.
+ *
+ * The registration of the variable prevents the GC from mistakenly treat the
+ * object as garbage.
+ *
+ * User code should also explicitly disown the variables with `mjs_disown()`
+ * once it goes out of scope or the structure containing the mjs_val_t field is
+ * freed.
+ *
+ * Consider the following examples:
+ *
+ * Correct (owning is not necessary):
+ * ```c
+ * mjs_val_t res;
+ * mjs_exec(mjs, "....some script", &res);
+ * // ... use res somehow
+ *
+ * mjs_val_t res;
+ * mjs_exec(mjs, "....some script2", &res);
+ * // ... use new res somehow
+ * ```
+ *
+ * WRONG:
+ * ```c
+ * mjs_val_t res1;
+ * mjs_exec(mjs, "....some script", &res1);
+ *
+ * mjs_val_t res2;
+ * mjs_exec(mjs, "....some script2", &res2);
+ *
+ * // ... use res1 (WRONG!) and res2
+ * ```
+ *
+ * The code above is wrong, because after the second invocation of
+ * `mjs_exec()`, the value of `res1` is invalidated.
+ *
+ * Correct (res1 is owned)
+ * ```c
+ * mjs_val_t res1 = MJS_UNDEFINED;
+ * mjs_own(mjs, &res1);
+ * mjs_exec(mjs, "....some script", &res1);
+ *
+ * mjs_val_t res2 = MJS_UNDEFINED;
+ * mjs_exec(mjs, "....some script2", &res2);
+ *
+ * // ... use res1 and res2
+ * mjs_disown(mjs, &res1);
+ * ```
+ *
+ * NOTE that we explicly initialized `res1` to a valid value before owning it
+ * (in this case, the value is `MJS_UNDEFINED`). Owning an uninitialized
+ * variable is an undefined behaviour.
+ *
+ * Of course, it's not an error to own a variable even if it's not mandatory:
+ * e.g. in the last example we could own both `res1` and `res2`. Probably it
+ * would help us in the future, when we refactor the code so that `res2` has to
+ * be owned, and we could forget to do that.
+ *
+ * Also, if the user code has some C function called from MJS, and in this C
+ * function some MJS value (`mjs_val_t`) needs to be stored somewhhere and to
+ * stay alive after the C function has returned, it also needs to be properly
+ * owned.
+ */
+void mjs_own(struct mjs *mjs, mjs_val_t *v);
+
+/*
+ * Disowns the value previously owned by `mjs_own()`.
+ *
+ * Returns 1 if value is found, 0 otherwise.
+ */
+int mjs_disown(struct mjs *mjs, mjs_val_t *v);
+
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
 /*
@@ -224,6 +300,82 @@ mjs_val_t mjs_get_global(struct mjs *mjs);
 void mjs_push(struct mjs *mjs, mjs_val_t val);
 mjs_val_t mjs_pop(struct mjs *mjs);
 mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
+
+/*
+ * Tells the GC about an MJS value variable/field owned by C code.
+ *
+ * The user's C code should own mjs_val_t variables if the value's lifetime
+ * crosses any invocation of `mjs_exec()` and friends, including `mjs_call()`.
+ *
+ * The registration of the variable prevents the GC from mistakenly treat the
+ * object as garbage.
+ *
+ * User code should also explicitly disown the variables with `mjs_disown()`
+ * once it goes out of scope or the structure containing the mjs_val_t field is
+ * freed.
+ *
+ * Consider the following examples:
+ *
+ * Correct (owning is not necessary):
+ * ```c
+ * mjs_val_t res;
+ * mjs_exec(mjs, "....some script", &res);
+ * // ... use res somehow
+ *
+ * mjs_val_t res;
+ * mjs_exec(mjs, "....some script2", &res);
+ * // ... use new res somehow
+ * ```
+ *
+ * WRONG:
+ * ```c
+ * mjs_val_t res1;
+ * mjs_exec(mjs, "....some script", &res1);
+ *
+ * mjs_val_t res2;
+ * mjs_exec(mjs, "....some script2", &res2);
+ *
+ * // ... use res1 (WRONG!) and res2
+ * ```
+ *
+ * The code above is wrong, because after the second invocation of
+ * `mjs_exec()`, the value of `res1` is invalidated.
+ *
+ * Correct (res1 is owned)
+ * ```c
+ * mjs_val_t res1 = MJS_UNDEFINED;
+ * mjs_own(mjs, &res1);
+ * mjs_exec(mjs, "....some script", &res1);
+ *
+ * mjs_val_t res2 = MJS_UNDEFINED;
+ * mjs_exec(mjs, "....some script2", &res2);
+ *
+ * // ... use res1 and res2
+ * mjs_disown(mjs, &res1);
+ * ```
+ *
+ * NOTE that we explicly initialized `res1` to a valid value before owning it
+ * (in this case, the value is `MJS_UNDEFINED`). Owning an uninitialized
+ * variable is an undefined behaviour.
+ *
+ * Of course, it's not an error to own a variable even if it's not mandatory:
+ * e.g. in the last example we could own both `res1` and `res2`. Probably it
+ * would help us in the future, when we refactor the code so that `res2` has to
+ * be owned, and we could forget to do that.
+ *
+ * Also, if the user code has some C function called from MJS, and in this C
+ * function some MJS value (`mjs_val_t`) needs to be stored somewhhere and to
+ * stay alive after the C function has returned, it also needs to be properly
+ * owned.
+ */
+void mjs_own(struct mjs *mjs, mjs_val_t *v);
+
+/*
+ * Disowns the value previously owned by `mjs_own()`.
+ *
+ * Returns 1 if value is found, 0 otherwise.
+ */
+int mjs_disown(struct mjs *mjs, mjs_val_t *v);
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 

@@ -2393,6 +2393,82 @@ void mjs_push(struct mjs *mjs, mjs_val_t val);
 mjs_val_t mjs_pop(struct mjs *mjs);
 mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
 
+/*
+ * Tells the GC about an MJS value variable/field owned by C code.
+ *
+ * The user's C code should own mjs_val_t variables if the value's lifetime
+ * crosses any invocation of `mjs_exec()` and friends, including `mjs_call()`.
+ *
+ * The registration of the variable prevents the GC from mistakenly treat the
+ * object as garbage.
+ *
+ * User code should also explicitly disown the variables with `mjs_disown()`
+ * once it goes out of scope or the structure containing the mjs_val_t field is
+ * freed.
+ *
+ * Consider the following examples:
+ *
+ * Correct (owning is not necessary):
+ * ```c
+ * mjs_val_t res;
+ * mjs_exec(mjs, "....some script", &res);
+ * // ... use res somehow
+ *
+ * mjs_val_t res;
+ * mjs_exec(mjs, "....some script2", &res);
+ * // ... use new res somehow
+ * ```
+ *
+ * WRONG:
+ * ```c
+ * mjs_val_t res1;
+ * mjs_exec(mjs, "....some script", &res1);
+ *
+ * mjs_val_t res2;
+ * mjs_exec(mjs, "....some script2", &res2);
+ *
+ * // ... use res1 (WRONG!) and res2
+ * ```
+ *
+ * The code above is wrong, because after the second invocation of
+ * `mjs_exec()`, the value of `res1` is invalidated.
+ *
+ * Correct (res1 is owned)
+ * ```c
+ * mjs_val_t res1 = MJS_UNDEFINED;
+ * mjs_own(mjs, &res1);
+ * mjs_exec(mjs, "....some script", &res1);
+ *
+ * mjs_val_t res2 = MJS_UNDEFINED;
+ * mjs_exec(mjs, "....some script2", &res2);
+ *
+ * // ... use res1 and res2
+ * mjs_disown(mjs, &res1);
+ * ```
+ *
+ * NOTE that we explicly initialized `res1` to a valid value before owning it
+ * (in this case, the value is `MJS_UNDEFINED`). Owning an uninitialized
+ * variable is an undefined behaviour.
+ *
+ * Of course, it's not an error to own a variable even if it's not mandatory:
+ * e.g. in the last example we could own both `res1` and `res2`. Probably it
+ * would help us in the future, when we refactor the code so that `res2` has to
+ * be owned, and we could forget to do that.
+ *
+ * Also, if the user code has some C function called from MJS, and in this C
+ * function some MJS value (`mjs_val_t`) needs to be stored somewhhere and to
+ * stay alive after the C function has returned, it also needs to be properly
+ * owned.
+ */
+void mjs_own(struct mjs *mjs, mjs_val_t *v);
+
+/*
+ * Disowns the value previously owned by `mjs_own()`.
+ *
+ * Returns 1 if value is found, 0 otherwise.
+ */
+int mjs_disown(struct mjs *mjs, mjs_val_t *v);
+
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
 /*
@@ -2550,6 +2626,11 @@ struct mjs {
 
   char *error_msg;
   mjs_err_t error_msg_err;
+
+  /* Set to true to trigger GC when safe */
+  unsigned int need_gc : 1;
+  /* while true, GC is inhibited */
+  unsigned int inhibit_gc : 1;
 };
 
 #endif /* MJS_CORE_H_ */
@@ -2587,6 +2668,11 @@ struct gc_cell {
  * Pass true to full in order to reclaim unused heap back to the OS.
  */
 void mjs_gc(struct mjs *mjs, int full);
+
+MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs);
+
+/* perform gc if not inhibited */
+MJS_PRIVATE int maybe_gc(struct mjs *mjs);
 
 MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
 MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
@@ -8837,13 +8923,18 @@ MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
 }
 
 static void cb_after_bf_enter(struct bf_vm *vm) {
-  /*
-   * TODO(dfrank) if the "aggressive GC" mode is active, perform GC
-   */
-#if 0
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs_gc(mjs, 1 /* true */);
+
+#ifdef MJS_AGGRESSIVE_GC
+  /* In "Aggressive GC" mode, perform GC after entering each word */
+  mjs->need_gc = 1;
 #endif
+
+  if (mjs->need_gc) {
+    if (maybe_gc(mjs)) {
+      mjs->need_gc = 0;
+    }
+  }
 
   (void) vm;
 }
@@ -8863,6 +8954,16 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
 
   mbuf_init(&mjs->owned_strings, 0);
   mbuf_init(&mjs->foreign_strings, 0);
+  mbuf_init(&mjs->owned_values, 0);
+
+  /*
+   * The compacting GC exploits the null terminator of the previous string as a
+   * marker.
+   */
+  {
+    char z = 0;
+    mbuf_append(&mjs->owned_strings, &z, 1);
+  }
 
   gc_arena_init(&mjs->object_arena, sizeof(struct mjs_object),
                 MJS_DEFAULT_OBJECT_ARENA_SIZE, 10);
@@ -8882,6 +8983,7 @@ void mjs_destroy(struct mjs *mjs) {
   bf_destroy_vm(&mjs->vm);
   mbuf_free(&mjs->owned_strings);
   mbuf_free(&mjs->foreign_strings);
+  mbuf_free(&mjs->owned_values);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
   free(mjs->error_msg);
@@ -8909,6 +9011,26 @@ mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs) {
     *nargs = mjs_mk_number(mjs, n);
   }
   return arg;
+}
+
+void mjs_own(struct mjs *mjs, mjs_val_t *v) {
+  mbuf_append(&mjs->owned_values, &v, sizeof(v));
+}
+
+int mjs_disown(struct mjs *mjs, mjs_val_t *v) {
+  mjs_val_t **vp =
+    (mjs_val_t **) (mjs->owned_values.buf + mjs->owned_values.len - sizeof(v));
+
+  for (; (char *) vp >= mjs->owned_values.buf; vp--) {
+    if (*vp == v) {
+      *vp = *(mjs_val_t **) (mjs->owned_values.buf + mjs->owned_values.len -
+          sizeof(v));
+      mjs->owned_values.len -= sizeof(v);
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
@@ -9016,6 +9138,7 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
   va_list ap;
   mjs_val_t r;
   int i;
+
   LOG(LL_DEBUG, ("applying func %d", mjs_get_int(mjs, func)));
   va_start (ap, nargs);
   for (i = 0; i < nargs; i++) {
@@ -9025,8 +9148,15 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
   bf_push(&mjs->vm.dstack, func);
   bf_run(&mjs->vm, MJS_OP_jscall);
   r = bf_pop(&mjs->vm.dstack);
+
+  /*
+   * NOTE: calling `bf_run()` invalidates `func`. If you ever need to use it
+   * afterwards, you need to own it before.
+   */
+
   if (res != NULL) *res = r;
   va_end(ap);
+
   return MJS_OK;
 }
 
@@ -9188,19 +9318,24 @@ MJS_PRIVATE void mjs_ffi_cb_arg(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   int nargs = mjs_get_int(mjs, mjs_pop(mjs));
 
-  /*
-   * freed by mjs_ffi_cb_arg_free(), which should be called by the user
-   * TODO(dfrank): try to improve
-   */
-  struct ffi_cb_args *cbargs = calloc(1, sizeof(*cbargs));
-  cbargs->mjs = mjs;
-
   if (nargs < 1) {
     /* TODO(dfrank): return an error */
     LOG(LL_ERROR, ("missing argument 'func'"));
     bf_push(&vm->dstack, mjs_mk_undefined());
     return;
   }
+
+  /*
+   * freed by mjs_ffi_cb_arg_free(), which should be called by the user
+   * TODO(dfrank): try to improve
+   */
+  struct ffi_cb_args *cbargs = calloc(1, sizeof(*cbargs));
+  cbargs->mjs = mjs;
+  cbargs->func = MJS_UNDEFINED;
+  cbargs->user_data = MJS_UNDEFINED;
+
+  mjs_own(mjs, &cbargs->func);
+  mjs_own(mjs, &cbargs->user_data);
 
   /* get MJS callback */
   cbargs->func = mjs_pop(mjs);
@@ -9246,7 +9381,12 @@ MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm) {
     mjs_pop(mjs);
   }
 
-  free(mjs_get_ptr(mjs, arg_ptr));
+  struct ffi_cb_args *cbargs = (struct ffi_cb_args *)mjs_get_ptr(mjs, arg_ptr);
+
+  mjs_disown(mjs, &cbargs->func);
+  mjs_disown(mjs, &cbargs->user_data);
+
+  free(cbargs);
 
   mjs_push(mjs, MJS_UNDEFINED);
 }
@@ -9285,6 +9425,11 @@ MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm) {
 #define MARK_FREE(p) (((struct gc_cell *) (p))->head.word |= 2)
 #define UNMARK_FREE(p) (((struct gc_cell *) (p))->head.word &= ~2)
 #define MARKED_FREE(p) (((struct gc_cell *) (p))->head.word & 2)
+
+/*
+ * When each arena has that or less free cells, GC will be scheduled
+ */
+#define GC_ARENA_CELLS_RESERVE 2
 
 void gc_mark_string(struct mjs *, mjs_val_t *);
 
@@ -9351,11 +9496,33 @@ static struct gc_block *gc_new_block(struct gc_arena *a, size_t size) {
   return b;
 }
 
+/*
+ * Returns whether the given arena has GC_ARENA_CELLS_RESERVE or less free
+ * cells
+ */
+static int gc_arena_is_gc_needed(struct gc_arena *a) {
+  struct gc_cell *r = a->free;
+  int i;
+
+  for (i = 0; i <= GC_ARENA_CELLS_RESERVE; i++, r = r->head.link) {
+    if (r == NULL) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs) {
+  struct mbuf *m = &mjs->owned_strings;
+  return (double) m->len / (double) m->size > 0.9;
+}
+
 MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
   struct gc_cell *r;
+
   if (a->free == NULL) {
     struct gc_block *b = gc_new_block(a, a->size_increment);
-    (void) mjs; /* TODO: signal GC pressure */
     b->next = a->blocks;
     a->blocks = b;
   }
@@ -9364,6 +9531,11 @@ MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
   UNMARK(r);
 
   a->free = r->head.link;
+
+  /* Schedule GC if needed */
+  if (gc_arena_is_gc_needed(a)) {
+    mjs->need_gc = 1;
+  }
 
   /*
    * TODO(mkm): minor opt possible since most of the fields
@@ -9617,15 +9789,13 @@ void gc_compact_strings(struct mjs *mjs) {
   mjs->owned_strings.len = head;
 }
 
-/*
- * builting on gcc, tried out by redefining it.
- * Using null pointer as base can trigger undefined behavior, hence
- * a portable workaround that involves a valid yet dummy pointer.
- * It's meant to be used as a contant expression.
- */
-#ifndef offsetof
-#define offsetof(st, m) (((ptrdiff_t)(&((st *) 32)->m)) - 32)
-#endif
+MJS_PRIVATE int maybe_gc(struct mjs *mjs) {
+  if (!mjs->inhibit_gc) {
+    mjs_gc(mjs, 0);
+    return 1;
+  }
+  return 0;
+}
 
 /*
  * mark an mbuf containing *pointers* to `mjs_val_t` values
@@ -9639,9 +9809,37 @@ static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf) {
   }
 }
 
+/*
+ * mark an array of `mjs_val_t` values (*not pointers* to them)
+ */
+static void gc_mark_val_array(struct mjs *mjs, mjs_val_t *vals, size_t len) {
+  mjs_val_t *vp;
+  for (vp = vals; vp < vals + len; vp++) {
+    gc_mark(mjs, *vp);
+    gc_mark_string(mjs, vp);
+  }
+}
+
+static void gc_mark_bf_stack(struct mjs *mjs, struct bf_stack *stack) {
+  size_t i;
+  mjs_val_t *v;
+  for (i = 0, v = (mjs_val_t *)stack->stack; i < stack->pos; i++, v++) {
+    gc_mark(mjs, *v);
+    gc_mark_string(mjs, v);
+  }
+}
+
 /* Perform garbage collection */
 void mjs_gc(struct mjs *mjs, int full) {
+  gc_mark_val_array(mjs, (mjs_val_t *) &mjs->vals, sizeof(mjs->vals) / sizeof(mjs_val_t));
+
   gc_mark_mbuf_pt(mjs, &mjs->owned_values);
+
+  gc_mark_bf_stack(mjs, &mjs->vm.dstack);
+  gc_mark_bf_stack(mjs, &mjs->vm.rstack);
+
+  gc_mark(mjs, (mjs_val_t)mjs->vm.tmp);
+  gc_mark_string(mjs, (mjs_val_t *)&mjs->vm.tmp);
 
   gc_compact_strings(mjs);
 
@@ -10808,6 +11006,10 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
     GET_VAL_NAN_PAYLOAD(offset)[0] = dict_index;
     tag = MJS_TAG_STRING_D;
   } else if (copy) {
+    if (gc_strings_is_gc_needed(mjs)) {
+      mjs->need_gc = 1;
+    }
+
     /*
      * Before embedding new string, check if the reallocation is needed.  If
      * so, perform the reallocation by calling `mbuf_resize` manually, since we
