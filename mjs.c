@@ -9344,6 +9344,8 @@ MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
     mjs_val_t arg = mjs_pop(mjs);
     if (strncmp(a, "int", ae - a) == 0) {
       ffi_set_int32(&args[i], mjs_get_int(mjs, arg));
+    } else if (strncmp(a, "double", ae - a) == 0) {
+      ffi_set_double(&args[i], mjs_get_double(mjs, arg));
     } else if (strncmp(a, "char*", 5) == 0 || strncmp(a, "char *", 6) == 0) {
       if (!mjs_is_string(arg)) {
         LOG(LL_ERROR, ("actual arg not a string"));
