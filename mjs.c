@@ -1894,6 +1894,8 @@ struct bf_vm {
 void bf_init_vm(struct bf_vm *vm, struct bf_code *code, struct bf_callbacks *cb);
 void bf_destroy_vm(struct bf_vm *vm);
 void bf_run(struct bf_vm *vm, bf_word_ptr_t word);
+/* should be called while `bf_run()` runs: forces it to quit */
+void bf_die(struct bf_vm *vm);
 
 bf_word_ptr_t bf_lookup_word(struct bf_vm *vm, bf_opcode_t op);
 
@@ -2382,8 +2384,9 @@ struct mjs;
 enum mjs_err {
   MJS_OK,
   MJS_SYNTAX_ERROR,
-  MJS_INTERNAL_ERROR,
   MJS_REFERENCE_ERROR,
+  MJS_TYPE_ERROR,
+  MJS_INTERNAL_ERROR,
 };
 
 typedef enum mjs_err mjs_err_t;
@@ -5831,6 +5834,11 @@ void bf_run(struct bf_vm *vm, bf_word_ptr_t word) {
   }
 }
 
+void bf_die(struct bf_vm *vm) {
+  /* force bf_run() to quit */
+  vm->ip = FR_EXIT_RUN;
+}
+
 bf_word_ptr_t bf_lookup_word(struct bf_vm *vm, bf_opcode_t op) {
   if (op < -1) {
     return vm->ip - 1 + op;
@@ -6340,23 +6348,23 @@ typedef union {
 static const YYACTIONTYPE yy_action[] = {
  /*     0 */    45,   47,  143,  143,  142,   57,   59,   51,   49,   64,
  /*    10 */    52,   13,   11,   62,   68,   99,  129,  125,  139,  137,
- /*    20 */   136,    1,  306,   66,   30,  297,  298,  299,  253,  254,
+ /*    20 */   136,    1,  306,   66,   30,  298,  253,  299,  254,  255,
  /*    30 */   304,  305,   45,   47,  117,  117,  307,   57,   59,   51,
- /*    40 */    49,  249,   52,   13,  256,   62,  141,   99,  262,  142,
- /*    50 */   139,  137,  136,    1,  295,   66,   30,  297,  298,  299,
- /*    60 */   253,  254,  304,  305,   45,   47,   10,   33,   64,   57,
+ /*    40 */    49,  249,   52,   13,  257,   62,  141,   99,  263,  142,
+ /*    50 */   139,  137,  136,    1,  296,   66,   30,  298,  253,  299,
+ /*    60 */   254,  255,  304,  305,   45,   47,   10,   33,   64,   57,
  /*    70 */    59,   51,   49,   63,   52,   13,   12,   62,  239,   98,
- /*    80 */   338,  255,  139,  137,  136,    1,  129,   66,   30,  297,
- /*    90 */   298,  299,  253,  128,  304,  305,   45,   47,   67,  131,
+ /*    80 */   338,  256,  139,  137,  136,    1,  129,   66,   30,  298,
+ /*    90 */   253,  299,  254,  128,  304,  305,   45,   47,   67,  131,
  /*   100 */   250,   57,   59,   51,   49,   28,   52,   13,  308,   62,
- /*   110 */   247,   99,  292,  119,  257,  419,    2,   61,   29,   69,
- /*   120 */    30,  297,  298,  299,  253,  254,  304,  305,  129,  246,
+ /*   110 */   247,   99,  293,  119,  258,  419,    2,   61,   29,   69,
+ /*   120 */    30,  298,  253,  299,  254,  255,  304,  305,  129,  246,
  /*   130 */   132,    8,  140,  206,  207,  210,  245,    4,  101,   90,
- /*   140 */   101,  115,  115,   14,  275,  276,   15,  206,   58,  115,
- /*   150 */    16,   31,  115,  115,  115,  119,  257,   45,   47,    6,
+ /*   140 */   101,  115,  115,   14,  276,  277,   15,  206,   58,  115,
+ /*   150 */    16,   31,  115,  115,  115,  119,  258,   45,   47,    6,
  /*   160 */    32,    9,   57,   59,   51,   49,    3,   52,   13,   56,
- /*   170 */   275,  276,   99,  238,   60,   65,  312,  314,   61,  314,
- /*   180 */    69,  314,  297,  298,  299,  253,  254,  304,  305,   42,
+ /*   170 */   276,  277,   99,  238,   60,   65,  312,  314,   61,  314,
+ /*   180 */    69,  314,  298,  253,  299,  254,  255,  304,  305,   42,
  /*   190 */    41,   40,   39,   48,   46,   44,   43,   55,   53,   50,
  /*   200 */    38,   37,   36,   35,   34,  314,   36,   35,   34,  314,
  /*   210 */    10,   33,  314,  314,   10,   33,  236,   42,   41,   40,
@@ -6368,9 +6376,9 @@ static const YYACTIONTYPE yy_action[] = {
  /*   270 */   314,  314,    7,   42,   41,   40,   39,   48,   46,   44,
  /*   280 */    43,   55,   53,   50,   38,   37,   36,   35,   34,  314,
  /*   290 */   314,  314,   45,   47,   10,   33,  314,   57,   59,   51,
- /*   300 */    49,  287,   52,   13,  314,  314,  314,   99,  314,  314,
- /*   310 */   314,  314,  314,   61,  314,   69,  314,  297,  298,  299,
- /*   320 */   253,  254,  304,  305,   42,   41,   40,   39,   48,   46,
+ /*   300 */    49,  288,   52,   13,  314,  314,  314,   99,  314,  314,
+ /*   310 */   314,  314,  314,   61,  314,   69,  314,  298,  253,  299,
+ /*   320 */   254,  255,  304,  305,   42,   41,   40,   39,   48,   46,
  /*   330 */    44,   43,   55,   53,   50,   38,   37,   36,   35,   34,
  /*   340 */   314,  314,  314,  314,  314,   10,   33,  425,  144,    8,
  /*   350 */   140,  206,  207,  210,  314,  314,  101,   90,  101,  115,
@@ -6380,9 +6388,9 @@ static const YYACTIONTYPE yy_action[] = {
  /*   390 */   314,  314,  206,  314,  115,  314,  314,  115,  115,  115,
  /*   400 */   126,    8,  140,  206,  207,  210,  314,  314,  101,   90,
  /*   410 */   101,  115,  115,  314,  314,  314,  314,  206,  314,  115,
- /*   420 */   314,  314,  115,  115,  115,  314,  314,  288,  127,  288,
- /*   430 */   314,  314,  101,   90,  101,  115,  115,  314,  314,  288,
- /*   440 */   314,  288,  314,  115,  314,  314,  115,  115,  115,  244,
+ /*   420 */   314,  314,  115,  115,  115,  314,  314,  289,  127,  289,
+ /*   430 */   314,  314,  101,   90,  101,  115,  115,  314,  314,  289,
+ /*   440 */   314,  289,  314,  115,  314,  314,  115,  115,  115,  244,
  /*   450 */   127,  244,  314,  314,  101,   90,  101,  115,  115,  314,
  /*   460 */   314,  244,  314,  244,  314,  115,  314,  314,  115,  115,
  /*   470 */   115,  243,  127,  243,  314,  314,  101,   90,  101,  115,
@@ -6391,10 +6399,10 @@ static const YYACTIONTYPE yy_action[] = {
  /*   500 */   101,  115,  115,  314,  314,  138,  314,  138,  314,  115,
  /*   510 */    57,   59,  115,  115,  115,   52,   13,  314,  314,  314,
  /*   520 */   237,  314,  314,  314,  314,  314,   61,  314,   69,  314,
- /*   530 */   297,  298,  299,  253,  254,  304,  305,   57,   59,  314,
+ /*   530 */   298,  253,  299,  254,  255,  304,  305,   57,   59,  314,
  /*   540 */   314,  314,   52,   13,  314,  314,  314,  100,  314,  314,
- /*   550 */   314,  314,  314,   61,  314,   69,  314,  297,  298,  299,
- /*   560 */   253,  254,  304,  305,  314,  314,  314,   48,   46,   44,
+ /*   550 */   314,  314,  314,   61,  314,   69,  314,  298,  253,  299,
+ /*   560 */   254,  255,  304,  305,  314,  314,  314,   48,   46,   44,
  /*   570 */    43,   55,   53,   50,   38,   37,   36,   35,   34,  314,
  /*   580 */   314,  202,  205,  209,   10,   33,  101,   90,  101,  115,
  /*   590 */   115,  314,  314,  314,  314,  202,  314,  115,  314,  314,
@@ -6403,8 +6411,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*   620 */   314,  314,  115,  115,  115,  314,  338,  338,  338,  338,
  /*   630 */   338,  338,  338,  338,  338,  338,  338,  338,  338,  338,
  /*   640 */   338,  338,  338,  338,  338,  338,  338,  338,  338,  338,
- /*   650 */   379,  379,  379,  379,  379,  379,  379,  379,  379,  379,
- /*   660 */   379,  379,   54,   27,   26,   25,   24,   23,   22,   21,
+ /*   650 */   380,  380,  380,  380,  380,  380,  380,  380,  380,  380,
+ /*   660 */   380,  380,   54,   27,   26,   25,   24,   23,   22,   21,
  /*   670 */    20,   19,   18,   17,  314,  314,  101,   91,  101,  115,
  /*   680 */   115,  116,  241,  314,  314,  314,  418,  115,  314,  203,
  /*   690 */   115,  115,  115,  101,   90,  101,  115,  115,  314,  101,
@@ -6480,9 +6488,9 @@ static const YYACTIONTYPE yy_action[] = {
  /*  1390 */   115,  314,  314,  115,  115,  115,  314,  314,  101,   93,
  /*  1400 */   101,  115,  115,  314,  314,  314,  314,  314,  314,  115,
  /*  1410 */   314,  314,  115,  115,  115,   38,   37,   36,   35,   34,
- /*  1420 */   314,  113,  113,  314,  314,   10,   33,  284,  284,  113,
- /*  1430 */   314,  314,  113,  113,  113,  284,  314,  314,  284,  284,
- /*  1440 */   284,  114,  114,  314,  314,  314,  314,  314,  314,  114,
+ /*  1420 */   314,  113,  113,  314,  314,   10,   33,  285,  285,  113,
+ /*  1430 */   314,  314,  113,  113,  113,  285,  314,  314,  285,  285,
+ /*  1440 */   285,  114,  114,  314,  314,  314,  314,  314,  314,  114,
  /*  1450 */   314,  314,  114,  114,  114,
 };
 static const YYCODETYPE yy_lookahead[] = {
@@ -6668,21 +6676,21 @@ static const short yy_reduce_ofst[] = {
  /*    60 */  1349,   21,  -71,  -49,  -53,  -26,  -39,  -34,   14,  -39,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   424,  370,  424,  424,  424,  424,  424,  424,  372,  323,
- /*    10 */   424,  424,  424,  423,  401,  401,  401,  424,  424,  424,
+ /*     0 */   424,  371,  424,  424,  424,  424,  424,  424,  373,  323,
+ /*    10 */   424,  424,  424,  423,  402,  402,  402,  424,  424,  424,
  /*    20 */   424,  424,  424,  424,  424,  424,  424,  424,  424,  424,
  /*    30 */   363,  424,  424,  424,  424,  424,  424,  424,  424,  424,
  /*    40 */   424,  424,  424,  424,  424,  424,  424,  424,  424,  424,
  /*    50 */   424,  424,  424,  424,  424,  424,  424,  424,  424,  424,
- /*    60 */   424,  370,  424,  424,  360,  424,  424,  424,  424,  424,
+ /*    60 */   424,  371,  424,  424,  360,  424,  424,  424,  424,  424,
  /*    70 */   424,  424,  424,  424,  337,  336,  335,  334,  333,  332,
- /*    80 */   331,  330,  329,  328,  327,  421,  422,  371,  364,  402,
- /*    90 */   377,  398,  326,  325,  393,  392,  344,  343,  349,  349,
- /*   100 */   349,  424,  339,  340,  342,  341,  389,  390,  391,  346,
- /*   110 */   345,  384,  383,  386,  385,  380,  424,  424,  424,  424,
- /*   120 */   395,  394,  347,  382,  381,  376,  424,  424,  366,  424,
+ /*    80 */   331,  330,  329,  328,  327,  421,  422,  372,  364,  403,
+ /*    90 */   378,  399,  326,  325,  394,  393,  344,  343,  349,  349,
+ /*   100 */   349,  424,  339,  340,  342,  341,  390,  391,  392,  346,
+ /*   110 */   345,  385,  384,  387,  386,  381,  424,  424,  424,  424,
+ /*   120 */   396,  395,  347,  383,  382,  377,  424,  424,  367,  424,
  /*   130 */   424,  424,  424,  424,  424,  424,  424,  424,  354,  424,
- /*   140 */   373,  424,  424,  324,  424,
+ /*   140 */   374,  424,  424,  324,  424,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -6871,52 +6879,52 @@ static const char *const yyRuleName[] = {
  /*  50 */ "arglistparen ::= OPEN_PAREN arglist CLOSE_PAREN",
  /*  51 */ "sstmt ::= RETURN",
  /*  52 */ "sstmt ::= RETURN expr",
- /*  53 */ "literal ::= NUMBER",
- /*  54 */ "literal ::= STRING_LITERAL",
- /*  55 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
- /*  56 */ "objspeclist ::= objspeclist COMMA objspec",
- /*  57 */ "objspeclist ::= objspec",
- /*  58 */ "objspeclist ::=",
- /*  59 */ "objspec ::= objspeclhs COLON expr",
- /*  60 */ "stmtlist ::= cstmtlist",
- /*  61 */ "stmtlist ::= sstmtlist",
- /*  62 */ "letspecs ::= letspecs COMMA letspec",
- /*  63 */ "letspecs ::= letspec",
- /*  64 */ "letspec ::= IDENTIFIER",
- /*  65 */ "sstmt ::= expr",
- /*  66 */ "lhs ::= ident",
- /*  67 */ "lhs ::= sexp DOT IDENTIFIER",
- /*  68 */ "expr ::= sexp",
- /*  69 */ "expr ::= NOT expr",
- /*  70 */ "expr ::= TILDA expr",
- /*  71 */ "expr ::= MINUS expr",
- /*  72 */ "expr ::= PLUS expr",
- /*  73 */ "sexp ::= MINUS_MINUS sexp",
- /*  74 */ "sexp ::= PLUS_PLUS sexp",
- /*  75 */ "sexp ::= sexp PLUS_PLUS",
- /*  76 */ "sexp ::= sexp MINUS_MINUS",
- /*  77 */ "expr ::= expr LSHIFT expr",
- /*  78 */ "expr ::= expr RSHIFT expr",
- /*  79 */ "expr ::= expr URSHIFT expr",
- /*  80 */ "expr ::= expr EQ_EQ expr",
- /*  81 */ "expr ::= expr NE_NE expr",
- /*  82 */ "expr ::= expr DIV expr",
- /*  83 */ "expr ::= expr REM expr",
- /*  84 */ "sexp ::= sexp DOT sexp",
- /*  85 */ "sexp ::= literal",
- /*  86 */ "callarg ::= expr",
- /*  87 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
- /*  88 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
- /*  89 */ "optexpr ::=",
- /*  90 */ "optexpr ::= expr",
- /*  91 */ "block_or_stmt ::= block",
- /*  92 */ "block_or_stmt ::= sstmt SEMICOLON",
- /*  93 */ "block_or_stmt ::= cstmt",
- /*  94 */ "cstmt ::= funcdecl",
- /*  95 */ "arglist ::= arglist COMMA argspec",
- /*  96 */ "arglist ::= argspec",
- /*  97 */ "literal ::= NULL",
- /*  98 */ "literal ::= UNDEFINED",
+ /*  53 */ "literal ::= UNDEFINED",
+ /*  54 */ "literal ::= NUMBER",
+ /*  55 */ "literal ::= STRING_LITERAL",
+ /*  56 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
+ /*  57 */ "objspeclist ::= objspeclist COMMA objspec",
+ /*  58 */ "objspeclist ::= objspec",
+ /*  59 */ "objspeclist ::=",
+ /*  60 */ "objspec ::= objspeclhs COLON expr",
+ /*  61 */ "stmtlist ::= cstmtlist",
+ /*  62 */ "stmtlist ::= sstmtlist",
+ /*  63 */ "letspecs ::= letspecs COMMA letspec",
+ /*  64 */ "letspecs ::= letspec",
+ /*  65 */ "letspec ::= IDENTIFIER",
+ /*  66 */ "sstmt ::= expr",
+ /*  67 */ "lhs ::= ident",
+ /*  68 */ "lhs ::= sexp DOT IDENTIFIER",
+ /*  69 */ "expr ::= sexp",
+ /*  70 */ "expr ::= NOT expr",
+ /*  71 */ "expr ::= TILDA expr",
+ /*  72 */ "expr ::= MINUS expr",
+ /*  73 */ "expr ::= PLUS expr",
+ /*  74 */ "sexp ::= MINUS_MINUS sexp",
+ /*  75 */ "sexp ::= PLUS_PLUS sexp",
+ /*  76 */ "sexp ::= sexp PLUS_PLUS",
+ /*  77 */ "sexp ::= sexp MINUS_MINUS",
+ /*  78 */ "expr ::= expr LSHIFT expr",
+ /*  79 */ "expr ::= expr RSHIFT expr",
+ /*  80 */ "expr ::= expr URSHIFT expr",
+ /*  81 */ "expr ::= expr EQ_EQ expr",
+ /*  82 */ "expr ::= expr NE_NE expr",
+ /*  83 */ "expr ::= expr DIV expr",
+ /*  84 */ "expr ::= expr REM expr",
+ /*  85 */ "sexp ::= sexp DOT sexp",
+ /*  86 */ "sexp ::= literal",
+ /*  87 */ "callarg ::= expr",
+ /*  88 */ "expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET",
+ /*  89 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
+ /*  90 */ "optexpr ::=",
+ /*  91 */ "optexpr ::= expr",
+ /*  92 */ "block_or_stmt ::= block",
+ /*  93 */ "block_or_stmt ::= sstmt SEMICOLON",
+ /*  94 */ "block_or_stmt ::= cstmt",
+ /*  95 */ "cstmt ::= funcdecl",
+ /*  96 */ "arglist ::= arglist COMMA argspec",
+ /*  97 */ "arglist ::= argspec",
+ /*  98 */ "literal ::= NULL",
  /*  99 */ "literal ::= THIS",
  /* 100 */ "literal ::= boolean_literal",
  /* 101 */ "literal ::= func_literal",
@@ -7347,6 +7355,7 @@ static const struct {
   { 71, 2 },
   { 79, 1 },
   { 79, 1 },
+  { 79, 1 },
   { 90, 3 },
   { 92, 3 },
   { 92, 1 },
@@ -7389,7 +7398,6 @@ static const struct {
   { 70, 1 },
   { 87, 3 },
   { 87, 1 },
-  { 79, 1 },
   { 79, 1 },
   { 79, 1 },
   { 79, 1 },
@@ -7661,7 +7669,7 @@ static void yy_reduce(
   yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       case 36: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
-      case 55: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==55);
+      case 56: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==56);
 #line 161 "mjs/mjs.lem.c"
 { yymsp[-2].minor.yy36=yymsp[-1].minor.yy36; }
 #line 1520 "mjs/mjs.lem.c"
@@ -7830,97 +7838,104 @@ static void yy_reduce(
 }
 #line 1684 "mjs/mjs.lem.c"
         break;
-      case 53: /* literal ::= NUMBER */
-#line 296 "mjs/mjs.lem.c"
+      case 53: /* literal ::= UNDEFINED */
+#line 294 "mjs/mjs.lem.c"
+{
+  yymsp[0].minor.yy36=mjs_emit(ctx, MJS_OP_undefined);
+  mjs_emit(ctx, MJS_OP_exit);
+}
+#line 1692 "mjs/mjs.lem.c"
+        break;
+      case 54: /* literal ::= NUMBER */
+#line 299 "mjs/mjs.lem.c"
 { yylhsminor.yy36=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 1689 "mjs/mjs.lem.c"
+#line 1697 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 54: /* literal ::= STRING_LITERAL */
-#line 297 "mjs/mjs.lem.c"
+      case 55: /* literal ::= STRING_LITERAL */
+#line 300 "mjs/mjs.lem.c"
 { yylhsminor.yy36=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 1695 "mjs/mjs.lem.c"
+#line 1703 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 56: /* objspeclist ::= objspeclist COMMA objspec */
-#line 308 "mjs/mjs.lem.c"
+      case 57: /* objspeclist ::= objspeclist COMMA objspec */
+#line 311 "mjs/mjs.lem.c"
 {
   yylhsminor.yy36=mjs_emit_call(ctx, yymsp[-2].minor.yy36);
   mjs_emit_call(ctx, yymsp[0].minor.yy36);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1705 "mjs/mjs.lem.c"
+#line 1713 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
-      case 57: /* objspeclist ::= objspec */
-#line 313 "mjs/mjs.lem.c"
+      case 58: /* objspeclist ::= objspec */
+#line 316 "mjs/mjs.lem.c"
 {
   yylhsminor.yy36=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit_call(ctx, yymsp[0].minor.yy36);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1715 "mjs/mjs.lem.c"
+#line 1723 "mjs/mjs.lem.c"
   yymsp[0].minor.yy36 = yylhsminor.yy36;
         break;
-      case 58: /* objspeclist ::= */
-#line 318 "mjs/mjs.lem.c"
+      case 59: /* objspeclist ::= */
+#line 321 "mjs/mjs.lem.c"
 {
   yymsp[1].minor.yy36=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1724 "mjs/mjs.lem.c"
+#line 1732 "mjs/mjs.lem.c"
         break;
-      case 59: /* objspec ::= objspeclhs COLON expr */
-#line 323 "mjs/mjs.lem.c"
+      case 60: /* objspec ::= objspeclhs COLON expr */
+#line 326 "mjs/mjs.lem.c"
 {
   yylhsminor.yy36=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy144);
   mjs_emit_call(ctx, yymsp[0].minor.yy36);
   mjs_emit(ctx, MJS_OP_addprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1734 "mjs/mjs.lem.c"
+#line 1742 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy36 = yylhsminor.yy36;
         break;
       default:
-      /* (60) stmtlist ::= cstmtlist */ yytestcase(yyruleno==60);
-      /* (61) stmtlist ::= sstmtlist */ yytestcase(yyruleno==61);
-      /* (62) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==62);
-      /* (63) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=63);
-      /* (64) letspec ::= IDENTIFIER */ yytestcase(yyruleno==64);
-      /* (65) sstmt ::= expr */ yytestcase(yyruleno==65);
-      /* (66) lhs ::= ident (OPTIMIZED OUT) */ assert(yyruleno!=66);
-      /* (67) lhs ::= sexp DOT IDENTIFIER */ yytestcase(yyruleno==67);
-      /* (68) expr ::= sexp */ yytestcase(yyruleno==68);
-      /* (69) expr ::= NOT expr */ yytestcase(yyruleno==69);
-      /* (70) expr ::= TILDA expr */ yytestcase(yyruleno==70);
-      /* (71) expr ::= MINUS expr */ yytestcase(yyruleno==71);
-      /* (72) expr ::= PLUS expr */ yytestcase(yyruleno==72);
-      /* (73) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==73);
-      /* (74) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==74);
-      /* (75) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==75);
-      /* (76) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==76);
-      /* (77) expr ::= expr LSHIFT expr */ yytestcase(yyruleno==77);
-      /* (78) expr ::= expr RSHIFT expr */ yytestcase(yyruleno==78);
-      /* (79) expr ::= expr URSHIFT expr */ yytestcase(yyruleno==79);
-      /* (80) expr ::= expr EQ_EQ expr */ yytestcase(yyruleno==80);
-      /* (81) expr ::= expr NE_NE expr */ yytestcase(yyruleno==81);
-      /* (82) expr ::= expr DIV expr */ yytestcase(yyruleno==82);
-      /* (83) expr ::= expr REM expr */ yytestcase(yyruleno==83);
-      /* (84) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==84);
-      /* (85) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=85);
-      /* (86) callarg ::= expr */ yytestcase(yyruleno==86);
-      /* (87) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==87);
-      /* (88) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==88);
-      /* (89) optexpr ::= */ yytestcase(yyruleno==89);
-      /* (90) optexpr ::= expr */ yytestcase(yyruleno==90);
-      /* (91) block_or_stmt ::= block (OPTIMIZED OUT) */ assert(yyruleno!=91);
-      /* (92) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==92);
-      /* (93) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=93);
-      /* (94) cstmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=94);
-      /* (95) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==95);
-      /* (96) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=96);
-      /* (97) literal ::= NULL */ yytestcase(yyruleno==97);
-      /* (98) literal ::= UNDEFINED */ yytestcase(yyruleno==98);
+      /* (61) stmtlist ::= cstmtlist */ yytestcase(yyruleno==61);
+      /* (62) stmtlist ::= sstmtlist */ yytestcase(yyruleno==62);
+      /* (63) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==63);
+      /* (64) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=64);
+      /* (65) letspec ::= IDENTIFIER */ yytestcase(yyruleno==65);
+      /* (66) sstmt ::= expr */ yytestcase(yyruleno==66);
+      /* (67) lhs ::= ident (OPTIMIZED OUT) */ assert(yyruleno!=67);
+      /* (68) lhs ::= sexp DOT IDENTIFIER */ yytestcase(yyruleno==68);
+      /* (69) expr ::= sexp */ yytestcase(yyruleno==69);
+      /* (70) expr ::= NOT expr */ yytestcase(yyruleno==70);
+      /* (71) expr ::= TILDA expr */ yytestcase(yyruleno==71);
+      /* (72) expr ::= MINUS expr */ yytestcase(yyruleno==72);
+      /* (73) expr ::= PLUS expr */ yytestcase(yyruleno==73);
+      /* (74) sexp ::= MINUS_MINUS sexp */ yytestcase(yyruleno==74);
+      /* (75) sexp ::= PLUS_PLUS sexp */ yytestcase(yyruleno==75);
+      /* (76) sexp ::= sexp PLUS_PLUS */ yytestcase(yyruleno==76);
+      /* (77) sexp ::= sexp MINUS_MINUS */ yytestcase(yyruleno==77);
+      /* (78) expr ::= expr LSHIFT expr */ yytestcase(yyruleno==78);
+      /* (79) expr ::= expr RSHIFT expr */ yytestcase(yyruleno==79);
+      /* (80) expr ::= expr URSHIFT expr */ yytestcase(yyruleno==80);
+      /* (81) expr ::= expr EQ_EQ expr */ yytestcase(yyruleno==81);
+      /* (82) expr ::= expr NE_NE expr */ yytestcase(yyruleno==82);
+      /* (83) expr ::= expr DIV expr */ yytestcase(yyruleno==83);
+      /* (84) expr ::= expr REM expr */ yytestcase(yyruleno==84);
+      /* (85) sexp ::= sexp DOT sexp */ yytestcase(yyruleno==85);
+      /* (86) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=86);
+      /* (87) callarg ::= expr */ yytestcase(yyruleno==87);
+      /* (88) expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET */ yytestcase(yyruleno==88);
+      /* (89) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==89);
+      /* (90) optexpr ::= */ yytestcase(yyruleno==90);
+      /* (91) optexpr ::= expr */ yytestcase(yyruleno==91);
+      /* (92) block_or_stmt ::= block (OPTIMIZED OUT) */ assert(yyruleno!=92);
+      /* (93) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==93);
+      /* (94) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=94);
+      /* (95) cstmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=95);
+      /* (96) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==96);
+      /* (97) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=97);
+      /* (98) literal ::= NULL */ yytestcase(yyruleno==98);
       /* (99) literal ::= THIS */ yytestcase(yyruleno==99);
       /* (100) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=100);
       /* (101) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=101);
@@ -7976,7 +7991,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 1832 "mjs/mjs.lem.c"
+#line 1839 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -7997,7 +8012,7 @@ static void yy_syntax_error(
 
   ctx->syntax_error = TOKEN;
   (void) yymajor;
-#line 1853 "mjs/mjs.lem.c"
+#line 1860 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -8023,7 +8038,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 1879 "mjs/mjs.lem.c"
+#line 1886 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -9291,6 +9306,10 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err) {
         return "syntax error";
       case MJS_INTERNAL_ERROR:
         return "internal error";
+      case MJS_REFERENCE_ERROR:
+        return "reference error";
+      case MJS_TYPE_ERROR:
+        return "type error";
       default:
         return "unknown error";
     }
@@ -9348,9 +9367,15 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
     return err;
   }
 
+  free(mjs->error_msg);
+  mjs->error_msg = NULL;
+  mjs->error_msg_err = MJS_OK;
+
   LOG(LL_DEBUG, ("running %d", ctx.entry));
   bf_run(&mjs->vm, ctx.entry);
   r = bf_pop(&mjs->vm.dstack);
+  err = mjs->error_msg_err;
+
   if (res != NULL) {
     *(bf_cell_t *) res = r;
   }
@@ -10434,12 +10459,11 @@ void mjs_op_jscall(struct bf_vm *vm) {
   } else if (mjs_is_string(func)) {
     mjs_ffi_call(mjs, func);
   } else if (mjs_is_undefined(func)) {
-    printf("undefined is not a function\n");
-    abort();
+    mjs_set_errorf(mjs, MJS_TYPE_ERROR, "undefined is not a function");
+    bf_die(&mjs->vm);
   } else {
-    /* TODO: add mjs_die so that we can exit from exec with an error */
-    printf("function is of an unknown type\n");
-    abort();
+    mjs_set_errorf(mjs, MJS_TYPE_ERROR, "function is of an unknown type");
+    bf_die(&mjs->vm);
   }
 }
 

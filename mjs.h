@@ -78,8 +78,9 @@ struct mjs;
 enum mjs_err {
   MJS_OK,
   MJS_SYNTAX_ERROR,
-  MJS_INTERNAL_ERROR,
   MJS_REFERENCE_ERROR,
+  MJS_TYPE_ERROR,
+  MJS_INTERNAL_ERROR,
 };
 
 typedef enum mjs_err mjs_err_t;
@@ -272,8 +273,9 @@ struct mjs;
 enum mjs_err {
   MJS_OK,
   MJS_SYNTAX_ERROR,
-  MJS_INTERNAL_ERROR,
   MJS_REFERENCE_ERROR,
+  MJS_TYPE_ERROR,
+  MJS_INTERNAL_ERROR,
 };
 
 typedef enum mjs_err mjs_err_t;
