@@ -187,6 +187,15 @@ int mjs_disown(struct mjs *mjs, mjs_val_t *v);
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
 /*
+ * If there is no error message already set, then it's equal to
+ * `mjs_set_errorf()`.
+ *
+ * Otherwise, an old message gets prepended with the new one, followed by a
+ * colon. (the previously set error code is kept)
+ */
+mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+
+/*
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
@@ -382,6 +391,15 @@ int mjs_disown(struct mjs *mjs, mjs_val_t *v);
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
 /*
+ * If there is no error message already set, then it's equal to
+ * `mjs_set_errorf()`.
+ *
+ * Otherwise, an old message gets prepended with the new one, followed by a
+ * colon. (the previously set error code is kept)
+ */
+mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+
+/*
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
@@ -407,6 +425,7 @@ mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
 
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...);
+mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, mjs_val_t *args);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
@@ -593,7 +612,7 @@ int mjs_is_foreign(mjs_val_t v);
 
 /* Amalgamated: #include "mjs/core_public.h" */
 
-#define MJS_STRING_LITERAL_MAX_LEN 64
+#define MJS_STRING_LITERAL_MAX_LEN 128
 
 /*
  * Creates a string primitive value.

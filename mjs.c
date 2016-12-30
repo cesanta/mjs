@@ -2493,6 +2493,15 @@ int mjs_disown(struct mjs *mjs, mjs_val_t *v);
 mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
 
 /*
+ * If there is no error message already set, then it's equal to
+ * `mjs_set_errorf()`.
+ *
+ * Otherwise, an old message gets prepended with the new one, followed by a
+ * colon. (the previously set error code is kept)
+ */
+mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+
+/*
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
@@ -2533,11 +2542,56 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 
 struct bf_vm;
 
-MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig);
+#define MJS_CB_ARGS_MAX_CNT 4
+#define MJS_CB_SIGNATURE_MAX_SIZE (MJS_CB_ARGS_MAX_CNT + 1 /* return type */)
 
-MJS_PRIVATE void mjs_ffi_cb_void_void(struct bf_vm *vm);
-MJS_PRIVATE void mjs_ffi_cb_arg(struct bf_vm *vm);
-MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm);
+enum cbval_type {
+  CBVAL_TYPE_NONE,
+  CBVAL_TYPE_USERDATA,
+  CBVAL_TYPE_INT,
+  CBVAL_TYPE_DOUBLE,
+  CBVAL_TYPE_INVALID,
+};
+typedef uint8_t cbval_type_t;
+
+struct ffi_sig_stat {
+  int8_t is_valid;
+  int8_t userdata_idx;
+  int8_t args_cnt;
+  int8_t args_double_cnt;
+};
+
+struct ffi_sig {
+  /*
+   * The first item is the return value type (for `void`, `CBVAL_TYPE_NONE` is
+   * used); the rest are arguments. If some argument is `CBVAL_TYPE_NONE`, it
+   * means that there are no more arguments.
+   */
+  cbval_type_t val_types[MJS_CB_SIGNATURE_MAX_SIZE];
+  struct ffi_sig_stat stat;
+};
+typedef struct ffi_sig ffi_sig_t;
+
+MJS_PRIVATE void mjs_ffi_sig_init(ffi_sig_t *sig);
+MJS_PRIVATE int mjs_ffi_sig_set_val_type(
+    ffi_sig_t *sig, int idx, cbval_type_t type
+    );
+MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(struct mjs *mjs, const ffi_sig_t *sig);
+MJS_PRIVATE int mjs_ffi_is_regular_word(cbval_type_t type);
+MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(cbval_type_t type);
+
+struct ffi_cb_args {
+  struct ffi_cb_args *next;
+  struct mjs *mjs;
+  ffi_sig_t sig;
+  mjs_val_t func;
+  mjs_val_t userdata;
+};
+typedef struct ffi_cb_args ffi_cb_args_t;
+
+MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig);
+MJS_PRIVATE void mjs_ffi_cb_free(struct bf_vm *vm);
+MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
 
 #endif /* MJS_FFI_H_ */
 #ifdef MG_MODULE_LINES
@@ -2668,6 +2722,9 @@ struct mjs {
 
   char *error_msg;
   mjs_err_t error_msg_err;
+
+  /* Linked list of the FFI callback args */
+  ffi_cb_args_t *ffi_cb_args;
 
   /* Set to true to trigger GC when safe */
   unsigned int need_gc : 1;
@@ -2951,7 +3008,7 @@ MJS_PRIVATE struct mjs_property *mjs_get_own_property(struct mjs *mjs,
 
 /* Amalgamated: #include "mjs/core_public.h" */
 
-#define MJS_STRING_LITERAL_MAX_LEN 64
+#define MJS_STRING_LITERAL_MAX_LEN 128
 
 /*
  * Creates a string primitive value.
@@ -3050,6 +3107,7 @@ mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
 
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...);
+mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, mjs_val_t *args);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
@@ -9146,9 +9204,7 @@ struct mjs *mjs_create() {
 MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_jsprint));
   mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
-  mjs_set(mjs, g, "ffi_cb_void_void", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_void_void));
-  mjs_set(mjs, g, "ffi_cb_arg", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_arg));
-  mjs_set(mjs, g, "ffi_cb_arg_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_arg_free));
+  mjs_set(mjs, g, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
 }
 
 static void cb_after_bf_enter(struct bf_vm *vm) {
@@ -9217,6 +9273,7 @@ void mjs_destroy(struct mjs *mjs) {
   mbuf_free(&mjs->foreign_strings);
   mbuf_free(&mjs->owned_values);
   mbuf_free(&mjs->scopes);
+  mjs_ffi_args_free_list(mjs);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
   free(mjs->error_msg);
@@ -9301,6 +9358,29 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
   mjs->error_msg_err = err;
   mg_avprintf(&mjs->error_msg, 0, fmt, ap);
   va_end(ap);
+  return err;
+}
+
+mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  char *old_error_msg = mjs->error_msg;
+  char *new_error_msg = NULL;
+  mjs->error_msg = NULL;
+  /* set error_msg_err if only it wasn't already set to some error */
+  if (mjs->error_msg_err == MJS_OK) {
+    mjs->error_msg_err = err;
+  }
+  mg_avprintf(&new_error_msg, 0, fmt, ap);
+  va_end(ap);
+
+  if (old_error_msg != NULL) {
+    mg_asprintf(&mjs->error_msg, 0, "%s: %s", new_error_msg, old_error_msg);
+    free(new_error_msg);
+    free(old_error_msg);
+  } else {
+    mjs->error_msg = new_error_msg;
+  }
   return err;
 }
 
@@ -9406,18 +9486,38 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
 
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...) {
   va_list ap;
+  int i;
+  mjs_err_t ret;
+  va_start (ap, nargs);
+  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * nargs);
+  for (i = 0; i < nargs; i++) {
+    args[i] = va_arg(ap, mjs_val_t);
+  }
+
+  ret = mjs_apply(mjs, res, func, nargs, args);
+  /*
+   * NOTE: calling `mjs_apply()` invalidates `func`. If you ever need to use it
+   * afterwards, you need to own it before.
+   */
+
+  free(args);
+  return ret;
+}
+
+mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, mjs_val_t *args) {
+  mjs_err_t err;
   mjs_val_t r;
   int i;
 
   LOG(LL_DEBUG, ("applying func %d", mjs_get_int(mjs, func)));
-  va_start (ap, nargs);
-  for (i = 0; i < nargs; i++) {
-    bf_push(&mjs->vm.dstack, va_arg(ap, mjs_val_t));
+  for (i = nargs - 1; i >= 0; i--) {
+    bf_push(&mjs->vm.dstack, args[i]);
   }
   bf_push(&mjs->vm.dstack, mjs_mk_number(mjs, nargs));
   bf_push(&mjs->vm.dstack, func);
   bf_run(&mjs->vm, MJS_WORD_PTR_jscall_wrap);
   r = bf_pop(&mjs->vm.dstack);
+  err = mjs->error_msg_err;
 
   /*
    * NOTE: calling `bf_run()` invalidates `func`. If you ever need to use it
@@ -9425,9 +9525,8 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
    */
 
   if (res != NULL) *res = r;
-  va_end(ap);
 
-  return MJS_OK;
+  return err;
 }
 
 #ifdef MG_MODULE_LINES
@@ -9441,6 +9540,8 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
 #if defined(__unix__) || defined(__APPLE__)
 #include <dlfcn.h>
 #endif
+
+#include <stdint.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "common/str_util.h" */
@@ -9460,21 +9561,308 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
 #define RTLD_DEFAULT NULL
 #endif
 
+typedef void (cb_fn_t)(void);
+
+/*
+ * Data of the two related arguments: callback function pointer and the
+ * userdata for it
+ */
+struct cbdata {
+  /* JS callback function */
+  mjs_val_t func;
+  /* JS userdata */
+  mjs_val_t userdata;
+
+  /* C function signature source */
+  const char *signature;
+  size_t signature_len;
+  /*
+   * Descriptor of the C callback function signature.
+   */
+  ffi_sig_t sig;
+  /* index of the function pointer param */
+  signed func_idx : 3;
+  /* index of the userdata param */
+  signed userdata_idx : 3;
+};
+
 void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym) {
   mjs->dlsym = dlsym;
 }
 
-MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
+static cbval_type_t parse_cbval_type(struct mjs *mjs, const char *s, const char *e) {
+  if (strncmp(s, "void", e - s) == 0) {
+    return CBVAL_TYPE_NONE;
+  } else if (strncmp(s, "userdata", e - s) == 0) {
+    return CBVAL_TYPE_USERDATA;
+  } else if (strncmp(s, "int", e - s) == 0) {
+    return CBVAL_TYPE_INT;
+  } else if (strncmp(s, "double", e - s) == 0) {
+    return CBVAL_TYPE_DOUBLE;
+  } else {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "failed to parse val type \"%.*s\"", (e - s), s);
+    return CBVAL_TYPE_INVALID;
+  }
+}
+
+static int parse_cb_signature(
+    struct mjs *mjs, const char *s, const char *e, ffi_sig_t *sig
+    ) {
+  int ret = 1;
+  int vtidx = 0;
+  const char *cur = s;
+  cbval_type_t val_type = CBVAL_TYPE_INVALID;
+  mjs_ffi_sig_init(sig);
+
+  const char *tmp_e = NULL;
+
+  /* Parse return value type */
+  tmp_e = strchr(cur, '(');
+  if (tmp_e == NULL) {
+    ret = 0;
+    goto clean;
+  }
+  val_type = parse_cbval_type(mjs, cur, tmp_e);
+  if (val_type == CBVAL_TYPE_INVALID) {
+    ret = 0;
+    goto clean;
+  }
+  mjs_ffi_sig_set_val_type(sig, vtidx++, val_type);
+
+  /* Advance cur to the beginning of the arg list */
+  tmp_e = strchr(tmp_e, ')');
+  if (tmp_e == NULL) {
+    ret = 0;
+    goto clean;
+  }
+  tmp_e = strchr(tmp_e, '(');
+  if (tmp_e == NULL) {
+    ret = 0;
+    goto clean;
+  }
+  cur = tmp_e + 1;
+
+  /* Parse all args */
+  while (*tmp_e && *tmp_e != ')') {
+    tmp_e = cur;
+
+    /* Advance tmp_e until the next arg separator */
+    while (*tmp_e && *tmp_e != ',' && *tmp_e != ')') tmp_e++;
+
+    /* Parse current arg */
+    val_type = parse_cbval_type(mjs, cur, tmp_e);
+    if (val_type == CBVAL_TYPE_INVALID) {
+      /* parse_cbval_type() has already set error message */
+      ret = 0;
+      goto clean;
+    }
+    if (!mjs_ffi_sig_set_val_type(sig, vtidx++, val_type)) {
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "too many callback args");
+      ret = 0;
+      goto clean;
+    }
+
+    if (*tmp_e == ',') {
+      /* Advance cur to the next argument */
+      cur = tmp_e + 1;
+      while (*cur == ' ') cur++;
+    } else {
+      /* No more arguments */
+      break;
+    }
+  }
+
+  sig->stat = mjs_ffi_sig_stat_get(mjs, sig);
+  if (!sig->stat.is_valid) {
+    ret = 0;
+    goto clean;
+  }
+
+clean:
+  if (!ret) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+        "bad callback signature: \"%.*s\"", e - s, s);
+  }
+  return ret;
+}
+
+/* C callbacks implementation {{{ */
+
+/* An argument or a return value for C callback impl */
+union ffi_cb_data_val {
+  uintptr_t w;
+  double d;
+};
+
+struct ffi_cb_data {
+  union ffi_cb_data_val args[MJS_CB_ARGS_MAX_CNT];
+};
+
+static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data *data) {
+  struct ffi_cb_args *cbargs = (struct ffi_cb_args *)param;
+  mjs_val_t res = MJS_UNDEFINED;
+  union ffi_cb_data_val ret;
+  int i;
+  memset(&ret, 0, sizeof(ret));
+  mjs_own(cbargs->mjs, &res);
+
+  /* There must be at least one argument: a userdata */
+  assert(cbargs->sig.stat.args_cnt > 0);
+
+  /* Create JS arguments */
+  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.stat.args_cnt);
+  for (i = 0; i < cbargs->sig.stat.args_cnt; i++) {
+    cbval_type_t val_type = cbargs->sig.val_types[i + 1/* first val_type is return value type */];
+    switch (val_type) {
+      case CBVAL_TYPE_USERDATA:
+        args[i] = cbargs->userdata;
+        break;
+      case CBVAL_TYPE_INT:
+        args[i] = mjs_mk_number(cbargs->mjs, data->args[i].w);
+        break;
+      case CBVAL_TYPE_DOUBLE:
+        args[i] = mjs_mk_number(cbargs->mjs, data->args[i].d);
+        break;
+      default:
+        /* should never be here */
+        LOG(LL_ERROR, ("unexpected val type for arg #%d: %d\n", i, val_type));
+        abort();
+    }
+  }
+
+  /* Call JS function */
+  LOG(LL_DEBUG, ("calling JS callback void-void %d from C", mjs_get_int(cbargs->mjs, cbargs->func)));
+  mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, cbargs->sig.stat.args_cnt, args);
+  if (err != MJS_OK) {
+    /*
+     * There's not much we can do about the error here; let's at least print it
+     */
+    fprintf(stderr, "MJS callback error: %s\n", mjs_strerror(cbargs->mjs, err));
+
+    goto clean;
+  }
+
+  /* Get return value, if needed */
+  switch (cbargs->sig.val_types[0]) {
+    case CBVAL_TYPE_NONE:
+      /* do nothing */
+      break;
+    case CBVAL_TYPE_INT:
+      ret.w = mjs_get_int(cbargs->mjs, res);
+      break;
+    case CBVAL_TYPE_DOUBLE:
+      ret.d = mjs_get_int(cbargs->mjs, res);
+      break;
+    default:
+      /* should never be here */
+      LOG(LL_ERROR, ("unexpected return val type %d\n", cbargs->sig.val_types[0]));
+      abort();
+  }
+
+clean:
+  free(args);
+  mjs_disown(cbargs->mjs, &res);
+  return ret;
+}
+
+static void ffi_init_cb_data_wwww(struct ffi_cb_data *data, uintptr_t w0, uintptr_t w1, uintptr_t w2, uintptr_t w3) {
+  memset(data, 0, sizeof(*data));
+  data->args[0].w = w0;
+  data->args[1].w = w1;
+  data->args[2].w = w2;
+  data->args[3].w = w3;
+}
+
+static uintptr_t ffi_cb_impl_wpwww(uintptr_t w0, uintptr_t w1, uintptr_t w2, uintptr_t w3) {
+  struct ffi_cb_data data;
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  return ffi_cb_impl_generic((void *)w0, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wwpww(uintptr_t w0, uintptr_t w1, uintptr_t w2, uintptr_t w3) {
+  struct ffi_cb_data data;
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  return ffi_cb_impl_generic((void *)w1, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wwwpw(uintptr_t w0, uintptr_t w1, uintptr_t w2, uintptr_t w3) {
+  struct ffi_cb_data data;
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  return ffi_cb_impl_generic((void *)w2, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wwwwp(uintptr_t w0, uintptr_t w1, uintptr_t w2, uintptr_t w3) {
+  struct ffi_cb_data data;
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  return ffi_cb_impl_generic((void *)w3, &data).w;
+}
+/* }}} */
+
+static struct ffi_cb_args **ffi_get_matching(
+    struct ffi_cb_args **plist,
+    mjs_val_t func, mjs_val_t userdata
+    ) {
+  for ( ; *plist != NULL; plist = &((*plist)->next)) {
+    if ((*plist)->func == func && (*plist)->userdata == userdata) {
+      break;
+    }
+  }
+  return plist;
+}
+
+static cb_fn_t *get_cb_impl_by_signature(
+    const ffi_sig_t *sig
+    ) {
+
+  if (sig->stat.is_valid) {
+    if (sig->stat.args_cnt <= 4) {
+      if (mjs_ffi_is_regular_word_or_void(sig->val_types[0])) {
+        /* Return type is a word or void */
+        if (sig->stat.args_double_cnt == 0) {
+          /* No double arguments */
+          switch (sig->stat.userdata_idx) {
+            case 1:
+              return (cb_fn_t *)ffi_cb_impl_wpwww;
+            case 2:
+              return (cb_fn_t *)ffi_cb_impl_wwpww;
+            case 3:
+              return (cb_fn_t *)ffi_cb_impl_wwwpw;
+            case 4:
+              return (cb_fn_t *)ffi_cb_impl_wwwwp;
+            default:
+              /* should never be here */
+              abort();
+          }
+        }
+      }
+    } else {
+      /* Too many arguments for the built-in callback impls */
+      /* TODO(dfrank): add support for custom app-dependent resolver */
+    }
+  }
+
+  return NULL;
+}
+
+MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   const char *s = mjs_get_cstring(mjs, &sig);
   const char *n, *e, *a = NULL;
   char *buf = NULL;
   ffi_fn_t fn;
-  int i, nargs;
+  int i, nargs, ret = 1;
   struct ffi_arg res;
   struct ffi_arg args[4];
+
+  /* TODO(dfrank): support multiple callbacks */
   mjs_val_t resv = mjs_mk_undefined();
   mjs_val_t argvs[4];
 
+  struct cbdata cbdata;
+  memset(&cbdata, 0, sizeof(cbdata));
+  cbdata.func_idx = -1;
+  cbdata.userdata_idx = -1;
+
+  /* Find a space between the return type and function name */
   n = strchr(s, ' ');
   if (n == NULL) {
     n = s;
@@ -9494,45 +9882,88 @@ MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
 
   nargs = mjs_get_int(mjs, mjs_pop(mjs));
   for (i = 0; i < nargs; i++) {
-    const char *ae;
+    const char *ae; /* pointer to the one-past-end character */
+    int level = 0; /* nested parens level */
+    int is_fp = 0; /* set to 1 is current arg is a callback function ptr */
     if (a == NULL) {
-      LOG(LL_ERROR, ("bad signature '%s', got %d actuals", s, nargs));
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "got %d actuals", nargs);
+      ret = 0;
       goto clean;
     }
     while (*a == ' ') a++;
     ae = a;
-    while (*ae && *ae != ',' && *ae != ')') ae++;
+    while (*ae && (level > 0 || (*ae != ',' && *ae != ')'))) {
+      switch (*ae) {
+        case '(':
+          level++;
+          /*
+           * only function pointer params can have parens, so, set the flag
+           * that it's going to be a function pointer
+           */
+          is_fp = 1;
+          break;
+        case ')':
+          level--;
+          break;
+      }
+      ae++;
+    }
 
     mjs_val_t arg = mjs_pop(mjs);
-    if (strncmp(a, "int", ae - a) == 0) {
+    if (is_fp) {
+      /*
+       * Current argument is a callback function pointer: remember the given JS
+       * function and the argument index
+       */
+      cbdata.func = arg;
+      cbdata.func_idx = i;
+      cbdata.signature = a;
+      cbdata.signature_len = (size_t)(ae - a);
+      if (!parse_cb_signature(mjs, a, ae, &cbdata.sig)) {
+        ret = 0;
+        goto clean;
+      }
+    } else if (strncmp(a, "userdata", ae - a) == 0) {
+      /* Userdata for the callback */
+      if (cbdata.userdata_idx != -1) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "two or more userdata args: #%d and %d", cbdata.userdata_idx, i);
+        ret = 0;
+        goto clean;
+      }
+      cbdata.userdata = arg;
+      cbdata.userdata_idx = i;
+    } else if (strncmp(a, "int", ae - a) == 0) {
       ffi_set_int32(&args[i], mjs_get_int(mjs, arg));
     } else if (strncmp(a, "double", ae - a) == 0) {
       ffi_set_double(&args[i], mjs_get_double(mjs, arg));
     } else if (strncmp(a, "char*", 5) == 0 || strncmp(a, "char *", 6) == 0) {
       if (!mjs_is_string(arg)) {
-        LOG(LL_ERROR, ("actual arg not a string"));
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "actual arg #%d is not a string", i);
+        ret = 0;
         goto clean;
       }
       argvs[i] = arg;
       ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
     } else if (strncmp(a, "void*", 5) == 0 || strncmp(a, "void *", 6) == 0) {
       if (!mjs_is_foreign(arg)) {
-        LOG(LL_ERROR, ("actual arg is not a ptr"));
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "actual arg #%d is not a ptr", i);
+        ret = 0;
         goto clean;
       }
       ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
     } else {
-      LOG(LL_ERROR, ("unsupported type %.*s", (int) (ae - a), a));
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "arg #%d: unsupported C type \"%.*s\"", i, (int) (ae - a), a);
+      ret = 0;
       goto clean;
     }
 
-    while (*a && *a != ',' && *a != ')') a++;
-    a++;
+    a = ae + 1;
     if (*a == '\0') a = NULL;
   }
 
   if (mjs->dlsym == NULL) {
-    LOG(LL_ERROR, ("resolver not set, call mjs_set_ffi_resolver"));
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "resolver is not set, call mjs_set_ffi_resolver");
+    ret = 0;
     goto clean;
   }
 
@@ -9541,7 +9972,58 @@ MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   free(buf);
 
   if (fn == NULL) {
-    LOG(LL_ERROR, ("cannot resolve function %s", buf));
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "cannot resolve function %s", buf);
+    ret = 0;
+    goto clean;
+  }
+
+  if (cbdata.userdata_idx >= 0 && cbdata.func_idx >= 0) {
+    /* the function takes a callback */
+
+    /* Get C callback implementation by the given signature */
+    cb_fn_t *cb_fn = get_cb_impl_by_signature(&cbdata.sig);
+    if (cb_fn == NULL) {
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+          "the callback signature '%.*s' is valid, but there's no existing callback implementation for it",
+          cbdata.signature_len, cbdata.signature
+          );
+      ret = 0;
+      goto clean;
+    }
+
+    /*
+     * Get cbargs: either reuse the existing one (if the matching item exists),
+     * or create a new one.
+     */
+    struct ffi_cb_args *cbargs = NULL;
+    struct ffi_cb_args **pitem = ffi_get_matching(
+        &mjs->ffi_cb_args, cbdata.func, cbdata.userdata
+        );
+
+    if (*pitem == NULL) {
+      /* No matching cbargs item; we need to add a new one */
+      cbargs = calloc(1, sizeof(*cbargs));
+      cbargs->mjs = mjs;
+      cbargs->func = cbdata.func;
+      cbargs->userdata = cbdata.userdata;
+      memcpy(&cbargs->sig, &cbdata.sig, sizeof(cbargs->sig));
+
+      /* Establish a link to the newly allocated item */
+      *pitem = cbargs;
+    } else {
+      /* Found matching item: reuse it */
+      cbargs = *pitem;
+    }
+
+    ffi_set_ptr(&args[cbdata.func_idx], cb_fn);
+    ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
+  } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
+    /*
+     * incomplete signature: it contains either the function pointer or
+     * userdata. It should contain both or none.
+     */
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "function pointer and userdata can't live without one another");
+    ret = 0;
     goto clean;
   }
 
@@ -9549,118 +10031,141 @@ MJS_PRIVATE void mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
 
   resv = mjs_mk_number(mjs, res.v.i);
 clean:
+  if (!ret) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "failed to call FFI signature \"%s\"", s);
+  }
   mjs_push(mjs, resv);
-}
-
-struct ffi_cb_args {
-  struct mjs *mjs;
-  mjs_val_t func;
-  mjs_val_t user_data;
-};
-
-static void ffi_cb_impl_void_void(void *param) {
-  struct ffi_cb_args *cbargs = (struct ffi_cb_args *)param;
-  LOG(LL_DEBUG, ("calling JS callback void-void %d from C", mjs_get_int(cbargs->mjs, cbargs->func)));
-  mjs_call(cbargs->mjs, NULL, cbargs->func, 1, cbargs->user_data);
+  return ret;
 }
 
 /*
- * ffi_cb_void_void returns an implementation of C callback with the signature
- * void (*)(void *user_data);
+ * TODO(dfrank): make it return boolean (when booleans are supported), instead
+ * of a number
  */
-MJS_PRIVATE void mjs_ffi_cb_void_void(struct bf_vm *vm) {
+MJS_PRIVATE void mjs_ffi_cb_free(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   int nargs = mjs_get_int(mjs, mjs_pop(mjs));
-
-  /* drop all provided args, if any */
-  while (nargs--) {
-    mjs_pop(mjs);
-  }
-
-  /* put the callback impl */
-  bf_push(&vm->dstack, mjs_mk_foreign(mjs, ffi_cb_impl_void_void));
-}
-
-/*
- * ffi_cb_arg takes a callback MJS function and an optional user data
- * (which may be any MJS value), and returns a foreign pointer which should
- * be used as a C callback user data.
- */
-MJS_PRIVATE void mjs_ffi_cb_arg(struct bf_vm *vm) {
-  struct mjs *mjs = (struct mjs *) vm->user_data;
-  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  mjs_val_t ret = mjs_mk_number(mjs, 0);
+  mjs_val_t func = MJS_UNDEFINED;
+  mjs_val_t userdata = MJS_UNDEFINED;
+  struct ffi_cb_args **pitem = NULL;
 
   if (nargs < 1) {
-    /* TODO(dfrank): return an error */
-    LOG(LL_ERROR, ("missing argument 'func'"));
-    bf_push(&vm->dstack, mjs_mk_undefined());
-    return;
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'func'");
+    goto clean;
   }
 
-  /*
-   * freed by mjs_ffi_cb_arg_free(), which should be called by the user
-   * TODO(dfrank): try to improve
-   */
-  struct ffi_cb_args *cbargs = calloc(1, sizeof(*cbargs));
-  cbargs->mjs = mjs;
-  cbargs->func = MJS_UNDEFINED;
-  cbargs->user_data = MJS_UNDEFINED;
-
-  mjs_own(mjs, &cbargs->func);
-  mjs_own(mjs, &cbargs->user_data);
-
-  /* get MJS callback */
-  cbargs->func = mjs_pop(mjs);
-  nargs--;
-
-  /* get user_data for MJS callback: by default, it's `undefined` */
-  cbargs->user_data = MJS_UNDEFINED;
-  if (nargs > 0) {
-    cbargs->user_data = mjs_pop(mjs);
-    nargs--;
-  }
-
-  /* drop all provided args, if any */
-  while (nargs--) {
-    mjs_pop(mjs);
-  }
-
-  /* push the cbargs pointer */
-  bf_push(&vm->dstack, mjs_mk_foreign(mjs, cbargs));
-}
-
-/*
- * ffi_cb_arg_free frees the foreign pointer returned by
- * ffi_cb_arg()
- */
-MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm) {
-  struct mjs *mjs = (struct mjs *) vm->user_data;
-  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
-
-  if (nargs < 1) {
-    /* TODO(dfrank): return an error */
-    LOG(LL_ERROR, ("missing argument 'arg'"));
-    bf_push(&vm->dstack, mjs_mk_undefined());
-    return;
+  if (nargs < 2) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'userdata'");
+    goto clean;
   }
 
   /* get user data to free */
-  mjs_val_t arg_ptr = mjs_pop(mjs);
-  nargs--;
+  func = mjs_pop(mjs);
+  userdata = mjs_pop(mjs);
 
-  /* drop all provided args, if any */
-  while (nargs--) {
-    mjs_pop(mjs);
+  pitem = ffi_get_matching(&mjs->ffi_cb_args, func, userdata);
+
+  if (*pitem == NULL) {
+    /* No matching cbargs item: will return false */
+    goto clean;
+  } else {
+    /* Found matching item: remove it from the linked list, and free */
+    struct ffi_cb_args *cbargs = *pitem;
+    *pitem = cbargs->next;
+    free(cbargs);
+    ret = mjs_mk_number(mjs, 1);
   }
 
-  struct ffi_cb_args *cbargs = (struct ffi_cb_args *)mjs_get_ptr(mjs, arg_ptr);
+clean:
+  mjs_push(mjs, ret);
+}
 
-  mjs_disown(mjs, &cbargs->func);
-  mjs_disown(mjs, &cbargs->user_data);
+MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs) {
+  ffi_cb_args_t *next = mjs->ffi_cb_args;
 
-  free(cbargs);
+  while (next != NULL) {
+    ffi_cb_args_t *cur = next;
+    next = next->next;
+    free(cur);
+  }
+}
 
-  mjs_push(mjs, MJS_UNDEFINED);
+MJS_PRIVATE void mjs_ffi_sig_init(ffi_sig_t *sig) {
+  memset(sig->val_types, CBVAL_TYPE_NONE, MJS_CB_SIGNATURE_MAX_SIZE);
+}
+
+MJS_PRIVATE int mjs_ffi_sig_set_val_type(
+    ffi_sig_t *sig, int idx, cbval_type_t type
+    ) {
+  if (idx < MJS_CB_SIGNATURE_MAX_SIZE) {
+    sig->val_types[idx] = type;
+    return 1;
+  } else {
+    /* Index is too large */
+    return 0;
+  }
+}
+
+MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(
+    struct mjs *mjs, const ffi_sig_t *sig
+    ) {
+  struct ffi_sig_stat ret;
+  int i;
+
+  memset(&ret, 0, sizeof(ret));
+  ret.is_valid = 1;
+
+  if (sig->val_types[0] == CBVAL_TYPE_INVALID || sig->val_types[0] == CBVAL_TYPE_USERDATA) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+    ret.is_valid = 0;
+    goto clean;
+  }
+
+  for (i = 1; i < MJS_CB_SIGNATURE_MAX_SIZE; i++) {
+    cbval_type_t type = sig->val_types[i];
+    if (type == CBVAL_TYPE_USERDATA) {
+      if (ret.userdata_idx != 0) {
+        /* There must be exactly one userdata arg, but we have more */
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "more than one userdata arg: #%d and #%d", (ret.userdata_idx - 1), (i - 1));
+        ret.is_valid = 0;
+        goto clean;
+      }
+      ret.userdata_idx = i;
+    } else if (type == CBVAL_TYPE_DOUBLE) {
+      ret.args_double_cnt++;
+    } else if (type == CBVAL_TYPE_INVALID) {
+      ret.is_valid = 0;
+      goto clean;
+    } else if (type == CBVAL_TYPE_NONE) {
+      break;
+    }
+
+    ret.args_cnt++;
+  }
+
+  if (ret.userdata_idx == 0) {
+    /* No userdata arg */
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "no userdata arg");
+    ret.is_valid = 0;
+    goto clean;
+  }
+
+clean:
+  return ret;
+}
+
+MJS_PRIVATE int mjs_ffi_is_regular_word(cbval_type_t type) {
+  switch (type) {
+    case CBVAL_TYPE_INT:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(cbval_type_t type) {
+  return (type == CBVAL_TYPE_NONE || mjs_ffi_is_regular_word(type));
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.c"
@@ -9681,6 +10186,7 @@ MJS_PRIVATE void mjs_ffi_cb_arg_free(struct bf_vm *vm) {
 /* Amalgamated: #include "mjs/primitive.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/varint.h" */
+/* Amalgamated: #include "mjs/ffi.h" */
 
 /*
  * Macros for marking reachable things: use bit 0.
@@ -10108,6 +10614,15 @@ static void gc_mark_bf_stack(struct mjs *mjs, struct bf_stack *stack) {
   }
 }
 
+static void gc_mark_ffi_cbargs_list(struct mjs *mjs, ffi_cb_args_t *cbargs) {
+  for (; cbargs != NULL; cbargs = cbargs->next) {
+    gc_mark(mjs, cbargs->func);
+    gc_mark_string(mjs, &cbargs->func);
+    gc_mark(mjs, cbargs->userdata);
+    gc_mark_string(mjs, &cbargs->userdata);
+  }
+}
+
 /* Perform garbage collection */
 void mjs_gc(struct mjs *mjs, int full) {
   gc_mark_val_array(mjs, (mjs_val_t *) &mjs->vals, sizeof(mjs->vals) / sizeof(mjs_val_t));
@@ -10120,6 +10635,8 @@ void mjs_gc(struct mjs *mjs, int full) {
 
   gc_mark(mjs, (mjs_val_t)mjs->vm.tmp);
   gc_mark_string(mjs, (mjs_val_t *)&mjs->vm.tmp);
+
+  gc_mark_ffi_cbargs_list(mjs, mjs->ffi_cb_args);
 
   gc_compact_strings(mjs);
 
@@ -10488,7 +11005,9 @@ void mjs_op_jscall(struct bf_vm *vm) {
     native = (void (*) (struct bf_vm *vm)) mjs_get_ptr(mjs, func);
     native(vm);
   } else if (mjs_is_string(func)) {
-    mjs_ffi_call(mjs, func);
+    if (!mjs_ffi_call(mjs, func)) {
+      bf_die(&mjs->vm);
+    }
   } else if (mjs_is_undefined(func)) {
     mjs_set_errorf(mjs, MJS_TYPE_ERROR, "undefined is not a function");
     bf_die(&mjs->vm);
