@@ -10674,6 +10674,78 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *ptr) {
   return 0;
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/main.c"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+#ifdef MJS_MAIN
+
+#include <dlfcn.h>
+#include <stdio.h>
+#include <string.h>
+
+/* Amalgamated: #include "common/cs_dbg.h" */
+
+/* Amalgamated: #include "mjs/exec.h" */
+/* Amalgamated: #include "mjs/ffi.h" */
+/* Amalgamated: #include "mjs/parser.h" */
+/* Amalgamated: #include "mjs/util.h" */
+
+int main(int argc, char **argv) {
+  int i, j, nexprs = 0;
+  const char *exprs[16];
+  struct mjs *mjs = mjs_create();
+  mjs_err_t err;
+  int compile = 0, print_stack = 0;
+
+  mjs_set_ffi_resolver(mjs, dlsym);
+
+  /* Execute inline code */
+  for (i = 1; i < argc && argv[i][0] == '-'; i++) {
+    if (strcmp(argv[i], "-c") == 0) {
+      compile = 1;
+    } else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
+      exprs[nexprs++] = argv[i + 1];
+      i++;
+    } else if (strcmp(argv[i], "-s") == 0) {
+      print_stack = 1;
+    } else if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
+      cs_log_set_level(atoi(argv[i + 1]));
+      i++;
+    }
+  }
+
+  for (j = 0; j < nexprs && j < (int) (sizeof(exprs) / sizeof(exprs[0])); j++) {
+    mjs_val_t res;
+    if (compile) {
+      bf_word_ptr_t last_code = mjs->last_code;
+      struct mjs_parse_ctx ctx;
+      if ((err = mjs_parse(mjs, exprs[j], &ctx)) != MJS_OK) {
+        printf("%s\n", mjs_strerror(mjs, err));
+        return 1;
+      }
+      mjs_dump_bcode(mjs, "/dev/stdout", last_code, mjs->last_code);
+    } else {
+      if ((err = mjs_exec(mjs, exprs[j], &res)) != MJS_OK) {
+        printf("%s\n", mjs_strerror(mjs, err));
+        return 1;
+      }
+      mjs_println(mjs, res);
+    }
+  }
+
+  if (print_stack) {
+    printf("---\n");
+    bf_print_stack(&mjs->vm, &mjs->vm.dstack);
+    printf("\n");
+  }
+
+  return 0;
+}
+#endif
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/object.c"
 #endif
 /*
