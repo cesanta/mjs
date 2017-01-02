@@ -1,4 +1,4 @@
-MJS: Embedded JavaScript-like engine
+MJS: Restricted JavaScript engine
 ====================================
 
 [![License](https://img.shields.io/badge/license-GPL_2-green.svg)](https://github.com/cesanta/mjs/blob/master/LICENSE)
@@ -22,7 +22,7 @@ of RAM.
 - No exceptions.
 - Strict mode only.
 - No `var`, only `let`.
-- No `for..in`, `for..of`, `=>` syntax.
+- No `for..in`, `for..of`, `=>`.
 - No getters, setters, `valueOf`, prototypes, classes, template strings.
 - No destructors, generators, proxies, promises.
 
@@ -56,7 +56,7 @@ This is how to make an MJS callback:
 ```javascript
 let timer = ffi('void timer(int, void (*)(int, userdata), userdata)');
 let callback = function(time, data) {
-  print('Time now: ', time, ' called: ', data.num_calls, ' times'); 
+  print('Time now: ', time, ' called: ', data.num_calls, ' times');
 };
 let callback_data = { num_calls: 0 };
 timer(1, callback, callback_data);
