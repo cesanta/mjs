@@ -2213,6 +2213,7 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_and (219)
 #define MJS_WORD_PTR_or (219)
 #define MJS_WORD_PTR_xor (219)
+#define MJS_WORD_PTR_exec_file (219)
 #define MJS_OP_quote ((bf_opcode_t) -1)
 #define MJS_OP_exit ((bf_opcode_t) 0)
 #define MJS_OP_drop ((bf_opcode_t) 1)
@@ -2292,6 +2293,7 @@ extern struct bf_code MJS_code;
 #define MJS_OP_and ((bf_opcode_t) 75)
 #define MJS_OP_or ((bf_opcode_t) 76)
 #define MJS_OP_xor ((bf_opcode_t) 77)
+#define MJS_OP_exec_file ((bf_opcode_t) 78)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -3089,6 +3091,23 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 #endif /* MJS_STRING_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/ops.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_OPS_H_
+#define MJS_OPS_H_
+
+/* Amalgamated: #include "mjs/internal.h" */
+
+void mjs_op_exec_file(struct bf_vm *vm);
+
+#endif /* MJS_OPS_H_ */
+
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/exec_public.h"
 #endif
 /*
@@ -3122,6 +3141,7 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, 
 #define MJS_EXEC_H_
 
 /* Amalgamated: #include "mjs/exec_public.h" */
+/* Amalgamated: #include "mjs/internal.h" */
 
 /*
  * At the moment, all exec functions are public, and are declared in
@@ -5875,6 +5895,8 @@ void bf_enter(struct bf_vm *vm, bf_word_ptr_t word) {
 
 void bf_run(struct bf_vm *vm, bf_word_ptr_t word) {
   bf_opcode_t op;
+  /* before jumping to a newly compiled code, save instruction pointer */
+  bf_word_ptr_t ip = vm->ip;
   vm->ip = word;
 
   /* push sentinel so we can exit the loop */
@@ -5891,6 +5913,9 @@ void bf_run(struct bf_vm *vm, bf_word_ptr_t word) {
     /* Call user-provided callback */
     vm->cb.after_bf_enter(vm);
   }
+
+  /* restore instruction pointer */
+  vm->ip = ip;
 }
 
 void bf_die(struct bf_vm *vm) {
@@ -8491,6 +8516,8 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_todo> */ 
   /* 0219 -> : xor ... ; */
   /*           <mjs_op_todo> */ 
+  /* 0219 -> : exec_file ... ; */
+  /*           <mjs_op_exec_file> */ 
 }; /* 219 * sizeof(bf_opcode_t) */
 
 bf_word_ptr_t MJS_word_ptrs[] = {
@@ -8573,6 +8600,7 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0075 */ -54, 
   /* 0076 */ -55, 
   /* 0077 */ -56, 
+  /* 0078 */ -57, 
 };
 
 void bf_op_quote(struct bf_vm *vm);
@@ -8631,6 +8659,7 @@ void mjs_op_todo(struct bf_vm *vm);
 void mjs_op_todo(struct bf_vm *vm);
 void mjs_op_todo(struct bf_vm *vm);
 void mjs_op_todo(struct bf_vm *vm);
+void mjs_op_exec_file(struct bf_vm *vm);
 
 bf_native_t MJS_native_words[] = {
   /* -001 */ bf_op_quote,
@@ -8689,6 +8718,7 @@ bf_native_t MJS_native_words[] = {
   /* -054 */ mjs_op_todo,
   /* -055 */ mjs_op_todo,
   /* -056 */ mjs_op_todo,
+  /* -057 */ mjs_op_exec_file,
 };
 
 const char *MJS_word_names[] = {
@@ -8771,6 +8801,7 @@ const char *MJS_word_names[] = {
   /* 0075 */ "and", 
   /* 0076 */ "or", 
   /* 0077 */ "xor", 
+  /* 0078 */ "exec_file", 
 };
 
 const char *MJS_pos_names[] = {
@@ -9166,6 +9197,7 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
 /* Amalgamated: #include "mjs/primitive.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/ops.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
 #ifndef MJS_DEFAULT_OBJECT_ARENA_SIZE
@@ -9221,6 +9253,7 @@ MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_jsprint));
   mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
   mjs_set(mjs, g, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
+  mjs_set(mjs, g, "exec_file", ~0, mjs_mk_foreign(mjs, mjs_op_exec_file));
 }
 
 static void cb_after_bf_enter(struct bf_vm *vm) {
@@ -9457,6 +9490,7 @@ int disasm_custom(char b, FILE *in, int *pos) {
 /* Amalgamated: #include "mjs/exec.h" */
 /* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
 mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
@@ -9544,7 +9578,6 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, 
 
   return err;
 }
-
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/ffi.c"
 #endif
@@ -10924,6 +10957,8 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/util.h" */
+/* Amalgamated: #include "mjs/parser_state.h" */
+/* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
 void mjs_op_todo(struct bf_vm *vm) {
@@ -11158,6 +11193,48 @@ void mjs_op_undefined(struct bf_vm *vm) {
 
 void mjs_op_null(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_mk_null());
+}
+
+void mjs_op_exec_file(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_err_t err = MJS_OK;
+  const char *filename = NULL;
+
+  mjs_val_t filename_v = MJS_UNDEFINED;
+  if (nargs < 1) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'filename'");
+    goto clean;
+  }
+  filename_v = mjs_pop(mjs);
+
+  struct mjs_parse_ctx ctx;
+  filename = mjs_get_cstring(mjs, &filename_v);
+
+  err = mjs_parse_file(mjs, filename, &ctx);
+  if (err != MJS_OK) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "failed to parse code. TODO: details");
+    goto clean;
+  }
+
+  /* filename will be invalidated after bf_run is called */
+  filename = NULL;
+
+  /* create new scope */
+  mjs_op_mkobj(&mjs->vm);
+  mjs_op_scope_push(&mjs->vm);
+
+  /* evaluate the code */
+  bf_run(vm, ctx.entry);
+  ret = bf_pop(&vm->dstack);
+
+  /* drop scope */
+  mjs_op_scope_pop(vm);
+  bf_pop(&vm->dstack);
+
+clean:
+  mjs_push(mjs, ret);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.c"
