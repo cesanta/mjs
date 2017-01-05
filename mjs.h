@@ -598,6 +598,10 @@ void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v);
 /* Returns true if given value holds `void *` pointer */
 int mjs_is_foreign(mjs_val_t v);
 
+mjs_val_t mjs_mk_boolean(struct mjs *mjs, int v);
+int mjs_get_bool(struct mjs *mjs, mjs_val_t v);
+int mjs_is_boolean(mjs_val_t v);
+
 #endif /* MJS_PRIMITIVE_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/string_public.h"
