@@ -2294,7 +2294,7 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_not (228)
 #define MJS_WORD_PTR_neg (228)
 #define MJS_WORD_PTR_pos (228)
-#define MJS_WORD_PTR_exec_file (228)
+#define MJS_WORD_PTR_load (228)
 #define MJS_OP_quote ((bf_opcode_t) -1)
 #define MJS_OP_exit ((bf_opcode_t) 0)
 #define MJS_OP_drop ((bf_opcode_t) 1)
@@ -2388,7 +2388,7 @@ extern struct bf_code MJS_code;
 #define MJS_OP_not ((bf_opcode_t) 89)
 #define MJS_OP_neg ((bf_opcode_t) 90)
 #define MJS_OP_pos ((bf_opcode_t) 91)
-#define MJS_OP_exec_file ((bf_opcode_t) 92)
+#define MJS_OP_load ((bf_opcode_t) 92)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -3204,7 +3204,7 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 /* Amalgamated: #include "mjs/internal.h" */
 
-void mjs_op_exec_file(struct bf_vm *vm);
+void mjs_op_load(struct bf_vm *vm);
 
 #endif /* MJS_OPS_H_ */
 
@@ -8993,8 +8993,8 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_neg> */ 
   /* 0228 -> : pos ... ; */
   /*           <mjs_op_pos> */ 
-  /* 0228 -> : exec_file ... ; */
-  /*           <mjs_op_exec_file> */ 
+  /* 0228 -> : load ... ; */
+  /*           <mjs_op_load> */ 
 }; /* 228 * sizeof(bf_opcode_t) */
 
 bf_word_ptr_t MJS_word_ptrs[] = {
@@ -9161,7 +9161,7 @@ void mjs_op_xor(struct bf_vm *vm);
 void mjs_op_not(struct bf_vm *vm);
 void mjs_op_neg(struct bf_vm *vm);
 void mjs_op_pos(struct bf_vm *vm);
-void mjs_op_exec_file(struct bf_vm *vm);
+void mjs_op_load(struct bf_vm *vm);
 
 bf_native_t MJS_native_words[] = {
   /* -001 */ bf_op_quote,
@@ -9231,7 +9231,7 @@ bf_native_t MJS_native_words[] = {
   /* -065 */ mjs_op_not,
   /* -066 */ mjs_op_neg,
   /* -067 */ mjs_op_pos,
-  /* -068 */ mjs_op_exec_file,
+  /* -068 */ mjs_op_load,
 };
 
 const char *MJS_word_names[] = {
@@ -9328,7 +9328,7 @@ const char *MJS_word_names[] = {
   /* 0089 */ "not", 
   /* 0090 */ "neg", 
   /* 0091 */ "pos", 
-  /* 0092 */ "exec_file", 
+  /* 0092 */ "load", 
 };
 
 const char *MJS_pos_names[] = {
@@ -9793,7 +9793,7 @@ MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "print", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_jsprint));
   mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
   mjs_set(mjs, g, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
-  mjs_set(mjs, g, "exec_file", ~0, mjs_mk_foreign(mjs, mjs_op_exec_file));
+  mjs_set(mjs, g, "load", ~0, mjs_mk_foreign(mjs, mjs_op_load));
 }
 
 static void cb_after_bf_enter(struct bf_vm *vm) {
@@ -11757,7 +11757,7 @@ void mjs_op_false(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_mk_boolean(mjs, 0));
 }
 
-void mjs_op_exec_file(struct bf_vm *vm) {
+void mjs_op_load(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   int nargs = mjs_get_int(mjs, mjs_pop(mjs));
   mjs_val_t ret = MJS_UNDEFINED;
