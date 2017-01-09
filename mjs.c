@@ -2832,6 +2832,8 @@ struct mjs {
 MJS_PRIVATE void mjs_push_scope(struct mjs *mjs, mjs_val_t scope);
 MJS_PRIVATE mjs_val_t mjs_pop_scope(struct mjs *mjs);
 MJS_PRIVATE mjs_val_t mjs_scope_tos(struct mjs *mjs);
+MJS_PRIVATE mjs_val_t mjs_scope_get_by_idx(struct mjs *mjs, int idx);
+MJS_PRIVATE void mjs_scope_set_by_idx(struct mjs *mjs, int idx, mjs_val_t v);
 
 #endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
@@ -9898,6 +9900,18 @@ MJS_PRIVATE mjs_val_t mjs_scope_tos(struct mjs *mjs) {
   return *((mjs_val_t *)(mjs->scopes.buf - sizeof(mjs_val_t) + mjs->scopes.len));
 }
 
+MJS_PRIVATE mjs_val_t mjs_scope_get_by_idx(struct mjs *mjs, int idx) {
+  int bufidx = idx * sizeof(mjs_val_t);
+  assert(mjs->scopes.len >= bufidx + sizeof(mjs_val_t) );
+  return *((mjs_val_t *)(mjs->scopes.buf + bufidx));
+}
+
+MJS_PRIVATE void mjs_scope_set_by_idx(struct mjs *mjs, int idx, mjs_val_t v) {
+  int bufidx = idx * sizeof(mjs_val_t);
+  assert(mjs->scopes.len >= bufidx + sizeof(mjs_val_t) );
+  *((mjs_val_t *)(mjs->scopes.buf + bufidx)) = v;
+}
+
 void mjs_push(struct mjs *mjs, mjs_val_t val) {
   bf_push(&mjs->vm.dstack, val);
 }
@@ -11751,11 +11765,23 @@ void mjs_op_exec_file(struct bf_vm *vm) {
   const char *filename = NULL;
 
   mjs_val_t filename_v = MJS_UNDEFINED;
+  mjs_val_t global_obj_v = MJS_UNDEFINED;
+  mjs_val_t global_obj_saved_v = MJS_UNDEFINED;
+  int min_scope_saved = -1;
+
   if (nargs < 1) {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'filename'");
     goto clean;
   }
   filename_v = mjs_pop(mjs);
+
+  if (nargs >= 2) {
+    /* Custom Global Object is given */
+    mjs_own(mjs, &global_obj_saved_v);
+    global_obj_v = mjs_pop(mjs);
+    global_obj_saved_v = mjs_scope_get_by_idx(mjs, 0);
+    mjs_scope_set_by_idx(mjs, 0, global_obj_v);
+  }
 
   struct mjs_parse_ctx ctx;
   filename = mjs_get_cstring(mjs, &filename_v);
@@ -11769,9 +11795,11 @@ void mjs_op_exec_file(struct bf_vm *vm) {
   /* filename will be invalidated after bf_run is called */
   filename = NULL;
 
-  /* create new scope */
-  mjs_op_mkobj(&mjs->vm);
+  /* get current global object and push it to the stack */
+  bf_push(&vm->dstack, mjs_scope_get_by_idx(mjs, 0));
   mjs_op_scope_push(&mjs->vm);
+  min_scope_saved = mjs_get_int(mjs, mjs->vals.min_scope);
+  mjs->vals.min_scope = mjs_mk_number(mjs, mjs->scopes.len / sizeof(mjs_val_t));
 
   /* evaluate the code */
   bf_run(vm, ctx.entry);
@@ -11782,6 +11810,14 @@ void mjs_op_exec_file(struct bf_vm *vm) {
   bf_pop(&vm->dstack);
 
 clean:
+  if (nargs >= 2) {
+    /* Custom Global Object was given: restore the original one */
+    mjs_scope_set_by_idx(mjs, 0, global_obj_saved_v);
+    mjs_disown(mjs, &global_obj_saved_v);
+  }
+
+  mjs->vals.min_scope = mjs_mk_number(mjs, min_scope_saved);
+
   mjs_push(mjs, ret);
 }
 
