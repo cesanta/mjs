@@ -2509,6 +2509,7 @@ enum mjs_err {
   MJS_SYNTAX_ERROR,
   MJS_REFERENCE_ERROR,
   MJS_TYPE_ERROR,
+  MJS_OUT_OF_MEMORY,
   MJS_INTERNAL_ERROR,
 };
 
@@ -2863,182 +2864,6 @@ MJS_PRIVATE void mjs_scope_set_by_idx(struct mjs *mjs, int idx, mjs_val_t v);
 
 #endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "mjs/gc.h"
-#endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_GC_H_
-#define MJS_GC_H_
-
-/* Amalgamated: #include "mjs/core.h" */
-/* Amalgamated: #include "mjs/internal.h" */
-/* Amalgamated: #include "mjs/mm.h" */
-
-/*
- * performs arithmetics on gc_cell pointers as if they were arena->cell_size
- * bytes wide
- */
-#define GC_CELL_OP(arena, cell, op, arg) \
-  ((struct gc_cell *) (((char *) (cell)) op((arg) * (arena)->cell_size)))
-
-struct gc_cell {
-  union {
-    struct gc_cell *link;
-    uintptr_t word;
-  } head;
-};
-
-/*
- * Perform garbage collection.
- * Pass true to full in order to reclaim unused heap back to the OS.
- */
-void mjs_gc(struct mjs *mjs, int full);
-
-MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs);
-
-/* perform gc if not inhibited */
-MJS_PRIVATE int maybe_gc(struct mjs *mjs);
-
-MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
-MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
-
-MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
-
-MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
-MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
-MJS_PRIVATE void gc_sweep(struct mjs *, struct gc_arena *, size_t);
-MJS_PRIVATE void *gc_alloc_cell(struct mjs *, struct gc_arena *);
-
-MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v);
-
-/* return 0 if v is an object/function with a bad pointer */
-MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
-
-/* checks whether a pointer is within the ranges of an arena */
-MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
-
-#endif /* MJS_GC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/primitive_public.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_PRIMITIVE_PUBLIC_H_
-#define MJS_PRIMITIVE_PUBLIC_H_
-
-/* Amalgamated: #include "mjs/core_public.h" */
-
-/* JavaScript `null` value */
-#define MJS_NULL ((uint64_t) 0xfffe << 48)
-
-/* JavaScript `undefined` value */
-#define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
-
-/*
- * Make `null` primitive value.
- *
- * NOTE: this function is deprecated and will be removed in future releases.
- * Use `MJS_NULL` instead.
- */
-mjs_val_t mjs_mk_null(void);
-
-/* Returns true if given value is a primitive `null` value */
-int mjs_is_null(mjs_val_t v);
-
-/*
- * Make `undefined` primitive value.
- *
- * NOTE: this function is deprecated and will be removed in future releases.
- * Use `MJS_UNDEFINED` instead.
- */
-mjs_val_t mjs_mk_undefined(void);
-
-/* Returns true if given value is a primitive `undefined` value */
-int mjs_is_undefined(mjs_val_t v);
-
-/* Make numeric primitive value */
-mjs_val_t mjs_mk_number(struct mjs *mjs, double num);
-
-/*
- * Returns number value stored in `mjs_val_t` as `double`.
- *
- * Returns NaN for non-numbers.
- */
-double mjs_get_double(struct mjs *mjs, mjs_val_t v);
-
-/*
- * Returns number value stored in `mjs_val_t` as `int`. If the number value is
- * not an integer, the fraction part will be discarded.
- *
- * If the given value is a non-number, or NaN, the result is undefined.
- */
-int mjs_get_int(struct mjs *mjs, mjs_val_t v);
-
-/*
- * Like mjs_get_int but ensures that the returned type
- * is a 32-bit signed integer.
- */
-int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v);
-
-/* Returns true if given value is a primitive number value */
-int mjs_is_number(mjs_val_t v);
-
-/*
- * Make JavaScript value that holds C/C++ `void *` pointer.
- *
- * A foreign value is completely opaque and JS code cannot do anything useful
- * with it except holding it in properties and passing it around.
- * It behaves like a sealed object with no properties.
- *
- * NOTE:
- * Only valid pointers (as defined by each supported architecture) will fully
- * preserved. In particular, all supported 64-bit architectures (x86_64, ARM-64)
- * actually define a 48-bit virtual address space.
- * Foreign values will be sign-extended as required, i.e creating a foreign
- * value of something like `(void *) -1` will work as expected. This is
- * important because in some 64-bit OSs (e.g. Solaris) the user stack grows
- * downwards from the end of the address space.
- *
- * If you need to store exactly sizeof(void*) bytes of raw data where
- * `sizeof(void*)` >= 8, please use byte arrays instead.
- */
-mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *ptr);
-
-/*
- * Returns `void *` pointer stored in `mjs_val_t`.
- *
- * Returns NULL if the value is not a foreign pointer.
- */
-void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v);
-
-/* Returns true if given value holds `void *` pointer */
-int mjs_is_foreign(mjs_val_t v);
-
-mjs_val_t mjs_mk_boolean(struct mjs *mjs, int v);
-int mjs_get_bool(struct mjs *mjs, mjs_val_t v);
-int mjs_is_boolean(mjs_val_t v);
-
-#endif /* MJS_PRIMITIVE_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/primitive.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-/* Amalgamated: #include "mjs/primitive_public.h" */
-/* Amalgamated: #include "mjs/internal.h" */
-
-MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
-MJS_PRIVATE void *get_ptr(mjs_val_t v);
-#ifdef MG_MODULE_LINES
 #line 1 "mjs/object_public.h"
 #endif
 /*
@@ -3217,6 +3042,182 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 #define _MJS_STRING_BUF_RESERVE 500
 
 #endif /* MJS_STRING_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/primitive_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_PRIMITIVE_PUBLIC_H_
+#define MJS_PRIMITIVE_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/core_public.h" */
+
+/* JavaScript `null` value */
+#define MJS_NULL ((uint64_t) 0xfffe << 48)
+
+/* JavaScript `undefined` value */
+#define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
+
+/*
+ * Make `null` primitive value.
+ *
+ * NOTE: this function is deprecated and will be removed in future releases.
+ * Use `MJS_NULL` instead.
+ */
+mjs_val_t mjs_mk_null(void);
+
+/* Returns true if given value is a primitive `null` value */
+int mjs_is_null(mjs_val_t v);
+
+/*
+ * Make `undefined` primitive value.
+ *
+ * NOTE: this function is deprecated and will be removed in future releases.
+ * Use `MJS_UNDEFINED` instead.
+ */
+mjs_val_t mjs_mk_undefined(void);
+
+/* Returns true if given value is a primitive `undefined` value */
+int mjs_is_undefined(mjs_val_t v);
+
+/* Make numeric primitive value */
+mjs_val_t mjs_mk_number(struct mjs *mjs, double num);
+
+/*
+ * Returns number value stored in `mjs_val_t` as `double`.
+ *
+ * Returns NaN for non-numbers.
+ */
+double mjs_get_double(struct mjs *mjs, mjs_val_t v);
+
+/*
+ * Returns number value stored in `mjs_val_t` as `int`. If the number value is
+ * not an integer, the fraction part will be discarded.
+ *
+ * If the given value is a non-number, or NaN, the result is undefined.
+ */
+int mjs_get_int(struct mjs *mjs, mjs_val_t v);
+
+/*
+ * Like mjs_get_int but ensures that the returned type
+ * is a 32-bit signed integer.
+ */
+int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v);
+
+/* Returns true if given value is a primitive number value */
+int mjs_is_number(mjs_val_t v);
+
+/*
+ * Make JavaScript value that holds C/C++ `void *` pointer.
+ *
+ * A foreign value is completely opaque and JS code cannot do anything useful
+ * with it except holding it in properties and passing it around.
+ * It behaves like a sealed object with no properties.
+ *
+ * NOTE:
+ * Only valid pointers (as defined by each supported architecture) will fully
+ * preserved. In particular, all supported 64-bit architectures (x86_64, ARM-64)
+ * actually define a 48-bit virtual address space.
+ * Foreign values will be sign-extended as required, i.e creating a foreign
+ * value of something like `(void *) -1` will work as expected. This is
+ * important because in some 64-bit OSs (e.g. Solaris) the user stack grows
+ * downwards from the end of the address space.
+ *
+ * If you need to store exactly sizeof(void*) bytes of raw data where
+ * `sizeof(void*)` >= 8, please use byte arrays instead.
+ */
+mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *ptr);
+
+/*
+ * Returns `void *` pointer stored in `mjs_val_t`.
+ *
+ * Returns NULL if the value is not a foreign pointer.
+ */
+void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v);
+
+/* Returns true if given value holds `void *` pointer */
+int mjs_is_foreign(mjs_val_t v);
+
+mjs_val_t mjs_mk_boolean(struct mjs *mjs, int v);
+int mjs_get_bool(struct mjs *mjs, mjs_val_t v);
+int mjs_is_boolean(mjs_val_t v);
+
+#endif /* MJS_PRIMITIVE_PUBLIC_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/primitive.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/primitive_public.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+
+MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
+MJS_PRIVATE void *get_ptr(mjs_val_t v);
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/gc.h"
+#endif
+/*
+ * Copyright (c) 2014 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_GC_H_
+#define MJS_GC_H_
+
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/internal.h" */
+/* Amalgamated: #include "mjs/mm.h" */
+
+/*
+ * performs arithmetics on gc_cell pointers as if they were arena->cell_size
+ * bytes wide
+ */
+#define GC_CELL_OP(arena, cell, op, arg) \
+  ((struct gc_cell *) (((char *) (cell)) op((arg) * (arena)->cell_size)))
+
+struct gc_cell {
+  union {
+    struct gc_cell *link;
+    uintptr_t word;
+  } head;
+};
+
+/*
+ * Perform garbage collection.
+ * Pass true to full in order to reclaim unused heap back to the OS.
+ */
+void mjs_gc(struct mjs *mjs, int full);
+
+MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs);
+
+/* perform gc if not inhibited */
+MJS_PRIVATE int maybe_gc(struct mjs *mjs);
+
+MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
+MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
+
+MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
+
+MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
+MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
+MJS_PRIVATE void gc_sweep(struct mjs *, struct gc_arena *, size_t);
+MJS_PRIVATE void *gc_alloc_cell(struct mjs *, struct gc_arena *);
+
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v);
+
+/* return 0 if v is an object/function with a bad pointer */
+MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
+
+/* checks whether a pointer is within the ranges of an arena */
+MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
+
+#endif /* MJS_GC_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/ops.h"
 #endif
@@ -3454,6 +3455,32 @@ void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v);
  */
 
 #endif /* MJS_UTIL_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "mjs/conversion.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_CONVERSION_H_
+#define MJS_CONVERSION_H_
+
+/*
+ * Tries to convert `mjs_val_t` to a string, returns MJS_OK if successful.
+ * String is returned as a pair of pointers: `char **p, size_t *sizep`.
+ *
+ * Caller must also provide a non-null `need_free`, and if it is non-zero,
+ * then the string `*p` should be freed by the caller.
+ *
+ * MJS does not support `toString()` and `valueOf()`, so, passing an object
+ * always results in `MJS_TYPE_ERROR`.
+ */
+MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
+                                    char **p, size_t *sizep,
+                                    int *need_free);
+
+#endif /* MJS_CONVERSION_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/str_util.h"
 #endif
@@ -6566,26 +6593,26 @@ static const YYACTIONTYPE yy_action[] = {
  /*    60 */   153,  153,   10,   50,  175,   10,   50,  175,  278,    5,
  /*    70 */    48,   75,   73,   71,   69,   67,   59,   58,   57,   56,
  /*    80 */    63,   62,   61,   60,   66,   65,   64,   55,   54,   53,
- /*    90 */    52,   51,  346,   81,  156,  347,   82,   10,   50,  352,
- /*   100 */   185,   86,  345,  336,    7,   48,   75,   73,   71,   69,
+ /*    90 */    52,   51,  347,   81,  156,  348,   82,   10,   50,  353,
+ /*   100 */   185,   86,  346,  336,    7,   48,   75,   73,   71,   69,
  /*   110 */    67,   59,   58,   57,   56,   63,   62,   61,   60,   66,
  /*   120 */    65,   64,   55,   54,   53,   52,   51,   85,   15,  177,
- /*   130 */   337,  312,   10,   50,   41,  367,  377,   10,   50,   82,
+ /*   130 */   337,  312,   10,   50,   41,  368,  377,   10,   50,   82,
  /*   140 */    47,   48,   75,   73,   71,   69,   67,   59,   58,   57,
  /*   150 */    56,   63,   62,   61,   60,   66,   65,   64,   55,   54,
  /*   160 */    53,   52,   51,  166,  375,   44,   45,  181,   10,   50,
  /*   170 */    78,   77,   68,   46,  140,   70,   16,   11,   80,  376,
  /*   180 */   139,  277,  276,  134,  174,  172,  171,    1,  183,   84,
- /*   190 */    17,  369,  340,  370,  341,  342,  343,  344,  334,  364,
+ /*   190 */    17,  340,  341,  370,  342,  343,  344,  345,  334,  365,
  /*   200 */    48,   75,   73,   71,   69,   67,   59,   58,   57,   56,
  /*   210 */    63,   62,   61,   60,   66,   65,   64,   55,   54,   53,
  /*   220 */    52,   51,  511,  333,   44,   45,  332,   10,   50,   78,
  /*   230 */    77,   68,   46,    2,   70,   16,    4,   80,   12,  139,
  /*   240 */    13,   14,   29,  174,  172,  171,    1,    6,   84,   17,
- /*   250 */   369,  340,  370,  341,  342,  343,  344,   44,   45,   30,
+ /*   250 */   340,  341,  370,  342,  343,  344,  345,   44,   45,   30,
  /*   260 */    42,    3,   78,   77,   68,   46,    9,   70,   16,  444,
  /*   270 */    80,   88,  133,  441,   89,   72,  174,  172,  171,    1,
- /*   280 */    90,   84,   17,  369,  340,  370,  341,  164,  343,  344,
+ /*   280 */    90,   84,   17,  340,  341,  370,  342,  164,  344,  345,
  /*   290 */    73,   71,   69,   67,   59,   58,   57,   56,   63,   62,
  /*   300 */    61,   60,   66,   65,   64,   55,   54,   53,   52,   51,
  /*   310 */    76,   83,  381,  383,  383,   10,   50,   71,   69,   67,
@@ -6593,23 +6620,23 @@ static const YYACTIONTYPE yy_action[] = {
  /*   330 */    64,   55,   54,   53,   52,   51,  383,  383,   44,   45,
  /*   340 */   383,   10,   50,   78,   77,   68,   46,  383,   70,   16,
  /*   350 */   383,   80,  383,  139,  383,  383,  383,  383,  383,  383,
- /*   360 */    79,  383,   87,   17,  369,  340,  370,  341,  342,  343,
- /*   370 */   344,   69,   67,   59,   58,   57,   56,   63,   62,   61,
+ /*   360 */    79,  383,   87,   17,  340,  341,  370,  342,  343,  344,
+ /*   370 */   345,   69,   67,   59,   58,   57,   56,   63,   62,   61,
  /*   380 */    60,   66,   65,   64,   55,   54,   53,   52,   51,  383,
  /*   390 */   383,  383,  383,  383,   10,   50,   44,   45,  383,  383,
  /*   400 */   383,   78,   77,   68,   46,  383,   70,   16,  383,  383,
  /*   410 */   383,  139,  383,  311,  383,  383,  383,  383,   79,  383,
- /*   420 */    87,  383,  369,  340,  370,  341,  342,  343,  344,  383,
+ /*   420 */    87,  383,  340,  341,  370,  342,  343,  344,  345,  383,
  /*   430 */   383,  383,   67,   59,   58,   57,   56,   63,   62,   61,
  /*   440 */    60,   66,   65,   64,   55,   54,   53,   52,   51,  383,
  /*   450 */   383,  383,  383,  383,   10,   50,  383,  383,  383,  383,
  /*   460 */   383,  175,  383,  167,    8,  176,  252,  253,  256,  383,
  /*   470 */   383,  383,  125,  184,  184,  383,  383,  141,  383,  383,
- /*   480 */   252,  383,  184,  383,  383,  184,  184,  184,  156,  347,
+ /*   480 */   252,  383,  184,  383,  383,  184,  184,  184,  156,  348,
  /*   490 */   383,  383,  383,  383,   44,   45,  383,  383,  383,   78,
  /*   500 */    77,   68,   46,  383,   70,   16,  383,  383,  383,  139,
  /*   510 */   383,  383,  383,  383,  383,  383,   79,  383,   87,  383,
- /*   520 */   369,  340,  370,  341,  342,  343,  344,   59,   58,   57,
+ /*   520 */   340,  341,  370,  342,  343,  344,  345,   59,   58,   57,
  /*   530 */    56,   63,   62,   61,   60,   66,   65,   64,   55,   54,
  /*   540 */    53,   52,   51,  383,  383,  383,  383,  383,   10,   50,
  /*   550 */   517,  187,    8,  176,  252,  253,  256,  383,  383,  383,
@@ -6628,8 +6655,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*   680 */    62,   61,   60,   66,   65,   64,   55,   54,   53,   52,
  /*   690 */    51,  383,  383,  383,  383,  383,   10,   50,  383,  383,
  /*   700 */    74,   28,   27,   26,   25,   24,   23,   22,   21,   20,
- /*   710 */    19,   18,  360,  163,  360,  383,  383,  383,  125,  184,
- /*   720 */   184,  383,  383,  141,  360,  383,  360,  383,  184,  383,
+ /*   710 */    19,   18,  361,  163,  361,  383,  383,  383,  125,  184,
+ /*   720 */   184,  383,  383,  141,  361,  383,  361,  383,  184,  383,
  /*   730 */   383,  184,  184,  184,  286,  288,  331,  163,  331,  383,
  /*   740 */   383,  383,  125,  184,  184,  383,  383,  141,  331,  383,
  /*   750 */   331,  383,  184,  383,  383,  184,  184,  184,  330,  163,
@@ -6642,10 +6669,10 @@ static const YYACTIONTYPE yy_action[] = {
  /*   820 */   383,  383,  184,  184,  184,  383,  383,  247,  250,  254,
  /*   830 */   383,  383,  383,  125,  184,  184,  383,  383,  141,   70,
  /*   840 */    16,  247,  383,  184,  178,  383,  184,  184,  184,  383,
- /*   850 */   383,   79,  383,   87,  383,  369,  340,  370,  341,  342,
- /*   860 */   343,  344,   70,   16,  383,  383,  383,  180,  383,  383,
- /*   870 */   383,  383,  383,  383,   79,  383,   87,  383,  369,  340,
- /*   880 */   370,  341,  342,  343,  344,   49,  450,  450,  450,  450,
+ /*   850 */   383,   79,  383,   87,  383,  340,  341,  370,  342,  343,
+ /*   860 */   344,  345,   70,   16,  383,  383,  383,  180,  383,  383,
+ /*   870 */   383,  383,  383,  383,   79,  383,   87,  383,  340,  341,
+ /*   880 */   370,  342,  343,  344,  345,   49,  450,  450,  450,  450,
  /*   890 */   450,  450,  450,  450,  450,  450,  450,   43,   40,   39,
  /*   900 */    38,   37,   36,   35,   34,   33,   32,   31,   66,   65,
  /*   910 */    64,   55,   54,   53,   52,   51,  383,  383,  383,  249,
@@ -6966,25 +6993,25 @@ static const short yy_reduce_ofst[] = {
  /*    90 */   112,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   516,  483,  516,  516,  516,  516,  516,  516,  485,  392,
- /*    10 */   516,  516,  496,  496,  496,  516,  515,  473,  516,  516,
+ /*     0 */   516,  484,  516,  516,  516,  516,  516,  516,  486,  392,
+ /*    10 */   516,  516,  497,  497,  497,  516,  515,  473,  516,  516,
  /*    20 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  516,
  /*    30 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  516,
  /*    40 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  516,
  /*    50 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  516,
  /*    60 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  516,
- /*    70 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  483,
+ /*    70 */   516,  516,  516,  516,  516,  516,  516,  516,  516,  484,
  /*    80 */   516,  516,  470,  516,  516,  516,  516,  516,  516,  516,
  /*    90 */   516,  516,  516,  516,  516,  516,  474,  407,  406,  405,
- /*   100 */   404,  403,  402,  401,  400,  399,  398,  397,  497,  463,
+ /*   100 */   404,  403,  402,  401,  400,  399,  398,  397,  498,  463,
  /*   110 */   462,  461,  460,  459,  458,  457,  456,  455,  454,  513,
- /*   120 */   514,  484,  453,  494,  445,  489,  396,  394,  415,  416,
- /*   130 */   424,  425,  426,  444,  441,  492,  491,  435,  434,  444,
+ /*   120 */   514,  485,  453,  495,  445,  490,  396,  394,  415,  416,
+ /*   130 */   424,  425,  426,  444,  441,  493,  492,  435,  434,  444,
  /*   140 */   442,  516,  433,  432,  431,  430,  429,  428,  427,  419,
  /*   150 */   418,  437,  436,  516,  516,  516,  516,  417,  440,  439,
- /*   160 */   438,  414,  516,  516,  477,  516,  516,  516,  516,  516,
- /*   170 */   516,  516,  516,  464,  516,  516,  486,  516,  422,  516,
- /*   180 */   420,  413,  516,  451,  490,  395,  393,  516,
+ /*   160 */   438,  414,  516,  516,  478,  516,  516,  516,  516,  516,
+ /*   170 */   516,  516,  516,  464,  516,  516,  487,  516,  422,  516,
+ /*   180 */   420,  413,  516,  451,  491,  395,  393,  516,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -7214,36 +7241,36 @@ static const char *const yyRuleName[] = {
  /*  91 */ "arglistparen ::= OPEN_PAREN arglist CLOSE_PAREN",
  /*  92 */ "sstmt ::= RETURN",
  /*  93 */ "sstmt ::= RETURN expr",
- /*  94 */ "literal ::= UNDEFINED",
- /*  95 */ "literal ::= NUMBER",
- /*  96 */ "literal ::= STRING_LITERAL",
- /*  97 */ "boolean_literal ::= TRUE",
- /*  98 */ "boolean_literal ::= FALSE",
- /*  99 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
- /* 100 */ "objspeclist ::= objspeclist COMMA objspec",
- /* 101 */ "objspeclist ::= objspec",
- /* 102 */ "objspeclist ::=",
- /* 103 */ "objspec ::= objspeclhs COLON expr",
- /* 104 */ "stmtlist ::= cstmtlist",
- /* 105 */ "stmtlist ::= sstmtlist",
- /* 106 */ "letspecs ::= letspecs COMMA letspec",
- /* 107 */ "letspecs ::= letspec",
- /* 108 */ "sstmt ::= expr",
- /* 109 */ "expr ::= sexp",
- /* 110 */ "expr ::= expr EQ_EQ expr",
- /* 111 */ "expr ::= expr NE_NE expr",
- /* 112 */ "sexp ::= literal",
- /* 113 */ "callarg ::= expr",
- /* 114 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
- /* 115 */ "optexpr ::=",
- /* 116 */ "optexpr ::= expr",
- /* 117 */ "block_or_stmt ::= block",
- /* 118 */ "block_or_stmt ::= sstmt SEMICOLON",
- /* 119 */ "block_or_stmt ::= cstmt",
- /* 120 */ "cstmt ::= funcdecl",
- /* 121 */ "arglist ::= arglist COMMA argspec",
- /* 122 */ "arglist ::= argspec",
- /* 123 */ "literal ::= NULL",
+ /*  94 */ "literal ::= NULL",
+ /*  95 */ "literal ::= UNDEFINED",
+ /*  96 */ "literal ::= NUMBER",
+ /*  97 */ "literal ::= STRING_LITERAL",
+ /*  98 */ "boolean_literal ::= TRUE",
+ /*  99 */ "boolean_literal ::= FALSE",
+ /* 100 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
+ /* 101 */ "objspeclist ::= objspeclist COMMA objspec",
+ /* 102 */ "objspeclist ::= objspec",
+ /* 103 */ "objspeclist ::=",
+ /* 104 */ "objspec ::= objspeclhs COLON expr",
+ /* 105 */ "stmtlist ::= cstmtlist",
+ /* 106 */ "stmtlist ::= sstmtlist",
+ /* 107 */ "letspecs ::= letspecs COMMA letspec",
+ /* 108 */ "letspecs ::= letspec",
+ /* 109 */ "sstmt ::= expr",
+ /* 110 */ "expr ::= sexp",
+ /* 111 */ "expr ::= expr EQ_EQ expr",
+ /* 112 */ "expr ::= expr NE_NE expr",
+ /* 113 */ "sexp ::= literal",
+ /* 114 */ "callarg ::= expr",
+ /* 115 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
+ /* 116 */ "optexpr ::=",
+ /* 117 */ "optexpr ::= expr",
+ /* 118 */ "block_or_stmt ::= block",
+ /* 119 */ "block_or_stmt ::= sstmt SEMICOLON",
+ /* 120 */ "block_or_stmt ::= cstmt",
+ /* 121 */ "cstmt ::= funcdecl",
+ /* 122 */ "arglist ::= arglist COMMA argspec",
+ /* 123 */ "arglist ::= argspec",
  /* 124 */ "literal ::= THIS",
  /* 125 */ "literal ::= boolean_literal",
  /* 126 */ "literal ::= func_literal",
@@ -7714,6 +7741,7 @@ static const struct {
   { 79, 1 },
   { 79, 1 },
   { 79, 1 },
+  { 79, 1 },
   { 90, 1 },
   { 90, 1 },
   { 91, 3 },
@@ -7740,7 +7768,6 @@ static const struct {
   { 71, 1 },
   { 88, 3 },
   { 88, 1 },
-  { 79, 1 },
   { 79, 1 },
   { 79, 1 },
   { 79, 1 },
@@ -8213,7 +8240,7 @@ static void yy_reduce(
   yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 62: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
-      case 99: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==99);
+      case 100: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==100);
 #line 234 "mjs/mjs.lem.c"
 { yymsp[-2].minor.yy8=yymsp[-1].minor.yy8; }
 #line 1853 "mjs/mjs.lem.c"
@@ -8509,102 +8536,109 @@ static void yy_reduce(
 }
 #line 2144 "mjs/mjs.lem.c"
         break;
-      case 94: /* literal ::= UNDEFINED */
-#line 437 "mjs/mjs.lem.c"
+      case 94: /* literal ::= NULL */
+#line 436 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_null);
   mjs_emit(ctx, MJS_OP_exit);
 }
 #line 2152 "mjs/mjs.lem.c"
         break;
-      case 95: /* literal ::= NUMBER */
-#line 442 "mjs/mjs.lem.c"
+      case 95: /* literal ::= UNDEFINED */
+#line 440 "mjs/mjs.lem.c"
+{
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
+  mjs_emit(ctx, MJS_OP_exit);
+}
+#line 2160 "mjs/mjs.lem.c"
+        break;
+      case 96: /* literal ::= NUMBER */
+#line 445 "mjs/mjs.lem.c"
 { yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 2157 "mjs/mjs.lem.c"
+#line 2165 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
-      case 96: /* literal ::= STRING_LITERAL */
-#line 443 "mjs/mjs.lem.c"
+      case 97: /* literal ::= STRING_LITERAL */
+#line 446 "mjs/mjs.lem.c"
 { yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 2163 "mjs/mjs.lem.c"
+#line 2171 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
-      case 97: /* boolean_literal ::= TRUE */
-#line 449 "mjs/mjs.lem.c"
+      case 98: /* boolean_literal ::= TRUE */
+#line 452 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_true);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2172 "mjs/mjs.lem.c"
+#line 2180 "mjs/mjs.lem.c"
         break;
-      case 98: /* boolean_literal ::= FALSE */
-#line 453 "mjs/mjs.lem.c"
+      case 99: /* boolean_literal ::= FALSE */
+#line 456 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_false);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2180 "mjs/mjs.lem.c"
+#line 2188 "mjs/mjs.lem.c"
         break;
-      case 100: /* objspeclist ::= objspeclist COMMA objspec */
-#line 460 "mjs/mjs.lem.c"
+      case 101: /* objspeclist ::= objspeclist COMMA objspec */
+#line 463 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2189 "mjs/mjs.lem.c"
+#line 2197 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
-      case 101: /* objspeclist ::= objspec */
-#line 465 "mjs/mjs.lem.c"
+      case 102: /* objspeclist ::= objspec */
+#line 468 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2199 "mjs/mjs.lem.c"
+#line 2207 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
-      case 102: /* objspeclist ::= */
-#line 470 "mjs/mjs.lem.c"
+      case 103: /* objspeclist ::= */
+#line 473 "mjs/mjs.lem.c"
 {
   yymsp[1].minor.yy8=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2208 "mjs/mjs.lem.c"
+#line 2216 "mjs/mjs.lem.c"
         break;
-      case 103: /* objspec ::= objspeclhs COLON expr */
-#line 475 "mjs/mjs.lem.c"
+      case 104: /* objspec ::= objspeclhs COLON expr */
+#line 478 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy44);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_addprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2218 "mjs/mjs.lem.c"
+#line 2226 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       default:
-      /* (104) stmtlist ::= cstmtlist */ yytestcase(yyruleno==104);
-      /* (105) stmtlist ::= sstmtlist */ yytestcase(yyruleno==105);
-      /* (106) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==106);
-      /* (107) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=107);
-      /* (108) sstmt ::= expr */ yytestcase(yyruleno==108);
-      /* (109) expr ::= sexp */ yytestcase(yyruleno==109);
-      /* (110) expr ::= expr EQ_EQ expr */ yytestcase(yyruleno==110);
-      /* (111) expr ::= expr NE_NE expr */ yytestcase(yyruleno==111);
-      /* (112) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=112);
-      /* (113) callarg ::= expr */ yytestcase(yyruleno==113);
-      /* (114) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==114);
-      /* (115) optexpr ::= */ yytestcase(yyruleno==115);
-      /* (116) optexpr ::= expr */ yytestcase(yyruleno==116);
-      /* (117) block_or_stmt ::= block (OPTIMIZED OUT) */ assert(yyruleno!=117);
-      /* (118) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==118);
-      /* (119) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=119);
-      /* (120) cstmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=120);
-      /* (121) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==121);
-      /* (122) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=122);
-      /* (123) literal ::= NULL */ yytestcase(yyruleno==123);
+      /* (105) stmtlist ::= cstmtlist */ yytestcase(yyruleno==105);
+      /* (106) stmtlist ::= sstmtlist */ yytestcase(yyruleno==106);
+      /* (107) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==107);
+      /* (108) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=108);
+      /* (109) sstmt ::= expr */ yytestcase(yyruleno==109);
+      /* (110) expr ::= sexp */ yytestcase(yyruleno==110);
+      /* (111) expr ::= expr EQ_EQ expr */ yytestcase(yyruleno==111);
+      /* (112) expr ::= expr NE_NE expr */ yytestcase(yyruleno==112);
+      /* (113) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=113);
+      /* (114) callarg ::= expr */ yytestcase(yyruleno==114);
+      /* (115) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==115);
+      /* (116) optexpr ::= */ yytestcase(yyruleno==116);
+      /* (117) optexpr ::= expr */ yytestcase(yyruleno==117);
+      /* (118) block_or_stmt ::= block (OPTIMIZED OUT) */ assert(yyruleno!=118);
+      /* (119) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==119);
+      /* (120) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=120);
+      /* (121) cstmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=121);
+      /* (122) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==122);
+      /* (123) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=123);
       /* (124) literal ::= THIS */ yytestcase(yyruleno==124);
       /* (125) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=125);
       /* (126) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=126);
@@ -8658,7 +8692,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 2295 "mjs/mjs.lem.c"
+#line 2302 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -8679,7 +8713,7 @@ static void yy_syntax_error(
 
   ctx->syntax_error = TOKEN;
   (void) yymajor;
-#line 2316 "mjs/mjs.lem.c"
+#line 2323 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -8705,7 +8739,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 2342 "mjs/mjs.lem.c"
+#line 2349 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -9823,6 +9857,70 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
   return 0;
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/conversion.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/object.h" */
+/* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
+
+MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
+                                    char **p, size_t *sizep,
+                                    int *need_free) {
+  mjs_err_t ret = MJS_OK;
+
+  *p = NULL;
+  *sizep = 0;
+  *need_free = 0;
+
+  if (mjs_is_string(*v)) {
+    *p = (char *)mjs_get_string(mjs, v, sizep);
+  } else if (mjs_is_number(*v)) {
+    double num = mjs_get_double(mjs, *v);
+    const char *fmt = num > 1e10 ? "%.21g" : "%.10g";
+    (void) num;
+    (void) fmt;
+    *sizep = snprintf(NULL, 0, fmt, num);
+    *p = malloc(*sizep + 1 /*null term*/);
+    if (*p == NULL) {
+      ret = MJS_OUT_OF_MEMORY;
+      goto clean;
+    }
+    snprintf(*p, *sizep + 1, fmt, num);
+    *need_free = 1;
+  } else if (mjs_is_boolean(*v)) {
+    if (mjs_get_bool(mjs, *v)) {
+      *p = "true";
+      *sizep = 4;
+    } else {
+      *p = "false";
+      *sizep = 5;
+    }
+  } else if (mjs_is_undefined(*v)) {
+    *p = "undefined";
+    *sizep = 9;
+  } else if (mjs_is_null(*v)) {
+    *p = "null";
+    *sizep = 4;
+  } else if (mjs_is_object(*v)) {
+    ret = MJS_TYPE_ERROR;
+    mjs_set_errorf(mjs, ret, "conversion from object to string is not supported");
+    bf_die(&mjs->vm);
+  } else {
+    ret = MJS_TYPE_ERROR;
+    mjs_set_errorf(mjs, ret, "unknown type to convert to string");
+    bf_die(&mjs->vm);
+  }
+
+clean:
+  return ret;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/core.c"
 #endif
 /*
@@ -10064,7 +10162,9 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
   free(mjs->error_msg);
   mjs->error_msg = NULL;
   mjs->error_msg_err = err;
-  mg_avprintf(&mjs->error_msg, 0, fmt, ap);
+  if (fmt != NULL) {
+    mg_avprintf(&mjs->error_msg, 0, fmt, ap);
+  }
   va_end(ap);
   return err;
 }
@@ -10093,24 +10193,41 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ..
 }
 
 const char *mjs_strerror(struct mjs *mjs, mjs_err_t err) {
+  const char *ret = NULL;
   if (mjs->error_msg_err == err) {
-    return mjs->error_msg;
+    ret = mjs->error_msg;
   }
-  if (mjs->error_msg == NULL) {
+  if (ret == NULL) {
     switch (err) {
+      case MJS_OK:
+        ret = "";
+        break;
       case MJS_SYNTAX_ERROR:
-        return "syntax error";
+        ret = "syntax error";
+        break;
       case MJS_INTERNAL_ERROR:
-        return "internal error";
+        ret = "internal error";
+        break;
       case MJS_REFERENCE_ERROR:
-        return "reference error";
+        ret = "reference error";
+        break;
       case MJS_TYPE_ERROR:
-        return "type error";
-      default:
-        return "unknown error";
+        ret = "type error";
+        break;
+      case MJS_OUT_OF_MEMORY:
+        ret = "out of memory";
+        break;
+      /*
+       * NOTE: we don't use default case here in order to leverage compiler
+       * warning about the non-handled enum elements. We'll set default
+       * value below.
+       */
+    }
+    if (ret == NULL) {
+      ret = "unknown error";
     }
   }
-  return "unset";
+  return ret;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/disasm_mjs.c"
@@ -11466,6 +11583,7 @@ int main(int argc, char **argv) {
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/conversion.h" */
 
 MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
@@ -11556,8 +11674,22 @@ mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
 
 mjs_val_t mjs_get_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name) {
   size_t n;
-  const char *s = mjs_get_string(mjs, &name, &n);
-  return mjs_get(mjs, obj, s, n);
+  char *s = NULL;
+  int need_free = 0;
+  mjs_val_t ret = MJS_UNDEFINED;
+
+  mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
+
+  if (err == MJS_OK) {
+    /* Successfully converted name value to string: get the property */
+    ret = mjs_get(mjs, obj, s, n);
+  }
+
+  if (need_free) {
+    free(s);
+    s = NULL;
+  }
+  return ret;
 }
 
 mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name,
@@ -11591,8 +11723,22 @@ mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name,
 mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
                     mjs_val_t val) {
   size_t n;
-  const char *s = mjs_get_string(mjs, &name, &n);
-  return mjs_set(mjs, obj, s, n, val);
+  char *s = NULL;
+  int need_free = 0;
+
+  mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
+
+  if (err == MJS_OK) {
+    /* Successfully converted name value to string: set the property */
+    err = mjs_set(mjs, obj, s, n, val);
+  }
+
+  if (need_free) {
+    free(s);
+    s = NULL;
+  }
+
+  return err;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/ops.c"
@@ -12234,6 +12380,7 @@ static int next_tok(struct pstate *p) {
     case TOK_IDENT: return TOK_IDENTIFIER;
     case TOK_KEYWORD_LET: return TOK_LET;
     case TOK_KEYWORD_UNDEFINED: return TOK_UNDEFINED;
+    case TOK_KEYWORD_NULL: return TOK_NULL;
     case TOK_KEYWORD_IF: return TOK_IF;
     case TOK_KEYWORD_ELSE: return TOK_ELSE;
     case TOK_KEYWORD_TRUE: return TOK_TRUE;
