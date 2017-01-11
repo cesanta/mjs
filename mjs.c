@@ -2197,6 +2197,8 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_scope_idx_SET (16)
 #define MJS_WORD_PTR_scope_min_AT (16)
 #define MJS_WORD_PTR_scope_min_SET (16)
+#define MJS_WORD_PTR_this_val_AT (16)
+#define MJS_WORD_PTR_this_val_SET (16)
 #define MJS_WORD_PTR_frame_AT (16)
 #define MJS_WORD_PTR_frame_SET (16)
 #define MJS_WORD_PTR_GT_scopes (16)
@@ -2215,60 +2217,61 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_blockexit (27)
 #define MJS_WORD_PTR_jscall (30)
 #define MJS_WORD_PTR_jscall_exit (30)
-#define MJS_WORD_PTR_jscall_wrap (35)
-#define MJS_WORD_PTR_jsenter (37)
-#define MJS_WORD_PTR_jsexit (53)
-#define MJS_WORD_PTR_anon_0 (62)
-#define MJS_WORD_PTR_anon_1 (64)
-#define MJS_WORD_PTR_setarg (66)
-#define MJS_WORD_PTR_ffi (86)
-#define MJS_WORD_PTR_undefined (88)
-#define MJS_WORD_PTR_null (88)
-#define MJS_WORD_PTR_true (88)
-#define MJS_WORD_PTR_false (88)
-#define MJS_WORD_PTR_2dup (88)
-#define MJS_WORD_PTR_dec (91)
-#define MJS_WORD_PTR_GTEQ (96)
-#define MJS_WORD_PTR_LTEQ (99)
-#define MJS_WORD_PTR_SETEQ (102)
-#define MJS_WORD_PTR_js_EQ (105)
-#define MJS_WORD_PTR_js_LT (105)
-#define MJS_WORD_PTR_js_GT (105)
-#define MJS_WORD_PTR_jsinvert (105)
-#define MJS_WORD_PTR_js_GTEQ (105)
-#define MJS_WORD_PTR_js_LTEQ (108)
-#define MJS_WORD_PTR_js_SETEQ (111)
-#define MJS_WORD_PTR_js_logical_and (114)
-#define MJS_WORD_PTR_js_logical_or (114)
-#define MJS_WORD_PTR_anon_2 (114)
-#define MJS_WORD_PTR_ifstmt (116)
-#define MJS_WORD_PTR_anon_3 (121)
-#define MJS_WORD_PTR_anon_4 (138)
-#define MJS_WORD_PTR_repeat (145)
-#define MJS_WORD_PTR_anon_5 (158)
-#define MJS_WORD_PTR_anon_6 (164)
-#define MJS_WORD_PTR_anon_7 (169)
-#define MJS_WORD_PTR_while (179)
-#define MJS_WORD_PTR_anon_8 (185)
-#define MJS_WORD_PTR_anon_9 (190)
-#define MJS_WORD_PTR_jsprint (202)
-#define MJS_WORD_PTR_zero (209)
-#define MJS_WORD_PTR_one (213)
-#define MJS_WORD_PTR_nop (217)
-#define MJS_WORD_PTR_inc (220)
-#define MJS_WORD_PTR_swapinc (225)
-#define MJS_WORD_PTR_div (228)
-#define MJS_WORD_PTR_rem (228)
-#define MJS_WORD_PTR_lshift (228)
-#define MJS_WORD_PTR_rshift (228)
-#define MJS_WORD_PTR_urshift (228)
-#define MJS_WORD_PTR_and (228)
-#define MJS_WORD_PTR_or (228)
-#define MJS_WORD_PTR_xor (228)
-#define MJS_WORD_PTR_not (228)
-#define MJS_WORD_PTR_neg (228)
-#define MJS_WORD_PTR_pos (228)
-#define MJS_WORD_PTR_load (228)
+#define MJS_WORD_PTR_jscall_wrap (37)
+#define MJS_WORD_PTR_jsenter (39)
+#define MJS_WORD_PTR_jsexit (55)
+#define MJS_WORD_PTR_anon_0 (64)
+#define MJS_WORD_PTR_anon_1 (66)
+#define MJS_WORD_PTR_setarg (68)
+#define MJS_WORD_PTR_ffi (88)
+#define MJS_WORD_PTR_undefined (90)
+#define MJS_WORD_PTR_null (90)
+#define MJS_WORD_PTR_true (90)
+#define MJS_WORD_PTR_false (90)
+#define MJS_WORD_PTR_this_for_call (90)
+#define MJS_WORD_PTR_2dup (90)
+#define MJS_WORD_PTR_dec (93)
+#define MJS_WORD_PTR_GTEQ (98)
+#define MJS_WORD_PTR_LTEQ (101)
+#define MJS_WORD_PTR_SETEQ (104)
+#define MJS_WORD_PTR_js_EQ (107)
+#define MJS_WORD_PTR_js_LT (107)
+#define MJS_WORD_PTR_js_GT (107)
+#define MJS_WORD_PTR_jsinvert (107)
+#define MJS_WORD_PTR_js_GTEQ (107)
+#define MJS_WORD_PTR_js_LTEQ (110)
+#define MJS_WORD_PTR_js_SETEQ (113)
+#define MJS_WORD_PTR_js_logical_and (116)
+#define MJS_WORD_PTR_js_logical_or (116)
+#define MJS_WORD_PTR_anon_2 (116)
+#define MJS_WORD_PTR_ifstmt (118)
+#define MJS_WORD_PTR_anon_3 (123)
+#define MJS_WORD_PTR_anon_4 (140)
+#define MJS_WORD_PTR_repeat (147)
+#define MJS_WORD_PTR_anon_5 (160)
+#define MJS_WORD_PTR_anon_6 (166)
+#define MJS_WORD_PTR_anon_7 (171)
+#define MJS_WORD_PTR_while (181)
+#define MJS_WORD_PTR_anon_8 (187)
+#define MJS_WORD_PTR_anon_9 (192)
+#define MJS_WORD_PTR_jsprint (204)
+#define MJS_WORD_PTR_zero (211)
+#define MJS_WORD_PTR_one (215)
+#define MJS_WORD_PTR_nop (219)
+#define MJS_WORD_PTR_inc (222)
+#define MJS_WORD_PTR_swapinc (227)
+#define MJS_WORD_PTR_div (230)
+#define MJS_WORD_PTR_rem (230)
+#define MJS_WORD_PTR_lshift (230)
+#define MJS_WORD_PTR_rshift (230)
+#define MJS_WORD_PTR_urshift (230)
+#define MJS_WORD_PTR_and (230)
+#define MJS_WORD_PTR_or (230)
+#define MJS_WORD_PTR_xor (230)
+#define MJS_WORD_PTR_not (230)
+#define MJS_WORD_PTR_neg (230)
+#define MJS_WORD_PTR_pos (230)
+#define MJS_WORD_PTR_load (230)
 #define MJS_OP_quote ((bf_opcode_t) -1)
 #define MJS_OP_exit ((bf_opcode_t) 0)
 #define MJS_OP_drop ((bf_opcode_t) 1)
@@ -2305,66 +2308,69 @@ extern struct bf_code MJS_code;
 #define MJS_OP_scope_idx_SET ((bf_opcode_t) 32)
 #define MJS_OP_scope_min_AT ((bf_opcode_t) 33)
 #define MJS_OP_scope_min_SET ((bf_opcode_t) 34)
-#define MJS_OP_frame_AT ((bf_opcode_t) 35)
-#define MJS_OP_frame_SET ((bf_opcode_t) 36)
-#define MJS_OP_GT_scopes ((bf_opcode_t) 37)
-#define MJS_OP_scopes_GT ((bf_opcode_t) 38)
-#define MJS_OP_scope_AT ((bf_opcode_t) 39)
-#define MJS_OP_mkobj ((bf_opcode_t) 40)
-#define MJS_OP_addprop ((bf_opcode_t) 41)
-#define MJS_OP_setprop ((bf_opcode_t) 42)
-#define MJS_OP_getprop ((bf_opcode_t) 43)
-#define MJS_OP_getvar ((bf_opcode_t) 44)
-#define MJS_OP_setvar ((bf_opcode_t) 45)
-#define MJS_OP_createvar ((bf_opcode_t) 46)
-#define MJS_OP_mkarr ((bf_opcode_t) 47)
-#define MJS_OP_arrpush ((bf_opcode_t) 48)
-#define MJS_OP_blockenter ((bf_opcode_t) 49)
-#define MJS_OP_blockexit ((bf_opcode_t) 50)
-#define MJS_OP_jscall ((bf_opcode_t) 51)
-#define MJS_OP_jscall_exit ((bf_opcode_t) 52)
-#define MJS_OP_jscall_wrap ((bf_opcode_t) 53)
-#define MJS_OP_jsenter ((bf_opcode_t) 54)
-#define MJS_OP_jsexit ((bf_opcode_t) 55)
-#define MJS_OP_setarg ((bf_opcode_t) 56)
-#define MJS_OP_undefined ((bf_opcode_t) 57)
-#define MJS_OP_null ((bf_opcode_t) 58)
-#define MJS_OP_true ((bf_opcode_t) 59)
-#define MJS_OP_false ((bf_opcode_t) 60)
-#define MJS_OP_2dup ((bf_opcode_t) 61)
-#define MJS_OP_GTEQ ((bf_opcode_t) 62)
-#define MJS_OP_LTEQ ((bf_opcode_t) 63)
-#define MJS_OP_SETEQ ((bf_opcode_t) 64)
-#define MJS_OP_js_EQ ((bf_opcode_t) 65)
-#define MJS_OP_js_LT ((bf_opcode_t) 66)
-#define MJS_OP_js_GT ((bf_opcode_t) 67)
-#define MJS_OP_jsinvert ((bf_opcode_t) 68)
-#define MJS_OP_js_GTEQ ((bf_opcode_t) 69)
-#define MJS_OP_js_LTEQ ((bf_opcode_t) 70)
-#define MJS_OP_js_SETEQ ((bf_opcode_t) 71)
-#define MJS_OP_js_logical_and ((bf_opcode_t) 72)
-#define MJS_OP_js_logical_or ((bf_opcode_t) 73)
-#define MJS_OP_ifstmt ((bf_opcode_t) 74)
-#define MJS_OP_repeat ((bf_opcode_t) 75)
-#define MJS_OP_while ((bf_opcode_t) 76)
-#define MJS_OP_jsprint ((bf_opcode_t) 77)
-#define MJS_OP_zero ((bf_opcode_t) 78)
-#define MJS_OP_one ((bf_opcode_t) 79)
-#define MJS_OP_nop ((bf_opcode_t) 80)
-#define MJS_OP_inc ((bf_opcode_t) 81)
-#define MJS_OP_swapinc ((bf_opcode_t) 82)
-#define MJS_OP_div ((bf_opcode_t) 83)
-#define MJS_OP_rem ((bf_opcode_t) 84)
-#define MJS_OP_lshift ((bf_opcode_t) 85)
-#define MJS_OP_rshift ((bf_opcode_t) 86)
-#define MJS_OP_urshift ((bf_opcode_t) 87)
-#define MJS_OP_and ((bf_opcode_t) 88)
-#define MJS_OP_or ((bf_opcode_t) 89)
-#define MJS_OP_xor ((bf_opcode_t) 90)
-#define MJS_OP_not ((bf_opcode_t) 91)
-#define MJS_OP_neg ((bf_opcode_t) 92)
-#define MJS_OP_pos ((bf_opcode_t) 93)
-#define MJS_OP_load ((bf_opcode_t) 94)
+#define MJS_OP_this_val_AT ((bf_opcode_t) 35)
+#define MJS_OP_this_val_SET ((bf_opcode_t) 36)
+#define MJS_OP_frame_AT ((bf_opcode_t) 37)
+#define MJS_OP_frame_SET ((bf_opcode_t) 38)
+#define MJS_OP_GT_scopes ((bf_opcode_t) 39)
+#define MJS_OP_scopes_GT ((bf_opcode_t) 40)
+#define MJS_OP_scope_AT ((bf_opcode_t) 41)
+#define MJS_OP_mkobj ((bf_opcode_t) 42)
+#define MJS_OP_addprop ((bf_opcode_t) 43)
+#define MJS_OP_setprop ((bf_opcode_t) 44)
+#define MJS_OP_getprop ((bf_opcode_t) 45)
+#define MJS_OP_getvar ((bf_opcode_t) 46)
+#define MJS_OP_setvar ((bf_opcode_t) 47)
+#define MJS_OP_createvar ((bf_opcode_t) 48)
+#define MJS_OP_mkarr ((bf_opcode_t) 49)
+#define MJS_OP_arrpush ((bf_opcode_t) 50)
+#define MJS_OP_blockenter ((bf_opcode_t) 51)
+#define MJS_OP_blockexit ((bf_opcode_t) 52)
+#define MJS_OP_jscall ((bf_opcode_t) 53)
+#define MJS_OP_jscall_exit ((bf_opcode_t) 54)
+#define MJS_OP_jscall_wrap ((bf_opcode_t) 55)
+#define MJS_OP_jsenter ((bf_opcode_t) 56)
+#define MJS_OP_jsexit ((bf_opcode_t) 57)
+#define MJS_OP_setarg ((bf_opcode_t) 58)
+#define MJS_OP_undefined ((bf_opcode_t) 59)
+#define MJS_OP_null ((bf_opcode_t) 60)
+#define MJS_OP_true ((bf_opcode_t) 61)
+#define MJS_OP_false ((bf_opcode_t) 62)
+#define MJS_OP_this_for_call ((bf_opcode_t) 63)
+#define MJS_OP_2dup ((bf_opcode_t) 64)
+#define MJS_OP_GTEQ ((bf_opcode_t) 65)
+#define MJS_OP_LTEQ ((bf_opcode_t) 66)
+#define MJS_OP_SETEQ ((bf_opcode_t) 67)
+#define MJS_OP_js_EQ ((bf_opcode_t) 68)
+#define MJS_OP_js_LT ((bf_opcode_t) 69)
+#define MJS_OP_js_GT ((bf_opcode_t) 70)
+#define MJS_OP_jsinvert ((bf_opcode_t) 71)
+#define MJS_OP_js_GTEQ ((bf_opcode_t) 72)
+#define MJS_OP_js_LTEQ ((bf_opcode_t) 73)
+#define MJS_OP_js_SETEQ ((bf_opcode_t) 74)
+#define MJS_OP_js_logical_and ((bf_opcode_t) 75)
+#define MJS_OP_js_logical_or ((bf_opcode_t) 76)
+#define MJS_OP_ifstmt ((bf_opcode_t) 77)
+#define MJS_OP_repeat ((bf_opcode_t) 78)
+#define MJS_OP_while ((bf_opcode_t) 79)
+#define MJS_OP_jsprint ((bf_opcode_t) 80)
+#define MJS_OP_zero ((bf_opcode_t) 81)
+#define MJS_OP_one ((bf_opcode_t) 82)
+#define MJS_OP_nop ((bf_opcode_t) 83)
+#define MJS_OP_inc ((bf_opcode_t) 84)
+#define MJS_OP_swapinc ((bf_opcode_t) 85)
+#define MJS_OP_div ((bf_opcode_t) 86)
+#define MJS_OP_rem ((bf_opcode_t) 87)
+#define MJS_OP_lshift ((bf_opcode_t) 88)
+#define MJS_OP_rshift ((bf_opcode_t) 89)
+#define MJS_OP_urshift ((bf_opcode_t) 90)
+#define MJS_OP_and ((bf_opcode_t) 91)
+#define MJS_OP_or ((bf_opcode_t) 92)
+#define MJS_OP_xor ((bf_opcode_t) 93)
+#define MJS_OP_not ((bf_opcode_t) 94)
+#define MJS_OP_neg ((bf_opcode_t) 95)
+#define MJS_OP_pos ((bf_opcode_t) 96)
+#define MJS_OP_load ((bf_opcode_t) 97)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -2798,6 +2804,30 @@ struct gc_arena {
 #define _MJS_NULL MJS_TAG_FOREIGN
 #define _MJS_UNDEFINED MJS_TAG_UNDEFINED
 
+/*
+ * Distance after the last getprop invocation; needed for "method invocation
+ * pattern" implementation.
+ *
+ * We use enum here in order to leverage compiler warning about the too narrow
+ * field.
+ */
+enum getprop_distance {
+  /*
+   * Number of words which are executed during "method invocation pattern",
+   * between getting a property and calling that property.
+   *
+   * Currently, there are 2 words:
+   *   - exit (from the getprop word)
+   *   - this_for_call
+   */
+  GETPROP_DISTANCE_CALL = 2,
+
+  /*
+   * After reaching this value, `words_since_getprop` is not incremented more
+   */
+  GETPROP_DISTANCE_OVER,
+};
+
 struct mjs_vals {
   /*
    * Min index of the scope (in `mjs->scopes`) which current function can use.
@@ -2816,6 +2846,17 @@ struct mjs_vals {
    * TODO(dfrank): store as int, not mjs_val_t
    */
   mjs_val_t call_frame;
+
+  /*
+   * Current `this` value.
+   */
+  mjs_val_t this_val;
+
+  /*
+   * The object against which the last `getprop` was invoked. Needed for
+   * "method invocation pattern".
+   */
+  mjs_val_t last_getprop_obj;
 };
 
 struct mjs {
@@ -2854,6 +2895,11 @@ struct mjs {
   unsigned int need_gc : 1;
   /* while true, GC is inhibited */
   unsigned int inhibit_gc : 1;
+  /*
+   * number of words evaluated after latest `getprop` invocation, needed for
+   * "method invocation pattern"
+   */
+  enum getprop_distance words_since_getprop : 2;
 };
 
 MJS_PRIVATE void mjs_push_scope(struct mjs *mjs, mjs_val_t scope);
@@ -3284,8 +3330,10 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
 mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
 
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...);
-mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, mjs_val_t *args);
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
+                   mjs_val_t this_val, int nargs, ...);
+mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
+                    mjs_val_t this_val, int nargs, mjs_val_t *args);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
@@ -6624,26 +6672,26 @@ static const YYACTIONTYPE yy_action[] = {
  /*    60 */   152,  152,   10,   50,  174,   10,   50,  174,  279,    5,
  /*    70 */    48,   75,   73,   71,   69,   67,   59,   58,   57,   56,
  /*    80 */    63,   62,   61,   60,   66,   65,   64,   55,   54,   53,
- /*    90 */    52,   51,  348,   81,  155,  349,   82,   10,   50,  359,
- /*   100 */   184,   86,  347,  337,    7,   48,   75,   73,   71,   69,
+ /*    90 */    52,   51,  349,   81,  155,  350,   82,   10,   50,  360,
+ /*   100 */   184,   86,  348,  337,    7,   48,   75,   73,   71,   69,
  /*   110 */    67,   59,   58,   57,   56,   63,   62,   61,   60,   66,
  /*   120 */    65,   64,   55,   54,   53,   52,   51,   85,   16,  176,
- /*   130 */   338,  313,   10,   50,   17,  374,  352,   10,   50,   82,
+ /*   130 */   338,  313,   10,   50,   17,  375,  353,   10,   50,   82,
  /*   140 */    47,   48,   75,   73,   71,   69,   67,   59,   58,   57,
  /*   150 */    56,   63,   62,   61,   60,   66,   65,   64,   55,   54,
  /*   160 */    53,   52,   51,  165,  381,   44,   45,  180,   10,   50,
  /*   170 */    78,   77,   68,   46,  139,   70,   11,   12,   80,  382,
  /*   180 */   138,  278,  277,  133,  173,  171,  170,    1,  182,   84,
- /*   190 */    18,  341,  342,  376,  343,  344,  345,  346,  335,  371,
+ /*   190 */    18,  341,  342,  343,  344,  345,  346,  347,  335,  372,
  /*   200 */    48,   75,   73,   71,   69,   67,   59,   58,   57,   56,
  /*   210 */    63,   62,   61,   60,   66,   65,   64,   55,   54,   53,
  /*   220 */    52,   51,  518,  334,   44,   45,  333,   10,   50,   78,
  /*   230 */    77,   68,   46,    2,   70,   11,    4,   80,   13,  138,
  /*   240 */    14,   15,   30,  173,  171,  170,    1,    6,   84,   18,
- /*   250 */   341,  342,  376,  343,  344,  345,  346,   44,   45,   31,
+ /*   250 */   341,  342,  343,  344,  345,  346,  347,   44,   45,   31,
  /*   260 */    42,    3,   78,   77,   68,   46,    9,   70,   11,  446,
  /*   270 */    80,   88,  132,  443,   89,   72,  173,  171,  170,    1,
- /*   280 */    90,   84,   18,  341,  342,  376,  343,  163,  345,  346,
+ /*   280 */    90,   84,   18,  341,  342,  343,  344,  163,  346,  347,
  /*   290 */    73,   71,   69,   67,   59,   58,   57,   56,   63,   62,
  /*   300 */    61,   60,   66,   65,   64,   55,   54,   53,   52,   51,
  /*   310 */    76,   83,  383,  385,  385,   10,   50,   71,   69,   67,
@@ -6651,23 +6699,23 @@ static const YYACTIONTYPE yy_action[] = {
  /*   330 */    64,   55,   54,   53,   52,   51,  385,  385,   44,   45,
  /*   340 */   385,   10,   50,   78,   77,   68,   46,  385,   70,   11,
  /*   350 */   385,   80,  385,  138,  385,  385,  385,  385,  385,  385,
- /*   360 */    79,  385,   87,   18,  341,  342,  376,  343,  344,  345,
- /*   370 */   346,   69,   67,   59,   58,   57,   56,   63,   62,   61,
+ /*   360 */    79,  385,   87,   18,  341,  342,  343,  344,  345,  346,
+ /*   370 */   347,   69,   67,   59,   58,   57,   56,   63,   62,   61,
  /*   380 */    60,   66,   65,   64,   55,   54,   53,   52,   51,  385,
  /*   390 */   385,  385,  385,  385,   10,   50,   44,   45,  385,  385,
  /*   400 */   385,   78,   77,   68,   46,  385,   70,   11,  385,  385,
  /*   410 */   385,  138,  385,  312,  385,  385,  385,  385,   79,  385,
- /*   420 */    87,  385,  341,  342,  376,  343,  344,  345,  346,  385,
+ /*   420 */    87,  385,  341,  342,  343,  344,  345,  346,  347,  385,
  /*   430 */   385,  385,   67,   59,   58,   57,   56,   63,   62,   61,
  /*   440 */    60,   66,   65,   64,   55,   54,   53,   52,   51,  385,
  /*   450 */   385,  385,  385,  385,   10,   50,  385,  385,  385,  385,
  /*   460 */   385,  174,  385,  166,    8,  175,  253,  254,  257,  385,
  /*   470 */   385,  385,  124,  183,  183,  385,  385,  140,  385,  385,
- /*   480 */   253,  385,  183,  385,  385,  183,  183,  183,  155,  349,
+ /*   480 */   253,  385,  183,  385,  385,  183,  183,  183,  155,  350,
  /*   490 */   385,  385,  385,  385,   44,   45,  385,  385,  385,   78,
  /*   500 */    77,   68,   46,  385,   70,   11,  385,  385,  385,  138,
  /*   510 */   385,  385,  385,  385,  385,  385,   79,  385,   87,  385,
- /*   520 */   341,  342,  376,  343,  344,  345,  346,   59,   58,   57,
+ /*   520 */   341,  342,  343,  344,  345,  346,  347,   59,   58,   57,
  /*   530 */    56,   63,   62,   61,   60,   66,   65,   64,   55,   54,
  /*   540 */    53,   52,   51,  385,  385,  385,  385,  385,   10,   50,
  /*   550 */   520,  186,    8,  175,  253,  254,  257,  385,  385,  385,
@@ -6686,8 +6734,8 @@ static const YYACTIONTYPE yy_action[] = {
  /*   680 */    62,   61,   60,   66,   65,   64,   55,   54,   53,   52,
  /*   690 */    51,  385,  385,  385,  385,  385,   10,   50,  385,  385,
  /*   700 */    74,   29,   28,   27,   26,   25,   24,   23,   22,   21,
- /*   710 */    20,   19,  367,  162,  367,  385,  385,  385,  124,  183,
- /*   720 */   183,  385,  385,  140,  367,  385,  367,  385,  183,  385,
+ /*   710 */    20,   19,  368,  162,  368,  385,  385,  385,  124,  183,
+ /*   720 */   183,  385,  385,  140,  368,  385,  368,  385,  183,  385,
  /*   730 */   385,  183,  183,  183,  287,  289,  332,  162,  332,  385,
  /*   740 */   385,  385,  124,  183,  183,  385,  385,  140,  332,  385,
  /*   750 */   332,  385,  183,  385,  385,  183,  183,  183,  331,  162,
@@ -6700,15 +6748,15 @@ static const YYACTIONTYPE yy_action[] = {
  /*   820 */   385,  385,  183,  183,  183,  385,  385,  248,  251,  255,
  /*   830 */   385,  385,  385,  124,  183,  183,  385,  385,  140,   70,
  /*   840 */    11,  248,  385,  183,  177,  385,  183,  183,  183,  385,
- /*   850 */   385,   79,  385,   87,  385,  341,  342,  376,  343,  344,
- /*   860 */   345,  346,   70,   11,  385,  385,  385,  179,  385,  385,
+ /*   850 */   385,   79,  385,   87,  385,  341,  342,  343,  344,  345,
+ /*   860 */   346,  347,   70,   11,  385,  385,  385,  179,  385,  385,
  /*   870 */   385,  385,  385,  385,   79,  385,   87,  385,  341,  342,
- /*   880 */   376,  343,  344,  345,  346,   49,  452,  452,  452,  452,
+ /*   880 */   343,  344,  345,  346,  347,   49,  452,  452,  452,  452,
  /*   890 */   452,  452,  452,  452,  452,  452,  452,   43,   41,   40,
  /*   900 */    39,   38,   37,   36,   35,   34,   33,   32,  385,  385,
  /*   910 */   385,  119,  183,  183,  385,  385,  140,  385,  385,  385,
  /*   920 */   385,  183,  385,  385,  183,  183,  183,  385,  385,  154,
- /*   930 */   354,   66,   65,   64,   55,   54,   53,   52,   51,  385,
+ /*   930 */   355,   66,   65,   64,   55,   54,   53,   52,   51,  385,
  /*   940 */   385,  385,  385,  385,   10,   50,  385,  250,  385,  385,
  /*   950 */   385,  385,  124,  183,  183,  385,  385,  140,  385,  385,
  /*   960 */   385,  385,  183,  385,  385,  183,  183,  183,  108,  183,
@@ -6720,7 +6768,7 @@ static const YYACTIONTYPE yy_action[] = {
  /*  1020 */   385,  385,  122,  183,  183,  385,  314,  140,  385,  385,
  /*  1030 */   385,  385,  183,  385,  385,  183,  183,  183,  385,  385,
  /*  1040 */   119,  183,  183,  385,  385,  140,  385,   96,  183,  183,
- /*  1050 */   183,  385,  140,  183,  183,  183,  385,  183,  385,  353,
+ /*  1050 */   183,  385,  140,  183,  183,  183,  385,  183,  385,  354,
  /*  1060 */   183,  183,  183,   97,  183,  183,  385,  385,  140,   98,
  /*  1070 */   183,  183,  385,  183,  140,  385,  183,  183,  183,  183,
  /*  1080 */   385,  385,  183,  183,  183,   99,  183,  183,  385,  385,
@@ -7024,25 +7072,25 @@ static const short yy_reduce_ofst[] = {
  /*    90 */   112,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   519,  486,  519,  519,  519,  519,  519,  519,  493,  394,
- /*    10 */   519,  491,  519,  504,  504,  504,  519,  519,  475,  519,
+ /*     0 */   519,  487,  519,  519,  519,  519,  519,  519,  494,  394,
+ /*    10 */   519,  492,  519,  505,  505,  505,  519,  519,  475,  519,
  /*    20 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  519,
  /*    30 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  519,
  /*    40 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  519,
  /*    50 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  519,
  /*    60 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  519,
- /*    70 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  486,
+ /*    70 */   519,  519,  519,  519,  519,  519,  519,  519,  519,  487,
  /*    80 */   519,  519,  472,  519,  519,  519,  519,  519,  519,  519,
  /*    90 */   519,  519,  519,  519,  519,  519,  476,  409,  408,  407,
- /*   100 */   406,  405,  404,  403,  402,  401,  400,  399,  505,  465,
- /*   110 */   464,  463,  462,  461,  460,  459,  458,  457,  456,  492,
- /*   120 */   487,  455,  502,  447,  497,  398,  396,  417,  418,  426,
- /*   130 */   427,  428,  446,  443,  500,  499,  437,  436,  446,  444,
+ /*   100 */   406,  405,  404,  403,  402,  401,  400,  399,  506,  465,
+ /*   110 */   464,  463,  462,  461,  460,  459,  458,  457,  456,  493,
+ /*   120 */   488,  455,  503,  447,  498,  398,  396,  417,  418,  426,
+ /*   130 */   427,  428,  446,  443,  501,  500,  437,  436,  446,  444,
  /*   140 */   519,  435,  434,  433,  432,  431,  430,  429,  421,  420,
  /*   150 */   439,  438,  519,  519,  519,  519,  419,  442,  441,  440,
- /*   160 */   416,  519,  519,  480,  519,  519,  519,  519,  519,  519,
- /*   170 */   519,  519,  466,  519,  519,  494,  519,  424,  519,  422,
- /*   180 */   415,  519,  453,  498,  397,  395,  519,
+ /*   160 */   416,  519,  519,  481,  519,  519,  519,  519,  519,  519,
+ /*   170 */   519,  519,  466,  519,  519,  495,  519,  424,  519,  422,
+ /*   180 */   415,  519,  453,  499,  397,  395,  519,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -7275,40 +7323,40 @@ static const char *const yyRuleName[] = {
  /*  93 */ "sstmt ::= RETURN expr",
  /*  94 */ "literal ::= NULL",
  /*  95 */ "literal ::= UNDEFINED",
- /*  96 */ "literal ::= NUMBER",
- /*  97 */ "literal ::= STRING_LITERAL",
- /*  98 */ "boolean_literal ::= TRUE",
- /*  99 */ "boolean_literal ::= FALSE",
- /* 100 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
- /* 101 */ "objspeclist ::= objspeclist COMMA objspec",
- /* 102 */ "objspeclist ::= objspec",
- /* 103 */ "objspeclist ::=",
- /* 104 */ "objspec ::= objspeclhs COLON expr",
- /* 105 */ "array_literal ::= OPEN_BRACKET arrayspeclist CLOSE_BRACKET",
- /* 106 */ "arrayspeclist ::= arrayspeclist COMMA arrspec",
- /* 107 */ "arrayspeclist ::= arrspec",
- /* 108 */ "arrayspeclist ::=",
- /* 109 */ "arrspec ::= expr",
- /* 110 */ "stmtlist ::= cstmtlist",
- /* 111 */ "stmtlist ::= sstmtlist",
- /* 112 */ "letspecs ::= letspecs COMMA letspec",
- /* 113 */ "letspecs ::= letspec",
- /* 114 */ "sstmt ::= expr",
- /* 115 */ "expr ::= sexp",
- /* 116 */ "expr ::= expr EQ_EQ expr",
- /* 117 */ "expr ::= expr NE_NE expr",
- /* 118 */ "sexp ::= literal",
- /* 119 */ "callarg ::= expr",
- /* 120 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
- /* 121 */ "optexpr ::=",
- /* 122 */ "optexpr ::= expr",
- /* 123 */ "block_or_stmt ::= block",
- /* 124 */ "block_or_stmt ::= sstmt SEMICOLON",
- /* 125 */ "block_or_stmt ::= cstmt",
- /* 126 */ "cstmt ::= funcdecl",
- /* 127 */ "arglist ::= arglist COMMA argspec",
- /* 128 */ "arglist ::= argspec",
- /* 129 */ "literal ::= THIS",
+ /*  96 */ "literal ::= THIS",
+ /*  97 */ "literal ::= NUMBER",
+ /*  98 */ "literal ::= STRING_LITERAL",
+ /*  99 */ "boolean_literal ::= TRUE",
+ /* 100 */ "boolean_literal ::= FALSE",
+ /* 101 */ "object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY",
+ /* 102 */ "objspeclist ::= objspeclist COMMA objspec",
+ /* 103 */ "objspeclist ::= objspec",
+ /* 104 */ "objspeclist ::=",
+ /* 105 */ "objspec ::= objspeclhs COLON expr",
+ /* 106 */ "array_literal ::= OPEN_BRACKET arrayspeclist CLOSE_BRACKET",
+ /* 107 */ "arrayspeclist ::= arrayspeclist COMMA arrspec",
+ /* 108 */ "arrayspeclist ::= arrspec",
+ /* 109 */ "arrayspeclist ::=",
+ /* 110 */ "arrspec ::= expr",
+ /* 111 */ "stmtlist ::= cstmtlist",
+ /* 112 */ "stmtlist ::= sstmtlist",
+ /* 113 */ "letspecs ::= letspecs COMMA letspec",
+ /* 114 */ "letspecs ::= letspec",
+ /* 115 */ "sstmt ::= expr",
+ /* 116 */ "expr ::= sexp",
+ /* 117 */ "expr ::= expr EQ_EQ expr",
+ /* 118 */ "expr ::= expr NE_NE expr",
+ /* 119 */ "sexp ::= literal",
+ /* 120 */ "callarg ::= expr",
+ /* 121 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
+ /* 122 */ "optexpr ::=",
+ /* 123 */ "optexpr ::= expr",
+ /* 124 */ "block_or_stmt ::= block",
+ /* 125 */ "block_or_stmt ::= sstmt SEMICOLON",
+ /* 126 */ "block_or_stmt ::= cstmt",
+ /* 127 */ "cstmt ::= funcdecl",
+ /* 128 */ "arglist ::= arglist COMMA argspec",
+ /* 129 */ "arglist ::= argspec",
  /* 130 */ "literal ::= boolean_literal",
  /* 131 */ "literal ::= func_literal",
  /* 132 */ "literal ::= object_literal",
@@ -7775,6 +7823,7 @@ static const struct {
   { 79, 1 },
   { 79, 1 },
   { 79, 1 },
+  { 79, 1 },
   { 90, 1 },
   { 90, 1 },
   { 91, 3 },
@@ -7806,7 +7855,6 @@ static const struct {
   { 71, 1 },
   { 88, 3 },
   { 88, 1 },
-  { 79, 1 },
   { 79, 1 },
   { 79, 1 },
   { 79, 1 },
@@ -8274,8 +8322,8 @@ static void yy_reduce(
   yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 62: /* sexp ::= OPEN_PAREN expr CLOSE_PAREN */
-      case 100: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==100);
-      case 105: /* array_literal ::= OPEN_BRACKET arrayspeclist CLOSE_BRACKET */ yytestcase(yyruleno==105);
+      case 101: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==101);
+      case 106: /* array_literal ::= OPEN_BRACKET arrayspeclist CLOSE_BRACKET */ yytestcase(yyruleno==106);
 #line 234 "mjs/mjs.lem.c"
 { yymsp[-2].minor.yy8=yymsp[-1].minor.yy8; }
 #line 1857 "mjs/mjs.lem.c"
@@ -8303,170 +8351,174 @@ static void yy_reduce(
 {
   yylhsminor.yy8=mjs_emit(ctx, MJS_OP_zero);
   mjs_emit_call(ctx, yymsp[-2].minor.yy8);
+  mjs_emit(ctx, MJS_OP_this_for_call);
+  mjs_emit(ctx, MJS_OP_swap);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1885 "mjs/mjs.lem.c"
+#line 1887 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 66: /* expr ::= expr OPEN_PAREN callarglist CLOSE_PAREN */
-#line 255 "mjs/mjs.lem.c"
+#line 257 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit(ctx, MJS_OP_zero);
   mjs_emit_call(ctx, yymsp[-1].minor.yy8);
   mjs_emit_call(ctx, yymsp[-3].minor.yy8);
+  mjs_emit(ctx, MJS_OP_this_for_call);
+  mjs_emit(ctx, MJS_OP_swap);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1897 "mjs/mjs.lem.c"
+#line 1901 "mjs/mjs.lem.c"
   yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 67: /* callarglist ::= callarglist COMMA callarg */
-#line 262 "mjs/mjs.lem.c"
+#line 266 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_swapinc);
   mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1908 "mjs/mjs.lem.c"
+#line 1912 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 68: /* callarglist ::= callarg */
-#line 268 "mjs/mjs.lem.c"
+#line 272 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_swapinc);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1918 "mjs/mjs.lem.c"
+#line 1922 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 69: /* objprop ::= expr OPEN_BRACKET expr CLOSE_BRACKET */
-#line 280 "mjs/mjs.lem.c"
+#line 284 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop(ctx, yymsp[-3].minor.yy8, yymsp[-1].minor.yy8, 1);
 }
-#line 1926 "mjs/mjs.lem.c"
+#line 1930 "mjs/mjs.lem.c"
   yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 70: /* objprop ::= sexp DOT ident */
-#line 284 "mjs/mjs.lem.c"
+#line 288 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, 1);
 }
-#line 1934 "mjs/mjs.lem.c"
+#line 1938 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 71: /* expr ::= expr OPEN_BRACKET expr CLOSE_BRACKET ASSIGN expr */
-#line 288 "mjs/mjs.lem.c"
+#line 292 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t prop = mjs_emit_objprop(ctx, yymsp[-5].minor.yy8, yymsp[-3].minor.yy8, 0);
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, prop, yymsp[0].minor.yy8, 0);
 }
-#line 1943 "mjs/mjs.lem.c"
+#line 1947 "mjs/mjs.lem.c"
   yymsp[-5].minor.yy8 = yylhsminor.yy8;
         break;
       case 72: /* expr ::= objprop PLUS_ASSIGN expr */
-#line 293 "mjs/mjs.lem.c"
+#line 297 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_PLUS);
 }
-#line 1951 "mjs/mjs.lem.c"
+#line 1955 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 73: /* expr ::= objprop MINUS_ASSIGN expr */
-#line 297 "mjs/mjs.lem.c"
+#line 301 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_MINUS);
 }
-#line 1959 "mjs/mjs.lem.c"
+#line 1963 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 74: /* expr ::= objprop MUL_ASSIGN expr */
-#line 301 "mjs/mjs.lem.c"
+#line 305 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_STAR);
 }
-#line 1967 "mjs/mjs.lem.c"
+#line 1971 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 75: /* expr ::= objprop DIV_ASSIGN expr */
-#line 305 "mjs/mjs.lem.c"
+#line 309 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_div);
 }
-#line 1975 "mjs/mjs.lem.c"
+#line 1979 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 76: /* expr ::= objprop REM_ASSIGN expr */
-#line 309 "mjs/mjs.lem.c"
+#line 313 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_rem);
 }
-#line 1983 "mjs/mjs.lem.c"
+#line 1987 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 77: /* expr ::= objprop LSHIFT_ASSIGN expr */
-#line 313 "mjs/mjs.lem.c"
+#line 317 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_lshift);
 }
-#line 1991 "mjs/mjs.lem.c"
+#line 1995 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 78: /* expr ::= objprop RSHIFT_ASSIGN expr */
-#line 317 "mjs/mjs.lem.c"
+#line 321 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_rshift);
 }
-#line 1999 "mjs/mjs.lem.c"
+#line 2003 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 79: /* expr ::= objprop URSHIFT_ASSIGN expr */
-#line 321 "mjs/mjs.lem.c"
+#line 325 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_urshift);
 }
-#line 2007 "mjs/mjs.lem.c"
+#line 2011 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 80: /* expr ::= objprop AND_ASSIGN expr */
-#line 325 "mjs/mjs.lem.c"
+#line 329 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_and);
 }
-#line 2015 "mjs/mjs.lem.c"
+#line 2019 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 81: /* expr ::= objprop XOR_ASSIGN expr */
-#line 329 "mjs/mjs.lem.c"
+#line 333 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_xor);
 }
-#line 2023 "mjs/mjs.lem.c"
+#line 2027 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 82: /* expr ::= objprop OR_ASSIGN expr */
-#line 333 "mjs/mjs.lem.c"
+#line 337 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_or);
 }
-#line 2031 "mjs/mjs.lem.c"
+#line 2035 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 83: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt */
-#line 338 "mjs/mjs.lem.c"
+#line 342 "mjs/mjs.lem.c"
 {
   yymsp[-4].minor.yy8=mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit_quote(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_ifstmt);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2042 "mjs/mjs.lem.c"
+#line 2046 "mjs/mjs.lem.c"
         break;
       case 84: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt ELSE block_or_stmt */
-#line 344 "mjs/mjs.lem.c"
+#line 348 "mjs/mjs.lem.c"
 {
   yymsp[-6].minor.yy8=mjs_emit_call(ctx, yymsp[-4].minor.yy8);
   mjs_emit_quote(ctx, yymsp[-2].minor.yy8);
@@ -8474,30 +8526,30 @@ static void yy_reduce(
   mjs_emit(ctx, MJS_OP_ifelse);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2053 "mjs/mjs.lem.c"
+#line 2057 "mjs/mjs.lem.c"
         break;
       case 85: /* cstmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block_or_stmt */
-#line 351 "mjs/mjs.lem.c"
+#line 355 "mjs/mjs.lem.c"
 {
   yymsp[-4].minor.yy8=mjs_emit_quote(ctx, yymsp[0].minor.yy8);
   mjs_emit_quote(ctx, yymsp[-2].minor.yy8);
   mjs_emit(ctx, MJS_OP_while);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2063 "mjs/mjs.lem.c"
+#line 2067 "mjs/mjs.lem.c"
         break;
       case 86: /* block ::= OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 363 "mjs/mjs.lem.c"
+#line 367 "mjs/mjs.lem.c"
 {
   yymsp[-2].minor.yy8=mjs_emit(ctx, MJS_OP_blockenter);
   mjs_emit_call(ctx, yymsp[-1].minor.yy8);
   mjs_emit(ctx, MJS_OP_blockexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2073 "mjs/mjs.lem.c"
+#line 2077 "mjs/mjs.lem.c"
         break;
       case 87: /* funcdecl ::= FUNCTION IDENTIFIER arglistparen OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 379 "mjs/mjs.lem.c"
+#line 383 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t f = mjs_emit_func(ctx, yymsp[-3].minor.yy8, yymsp[-1].minor.yy8);
   yymsp[-5].minor.yy8 = mjs_emit_str_or_ident(ctx, yymsp[-4].minor.yy0.begin);
@@ -8507,17 +8559,17 @@ static void yy_reduce(
   mjs_emit(ctx, MJS_OP_setvar);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2086 "mjs/mjs.lem.c"
+#line 2090 "mjs/mjs.lem.c"
         break;
       case 88: /* func_literal ::= FUNCTION arglistparen OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 391 "mjs/mjs.lem.c"
+#line 395 "mjs/mjs.lem.c"
 {
   yymsp[-4].minor.yy8=mjs_emit_func(ctx, yymsp[-3].minor.yy8, yymsp[-1].minor.yy8);
 }
-#line 2093 "mjs/mjs.lem.c"
+#line 2097 "mjs/mjs.lem.c"
         break;
       case 89: /* arglist ::= */
-#line 398 "mjs/mjs.lem.c"
+#line 402 "mjs/mjs.lem.c"
 {
   /*
    * mjs_emit_func() will check if arguments pointer is an invalid word ptr,
@@ -8525,10 +8577,10 @@ static void yy_reduce(
    */
   yymsp[1].minor.yy8 = BF_INVALID_WORD_PTR;
 }
-#line 2104 "mjs/mjs.lem.c"
+#line 2108 "mjs/mjs.lem.c"
         break;
       case 90: /* argspec ::= IDENTIFIER */
-#line 405 "mjs/mjs.lem.c"
+#line 409 "mjs/mjs.lem.c"
 {
   /*
    * emit `"varname" setarg`
@@ -8538,11 +8590,11 @@ static void yy_reduce(
   yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_setarg);
 }
-#line 2117 "mjs/mjs.lem.c"
+#line 2121 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 91: /* arglistparen ::= OPEN_PAREN arglist CLOSE_PAREN */
-#line 415 "mjs/mjs.lem.c"
+#line 419 "mjs/mjs.lem.c"
 {
   /* will return the beginning of the arglist */
   yymsp[-2].minor.yy8 = yymsp[-1].minor.yy8;
@@ -8551,159 +8603,166 @@ static void yy_reduce(
     mjs_emit(ctx, MJS_OP_exit);
   }
 }
-#line 2130 "mjs/mjs.lem.c"
+#line 2134 "mjs/mjs.lem.c"
         break;
       case 92: /* sstmt ::= RETURN */
-#line 424 "mjs/mjs.lem.c"
+#line 428 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_jsexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2139 "mjs/mjs.lem.c"
+#line 2143 "mjs/mjs.lem.c"
         break;
       case 93: /* sstmt ::= RETURN expr */
-#line 429 "mjs/mjs.lem.c"
+#line 433 "mjs/mjs.lem.c"
 {
   yymsp[-1].minor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_jsexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2148 "mjs/mjs.lem.c"
+#line 2152 "mjs/mjs.lem.c"
         break;
       case 94: /* literal ::= NULL */
-#line 436 "mjs/mjs.lem.c"
+#line 440 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_null);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2156 "mjs/mjs.lem.c"
+#line 2160 "mjs/mjs.lem.c"
         break;
       case 95: /* literal ::= UNDEFINED */
-#line 440 "mjs/mjs.lem.c"
+#line 444 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2164 "mjs/mjs.lem.c"
+#line 2168 "mjs/mjs.lem.c"
         break;
-      case 96: /* literal ::= NUMBER */
-#line 445 "mjs/mjs.lem.c"
-{ yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 2169 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy8 = yylhsminor.yy8;
+      case 96: /* literal ::= THIS */
+#line 448 "mjs/mjs.lem.c"
+{
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_this_val_AT);
+  mjs_emit(ctx, MJS_OP_exit);
+}
+#line 2176 "mjs/mjs.lem.c"
         break;
-      case 97: /* literal ::= STRING_LITERAL */
-#line 446 "mjs/mjs.lem.c"
-{ yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 2175 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy8 = yylhsminor.yy8;
-        break;
-      case 98: /* boolean_literal ::= TRUE */
+      case 97: /* literal ::= NUMBER */
 #line 452 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
+#line 2181 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
+        break;
+      case 98: /* literal ::= STRING_LITERAL */
+#line 453 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
+#line 2187 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
+        break;
+      case 99: /* boolean_literal ::= TRUE */
+#line 459 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_true);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2184 "mjs/mjs.lem.c"
+#line 2196 "mjs/mjs.lem.c"
         break;
-      case 99: /* boolean_literal ::= FALSE */
-#line 456 "mjs/mjs.lem.c"
+      case 100: /* boolean_literal ::= FALSE */
+#line 463 "mjs/mjs.lem.c"
 {
   yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_false);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2192 "mjs/mjs.lem.c"
+#line 2204 "mjs/mjs.lem.c"
         break;
-      case 101: /* objspeclist ::= objspeclist COMMA objspec */
-      case 106: /* arrayspeclist ::= arrayspeclist COMMA arrspec */ yytestcase(yyruleno==106);
-#line 463 "mjs/mjs.lem.c"
+      case 102: /* objspeclist ::= objspeclist COMMA objspec */
+      case 107: /* arrayspeclist ::= arrayspeclist COMMA arrspec */ yytestcase(yyruleno==107);
+#line 470 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2202 "mjs/mjs.lem.c"
+#line 2214 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
-      case 102: /* objspeclist ::= objspec */
-#line 468 "mjs/mjs.lem.c"
+      case 103: /* objspeclist ::= objspec */
+#line 475 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2212 "mjs/mjs.lem.c"
+#line 2224 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
-      case 103: /* objspeclist ::= */
-#line 473 "mjs/mjs.lem.c"
+      case 104: /* objspeclist ::= */
+#line 480 "mjs/mjs.lem.c"
 {
   yymsp[1].minor.yy8=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2221 "mjs/mjs.lem.c"
+#line 2233 "mjs/mjs.lem.c"
         break;
-      case 104: /* objspec ::= objspeclhs COLON expr */
-#line 478 "mjs/mjs.lem.c"
+      case 105: /* objspec ::= objspeclhs COLON expr */
+#line 485 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy172);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_addprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2231 "mjs/mjs.lem.c"
+#line 2243 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
-      case 107: /* arrayspeclist ::= arrspec */
-#line 494 "mjs/mjs.lem.c"
+      case 108: /* arrayspeclist ::= arrspec */
+#line 501 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit(ctx, MJS_OP_mkarr);
   mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2241 "mjs/mjs.lem.c"
+#line 2253 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
-      case 108: /* arrayspeclist ::= */
-#line 499 "mjs/mjs.lem.c"
+      case 109: /* arrayspeclist ::= */
+#line 506 "mjs/mjs.lem.c"
 {
   yymsp[1].minor.yy8=mjs_emit(ctx, MJS_OP_mkarr);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2250 "mjs/mjs.lem.c"
+#line 2262 "mjs/mjs.lem.c"
         break;
-      case 109: /* arrspec ::= expr */
-#line 504 "mjs/mjs.lem.c"
+      case 110: /* arrspec ::= expr */
+#line 511 "mjs/mjs.lem.c"
 {
   yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_arrpush);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2259 "mjs/mjs.lem.c"
+#line 2271 "mjs/mjs.lem.c"
   yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       default:
-      /* (110) stmtlist ::= cstmtlist */ yytestcase(yyruleno==110);
-      /* (111) stmtlist ::= sstmtlist */ yytestcase(yyruleno==111);
-      /* (112) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==112);
-      /* (113) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=113);
-      /* (114) sstmt ::= expr */ yytestcase(yyruleno==114);
-      /* (115) expr ::= sexp */ yytestcase(yyruleno==115);
-      /* (116) expr ::= expr EQ_EQ expr */ yytestcase(yyruleno==116);
-      /* (117) expr ::= expr NE_NE expr */ yytestcase(yyruleno==117);
-      /* (118) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=118);
-      /* (119) callarg ::= expr */ yytestcase(yyruleno==119);
-      /* (120) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==120);
-      /* (121) optexpr ::= */ yytestcase(yyruleno==121);
-      /* (122) optexpr ::= expr */ yytestcase(yyruleno==122);
-      /* (123) block_or_stmt ::= block (OPTIMIZED OUT) */ assert(yyruleno!=123);
-      /* (124) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==124);
-      /* (125) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=125);
-      /* (126) cstmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=126);
-      /* (127) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==127);
-      /* (128) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=128);
-      /* (129) literal ::= THIS */ yytestcase(yyruleno==129);
+      /* (111) stmtlist ::= cstmtlist */ yytestcase(yyruleno==111);
+      /* (112) stmtlist ::= sstmtlist */ yytestcase(yyruleno==112);
+      /* (113) letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==113);
+      /* (114) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=114);
+      /* (115) sstmt ::= expr */ yytestcase(yyruleno==115);
+      /* (116) expr ::= sexp */ yytestcase(yyruleno==116);
+      /* (117) expr ::= expr EQ_EQ expr */ yytestcase(yyruleno==117);
+      /* (118) expr ::= expr NE_NE expr */ yytestcase(yyruleno==118);
+      /* (119) sexp ::= literal (OPTIMIZED OUT) */ assert(yyruleno!=119);
+      /* (120) callarg ::= expr */ yytestcase(yyruleno==120);
+      /* (121) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==121);
+      /* (122) optexpr ::= */ yytestcase(yyruleno==122);
+      /* (123) optexpr ::= expr */ yytestcase(yyruleno==123);
+      /* (124) block_or_stmt ::= block (OPTIMIZED OUT) */ assert(yyruleno!=124);
+      /* (125) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==125);
+      /* (126) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=126);
+      /* (127) cstmt ::= funcdecl (OPTIMIZED OUT) */ assert(yyruleno!=127);
+      /* (128) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==128);
+      /* (129) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=129);
       /* (130) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=130);
       /* (131) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=131);
       /* (132) literal ::= object_literal (OPTIMIZED OUT) */ assert(yyruleno!=132);
@@ -8752,7 +8811,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 2331 "mjs/mjs.lem.c"
+#line 2342 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -8773,7 +8832,7 @@ static void yy_syntax_error(
 
   ctx->syntax_error = TOKEN;
   (void) yymajor;
-#line 2352 "mjs/mjs.lem.c"
+#line 2363 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -8799,7 +8858,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 2378 "mjs/mjs.lem.c"
+#line 2389 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -9056,6 +9115,10 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_scope_min_get> */ 
   /* 0016 -> : scope_min! ... ; */
   /*           <mjs_op_scope_min_set> */ 
+  /* 0016 -> : this_val@ ... ; */
+  /*           <mjs_op_this_val_get> */ 
+  /* 0016 -> : this_val! ... ; */
+  /*           <mjs_op_this_val_set> */ 
   /* 0016 -> : frame@ ... ; */
   /*           <mjs_op_getframe> */ 
   /* 0016 -> : frame! ... ; */
@@ -9091,116 +9154,118 @@ bf_opcode_t MJS_opcodes[] = {
   /* 0030 -> : jscall ... ; */
   /*           <mjs_op_jscall> */ 
   /* 0030 -> : jscall_exit ... ; */
-  MJS_OP_tmp_SET, MJS_OP_r_GT, MJS_OP_sp_SET, MJS_OP_tmp_AT, MJS_OP_exit,
-  /* 0035 -> : jscall_wrap ... ; */
+  MJS_OP_tmp_SET, MJS_OP_r_GT, MJS_OP_sp_SET, MJS_OP_r_GT, MJS_OP_this_val_SET, MJS_OP_tmp_AT, MJS_OP_exit,
+  /* 0037 -> : jscall_wrap ... ; */
   MJS_OP_jscall, MJS_OP_exit,
-  /* 0037 -> : jsenter ... ; */
+  /* 0039 -> : jsenter ... ; */
   MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_frame_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_frame_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
-  /* 0053 -> : jsexit ... ; */
+  /* 0055 -> : jsexit ... ; */
   MJS_OP_frame_AT, MJS_OP_rp_SET, MJS_OP_scope_min_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_frame_SET, MJS_OP_r_GT, MJS_OP_scope_min_SET, MJS_OP_exit,
-  /* 0062 -> : anon_0 ... ; */
+  /* 0064 -> : anon_0 ... ; */
   MJS_OP_undefined, MJS_OP_exit,
-  /* 0064 -> : anon_1 ... ; */
+  /* 0066 -> : anon_1 ... ; */
   MJS_OP_rot, MJS_OP_exit,
-  /* 0066 -> : setarg ... ; */
-  MJS_OP_rot, MJS_OP_one, MJS_OP_MINUS, MJS_OP_dup, MJS_OP_GT_r, MJS_OP_quote, 0, 0, MJS_OP_LT, MJS_OP_quote, 0, 62, MJS_OP_quote, 0, 64, MJS_OP_ifelse, MJS_OP_addprop, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_exit,
-  /* 0086 -> : ffi ... ; */
+  /* 0068 -> : setarg ... ; */
+  MJS_OP_rot, MJS_OP_one, MJS_OP_MINUS, MJS_OP_dup, MJS_OP_GT_r, MJS_OP_quote, 0, 0, MJS_OP_LT, MJS_OP_quote, 0, 64, MJS_OP_quote, 0, 66, MJS_OP_ifelse, MJS_OP_addprop, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_exit,
+  /* 0088 -> : ffi ... ; */
   MJS_OP_drop, MJS_OP_exit,
-  /* 0088 -> : undefined ... ; */
+  /* 0090 -> : undefined ... ; */
   /*           <mjs_op_undefined> */ 
-  /* 0088 -> : null ... ; */
+  /* 0090 -> : null ... ; */
   /*           <mjs_op_null> */ 
-  /* 0088 -> : true ... ; */
+  /* 0090 -> : true ... ; */
   /*           <mjs_op_true> */ 
-  /* 0088 -> : false ... ; */
+  /* 0090 -> : false ... ; */
   /*           <mjs_op_false> */ 
-  /* 0088 -> : 2dup ... ; */
+  /* 0090 -> : this_for_call ... ; */
+  /*           <mjs_op_this_for_call> */ 
+  /* 0090 -> : 2dup ... ; */
   MJS_OP_over, MJS_OP_over, MJS_OP_exit,
-  /* 0091 -> : dec ... ; */
+  /* 0093 -> : dec ... ; */
   MJS_OP_quote, -1, -1, MJS_OP_PLUS, MJS_OP_exit,
-  /* 0096 -> : >= ... ; */
+  /* 0098 -> : >= ... ; */
   MJS_OP_LT, MJS_OP_invert, MJS_OP_exit,
-  /* 0099 -> : <= ... ; */
+  /* 0101 -> : <= ... ; */
   MJS_OP_GT, MJS_OP_invert, MJS_OP_exit,
-  /* 0102 -> : != ... ; */
+  /* 0104 -> : != ... ; */
   MJS_OP_EQ, MJS_OP_invert, MJS_OP_exit,
-  /* 0105 -> : js= ... ; */
+  /* 0107 -> : js= ... ; */
   /*           <mjs_op_eq> */ 
-  /* 0105 -> : js< ... ; */
+  /* 0107 -> : js< ... ; */
   /*           <mjs_op_lt> */ 
-  /* 0105 -> : js> ... ; */
+  /* 0107 -> : js> ... ; */
   /*           <mjs_op_gt> */ 
-  /* 0105 -> : jsinvert ... ; */
+  /* 0107 -> : jsinvert ... ; */
   /*           <mjs_op_invert> */ 
-  /* 0105 -> : js>= ... ; */
+  /* 0107 -> : js>= ... ; */
   MJS_OP_js_LT, MJS_OP_jsinvert, MJS_OP_exit,
-  /* 0108 -> : js<= ... ; */
+  /* 0110 -> : js<= ... ; */
   MJS_OP_js_GT, MJS_OP_jsinvert, MJS_OP_exit,
-  /* 0111 -> : js!= ... ; */
+  /* 0113 -> : js!= ... ; */
   MJS_OP_js_EQ, MJS_OP_jsinvert, MJS_OP_exit,
-  /* 0114 -> : js_logical_and ... ; */
+  /* 0116 -> : js_logical_and ... ; */
   /*           <mjs_op_logical_and> */ 
-  /* 0114 -> : js_logical_or ... ; */
+  /* 0116 -> : js_logical_or ... ; */
   /*           <mjs_op_logical_or> */ 
-  /* 0114 -> : anon_2 ... ; */
+  /* 0116 -> : anon_2 ... ; */
   MJS_OP_undefined, MJS_OP_exit,
-  /* 0116 -> : ifstmt ... ; */
-  MJS_OP_quote, 0, 114, MJS_OP_ifelse, MJS_OP_exit,
-  /* 0121 -> : anon_3 ... ; */
+  /* 0118 -> : ifstmt ... ; */
+  MJS_OP_quote, 0, 116, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0123 -> : anon_3 ... ; */
   MJS_OP_2dup, MJS_OP_GT_r, MJS_OP_GT_r, MJS_OP_call, MJS_OP_r_GT, MJS_OP_r_GT, MJS_OP_swap, -37, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GTEQ, MJS_OP_GT_r, MJS_OP_swap, MJS_OP_r_GT, MJS_OP_exit,
-  /* 0138 -> : anon_4 ... ; */
-  -47, MJS_OP_swap, MJS_OP_quote, 0, 121, MJS_OP_loop, MJS_OP_exit,
-  /* 0145 -> : repeat ... ; */
-  MJS_OP_swap, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GT, MJS_OP_quote, 0, -118, MJS_OP_if, MJS_OP_drop, MJS_OP_drop, MJS_OP_exit,
-  /* 0158 -> : anon_5 ... ; */
+  /* 0140 -> : anon_4 ... ; */
+  -47, MJS_OP_swap, MJS_OP_quote, 0, 123, MJS_OP_loop, MJS_OP_exit,
+  /* 0147 -> : repeat ... ; */
+  MJS_OP_swap, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GT, MJS_OP_quote, 0, -116, MJS_OP_if, MJS_OP_drop, MJS_OP_drop, MJS_OP_exit,
+  /* 0160 -> : anon_5 ... ; */
   MJS_OP_call, MJS_OP_drop, MJS_OP_quote, 0, 1, MJS_OP_exit,
-  /* 0164 -> : anon_6 ... ; */
+  /* 0166 -> : anon_6 ... ; */
   MJS_OP_drop, MJS_OP_drop, MJS_OP_drop, MJS_OP_zero, MJS_OP_exit,
-  /* 0169 -> : anon_7 ... ; */
-  MJS_OP_2dup, MJS_OP_call, MJS_OP_quote, 0, -98, MJS_OP_quote, 0, -92, MJS_OP_ifelse, MJS_OP_exit,
-  /* 0179 -> : while ... ; */
-  MJS_OP_quote, 0, -87, MJS_OP_loop, MJS_OP_undefined, MJS_OP_exit,
-  /* 0185 -> : anon_8 ... ; */
+  /* 0171 -> : anon_7 ... ; */
+  MJS_OP_2dup, MJS_OP_call, MJS_OP_quote, 0, -96, MJS_OP_quote, 0, -90, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0181 -> : while ... ; */
+  MJS_OP_quote, 0, -85, MJS_OP_loop, MJS_OP_undefined, MJS_OP_exit,
+  /* 0187 -> : anon_8 ... ; */
   MJS_OP_str, /* " " */  ' ', 0, MJS_OP_print, MJS_OP_exit,
-  /* 0190 -> : anon_9 ... ; */
-  MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, -71, MJS_OP_if, MJS_OP_exit,
-  /* 0202 -> : jsprint ... ; */
-  MJS_OP_quote, 0, -66, MJS_OP_repeat, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
-  /* 0209 -> : zero ... ; */
+  /* 0192 -> : anon_9 ... ; */
+  MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, -69, MJS_OP_if, MJS_OP_exit,
+  /* 0204 -> : jsprint ... ; */
+  MJS_OP_quote, 0, -64, MJS_OP_repeat, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
+  /* 0211 -> : zero ... ; */
   MJS_OP_quote, 0, 0, MJS_OP_exit,
-  /* 0213 -> : one ... ; */
+  /* 0215 -> : one ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_exit,
-  /* 0217 -> : nop ... ; */
+  /* 0219 -> : nop ... ; */
   MJS_OP_zero, MJS_OP_drop, MJS_OP_exit,
-  /* 0220 -> : inc ... ; */
+  /* 0222 -> : inc ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_PLUS, MJS_OP_exit,
-  /* 0225 -> : swapinc ... ; */
+  /* 0227 -> : swapinc ... ; */
   MJS_OP_swap, MJS_OP_inc, MJS_OP_exit,
-  /* 0228 -> : div ... ; */
+  /* 0230 -> : div ... ; */
   /*           <mjs_op_div> */ 
-  /* 0228 -> : rem ... ; */
+  /* 0230 -> : rem ... ; */
   /*           <mjs_op_rem> */ 
-  /* 0228 -> : lshift ... ; */
+  /* 0230 -> : lshift ... ; */
   /*           <mjs_op_lshift> */ 
-  /* 0228 -> : rshift ... ; */
+  /* 0230 -> : rshift ... ; */
   /*           <mjs_op_rshift> */ 
-  /* 0228 -> : urshift ... ; */
+  /* 0230 -> : urshift ... ; */
   /*           <mjs_op_urshift> */ 
-  /* 0228 -> : and ... ; */
+  /* 0230 -> : and ... ; */
   /*           <mjs_op_and> */ 
-  /* 0228 -> : or ... ; */
+  /* 0230 -> : or ... ; */
   /*           <mjs_op_or> */ 
-  /* 0228 -> : xor ... ; */
+  /* 0230 -> : xor ... ; */
   /*           <mjs_op_xor> */ 
-  /* 0228 -> : not ... ; */
+  /* 0230 -> : not ... ; */
   /*           <mjs_op_not> */ 
-  /* 0228 -> : neg ... ; */
+  /* 0230 -> : neg ... ; */
   /*           <mjs_op_neg> */ 
-  /* 0228 -> : pos ... ; */
+  /* 0230 -> : pos ... ; */
   /*           <mjs_op_pos> */ 
-  /* 0228 -> : load ... ; */
+  /* 0230 -> : load ... ; */
   /*           <mjs_op_load> */ 
-}; /* 228 * sizeof(bf_opcode_t) */
+}; /* 230 * sizeof(bf_opcode_t) */
 
 bf_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -9245,51 +9310,51 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0038 */ -38, 
   /* 0039 */ -39, 
   /* 0040 */ -40, 
-  /* 0041 */ 16, 
-  /* 0042 */ -41, 
-  /* 0043 */ -42, 
+  /* 0041 */ -41, 
+  /* 0042 */ -42, 
+  /* 0043 */ 16, 
   /* 0044 */ -43, 
   /* 0045 */ -44, 
   /* 0046 */ -45, 
   /* 0047 */ -46, 
   /* 0048 */ -47, 
-  /* 0049 */ 24, 
-  /* 0050 */ 27, 
-  /* 0051 */ -48, 
-  /* 0052 */ 30, 
-  /* 0053 */ 35, 
-  /* 0054 */ 37, 
-  /* 0055 */ 53, 
-  /* 0056 */ 66, 
-  /* 0057 */ -49, 
-  /* 0058 */ -50, 
+  /* 0049 */ -48, 
+  /* 0050 */ -49, 
+  /* 0051 */ 24, 
+  /* 0052 */ 27, 
+  /* 0053 */ -50, 
+  /* 0054 */ 30, 
+  /* 0055 */ 37, 
+  /* 0056 */ 39, 
+  /* 0057 */ 55, 
+  /* 0058 */ 68, 
   /* 0059 */ -51, 
   /* 0060 */ -52, 
-  /* 0061 */ 88, 
-  /* 0062 */ 96, 
-  /* 0063 */ 99, 
-  /* 0064 */ 102, 
-  /* 0065 */ -53, 
-  /* 0066 */ -54, 
-  /* 0067 */ -55, 
+  /* 0061 */ -53, 
+  /* 0062 */ -54, 
+  /* 0063 */ -55, 
+  /* 0064 */ 90, 
+  /* 0065 */ 98, 
+  /* 0066 */ 101, 
+  /* 0067 */ 104, 
   /* 0068 */ -56, 
-  /* 0069 */ 105, 
-  /* 0070 */ 108, 
-  /* 0071 */ 111, 
-  /* 0072 */ -57, 
-  /* 0073 */ -58, 
-  /* 0074 */ 116, 
-  /* 0075 */ 145, 
-  /* 0076 */ 179, 
-  /* 0077 */ 202, 
-  /* 0078 */ 209, 
-  /* 0079 */ 213, 
-  /* 0080 */ 217, 
-  /* 0081 */ 220, 
-  /* 0082 */ 225, 
-  /* 0083 */ -59, 
-  /* 0084 */ -60, 
-  /* 0085 */ -61, 
+  /* 0069 */ -57, 
+  /* 0070 */ -58, 
+  /* 0071 */ -59, 
+  /* 0072 */ 107, 
+  /* 0073 */ 110, 
+  /* 0074 */ 113, 
+  /* 0075 */ -60, 
+  /* 0076 */ -61, 
+  /* 0077 */ 118, 
+  /* 0078 */ 147, 
+  /* 0079 */ 181, 
+  /* 0080 */ 204, 
+  /* 0081 */ 211, 
+  /* 0082 */ 215, 
+  /* 0083 */ 219, 
+  /* 0084 */ 222, 
+  /* 0085 */ 227, 
   /* 0086 */ -62, 
   /* 0087 */ -63, 
   /* 0088 */ -64, 
@@ -9299,6 +9364,9 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0092 */ -68, 
   /* 0093 */ -69, 
   /* 0094 */ -70, 
+  /* 0095 */ -71, 
+  /* 0096 */ -72, 
+  /* 0097 */ -73, 
 };
 
 void bf_op_quote(struct bf_vm *vm);
@@ -9335,6 +9403,8 @@ void mjs_op_scope_idx_get(struct bf_vm *vm);
 void mjs_op_scope_idx_set(struct bf_vm *vm);
 void mjs_op_scope_min_get(struct bf_vm *vm);
 void mjs_op_scope_min_set(struct bf_vm *vm);
+void mjs_op_this_val_get(struct bf_vm *vm);
+void mjs_op_this_val_set(struct bf_vm *vm);
 void mjs_op_getframe(struct bf_vm *vm);
 void mjs_op_setframe(struct bf_vm *vm);
 void mjs_op_scope_push(struct bf_vm *vm);
@@ -9353,6 +9423,7 @@ void mjs_op_undefined(struct bf_vm *vm);
 void mjs_op_null(struct bf_vm *vm);
 void mjs_op_true(struct bf_vm *vm);
 void mjs_op_false(struct bf_vm *vm);
+void mjs_op_this_for_call(struct bf_vm *vm);
 void mjs_op_eq(struct bf_vm *vm);
 void mjs_op_lt(struct bf_vm *vm);
 void mjs_op_gt(struct bf_vm *vm);
@@ -9407,42 +9478,45 @@ bf_native_t MJS_native_words[] = {
   /* -032 */ mjs_op_scope_idx_set,
   /* -033 */ mjs_op_scope_min_get,
   /* -034 */ mjs_op_scope_min_set,
-  /* -035 */ mjs_op_getframe,
-  /* -036 */ mjs_op_setframe,
-  /* -037 */ mjs_op_scope_push,
-  /* -038 */ mjs_op_scope_pop,
-  /* -039 */ mjs_op_scope_tos,
-  /* -040 */ mjs_op_mkobj,
-  /* -041 */ mjs_op_setprop,
-  /* -042 */ mjs_op_getprop,
-  /* -043 */ mjs_op_getvar,
-  /* -044 */ mjs_op_setvar,
-  /* -045 */ mjs_op_createvar,
-  /* -046 */ mjs_op_mkarr,
-  /* -047 */ mjs_op_arrpush,
-  /* -048 */ mjs_op_jscall,
-  /* -049 */ mjs_op_undefined,
-  /* -050 */ mjs_op_null,
-  /* -051 */ mjs_op_true,
-  /* -052 */ mjs_op_false,
-  /* -053 */ mjs_op_eq,
-  /* -054 */ mjs_op_lt,
-  /* -055 */ mjs_op_gt,
-  /* -056 */ mjs_op_invert,
-  /* -057 */ mjs_op_logical_and,
-  /* -058 */ mjs_op_logical_or,
-  /* -059 */ mjs_op_div,
-  /* -060 */ mjs_op_rem,
-  /* -061 */ mjs_op_lshift,
-  /* -062 */ mjs_op_rshift,
-  /* -063 */ mjs_op_urshift,
-  /* -064 */ mjs_op_and,
-  /* -065 */ mjs_op_or,
-  /* -066 */ mjs_op_xor,
-  /* -067 */ mjs_op_not,
-  /* -068 */ mjs_op_neg,
-  /* -069 */ mjs_op_pos,
-  /* -070 */ mjs_op_load,
+  /* -035 */ mjs_op_this_val_get,
+  /* -036 */ mjs_op_this_val_set,
+  /* -037 */ mjs_op_getframe,
+  /* -038 */ mjs_op_setframe,
+  /* -039 */ mjs_op_scope_push,
+  /* -040 */ mjs_op_scope_pop,
+  /* -041 */ mjs_op_scope_tos,
+  /* -042 */ mjs_op_mkobj,
+  /* -043 */ mjs_op_setprop,
+  /* -044 */ mjs_op_getprop,
+  /* -045 */ mjs_op_getvar,
+  /* -046 */ mjs_op_setvar,
+  /* -047 */ mjs_op_createvar,
+  /* -048 */ mjs_op_mkarr,
+  /* -049 */ mjs_op_arrpush,
+  /* -050 */ mjs_op_jscall,
+  /* -051 */ mjs_op_undefined,
+  /* -052 */ mjs_op_null,
+  /* -053 */ mjs_op_true,
+  /* -054 */ mjs_op_false,
+  /* -055 */ mjs_op_this_for_call,
+  /* -056 */ mjs_op_eq,
+  /* -057 */ mjs_op_lt,
+  /* -058 */ mjs_op_gt,
+  /* -059 */ mjs_op_invert,
+  /* -060 */ mjs_op_logical_and,
+  /* -061 */ mjs_op_logical_or,
+  /* -062 */ mjs_op_div,
+  /* -063 */ mjs_op_rem,
+  /* -064 */ mjs_op_lshift,
+  /* -065 */ mjs_op_rshift,
+  /* -066 */ mjs_op_urshift,
+  /* -067 */ mjs_op_and,
+  /* -068 */ mjs_op_or,
+  /* -069 */ mjs_op_xor,
+  /* -070 */ mjs_op_not,
+  /* -071 */ mjs_op_neg,
+  /* -072 */ mjs_op_pos,
+  /* -073 */ mjs_op_load,
 };
 
 const char *MJS_word_names[] = {
@@ -9482,66 +9556,69 @@ const char *MJS_word_names[] = {
   /* 0032 */ "scope_idx!", 
   /* 0033 */ "scope_min@", 
   /* 0034 */ "scope_min!", 
-  /* 0035 */ "frame@", 
-  /* 0036 */ "frame!", 
-  /* 0037 */ ">scopes", 
-  /* 0038 */ "scopes>", 
-  /* 0039 */ "scope@", 
-  /* 0040 */ "mkobj", 
-  /* 0041 */ "addprop", 
-  /* 0042 */ "setprop", 
-  /* 0043 */ "getprop", 
-  /* 0044 */ "getvar", 
-  /* 0045 */ "setvar", 
-  /* 0046 */ "createvar", 
-  /* 0047 */ "mkarr", 
-  /* 0048 */ "arrpush", 
-  /* 0049 */ "blockenter", 
-  /* 0050 */ "blockexit", 
-  /* 0051 */ "jscall", 
-  /* 0052 */ "jscall_exit", 
-  /* 0053 */ "jscall_wrap", 
-  /* 0054 */ "jsenter", 
-  /* 0055 */ "jsexit", 
-  /* 0056 */ "setarg", 
-  /* 0057 */ "undefined", 
-  /* 0058 */ "null", 
-  /* 0059 */ "true", 
-  /* 0060 */ "false", 
-  /* 0061 */ "2dup", 
-  /* 0062 */ ">=", 
-  /* 0063 */ "<=", 
-  /* 0064 */ "!=", 
-  /* 0065 */ "js=", 
-  /* 0066 */ "js<", 
-  /* 0067 */ "js>", 
-  /* 0068 */ "jsinvert", 
-  /* 0069 */ "js>=", 
-  /* 0070 */ "js<=", 
-  /* 0071 */ "js!=", 
-  /* 0072 */ "js_logical_and", 
-  /* 0073 */ "js_logical_or", 
-  /* 0074 */ "ifstmt", 
-  /* 0075 */ "repeat", 
-  /* 0076 */ "while", 
-  /* 0077 */ "jsprint", 
-  /* 0078 */ "zero", 
-  /* 0079 */ "one", 
-  /* 0080 */ "nop", 
-  /* 0081 */ "inc", 
-  /* 0082 */ "swapinc", 
-  /* 0083 */ "div", 
-  /* 0084 */ "rem", 
-  /* 0085 */ "lshift", 
-  /* 0086 */ "rshift", 
-  /* 0087 */ "urshift", 
-  /* 0088 */ "and", 
-  /* 0089 */ "or", 
-  /* 0090 */ "xor", 
-  /* 0091 */ "not", 
-  /* 0092 */ "neg", 
-  /* 0093 */ "pos", 
-  /* 0094 */ "load", 
+  /* 0035 */ "this_val@", 
+  /* 0036 */ "this_val!", 
+  /* 0037 */ "frame@", 
+  /* 0038 */ "frame!", 
+  /* 0039 */ ">scopes", 
+  /* 0040 */ "scopes>", 
+  /* 0041 */ "scope@", 
+  /* 0042 */ "mkobj", 
+  /* 0043 */ "addprop", 
+  /* 0044 */ "setprop", 
+  /* 0045 */ "getprop", 
+  /* 0046 */ "getvar", 
+  /* 0047 */ "setvar", 
+  /* 0048 */ "createvar", 
+  /* 0049 */ "mkarr", 
+  /* 0050 */ "arrpush", 
+  /* 0051 */ "blockenter", 
+  /* 0052 */ "blockexit", 
+  /* 0053 */ "jscall", 
+  /* 0054 */ "jscall_exit", 
+  /* 0055 */ "jscall_wrap", 
+  /* 0056 */ "jsenter", 
+  /* 0057 */ "jsexit", 
+  /* 0058 */ "setarg", 
+  /* 0059 */ "undefined", 
+  /* 0060 */ "null", 
+  /* 0061 */ "true", 
+  /* 0062 */ "false", 
+  /* 0063 */ "this_for_call", 
+  /* 0064 */ "2dup", 
+  /* 0065 */ ">=", 
+  /* 0066 */ "<=", 
+  /* 0067 */ "!=", 
+  /* 0068 */ "js=", 
+  /* 0069 */ "js<", 
+  /* 0070 */ "js>", 
+  /* 0071 */ "jsinvert", 
+  /* 0072 */ "js>=", 
+  /* 0073 */ "js<=", 
+  /* 0074 */ "js!=", 
+  /* 0075 */ "js_logical_and", 
+  /* 0076 */ "js_logical_or", 
+  /* 0077 */ "ifstmt", 
+  /* 0078 */ "repeat", 
+  /* 0079 */ "while", 
+  /* 0080 */ "jsprint", 
+  /* 0081 */ "zero", 
+  /* 0082 */ "one", 
+  /* 0083 */ "nop", 
+  /* 0084 */ "inc", 
+  /* 0085 */ "swapinc", 
+  /* 0086 */ "div", 
+  /* 0087 */ "rem", 
+  /* 0088 */ "lshift", 
+  /* 0089 */ "rshift", 
+  /* 0090 */ "urshift", 
+  /* 0091 */ "and", 
+  /* 0092 */ "or", 
+  /* 0093 */ "xor", 
+  /* 0094 */ "not", 
+  /* 0095 */ "neg", 
+  /* 0096 */ "pos", 
+  /* 0097 */ "load", 
 };
 
 const char *MJS_pos_names[] = {
@@ -9580,6 +9657,8 @@ const char *MJS_pos_names[] = {
   "jscall_exit+2", 
   "jscall_exit+3", 
   "jscall_exit+4", 
+  "jscall_exit+5", 
+  "jscall_exit+6", 
   "jscall_wrap", 
   "jscall_wrap+1", 
   "jsenter", 
@@ -10194,6 +10273,16 @@ static void cb_after_bf_enter(struct bf_vm *vm) {
     }
   }
 
+  /*
+   * If getprop distance is not already larger than the maximum useful value,
+   * increment it.
+   *
+   * Needed for "method invocation pattern".
+   */
+  if (mjs->words_since_getprop < GETPROP_DISTANCE_OVER) {
+    mjs->words_since_getprop++;
+  }
+
   (void) vm;
 }
 
@@ -10235,6 +10324,12 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
 
   mjs->vals.call_frame = mjs_mk_number(mjs, -1);
   mjs->vals.min_scope = mjs_mk_number(mjs, 0 /* global object */);
+
+  mjs->vals.this_val = MJS_UNDEFINED;
+
+  /* Initial state for "method invocation pattern" stuff */
+  mjs->vals.last_getprop_obj = MJS_UNDEFINED;
+  mjs->words_since_getprop = GETPROP_DISTANCE_OVER;
 
   mjs_init_globals(mjs, mjs_get_global(mjs));
   return mjs;
@@ -10489,7 +10584,8 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res) {
   return err;
 }
 
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, ...) {
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
+                   mjs_val_t this_val, int nargs, ...) {
   va_list ap;
   int i;
   mjs_err_t ret;
@@ -10499,17 +10595,18 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, .
     args[i] = va_arg(ap, mjs_val_t);
   }
 
-  ret = mjs_apply(mjs, res, func, nargs, args);
+  ret = mjs_apply(mjs, res, func, this_val, nargs, args);
   /*
-   * NOTE: calling `mjs_apply()` invalidates `func`. If you ever need to use it
-   * afterwards, you need to own it before.
+   * NOTE: calling `bf_run()` invalidates `func` and `this_val`. If you ever
+   * need to use them afterwards, you need to own them before.
    */
 
   free(args);
   return ret;
 }
 
-mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, mjs_val_t *args) {
+mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
+                    mjs_val_t this_val, int nargs, mjs_val_t *args) {
   mjs_err_t err;
   mjs_val_t r;
   int i;
@@ -10519,14 +10616,15 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func, int nargs, 
     bf_push(&mjs->vm.dstack, args[i]);
   }
   bf_push(&mjs->vm.dstack, mjs_mk_number(mjs, nargs));
+  bf_push(&mjs->vm.dstack, this_val);
   bf_push(&mjs->vm.dstack, func);
   bf_run(&mjs->vm, MJS_WORD_PTR_jscall_wrap);
   r = bf_pop(&mjs->vm.dstack);
   err = mjs->error_msg_err;
 
   /*
-   * NOTE: calling `bf_run()` invalidates `func`. If you ever need to use it
-   * afterwards, you need to own it before.
+   * NOTE: calling `bf_run()` invalidates `func` and `this_val`. If you ever
+   * need to use them afterwards, you need to own them before.
    */
 
   if (res != NULL) *res = r;
@@ -10736,7 +10834,8 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
 
   /* Call JS function */
   LOG(LL_DEBUG, ("calling JS callback void-void %d from C", mjs_get_int(cbargs->mjs, cbargs->func)));
-  mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, cbargs->sig.stat.args_cnt, args);
+  mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, MJS_UNDEFINED,
+                            cbargs->sig.stat.args_cnt, args);
   if (err != MJS_OK) {
     /*
      * There's not much we can do about the error here; let's at least print it
@@ -11992,8 +12091,15 @@ void mjs_op_setprop(struct bf_vm *vm) {
 void mjs_op_getprop(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   mjs_val_t name = bf_pop(&vm->dstack);
-  mjs_val_t obj = bf_pop(&vm->dstack);
-  bf_push(&vm->dstack, mjs_get_v(mjs, obj, name));
+
+  /*
+   * For "method invocation pattern": remember the last object against which
+   * `getprop` was executed, and reset the words_since_getprop counter
+   */
+  mjs->vals.last_getprop_obj = bf_pop(&vm->dstack);
+  mjs->words_since_getprop = (enum getprop_distance)0;
+
+  bf_push(&vm->dstack, mjs_get_v(mjs, mjs->vals.last_getprop_obj, name));
 }
 
 /*
@@ -12078,12 +12184,13 @@ void mjs_op_createvar(struct bf_vm *vm) {
 void mjs_op_jscall(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   mjs_val_t func = bf_pop(&vm->dstack);
+  mjs_val_t fthis = bf_pop(&vm->dstack);
   size_t nargs = bf_to_int(bf_tos(&vm->dstack));
   size_t stack_pos = vm->dstack.pos - 1 /* nargs */;
 
   assert(stack_pos >= nargs);
   /*
-   * the jscall word has this stack effect: ( argN .. arg2 arg1 N f -- res)
+   * the jscall word has this stack effect: ( argN .. arg2 arg1 N this f -- res)
    * it takes the `f` to figure out who to call, and passes the rest to the
    * function being called, including the nargs number so that the function can
    * process variable number of arguments.
@@ -12103,8 +12210,11 @@ void mjs_op_jscall(struct bf_vm *vm) {
    * stack). It preserves the return value of `f` which was at the top of the
    * stack.
    */
+  bf_push(&vm->rstack, mjs->vals.this_val);
   bf_push(&vm->rstack, bf_from_int(stack_pos - nargs));
   bf_push(&vm->rstack, bf_from_int(MJS_WORD_PTR_jscall_exit));
+
+  mjs->vals.this_val = fthis;
 
   if (mjs_is_number(func)) {
     vm->ip = bf_to_int(func);
@@ -12147,6 +12257,16 @@ void mjs_op_scope_min_set(struct bf_vm *vm) {
   mjs->vals.min_scope = bf_pop(&vm->dstack);
 }
 
+void mjs_op_this_val_get(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  bf_push(&vm->dstack, mjs->vals.this_val);
+}
+
+void mjs_op_this_val_set(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs->vals.this_val = bf_pop(&vm->dstack);
+}
+
 void mjs_op_getframe(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   bf_push(&vm->dstack, mjs->vals.call_frame);
@@ -12174,6 +12294,15 @@ void mjs_op_scope_tos(struct bf_vm *vm) {
 
 void mjs_op_undefined(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_mk_undefined());
+}
+
+void mjs_op_this_for_call(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  if (mjs->words_since_getprop == GETPROP_DISTANCE_CALL) {
+    bf_push(&vm->dstack, mjs->vals.last_getprop_obj);
+  } else {
+    bf_push(&vm->dstack, mjs_mk_undefined());
+  }
 }
 
 void mjs_op_null(struct bf_vm *vm) {
@@ -12582,6 +12711,7 @@ static int next_tok(struct pstate *p) {
     case TOK_KEYWORD_RETURN: return TOK_RETURN;
     case TOK_KEYWORD_WHILE: return TOK_WHILE;
     case TOK_KEYWORD_FOR: return TOK_FOR;
+    case TOK_KEYWORD_THIS: return TOK_THIS;
     default: return TOK_END_OF_INPUT;
   }
   /* clang-format on */
