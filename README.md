@@ -17,7 +17,7 @@ of RAM.
 
 # Restrictions
 
-- No standard library.
+- No standard library. No String, Number, RegExp, Date, Function, etc.
 - No nested functions, no closures. All functions are top-level only.
 - No exceptions.
 - Strict mode only.
@@ -25,6 +25,21 @@ of RAM.
 - No `for..in`, `for..of`, `=>`.
 - No getters, setters, `valueOf`, prototypes, classes, template strings.
 - No destructors, generators, proxies, promises.
+- MJS strings are byte strings. NOT Unicode strings. `'ы'.length === 2`,
+  `'ы'[0] === 0xd1`, `'ы'[1] === 0x8b`.
+
+# Built-in API
+
+- `print(arg1, ...);` - print arguments to stdout, separated by space.
+- `ffi('int foo(int)');` - import C function into MJS. See next section.
+- `load('file.js', obj);` - execute file `file.js`. `obj` paramenter is
+  optional, `obj` is a global namespace object. If not specified, a current
+  global namespace is passed to the script, which allows `file.js` to modify
+  current namespace (`global` object).
+- `JSON.parse('{}')` - parse JSON string and return parsed value. Conforms to
+  the [standard JSON.parse() API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse)
+- `JSON.stringify(value[, replacer[, space]])` - stringify MJS value.
+  Conforms to the [standard JSON.stringify() API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)
 
 # C/C++ interoperability
 
@@ -41,6 +56,9 @@ printf('Hi %d %s\n', 123, 'foo');
 Thus, only functions with a up to four simple arguments
 (`int`, `double`, `char *`, `void *`) are supported. In order to import
 more complex functions (e.g. that uses structures as arguments), write wrappers.
+
+MJS FFI is a unique feature. In majority of cases, it makes it unnecessary
+to use engine API for embedding. `ffi()` the functions you need directly from C!
 
 ## Callbacks
 
