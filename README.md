@@ -26,7 +26,7 @@ of RAM.
 - No getters, setters, `valueOf`, prototypes, classes, template strings.
 - No destructors, generators, proxies, promises.
 - MJS strings are byte strings. NOT Unicode strings. `'ы'.length === 2`,
-  `'ы'[0] === 0xd1`, `'ы'[1] === 0x8b`.
+  `'ы'[0] === '\xd1'`, `'ы'[1] === '\x8b'`.
 
 # Built-in API
 
