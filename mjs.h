@@ -266,6 +266,9 @@ mjs_val_t mjs_array_get(struct mjs *, mjs_val_t arr, unsigned long index);
 mjs_err_t mjs_array_set(struct mjs *mjs, mjs_val_t arr, unsigned long index,
                         mjs_val_t v);
 
+/* Returns true if the given value is an array */
+int mjs_is_array(mjs_val_t v);
+
 #if 0
 /* Delete value in array `arr` at index `index`, if it exists. */
 void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
@@ -515,9 +518,7 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #include <stddef.h>
 
 /*
- * Returns true if the given value is an object or function.
- * i.e. it returns true if the value holds properties and can be
- * used as argument to `mjs_get`, `mjs_set` and `mjs_def`.
+ * Returns true if the given value is an object or array.
  */
 int mjs_is_object(mjs_val_t v);
 

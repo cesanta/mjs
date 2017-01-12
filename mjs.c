@@ -2632,6 +2632,9 @@ mjs_val_t mjs_array_get(struct mjs *, mjs_val_t arr, unsigned long index);
 mjs_err_t mjs_array_set(struct mjs *mjs, mjs_val_t arr, unsigned long index,
                         mjs_val_t v);
 
+/* Returns true if the given value is an array */
+int mjs_is_array(mjs_val_t v);
+
 #if 0
 /* Delete value in array `arr` at index `index`, if it exists. */
 void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
@@ -2799,9 +2802,8 @@ struct gc_arena {
 #define MJS_TAG_STRING_O MAKE_TAG(1, 0x8)  /* Owned string */
 #define MJS_TAG_STRING_F MAKE_TAG(1, 0x7)  /* Foreign string */
 #define MJS_TAG_STRING_C MAKE_TAG(1, 0x6)  /* String chunk */
-#define MJS_TAG_FUNCTION MAKE_TAG(1, 0x5)  /* JavaScript function */
-#define MJS_TAG_CFUNCTION MAKE_TAG(1, 0x4) /* C function */
-#define MJS_TAG_STRING_D MAKE_TAG(1, 0x3)  /* Dictionary string  */
+#define MJS_TAG_STRING_D MAKE_TAG(1, 0x5)  /* Dictionary string  */
+#define MJS_TAG_OBJECT_ARRAY MAKE_TAG(1, 0x4)
 #define MJS_TAG_NOVALUE MAKE_TAG(1, 0x1)   /* Sentinel for no value */
 #define MJS_TAG_MASK MAKE_TAG(1, 0xF)
 
@@ -3052,9 +3054,7 @@ MJS_PRIVATE mjs_err_t str_to_ulong(struct mjs *mjs, mjs_val_t v, int *ok,
 #include <stddef.h>
 
 /*
- * Returns true if the given value is an object or function.
- * i.e. it returns true if the value holds properties and can be
- * used as argument to `mjs_get`, `mjs_set` and `mjs_def`.
+ * Returns true if the given value is an object or array.
  */
 int mjs_is_object(mjs_val_t v);
 
@@ -10040,7 +10040,15 @@ static int v_sprintf_s(char *buf, size_t size, const char *fmt, ...) {
 }
 
 mjs_val_t mjs_mk_array(struct mjs *mjs) {
-  return mjs_mk_object(mjs);
+  mjs_val_t ret = mjs_mk_object(mjs);
+  /* change the tag to MJS_TAG_OBJECT_ARRAY */
+  ret &= ~MJS_TAG_MASK;
+  ret |= MJS_TAG_OBJECT_ARRAY;
+  return ret;
+}
+
+int mjs_is_array(mjs_val_t v) {
+  return (v & MJS_TAG_MASK) == MJS_TAG_OBJECT_ARRAY;
 }
 
 mjs_val_t mjs_array_get(struct mjs *mjs, mjs_val_t arr, unsigned long index) {
@@ -11897,7 +11905,7 @@ mjs_val_t mjs_mk_object(struct mjs *mjs) {
 }
 
 int mjs_is_object(mjs_val_t v) {
-  return (v & MJS_TAG_MASK) == MJS_TAG_OBJECT;
+  return (v & MJS_TAG_MASK) == MJS_TAG_OBJECT || (v & MJS_TAG_MASK) == MJS_TAG_OBJECT_ARRAY;
 }
 
 MJS_PRIVATE struct mjs_property *mjs_get_own_property(struct mjs *mjs,
