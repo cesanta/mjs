@@ -2906,14 +2906,16 @@ struct bf_vm;
 #define MJS_CB_ARGS_MAX_CNT 4
 #define MJS_CB_SIGNATURE_MAX_SIZE (MJS_CB_ARGS_MAX_CNT + 1 /* return type */)
 
-enum cbval_type {
-  CBVAL_TYPE_NONE,
-  CBVAL_TYPE_USERDATA,
-  CBVAL_TYPE_INT,
-  CBVAL_TYPE_DOUBLE,
-  CBVAL_TYPE_INVALID,
+enum cval_type {
+  CVAL_TYPE_NONE,
+  CVAL_TYPE_USERDATA,
+  CVAL_TYPE_INT,
+  CVAL_TYPE_DOUBLE,
+  CVAL_TYPE_CHAR_PTR,
+  CVAL_TYPE_VOID_PTR,
+  CVAL_TYPE_INVALID,
 };
-typedef uint8_t cbval_type_t;
+typedef uint8_t cval_type_t;
 
 struct ffi_sig_stat {
   int8_t is_valid;
@@ -2924,22 +2926,22 @@ struct ffi_sig_stat {
 
 struct ffi_sig {
   /*
-   * The first item is the return value type (for `void`, `CBVAL_TYPE_NONE` is
-   * used); the rest are arguments. If some argument is `CBVAL_TYPE_NONE`, it
+   * The first item is the return value type (for `void`, `CVAL_TYPE_NONE` is
+   * used); the rest are arguments. If some argument is `CVAL_TYPE_NONE`, it
    * means that there are no more arguments.
    */
-  cbval_type_t val_types[MJS_CB_SIGNATURE_MAX_SIZE];
+  cval_type_t val_types[MJS_CB_SIGNATURE_MAX_SIZE];
   struct ffi_sig_stat stat;
 };
 typedef struct ffi_sig ffi_sig_t;
 
 MJS_PRIVATE void mjs_ffi_sig_init(ffi_sig_t *sig);
 MJS_PRIVATE int mjs_ffi_sig_set_val_type(
-    ffi_sig_t *sig, int idx, cbval_type_t type
+    ffi_sig_t *sig, int idx, cval_type_t type
     );
 MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(struct mjs *mjs, const ffi_sig_t *sig);
-MJS_PRIVATE int mjs_ffi_is_regular_word(cbval_type_t type);
-MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(cbval_type_t type);
+MJS_PRIVATE int mjs_ffi_is_regular_word(cval_type_t type);
+MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(cval_type_t type);
 
 struct ffi_cb_args {
   struct ffi_cb_args *next;
@@ -12291,18 +12293,22 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym) {
   mjs->dlsym = dlsym;
 }
 
-static cbval_type_t parse_cbval_type(struct mjs *mjs, const char *s, const char *e) {
+static cval_type_t parse_cval_type(struct mjs *mjs, const char *s, const char *e) {
   if (strncmp(s, "void", e - s) == 0) {
-    return CBVAL_TYPE_NONE;
+    return CVAL_TYPE_NONE;
   } else if (strncmp(s, "userdata", e - s) == 0) {
-    return CBVAL_TYPE_USERDATA;
+    return CVAL_TYPE_USERDATA;
   } else if (strncmp(s, "int", e - s) == 0) {
-    return CBVAL_TYPE_INT;
+    return CVAL_TYPE_INT;
   } else if (strncmp(s, "double", e - s) == 0) {
-    return CBVAL_TYPE_DOUBLE;
+    return CVAL_TYPE_DOUBLE;
+  } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
+    return CVAL_TYPE_CHAR_PTR;
+  } else if (strncmp(s, "void*", 5) == 0 || strncmp(s, "void *", 6) == 0) {
+    return CVAL_TYPE_VOID_PTR;
   } else {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "failed to parse val type \"%.*s\"", (e - s), s);
-    return CBVAL_TYPE_INVALID;
+    return CVAL_TYPE_INVALID;
   }
 }
 
@@ -12312,7 +12318,7 @@ static int parse_cb_signature(
   int ret = 1;
   int vtidx = 0;
   const char *cur = s;
-  cbval_type_t val_type = CBVAL_TYPE_INVALID;
+  cval_type_t val_type = CVAL_TYPE_INVALID;
   mjs_ffi_sig_init(sig);
 
   const char *tmp_e = NULL;
@@ -12323,8 +12329,8 @@ static int parse_cb_signature(
     ret = 0;
     goto clean;
   }
-  val_type = parse_cbval_type(mjs, cur, tmp_e);
-  if (val_type == CBVAL_TYPE_INVALID) {
+  val_type = parse_cval_type(mjs, cur, tmp_e);
+  if (val_type == CVAL_TYPE_INVALID) {
     ret = 0;
     goto clean;
   }
@@ -12351,9 +12357,9 @@ static int parse_cb_signature(
     while (*tmp_e && *tmp_e != ',' && *tmp_e != ')') tmp_e++;
 
     /* Parse current arg */
-    val_type = parse_cbval_type(mjs, cur, tmp_e);
-    if (val_type == CBVAL_TYPE_INVALID) {
-      /* parse_cbval_type() has already set error message */
+    val_type = parse_cval_type(mjs, cur, tmp_e);
+    if (val_type == CVAL_TYPE_INVALID) {
+      /* parse_cval_type() has already set error message */
       ret = 0;
       goto clean;
     }
@@ -12413,15 +12419,15 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
   /* Create JS arguments */
   mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.stat.args_cnt);
   for (i = 0; i < cbargs->sig.stat.args_cnt; i++) {
-    cbval_type_t val_type = cbargs->sig.val_types[i + 1/* first val_type is return value type */];
+    cval_type_t val_type = cbargs->sig.val_types[i + 1/* first val_type is return value type */];
     switch (val_type) {
-      case CBVAL_TYPE_USERDATA:
+      case CVAL_TYPE_USERDATA:
         args[i] = cbargs->userdata;
         break;
-      case CBVAL_TYPE_INT:
+      case CVAL_TYPE_INT:
         args[i] = mjs_mk_number(cbargs->mjs, data->args[i].w);
         break;
-      case CBVAL_TYPE_DOUBLE:
+      case CVAL_TYPE_DOUBLE:
         args[i] = mjs_mk_number(cbargs->mjs, data->args[i].d);
         break;
       default:
@@ -12446,13 +12452,13 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
 
   /* Get return value, if needed */
   switch (cbargs->sig.val_types[0]) {
-    case CBVAL_TYPE_NONE:
+    case CVAL_TYPE_NONE:
       /* do nothing */
       break;
-    case CBVAL_TYPE_INT:
+    case CVAL_TYPE_INT:
       ret.w = mjs_get_int(cbargs->mjs, res);
       break;
-    case CBVAL_TYPE_DOUBLE:
+    case CVAL_TYPE_DOUBLE:
       ret.d = mjs_get_int(cbargs->mjs, res);
       break;
     default:
@@ -12625,38 +12631,70 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
         ret = 0;
         goto clean;
       }
-    } else if (strncmp(a, "userdata", ae - a) == 0) {
-      /* Userdata for the callback */
-      if (cbdata.userdata_idx != -1) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "two or more userdata args: #%d and %d", cbdata.userdata_idx, i);
-        ret = 0;
-        goto clean;
-      }
-      cbdata.userdata = arg;
-      cbdata.userdata_idx = i;
-    } else if (strncmp(a, "int", ae - a) == 0) {
-      ffi_set_int32(&args[i], mjs_get_int(mjs, arg));
-    } else if (strncmp(a, "double", ae - a) == 0) {
-      ffi_set_double(&args[i], mjs_get_double(mjs, arg));
-    } else if (strncmp(a, "char*", 5) == 0 || strncmp(a, "char *", 6) == 0) {
-      if (!mjs_is_string(arg)) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "actual arg #%d is not a string", i);
-        ret = 0;
-        goto clean;
-      }
-      argvs[i] = arg;
-      ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
-    } else if (strncmp(a, "void*", 5) == 0 || strncmp(a, "void *", 6) == 0) {
-      if (!mjs_is_foreign(arg)) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "actual arg #%d is not a ptr", i);
-        ret = 0;
-        goto clean;
-      }
-      ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
     } else {
-      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "arg #%d: unsupported C type \"%.*s\"", i, (int) (ae - a), a);
-      ret = 0;
-      goto clean;
+      /* Some non-function argument */
+      cval_type_t ctype = parse_cval_type(mjs, a, ae);
+      switch (ctype) {
+        case CVAL_TYPE_NONE:
+          /*
+           * Void argument: in any case, it's an error, because if C function
+           * takes no arguments, then the FFI-ed JS function should be called
+           * without any arguments, and thus we'll not face "void" here.
+           */
+          if (i == 0) {
+            /* FFI signature is correct, but invocation is wrong */
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "ffi-ed function takes no arguments");
+          } else {
+            /*
+             * FFI signature is wrong: we can't have "void" as a non-first
+             * "argument"
+             */
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "bad ffi arg #%d type: \"void\"", i);
+          }
+          ret = 0;
+          goto clean;
+        case CVAL_TYPE_USERDATA:
+          /* Userdata for the callback */
+          if (cbdata.userdata_idx != -1) {
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "two or more userdata args: #%d and %d", cbdata.userdata_idx, i);
+            ret = 0;
+            goto clean;
+          }
+          cbdata.userdata = arg;
+          cbdata.userdata_idx = i;
+          break;
+        case CVAL_TYPE_INT:
+          ffi_set_int32(&args[i], mjs_get_int(mjs, arg));
+          break;
+        case CVAL_TYPE_DOUBLE:
+          ffi_set_double(&args[i], mjs_get_double(mjs, arg));
+          break;
+        case CVAL_TYPE_CHAR_PTR:
+          if (!mjs_is_string(arg)) {
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "actual arg #%d is not a string", i);
+            ret = 0;
+            goto clean;
+          }
+          argvs[i] = arg;
+          ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
+          break;
+        case CVAL_TYPE_VOID_PTR:
+          if (!mjs_is_foreign(arg)) {
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "actual arg #%d is not a ptr", i);
+            ret = 0;
+            goto clean;
+          }
+          ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
+          break;
+        case CVAL_TYPE_INVALID:
+          /* parse_cval_type() has already set a more detailed error */
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong arg type");
+          ret = 0;
+          goto clean;
+        default:
+          abort();
+          break;
+      }
     }
 
     a = ae + 1;
@@ -12794,11 +12832,11 @@ MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs) {
 }
 
 MJS_PRIVATE void mjs_ffi_sig_init(ffi_sig_t *sig) {
-  memset(sig->val_types, CBVAL_TYPE_NONE, MJS_CB_SIGNATURE_MAX_SIZE);
+  memset(sig->val_types, CVAL_TYPE_NONE, MJS_CB_SIGNATURE_MAX_SIZE);
 }
 
 MJS_PRIVATE int mjs_ffi_sig_set_val_type(
-    ffi_sig_t *sig, int idx, cbval_type_t type
+    ffi_sig_t *sig, int idx, cval_type_t type
     ) {
   if (idx < MJS_CB_SIGNATURE_MAX_SIZE) {
     sig->val_types[idx] = type;
@@ -12818,33 +12856,46 @@ MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(
   memset(&ret, 0, sizeof(ret));
   ret.is_valid = 1;
 
-  if (sig->val_types[0] == CBVAL_TYPE_INVALID || sig->val_types[0] == CBVAL_TYPE_USERDATA) {
+  /* Make sure return type is fine */
+  if (sig->val_types[0] != CVAL_TYPE_NONE
+      && sig->val_types[0] != CVAL_TYPE_INT
+      && sig->val_types[0] != CVAL_TYPE_DOUBLE
+      ) {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
     ret.is_valid = 0;
     goto clean;
   }
 
+  /* Handle argument types */
   for (i = 1; i < MJS_CB_SIGNATURE_MAX_SIZE; i++) {
-    cbval_type_t type = sig->val_types[i];
-    if (type == CBVAL_TYPE_USERDATA) {
-      if (ret.userdata_idx != 0) {
-        /* There must be exactly one userdata arg, but we have more */
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "more than one userdata arg: #%d and #%d", (ret.userdata_idx - 1), (i - 1));
+    cval_type_t type = sig->val_types[i];
+    switch (type) {
+      case CVAL_TYPE_USERDATA:
+        if (ret.userdata_idx != 0) {
+          /* There must be exactly one userdata arg, but we have more */
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "more than one userdata arg: #%d and #%d", (ret.userdata_idx - 1), (i - 1));
+          ret.is_valid = 0;
+          goto clean;
+        }
+        ret.userdata_idx = i;
+        break;
+      case CVAL_TYPE_INT:
+        /* Do nothing */
+        break;
+      case CVAL_TYPE_DOUBLE:
+        ret.args_double_cnt++;
+        break;
+      case CVAL_TYPE_NONE:
+        /* No more arguments */
+        goto args_over;
+      default:
         ret.is_valid = 0;
         goto clean;
-      }
-      ret.userdata_idx = i;
-    } else if (type == CBVAL_TYPE_DOUBLE) {
-      ret.args_double_cnt++;
-    } else if (type == CBVAL_TYPE_INVALID) {
-      ret.is_valid = 0;
-      goto clean;
-    } else if (type == CBVAL_TYPE_NONE) {
-      break;
     }
 
     ret.args_cnt++;
   }
+args_over:
 
   if (ret.userdata_idx == 0) {
     /* No userdata arg */
@@ -12857,17 +12908,17 @@ clean:
   return ret;
 }
 
-MJS_PRIVATE int mjs_ffi_is_regular_word(cbval_type_t type) {
+MJS_PRIVATE int mjs_ffi_is_regular_word(cval_type_t type) {
   switch (type) {
-    case CBVAL_TYPE_INT:
+    case CVAL_TYPE_INT:
       return 1;
     default:
       return 0;
   }
 }
 
-MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(cbval_type_t type) {
-  return (type == CBVAL_TYPE_NONE || mjs_ffi_is_regular_word(type));
+MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(cval_type_t type) {
+  return (type == CVAL_TYPE_NONE || mjs_ffi_is_regular_word(type));
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.c"
