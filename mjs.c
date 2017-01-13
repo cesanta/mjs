@@ -14038,6 +14038,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/array.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/conversion.h" */
 /* Amalgamated: #include "mjs/util.h" */
 /* Amalgamated: #include "mjs/json.h" */
 /* Amalgamated: #include "mjs/parser_state.h" */
@@ -14090,6 +14091,7 @@ void mjs_op_setprop(struct bf_vm *vm) {
 void mjs_op_getprop(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   mjs_val_t name = bf_pop(&vm->dstack);
+  mjs_val_t val = MJS_UNDEFINED;
 
   /*
    * For "method invocation pattern": remember the last object against which
@@ -14098,7 +14100,38 @@ void mjs_op_getprop(struct bf_vm *vm) {
   mjs->vals.last_getprop_obj = bf_pop(&vm->dstack);
   mjs->words_since_getprop = (enum getprop_distance)0;
 
-  bf_push(&vm->dstack, mjs_get_v(mjs, mjs->vals.last_getprop_obj, name));
+  if (mjs_is_object(mjs->vals.last_getprop_obj)) {
+    /* The "object" is actually an object: just take a property from it */
+    val = mjs_get_v(mjs, mjs->vals.last_getprop_obj, name);
+  } else {
+    /*
+     * We don't have getters, so in order to support properties which behave
+     * like getters (e.g. "string".length), we have to parse name right here,
+     * instead of having real built-in prototype objects
+     */
+    size_t n;
+    char *s = NULL;
+    int need_free = 0;
+
+    mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
+
+    if (err == MJS_OK) {
+      if (mjs_is_string(mjs->vals.last_getprop_obj)) {
+        if (strcmp(s, "length") == 0) {
+          size_t val_len;
+          mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
+          val = mjs_mk_number(mjs, val_len);
+        }
+      }
+    }
+
+    if (need_free) {
+      free(s);
+      s = NULL;
+    }
+  }
+
+  bf_push(&vm->dstack, val);
 }
 
 /*
