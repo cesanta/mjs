@@ -2093,8 +2093,8 @@ enum {
 void pinit(const char *file_name, const char *buf, struct pstate *);
 int pnext(struct pstate *);
 
-MJS_PRIVATE int is_ident(int c);
-MJS_PRIVATE int is_digit(int c);
+MJS_PRIVATE int mjs_is_ident(int c);
+MJS_PRIVATE int mjs_is_digit(int c);
 
 #endif /* MJS_TOK_H_ */
 #ifdef MG_MODULE_LINES
@@ -2378,6 +2378,223 @@ extern struct bf_code MJS_code;
 #define MJS_OP_load ((bf_opcode_t) 97)
 
 #endif /* MJS_GEN_OPCODES_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "frozen/frozen.h"
+#endif
+/*
+ * Copyright (c) 2004-2013 Sergey Lyubka <valenok@gmail.com>
+ * Copyright (c) 2013 Cesanta Software Limited
+ * All rights reserved
+ *
+ * This library is dual-licensed: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation. For the terms of this
+ * license, see <http: *www.gnu.org/licenses/>.
+ *
+ * You are free to use this library under the terms of the GNU General
+ * Public License, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * Alternatively, you can license this library under a commercial
+ * license, as set out in <http://cesanta.com/products.html>.
+ */
+
+#ifndef CS_FROZEN_FROZEN_H_
+#define CS_FROZEN_FROZEN_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+
+/* JSON token type */
+enum json_token_type {
+  JSON_TYPE_INVALID = 0, /* memsetting to 0 should create INVALID value */
+  JSON_TYPE_STRING,
+  JSON_TYPE_NUMBER,
+  JSON_TYPE_TRUE,
+  JSON_TYPE_FALSE,
+  JSON_TYPE_NULL,
+  JSON_TYPE_OBJECT_START,
+  JSON_TYPE_OBJECT_END,
+  JSON_TYPE_ARRAY_START,
+  JSON_TYPE_ARRAY_END,
+
+  JSON_TYPES_CNT
+};
+
+/*
+ * Structure containing token type and value. Used in `json_walk()` and
+ * `json_scanf()` with the format specifier `%T`.
+ */
+struct json_token {
+  const char *ptr;           /* Points to the beginning of the value */
+  int len;                   /* Value length */
+  enum json_token_type type; /* Type of the token, possible values are above */
+};
+
+#define JSON_INVALID_TOKEN \
+  { 0, 0, JSON_TYPE_INVALID }
+
+/* Error codes */
+#define JSON_STRING_INVALID -1
+#define JSON_STRING_INCOMPLETE -2
+
+/*
+ * Callback-based SAX-like API.
+ *
+ * Property name and length is given only if it's available: i.e. if current
+ * event is an object's property. In other cases, `name` is `NULL`. For
+ * example, name is never given:
+ *   - For the first value in the JSON string;
+ *   - For events JSON_TYPE_OBJECT_END and JSON_TYPE_ARRAY_END
+ *
+ * E.g. for the input `{ "foo": 123, "bar": [ 1, 2, { "baz": true } ] }`,
+ * the sequence of callback invocations will be as follows:
+ *
+ * - type: JSON_TYPE_OBJECT_START, name: NULL, path: "", value: NULL
+ * - type: JSON_TYPE_NUMBER, name: "foo", path: ".foo", value: "123"
+ * - type: JSON_TYPE_ARRAY_START,  name: "bar", path: ".bar", value: NULL
+ * - type: JSON_TYPE_NUMBER, name: "0", path: ".bar[0]", value: "1"
+ * - type: JSON_TYPE_NUMBER, name: "1", path: ".bar[1]", value: "2"
+ * - type: JSON_TYPE_OBJECT_START, name: "2", path: ".bar[2]", value: NULL
+ * - type: JSON_TYPE_TRUE, name: "baz", path: ".bar[2].baz", value: "true"
+ * - type: JSON_TYPE_OBJECT_END, name: NULL, path: ".bar[2]", value: "{ \"baz\":
+ *true }"
+ * - type: JSON_TYPE_ARRAY_END, name: NULL, path: ".bar", value: "[ 1, 2, {
+ *\"baz\": true } ]"
+ * - type: JSON_TYPE_OBJECT_END, name: NULL, path: "", value: "{ \"foo\": 123,
+ *\"bar\": [ 1, 2, { \"baz\": true } ] }"
+ */
+typedef void (*json_walk_callback_t)(void *callback_data, const char *name,
+                                     size_t name_len, const char *path,
+                                     const struct json_token *token);
+
+/*
+ * Parse `json_string`, invoking `callback` in a way similar to SAX parsers;
+ * see `json_walk_callback_t`.
+ */
+int json_walk(const char *json_string, int json_string_length,
+              json_walk_callback_t callback, void *callback_data);
+
+/*
+ * JSON generation API.
+ * struct json_out abstracts output, allowing alternative printing plugins.
+ */
+struct json_out {
+  int (*printer)(struct json_out *, const char *str, size_t len);
+  union {
+    struct {
+      char *buf;
+      size_t size;
+      size_t len;
+    } buf;
+    void *data;
+    FILE *fp;
+  } u;
+};
+
+extern int json_printer_buf(struct json_out *, const char *, size_t);
+extern int json_printer_file(struct json_out *, const char *, size_t);
+
+#define JSON_OUT_BUF(buf, len) \
+  {                            \
+    json_printer_buf, {        \
+      { buf, len, 0 }          \
+    }                          \
+  }
+#define JSON_OUT_FILE(fp)   \
+  {                         \
+    json_printer_file, {    \
+      { (void *) fp, 0, 0 } \
+    }                       \
+  }
+
+typedef int (*json_printf_callback_t)(struct json_out *, va_list *ap);
+
+/*
+ * Generate formatted output into a given sting buffer.
+ * This is a superset of printf() function, with extra format specifiers:
+ *  - `%B` print json boolean, `true` or `false`. Accepts an `int`.
+ *  - `%Q` print quoted escaped string or `null`. Accepts a `const char *`.
+ *  - `%.*Q` same as `%Q`, but with length. Accepts `int`, `const char *`
+ *  - `%V` print quoted base64-encoded string. Accepts a `const char *`, `int`.
+ *  - `%H` print quoted hex-encoded string. Accepts a `int`, `const char *`.
+ *  - `%M` invokes a json_printf_callback_t function. That callback function
+ *  can consume more parameters.
+ *
+ * Return number of bytes printed. If the return value is bigger then the
+ * supplied buffer, that is an indicator of overflow. In the overflow case,
+ * overflown bytes are not printed.
+ */
+int json_printf(struct json_out *, const char *fmt, ...);
+int json_vprintf(struct json_out *, const char *fmt, va_list ap);
+
+/*
+ * Helper %M callback that prints contiguous C arrays.
+ * Consumes void *array_ptr, size_t array_size, size_t elem_size, char *fmt
+ * Return number of bytes printed.
+ */
+int json_printf_array(struct json_out *, va_list *ap);
+
+/*
+ * Scan JSON string `str`, performing scanf-like conversions according to `fmt`.
+ * This is a `scanf()` - like function, with following differences:
+ *
+ * 1. Object keys in the format string may be not quoted, e.g. "{key: %d}"
+ * 2. Order of keys in an object is irrelevant.
+ * 3. Several extra format specifiers are supported:
+ *    - %B: consumes `int *`, expects boolean `true` or `false`.
+ *    - %Q: consumes `char **`, expects quoted, JSON-encoded string. Scanned
+ *       string is malloc-ed, caller must free() the string.
+ *    - %V: consumes `char **`, `int *`. Expects base64-encoded string.
+ *       Result string is base64-decoded, malloced and NUL-terminated.
+ *       The length of result string is stored in `int *` placeholder.
+ *       Caller must free() the result.
+ *    - %H: consumes `int *`, `char **`.
+ *       Expects a hex-encoded string, e.g. "fa014f".
+ *       Result string is hex-decoded, malloced and NUL-terminated.
+ *       The length of the result string is stored in `int *` placeholder.
+ *       Caller must free() the result.
+ *    - %M: consumes custom scanning function pointer and
+ *       `void *user_data` parameter - see json_scanner_t definition.
+ *    - %T: consumes `struct json_token *`, fills it out with matched token.
+ *
+ * Return number of elements successfully scanned & converted.
+ * Negative number means scan error.
+ */
+int json_scanf(const char *str, int str_len, const char *fmt, ...);
+int json_vscanf(const char *str, int str_len, const char *fmt, va_list ap);
+
+/* json_scanf's %M handler  */
+typedef void (*json_scanner_t)(const char *str, int len, void *user_data);
+
+/*
+ * Helper function to scan array item with given path and index.
+ * Fills `token` with the matched JSON token.
+ * Return 0 if no array element found, otherwise non-0.
+ */
+int json_scanf_array_elem(const char *s, int len, const char *path, int index,
+                          struct json_token *token);
+
+/*
+ * Unescape JSON-encoded string src,slen into dst, dlen.
+ * src and dst may overlap.
+ * If destination buffer is too small (or zero-length), result string is not
+ * written but the length is counted nevertheless (similar to snprintf).
+ * Return the length of unescaped string in bytes.
+ */
+int json_unescape(const char *src, int slen, char *dst, int dlen);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* CS_FROZEN_FROZEN_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/ffi/ffi.h"
 #endif
@@ -2898,6 +3115,9 @@ struct mjs {
   /* Linked list of the FFI callback args */
   ffi_cb_args_t *ffi_cb_args;
 
+  /* Needed for detecting cycles in JSON.stringify() */
+  struct mbuf json_visited_stack;
+
   /* Set to true to trigger GC when safe */
   unsigned int need_gc : 1;
   /* while true, GC is inhibited */
@@ -2909,11 +3129,31 @@ struct mjs {
   enum getprop_distance words_since_getprop : 2;
 };
 
+enum mjs_type {
+  /* Primitive types */
+  MJS_TYPE_UNDEFINED,
+  MJS_TYPE_NULL,
+  MJS_TYPE_BOOLEAN,
+  MJS_TYPE_NUMBER,
+  MJS_TYPE_STRING,
+  MJS_TYPE_FOREIGN,
+
+  /* Different classes of Object type */
+  MJS_TYPE_OBJECT_GENERIC,
+  MJS_TYPE_OBJECT_ARRAY,
+  /*
+   * TODO(dfrank): if we support prototypes, need to add items for them here
+   */
+
+  MJS_TYPES_CNT
+};
+
 MJS_PRIVATE void mjs_push_scope(struct mjs *mjs, mjs_val_t scope);
 MJS_PRIVATE mjs_val_t mjs_pop_scope(struct mjs *mjs);
 MJS_PRIVATE mjs_val_t mjs_scope_tos(struct mjs *mjs);
 MJS_PRIVATE mjs_val_t mjs_scope_get_by_idx(struct mjs *mjs, int idx);
 MJS_PRIVATE void mjs_scope_set_by_idx(struct mjs *mjs, int idx, mjs_val_t v);
+MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v);
 
 #endif /* MJS_CORE_H_ */
 #ifdef MG_MODULE_LINES
@@ -3242,6 +3482,32 @@ int mjs_is_boolean(mjs_val_t v);
 MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/conversion.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_CONVERSION_H_
+#define MJS_CONVERSION_H_
+
+/*
+ * Tries to convert `mjs_val_t` to a string, returns MJS_OK if successful.
+ * String is returned as a pair of pointers: `char **p, size_t *sizep`.
+ *
+ * Caller must also provide a non-null `need_free`, and if it is non-zero,
+ * then the string `*p` should be freed by the caller.
+ *
+ * MJS does not support `toString()` and `valueOf()`, so, passing an object
+ * always results in `MJS_TYPE_ERROR`.
+ */
+MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
+                                    char **p, size_t *sizep,
+                                    int *need_free);
+
+#endif /* MJS_CONVERSION_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/gc.h"
 #endif
 /*
@@ -3314,6 +3580,8 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
 /* Amalgamated: #include "mjs/internal.h" */
 
 void mjs_op_load(struct bf_vm *vm);
+void mjs_op_json_stringify(struct bf_vm *vm);
+void mjs_op_json_parse(struct bf_vm *vm);
 
 #endif /* MJS_OPS_H_ */
 
@@ -3494,6 +3762,260 @@ MJS_PRIVATE int calc_llen(size_t len);
 
 #endif /* MJS_VARINT_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/json.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_JSON_H_
+#define MJS_JSON_H_
+
+MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v,
+    char *buf, size_t size,
+    size_t *res_len, uint8_t is_debug);
+
+
+MJS_PRIVATE mjs_err_t mjs_json_stringify(struct mjs *mjs, mjs_val_t v, char *buf,
+    size_t size, char **res);
+
+MJS_PRIVATE mjs_err_t mjs_json_parse(struct mjs *mjs, const char *str,
+                                     size_t len, mjs_val_t *res);
+
+#endif /* MJS_JSON_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "common/cs_strtod.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_CS_STRTOD_H_
+#define CS_COMMON_CS_STRTOD_H_
+
+double cs_strtod(const char *str, char **endptr);
+
+#endif /* CS_COMMON_CS_STRTOD_H_ */
+#ifdef MG_MODULE_LINES
+#line 1 "frozen/frozen.h"
+#endif
+/*
+ * Copyright (c) 2004-2013 Sergey Lyubka <valenok@gmail.com>
+ * Copyright (c) 2013 Cesanta Software Limited
+ * All rights reserved
+ *
+ * This library is dual-licensed: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation. For the terms of this
+ * license, see <http: *www.gnu.org/licenses/>.
+ *
+ * You are free to use this library under the terms of the GNU General
+ * Public License, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * Alternatively, you can license this library under a commercial
+ * license, as set out in <http://cesanta.com/products.html>.
+ */
+
+#ifndef CS_FROZEN_FROZEN_H_
+#define CS_FROZEN_FROZEN_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+
+/* JSON token type */
+enum json_token_type {
+  JSON_TYPE_INVALID = 0, /* memsetting to 0 should create INVALID value */
+  JSON_TYPE_STRING,
+  JSON_TYPE_NUMBER,
+  JSON_TYPE_TRUE,
+  JSON_TYPE_FALSE,
+  JSON_TYPE_NULL,
+  JSON_TYPE_OBJECT_START,
+  JSON_TYPE_OBJECT_END,
+  JSON_TYPE_ARRAY_START,
+  JSON_TYPE_ARRAY_END,
+
+  JSON_TYPES_CNT
+};
+
+/*
+ * Structure containing token type and value. Used in `json_walk()` and
+ * `json_scanf()` with the format specifier `%T`.
+ */
+struct json_token {
+  const char *ptr;           /* Points to the beginning of the value */
+  int len;                   /* Value length */
+  enum json_token_type type; /* Type of the token, possible values are above */
+};
+
+#define JSON_INVALID_TOKEN \
+  { 0, 0, JSON_TYPE_INVALID }
+
+/* Error codes */
+#define JSON_STRING_INVALID -1
+#define JSON_STRING_INCOMPLETE -2
+
+/*
+ * Callback-based SAX-like API.
+ *
+ * Property name and length is given only if it's available: i.e. if current
+ * event is an object's property. In other cases, `name` is `NULL`. For
+ * example, name is never given:
+ *   - For the first value in the JSON string;
+ *   - For events JSON_TYPE_OBJECT_END and JSON_TYPE_ARRAY_END
+ *
+ * E.g. for the input `{ "foo": 123, "bar": [ 1, 2, { "baz": true } ] }`,
+ * the sequence of callback invocations will be as follows:
+ *
+ * - type: JSON_TYPE_OBJECT_START, name: NULL, path: "", value: NULL
+ * - type: JSON_TYPE_NUMBER, name: "foo", path: ".foo", value: "123"
+ * - type: JSON_TYPE_ARRAY_START,  name: "bar", path: ".bar", value: NULL
+ * - type: JSON_TYPE_NUMBER, name: "0", path: ".bar[0]", value: "1"
+ * - type: JSON_TYPE_NUMBER, name: "1", path: ".bar[1]", value: "2"
+ * - type: JSON_TYPE_OBJECT_START, name: "2", path: ".bar[2]", value: NULL
+ * - type: JSON_TYPE_TRUE, name: "baz", path: ".bar[2].baz", value: "true"
+ * - type: JSON_TYPE_OBJECT_END, name: NULL, path: ".bar[2]", value: "{ \"baz\":
+ *true }"
+ * - type: JSON_TYPE_ARRAY_END, name: NULL, path: ".bar", value: "[ 1, 2, {
+ *\"baz\": true } ]"
+ * - type: JSON_TYPE_OBJECT_END, name: NULL, path: "", value: "{ \"foo\": 123,
+ *\"bar\": [ 1, 2, { \"baz\": true } ] }"
+ */
+typedef void (*json_walk_callback_t)(void *callback_data, const char *name,
+                                     size_t name_len, const char *path,
+                                     const struct json_token *token);
+
+/*
+ * Parse `json_string`, invoking `callback` in a way similar to SAX parsers;
+ * see `json_walk_callback_t`.
+ */
+int json_walk(const char *json_string, int json_string_length,
+              json_walk_callback_t callback, void *callback_data);
+
+/*
+ * JSON generation API.
+ * struct json_out abstracts output, allowing alternative printing plugins.
+ */
+struct json_out {
+  int (*printer)(struct json_out *, const char *str, size_t len);
+  union {
+    struct {
+      char *buf;
+      size_t size;
+      size_t len;
+    } buf;
+    void *data;
+    FILE *fp;
+  } u;
+};
+
+extern int json_printer_buf(struct json_out *, const char *, size_t);
+extern int json_printer_file(struct json_out *, const char *, size_t);
+
+#define JSON_OUT_BUF(buf, len) \
+  {                            \
+    json_printer_buf, {        \
+      { buf, len, 0 }          \
+    }                          \
+  }
+#define JSON_OUT_FILE(fp)   \
+  {                         \
+    json_printer_file, {    \
+      { (void *) fp, 0, 0 } \
+    }                       \
+  }
+
+typedef int (*json_printf_callback_t)(struct json_out *, va_list *ap);
+
+/*
+ * Generate formatted output into a given sting buffer.
+ * This is a superset of printf() function, with extra format specifiers:
+ *  - `%B` print json boolean, `true` or `false`. Accepts an `int`.
+ *  - `%Q` print quoted escaped string or `null`. Accepts a `const char *`.
+ *  - `%.*Q` same as `%Q`, but with length. Accepts `int`, `const char *`
+ *  - `%V` print quoted base64-encoded string. Accepts a `const char *`, `int`.
+ *  - `%H` print quoted hex-encoded string. Accepts a `int`, `const char *`.
+ *  - `%M` invokes a json_printf_callback_t function. That callback function
+ *  can consume more parameters.
+ *
+ * Return number of bytes printed. If the return value is bigger then the
+ * supplied buffer, that is an indicator of overflow. In the overflow case,
+ * overflown bytes are not printed.
+ */
+int json_printf(struct json_out *, const char *fmt, ...);
+int json_vprintf(struct json_out *, const char *fmt, va_list ap);
+
+/*
+ * Helper %M callback that prints contiguous C arrays.
+ * Consumes void *array_ptr, size_t array_size, size_t elem_size, char *fmt
+ * Return number of bytes printed.
+ */
+int json_printf_array(struct json_out *, va_list *ap);
+
+/*
+ * Scan JSON string `str`, performing scanf-like conversions according to `fmt`.
+ * This is a `scanf()` - like function, with following differences:
+ *
+ * 1. Object keys in the format string may be not quoted, e.g. "{key: %d}"
+ * 2. Order of keys in an object is irrelevant.
+ * 3. Several extra format specifiers are supported:
+ *    - %B: consumes `int *`, expects boolean `true` or `false`.
+ *    - %Q: consumes `char **`, expects quoted, JSON-encoded string. Scanned
+ *       string is malloc-ed, caller must free() the string.
+ *    - %V: consumes `char **`, `int *`. Expects base64-encoded string.
+ *       Result string is base64-decoded, malloced and NUL-terminated.
+ *       The length of result string is stored in `int *` placeholder.
+ *       Caller must free() the result.
+ *    - %H: consumes `int *`, `char **`.
+ *       Expects a hex-encoded string, e.g. "fa014f".
+ *       Result string is hex-decoded, malloced and NUL-terminated.
+ *       The length of the result string is stored in `int *` placeholder.
+ *       Caller must free() the result.
+ *    - %M: consumes custom scanning function pointer and
+ *       `void *user_data` parameter - see json_scanner_t definition.
+ *    - %T: consumes `struct json_token *`, fills it out with matched token.
+ *
+ * Return number of elements successfully scanned & converted.
+ * Negative number means scan error.
+ */
+int json_scanf(const char *str, int str_len, const char *fmt, ...);
+int json_vscanf(const char *str, int str_len, const char *fmt, va_list ap);
+
+/* json_scanf's %M handler  */
+typedef void (*json_scanner_t)(const char *str, int len, void *user_data);
+
+/*
+ * Helper function to scan array item with given path and index.
+ * Fills `token` with the matched JSON token.
+ * Return 0 if no array element found, otherwise non-0.
+ */
+int json_scanf_array_elem(const char *s, int len, const char *path, int index,
+                          struct json_token *token);
+
+/*
+ * Unescape JSON-encoded string src,slen into dst, dlen.
+ * src and dst may overlap.
+ * If destination buffer is too small (or zero-length), result string is not
+ * written but the length is counted nevertheless (similar to snprintf).
+ * Return the length of unescaped string in bytes.
+ */
+int json_unescape(const char *src, int slen, char *dst, int dlen);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* CS_FROZEN_FROZEN_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/util_public.h"
 #endif
 /*
@@ -3539,32 +4061,6 @@ void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v);
  */
 
 #endif /* MJS_UTIL_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/conversion.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_CONVERSION_H_
-#define MJS_CONVERSION_H_
-
-/*
- * Tries to convert `mjs_val_t` to a string, returns MJS_OK if successful.
- * String is returned as a pair of pointers: `char **p, size_t *sizep`.
- *
- * Caller must also provide a non-null `need_free`, and if it is non-zero,
- * then the string `*p` should be freed by the caller.
- *
- * MJS does not support `toString()` and `valueOf()`, so, passing an object
- * always results in `MJS_TYPE_ERROR`.
- */
-MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
-                                    char **p, size_t *sizep,
-                                    int *need_free);
-
-#endif /* MJS_CONVERSION_H_ */
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/str_util.h"
 #endif
@@ -9866,6 +10362,1003 @@ struct bf_code MJS_code = {
   MJS_word_names, MJS_pos_names,
 };
 #ifdef MG_MODULE_LINES
+#line 1 "frozen/frozen.c"
+#endif
+/*
+ * Copyright (c) 2004-2013 Sergey Lyubka <valenok@gmail.com>
+ * Copyright (c) 2013 Cesanta Software Limited
+ * All rights reserved
+ *
+ * This library is dual-licensed: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation. For the terms of this
+ * license, see <http: *www.gnu.org/licenses/>.
+ *
+ * You are free to use this library under the terms of the GNU General
+ * Public License, but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * Alternatively, you can license this library under a commercial
+ * license, as set out in <http://cesanta.com/products.html>.
+ */
+
+#define _CRT_SECURE_NO_WARNINGS /* Disable deprecation warning in VS2005+ */
+
+/* Amalgamated: #include "frozen.h" */
+#include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#if !defined(WEAK)
+#if (defined(__GNUC__) || defined(__TI_COMPILER_VERSION__)) && !defined(_WIN32)
+#define WEAK __attribute__((weak))
+#else
+#define WEAK
+#endif
+#endif
+
+#ifdef _WIN32
+#define snprintf cs_win_snprintf
+#define vsnprintf cs_win_vsnprintf
+int cs_win_snprintf(char *str, size_t size, const char *format, ...);
+int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap);
+#if _MSC_VER >= 1700
+#include <stdint.h>
+#else
+typedef _int64 int64_t;
+typedef unsigned _int64 uint64_t;
+#endif
+#define PRId64 "I64d"
+#define PRIu64 "I64u"
+#if !defined(SIZE_T_FMT)
+#if _MSC_VER >= 1310
+#define SIZE_T_FMT "Iu"
+#else
+#define SIZE_T_FMT "u"
+#endif
+#endif
+#else /* _WIN32 */
+/* <inttypes.h> wants this for C++ */
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#include <inttypes.h>
+#if !defined(SIZE_T_FMT)
+#define SIZE_T_FMT "zu"
+#endif
+#endif /* _WIN32 */
+
+#define INT64_FMT PRId64
+#define UINT64_FMT PRIu64
+
+#ifndef va_copy
+#define va_copy(x, y) x = y
+#endif
+
+#ifndef JSON_MAX_PATH_LEN
+#define JSON_MAX_PATH_LEN 60
+#endif
+
+struct frozen {
+  const char *end;
+  const char *cur;
+
+  const char *cur_name;
+  size_t cur_name_len;
+
+  /* For callback API */
+  char path[JSON_MAX_PATH_LEN];
+  int path_len;
+  void *callback_data;
+  json_walk_callback_t callback;
+};
+
+struct fstate {
+  const char *ptr;
+  int path_len;
+};
+
+#define SET_STATE(fr, ptr, str, len)              \
+  struct fstate fstate = {(ptr), (fr)->path_len}; \
+  append_to_path((fr), (str), (len));
+
+#define CALL_BACK(fr, tok, value, len)                                        \
+  do {                                                                        \
+    if ((fr)->callback &&                                                     \
+        ((fr)->path_len == 0 || (fr)->path[(fr)->path_len - 1] != '.')) {     \
+      struct json_token t = {(value), (len), (tok)};                          \
+                                                                              \
+      /* Call the callback with the given value and current name */           \
+      (fr)->callback((fr)->callback_data, (fr)->cur_name, (fr)->cur_name_len, \
+                     (fr)->path, &t);                                         \
+                                                                              \
+      /* Reset the name */                                                    \
+      (fr)->cur_name = NULL;                                                  \
+      (fr)->cur_name_len = 0;                                                 \
+    }                                                                         \
+  } while (0)
+
+static int append_to_path(struct frozen *f, const char *str, int size) {
+  int n = f->path_len;
+  f->path_len +=
+      snprintf(f->path + f->path_len, sizeof(f->path) - (f->path_len + 1),
+               "%.*s", size, str);
+
+  return n;
+}
+
+static void truncate_path(struct frozen *f, int len) {
+  f->path_len = len;
+  f->path[len] = '\0';
+}
+
+static int parse_object(struct frozen *f);
+static int parse_value(struct frozen *f);
+
+#define EXPECT(cond, err_code)      \
+  do {                              \
+    if (!(cond)) return (err_code); \
+  } while (0)
+
+#define TRY(expr)          \
+  do {                     \
+    int _n = expr;         \
+    if (_n < 0) return _n; \
+  } while (0)
+
+#define END_OF_STRING (-1)
+
+static int left(const struct frozen *f) {
+  return f->end - f->cur;
+}
+
+static int is_space(int ch) {
+  return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
+}
+
+static void skip_whitespaces(struct frozen *f) {
+  while (f->cur < f->end && is_space(*f->cur)) f->cur++;
+}
+
+static int cur(struct frozen *f) {
+  skip_whitespaces(f);
+  return f->cur >= f->end ? END_OF_STRING : *(unsigned char *) f->cur;
+}
+
+static int test_and_skip(struct frozen *f, int expected) {
+  int ch = cur(f);
+  if (ch == expected) {
+    f->cur++;
+    return 0;
+  }
+  return ch == END_OF_STRING ? JSON_STRING_INCOMPLETE : JSON_STRING_INVALID;
+}
+
+static int is_alpha(int ch) {
+  return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+static int is_digit(int ch) {
+  return ch >= '0' && ch <= '9';
+}
+
+static int is_hex_digit(int ch) {
+  return is_digit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+}
+
+static int get_escape_len(const char *s, int len) {
+  switch (*s) {
+    case 'u':
+      return len < 6 ? JSON_STRING_INCOMPLETE
+                     : is_hex_digit(s[1]) && is_hex_digit(s[2]) &&
+                               is_hex_digit(s[3]) && is_hex_digit(s[4])
+                           ? 5
+                           : JSON_STRING_INVALID;
+    case '"':
+    case '\\':
+    case '/':
+    case 'b':
+    case 'f':
+    case 'n':
+    case 'r':
+    case 't':
+      return len < 2 ? JSON_STRING_INCOMPLETE : 1;
+    default:
+      return JSON_STRING_INVALID;
+  }
+}
+
+/* identifier = letter { letter | digit | '_' } */
+static int parse_identifier(struct frozen *f) {
+  EXPECT(is_alpha(cur(f)), JSON_STRING_INVALID);
+  {
+    SET_STATE(f, f->cur, "", 0);
+    while (f->cur < f->end &&
+           (*f->cur == '_' || is_alpha(*f->cur) || is_digit(*f->cur))) {
+      f->cur++;
+    }
+    truncate_path(f, fstate.path_len);
+    CALL_BACK(f, JSON_TYPE_STRING, fstate.ptr, f->cur - fstate.ptr);
+  }
+  return 0;
+}
+
+static int get_utf8_char_len(unsigned char ch) {
+  if ((ch & 0x80) == 0) return 1;
+  switch (ch & 0xf0) {
+    case 0xf0:
+      return 4;
+    case 0xe0:
+      return 3;
+    default:
+      return 2;
+  }
+}
+
+/* string = '"' { quoted_printable_chars } '"' */
+static int parse_string(struct frozen *f) {
+  int n, ch = 0, len = 0;
+  TRY(test_and_skip(f, '"'));
+  {
+    SET_STATE(f, f->cur, "", 0);
+    for (; f->cur < f->end; f->cur += len) {
+      ch = *(unsigned char *) f->cur;
+      len = get_utf8_char_len((unsigned char) ch);
+      EXPECT(ch >= 32 && len > 0, JSON_STRING_INVALID); /* No control chars */
+      EXPECT(len < left(f), JSON_STRING_INCOMPLETE);
+      if (ch == '\\') {
+        EXPECT((n = get_escape_len(f->cur + 1, left(f))) > 0, n);
+        len += n;
+      } else if (ch == '"') {
+        truncate_path(f, fstate.path_len);
+        CALL_BACK(f, JSON_TYPE_STRING, fstate.ptr, f->cur - fstate.ptr);
+        f->cur++;
+        break;
+      };
+    }
+  }
+  return ch == '"' ? 0 : JSON_STRING_INCOMPLETE;
+}
+
+/* number = [ '-' ] digit+ [ '.' digit+ ] [ ['e'|'E'] ['+'|'-'] digit+ ] */
+static int parse_number(struct frozen *f) {
+  int ch = cur(f);
+  SET_STATE(f, f->cur, "", 0);
+  if (ch == '-') f->cur++;
+  EXPECT(f->cur < f->end, JSON_STRING_INCOMPLETE);
+  EXPECT(is_digit(f->cur[0]), JSON_STRING_INVALID);
+  while (f->cur < f->end && is_digit(f->cur[0])) f->cur++;
+  if (f->cur < f->end && f->cur[0] == '.') {
+    f->cur++;
+    EXPECT(f->cur < f->end, JSON_STRING_INCOMPLETE);
+    EXPECT(is_digit(f->cur[0]), JSON_STRING_INVALID);
+    while (f->cur < f->end && is_digit(f->cur[0])) f->cur++;
+  }
+  if (f->cur < f->end && (f->cur[0] == 'e' || f->cur[0] == 'E')) {
+    f->cur++;
+    EXPECT(f->cur < f->end, JSON_STRING_INCOMPLETE);
+    if ((f->cur[0] == '+' || f->cur[0] == '-')) f->cur++;
+    EXPECT(f->cur < f->end, JSON_STRING_INCOMPLETE);
+    EXPECT(is_digit(f->cur[0]), JSON_STRING_INVALID);
+    while (f->cur < f->end && is_digit(f->cur[0])) f->cur++;
+  }
+  truncate_path(f, fstate.path_len);
+  CALL_BACK(f, JSON_TYPE_NUMBER, fstate.ptr, f->cur - fstate.ptr);
+  return 0;
+}
+
+/* array = '[' [ value { ',' value } ] ']' */
+static int parse_array(struct frozen *f) {
+  int i = 0, current_path_len;
+  char buf[20];
+  TRY(test_and_skip(f, '['));
+  {
+    CALL_BACK(f, JSON_TYPE_ARRAY_START, NULL, 0);
+    {
+      SET_STATE(f, f->cur - 1, "", 0);
+      while (cur(f) != ']') {
+        snprintf(buf, sizeof(buf), "[%d]", i);
+        i++;
+        current_path_len = append_to_path(f, buf, strlen(buf));
+        f->cur_name =
+            f->path + strlen(f->path) - strlen(buf) + 1 /*opening brace*/;
+        f->cur_name_len = strlen(buf) - 2 /*braces*/;
+        TRY(parse_value(f));
+        truncate_path(f, current_path_len);
+        if (cur(f) == ',') f->cur++;
+      }
+      TRY(test_and_skip(f, ']'));
+      truncate_path(f, fstate.path_len);
+      CALL_BACK(f, JSON_TYPE_ARRAY_END, fstate.ptr, f->cur - fstate.ptr);
+    }
+  }
+  return 0;
+}
+
+static int expect(struct frozen *f, const char *s, int len,
+                  enum json_token_type tok_type) {
+  int i, n = left(f);
+  SET_STATE(f, f->cur, "", 0);
+  for (i = 0; i < len; i++) {
+    if (i >= n) return JSON_STRING_INCOMPLETE;
+    if (f->cur[i] != s[i]) return JSON_STRING_INVALID;
+  }
+  f->cur += len;
+  truncate_path(f, fstate.path_len);
+
+  CALL_BACK(f, tok_type, fstate.ptr, f->cur - fstate.ptr);
+
+  return 0;
+}
+
+/* value = 'null' | 'true' | 'false' | number | string | array | object */
+static int parse_value(struct frozen *f) {
+  int ch = cur(f);
+
+  switch (ch) {
+    case '"':
+      TRY(parse_string(f));
+      break;
+    case '{':
+      TRY(parse_object(f));
+      break;
+    case '[':
+      TRY(parse_array(f));
+      break;
+    case 'n':
+      TRY(expect(f, "null", 4, JSON_TYPE_NULL));
+      break;
+    case 't':
+      TRY(expect(f, "true", 4, JSON_TYPE_TRUE));
+      break;
+    case 'f':
+      TRY(expect(f, "false", 5, JSON_TYPE_FALSE));
+      break;
+    case '-':
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      TRY(parse_number(f));
+      break;
+    default:
+      return ch == END_OF_STRING ? JSON_STRING_INCOMPLETE : JSON_STRING_INVALID;
+  }
+
+  return 0;
+}
+
+/* key = identifier | string */
+static int parse_key(struct frozen *f) {
+  int ch = cur(f);
+#if 0
+  printf("%s [%.*s]\n", __func__, (int) (f->end - f->cur), f->cur);
+#endif
+  if (is_alpha(ch)) {
+    TRY(parse_identifier(f));
+  } else if (ch == '"') {
+    TRY(parse_string(f));
+  } else {
+    return ch == END_OF_STRING ? JSON_STRING_INCOMPLETE : JSON_STRING_INVALID;
+  }
+  return 0;
+}
+
+/* pair = key ':' value */
+static int parse_pair(struct frozen *f) {
+  int current_path_len;
+  const char *tok;
+  skip_whitespaces(f);
+  tok = f->cur;
+  TRY(parse_key(f));
+  {
+    f->cur_name = *tok == '"' ? tok + 1 : tok;
+    f->cur_name_len = *tok == '"' ? f->cur - tok - 2 : f->cur - tok;
+    current_path_len = append_to_path(f, f->cur_name, f->cur_name_len);
+  }
+  TRY(test_and_skip(f, ':'));
+  TRY(parse_value(f));
+  truncate_path(f, current_path_len);
+  return 0;
+}
+
+/* object = '{' pair { ',' pair } '}' */
+static int parse_object(struct frozen *f) {
+  TRY(test_and_skip(f, '{'));
+  {
+    CALL_BACK(f, JSON_TYPE_OBJECT_START, NULL, 0);
+    {
+      SET_STATE(f, f->cur - 1, ".", 1);
+      while (cur(f) != '}') {
+        TRY(parse_pair(f));
+        if (cur(f) == ',') f->cur++;
+      }
+      TRY(test_and_skip(f, '}'));
+      truncate_path(f, fstate.path_len);
+      CALL_BACK(f, JSON_TYPE_OBJECT_END, fstate.ptr, f->cur - fstate.ptr);
+    }
+  }
+  return 0;
+}
+
+static int doit(struct frozen *f) {
+  if (f->cur == 0 || f->end < f->cur) return JSON_STRING_INVALID;
+  if (f->end == f->cur) return JSON_STRING_INCOMPLETE;
+  return parse_value(f);
+}
+
+static int json_encode_string(struct json_out *out, const char *p, size_t len) {
+  size_t i, cl, n = 0;
+  const char *hex_digits = "0123456789abcdef";
+  const char *specials = "btnvfr";
+
+  for (i = 0; i < len; i++) {
+    unsigned char ch = ((unsigned char *) p)[i];
+    if (ch == '"' || ch == '\\') {
+      n += out->printer(out, "\\", 1);
+      n += out->printer(out, p + i, 1);
+    } else if (ch >= '\b' && ch <= '\r') {
+      n += out->printer(out, "\\", 1);
+      n += out->printer(out, &specials[ch - '\b'], 1);
+    } else if (isprint(ch)) {
+      n += out->printer(out, p + i, 1);
+    } else if ((cl = get_utf8_char_len(ch)) == 1) {
+      n += out->printer(out, "\\u00", 4);
+      n += out->printer(out, &hex_digits[(ch >> 4) % 0xf], 1);
+      n += out->printer(out, &hex_digits[ch % 0xf], 1);
+    } else {
+      n += out->printer(out, p + i, cl);
+      i += cl - 1;
+    }
+  }
+
+  return n;
+}
+
+int json_printer_buf(struct json_out *out, const char *buf, size_t len) WEAK;
+int json_printer_buf(struct json_out *out, const char *buf, size_t len) {
+  size_t avail = out->u.buf.size - out->u.buf.len;
+  size_t n = len < avail ? len : avail;
+  memcpy(out->u.buf.buf + out->u.buf.len, buf, n);
+  out->u.buf.len += n;
+  if (out->u.buf.size > 0) {
+    size_t idx = out->u.buf.len;
+    if (idx >= out->u.buf.size) idx = out->u.buf.size - 1;
+    out->u.buf.buf[idx] = '\0';
+  }
+  return len;
+}
+
+int json_printer_file(struct json_out *out, const char *buf, size_t len) WEAK;
+int json_printer_file(struct json_out *out, const char *buf, size_t len) {
+  return fwrite(buf, 1, len, out->u.fp);
+}
+
+static int b64idx(int c) {
+  if (c < 26) {
+    return c + 'A';
+  } else if (c < 52) {
+    return c - 26 + 'a';
+  } else if (c < 62) {
+    return c - 52 + '0';
+  } else {
+    return c == 62 ? '+' : '/';
+  }
+}
+
+static int b64rev(int c) {
+  if (c >= 'A' && c <= 'Z') {
+    return c - 'A';
+  } else if (c >= 'a' && c <= 'z') {
+    return c + 26 - 'a';
+  } else if (c >= '0' && c <= '9') {
+    return c + 52 - '0';
+  } else if (c == '+') {
+    return 62;
+  } else if (c == '/') {
+    return 63;
+  } else {
+    return 64;
+  }
+}
+
+static uint8_t hexdec(const char *s) {
+#define HEXTOI(x) (x >= '0' && x <= '9' ? x - '0' : x - 'W')
+  int a = tolower(*(const unsigned char *) s);
+  int b = tolower(*(const unsigned char *) (s + 1));
+  return (HEXTOI(a) << 4) | HEXTOI(b);
+}
+
+static int b64enc(struct json_out *out, const unsigned char *p, int n) {
+  char buf[4];
+  int i, len = 0;
+  for (i = 0; i < n; i += 3) {
+    int a = p[i], b = i + 1 < n ? p[i + 1] : 0, c = i + 2 < n ? p[i + 2] : 0;
+    buf[0] = b64idx(a >> 2);
+    buf[1] = b64idx((a & 3) << 4 | (b >> 4));
+    buf[2] = b64idx((b & 15) << 2 | (c >> 6));
+    buf[3] = b64idx(c & 63);
+    if (i + 1 >= n) buf[2] = '=';
+    if (i + 2 >= n) buf[3] = '=';
+    len += out->printer(out, buf, sizeof(buf));
+  }
+  return len;
+}
+
+static int b64dec(const char *src, int n, char *dst) {
+  const char *end = src + n;
+  int len = 0;
+  while (src + 3 < end) {
+    int a = b64rev(src[0]), b = b64rev(src[1]), c = b64rev(src[2]),
+        d = b64rev(src[3]);
+    dst[len++] = (a << 2) | (b >> 4);
+    if (src[2] != '=') {
+      dst[len++] = (b << 4) | (c >> 2);
+      if (src[3] != '=') {
+        dst[len++] = (c << 6) | d;
+      }
+    }
+    src += 4;
+  }
+  return len;
+}
+
+int json_vprintf(struct json_out *out, const char *fmt, va_list xap) WEAK;
+int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
+  int len = 0;
+  const char *quote = "\"", *null = "null";
+  va_list ap;
+  va_copy(ap, xap);
+
+  while (*fmt != '\0') {
+    if (strchr(":, \r\n\t[]{}\"", *fmt) != NULL) {
+      len += out->printer(out, fmt, 1);
+      fmt++;
+    } else if (fmt[0] == '%') {
+      char buf[21];
+      size_t skip = 2;
+
+      if (fmt[1] == 'l' && fmt[2] == 'l' && (fmt[3] == 'd' || fmt[3] == 'u')) {
+        int64_t val = va_arg(ap, int64_t);
+        const char *fmt2 = fmt[3] == 'u' ? "%" UINT64_FMT : "%" INT64_FMT;
+        snprintf(buf, sizeof(buf), fmt2, val);
+        len += out->printer(out, buf, strlen(buf));
+        skip += 2;
+      } else if (fmt[1] == 'z' && fmt[2] == 'u') {
+        size_t val = va_arg(ap, size_t);
+        snprintf(buf, sizeof(buf), "%" SIZE_T_FMT, val);
+        len += out->printer(out, buf, strlen(buf));
+        skip += 1;
+      } else if (fmt[1] == 'M') {
+        json_printf_callback_t f = va_arg(ap, json_printf_callback_t);
+        len += f(out, &ap);
+      } else if (fmt[1] == 'B') {
+        int val = va_arg(ap, int);
+        const char *str = val ? "true" : "false";
+        len += out->printer(out, str, strlen(str));
+      } else if (fmt[1] == 'H') {
+        const char *hex = "0123456789abcdef";
+        int i, n = va_arg(ap, int);
+        const unsigned char *p = va_arg(ap, const unsigned char *);
+        len += out->printer(out, quote, 1);
+        for (i = 0; i < n; i++) {
+          len += out->printer(out, &hex[(p[i] >> 4) & 0xf], 1);
+          len += out->printer(out, &hex[p[i] & 0xf], 1);
+        }
+        len += out->printer(out, quote, 1);
+      } else if (fmt[1] == 'V') {
+        const unsigned char *p = va_arg(ap, const unsigned char *);
+        int n = va_arg(ap, int);
+        len += out->printer(out, quote, 1);
+        len += b64enc(out, p, n);
+        len += out->printer(out, quote, 1);
+      } else if (fmt[1] == 'Q' ||
+                 (fmt[1] == '.' && fmt[2] == '*' && fmt[3] == 'Q')) {
+        size_t l = 0;
+        const char *p;
+
+        if (fmt[1] == '.') {
+          l = (size_t) va_arg(ap, int);
+          skip += 2;
+        }
+        p = va_arg(ap, char *);
+
+        if (p == NULL) {
+          len += out->printer(out, null, 4);
+        } else {
+          if (fmt[1] == 'Q') {
+            l = strlen(p);
+          }
+          len += out->printer(out, quote, 1);
+          len += json_encode_string(out, p, l);
+          len += out->printer(out, quote, 1);
+        }
+      } else {
+        /*
+         * we delegate printing to the system printf.
+         * The goal here is to delegate all modifiers parsing to the system
+         * printf, as you can see below we still have to parse the format
+         * types.
+         *
+         * Currently, %s with strings longer than 20 chars will require
+         * double-buffering (an auxiliary buffer will be allocated from heap).
+         * TODO(dfrank): reimplement %s and %.*s in order to avoid that.
+         */
+
+        const char *end_of_format_specifier = "sdfFgGlhuI.*-0123456789";
+        size_t n = strspn(fmt + 1, end_of_format_specifier);
+        char *pbuf = buf;
+        size_t need_len;
+        char fmt2[20];
+        va_list sub_ap;
+        strncpy(fmt2, fmt, n + 1 > sizeof(fmt2) ? sizeof(fmt2) : n + 1);
+        fmt2[n + 1] = '\0';
+
+        va_copy(sub_ap, ap);
+        need_len =
+            vsnprintf(buf, sizeof(buf), fmt2, sub_ap) + 1 /* null-term */;
+        /*
+         * TODO(lsm): Fix windows & eCos code path here. Their vsnprintf
+         * implementation returns -1 on overflow rather needed size.
+         */
+        if (need_len > sizeof(buf)) {
+          /*
+           * resulting string doesn't fit into a stack-allocated buffer `buf`,
+           * so we need to allocate a new buffer from heap and use it
+           */
+          pbuf = (char *) malloc(need_len);
+          va_copy(sub_ap, ap);
+          vsnprintf(pbuf, need_len, fmt2, sub_ap);
+        }
+
+        /*
+         * however we need to parse the type ourselves in order to advance
+         * the va_list by the correct amount; there is no portable way to
+         * inherit the advancement made by vprintf.
+         * 32-bit (linux or windows) passes va_list by value.
+         */
+        if ((n + 1 == strlen("%" PRId64) && strcmp(fmt2, "%" PRId64) == 0) ||
+            (n + 1 == strlen("%" PRIu64) && strcmp(fmt2, "%" PRIu64) == 0)) {
+          (void) va_arg(ap, int64_t);
+          skip += strlen(PRIu64) - 1;
+        } else if (strcmp(fmt2, "%.*s") == 0) {
+          (void) va_arg(ap, int);
+          (void) va_arg(ap, char *);
+        } else {
+          switch (fmt2[n]) {
+            case 'u':
+            case 'd':
+              (void) va_arg(ap, int);
+              break;
+            case 'g':
+            case 'f':
+              (void) va_arg(ap, double);
+              break;
+            case 'p':
+              (void) va_arg(ap, void *);
+              break;
+            default:
+              /* many types are promoted to int */
+              (void) va_arg(ap, int);
+          }
+        }
+
+        len += out->printer(out, pbuf, strlen(pbuf));
+        skip = n + 1;
+
+        /* If buffer was allocated from heap, free it */
+        if (pbuf != buf) {
+          free(pbuf);
+          pbuf = NULL;
+        }
+      }
+      fmt += skip;
+    } else if (*fmt == '_' || is_alpha(*fmt)) {
+      len += out->printer(out, quote, 1);
+      while (*fmt == '_' || is_alpha(*fmt) || is_digit(*fmt)) {
+        len += out->printer(out, fmt, 1);
+        fmt++;
+      }
+      len += out->printer(out, quote, 1);
+    } else {
+      fmt++;
+    }
+  }
+  va_end(ap);
+
+  return len;
+}
+
+int json_printf(struct json_out *out, const char *fmt, ...) WEAK;
+int json_printf(struct json_out *out, const char *fmt, ...) {
+  int n;
+  va_list ap;
+  va_start(ap, fmt);
+  n = json_vprintf(out, fmt, ap);
+  va_end(ap);
+  return n;
+}
+
+int json_printf_array(struct json_out *out, va_list *ap) WEAK;
+int json_printf_array(struct json_out *out, va_list *ap) {
+  int len = 0;
+  char *arr = va_arg(*ap, char *);
+  size_t i, arr_size = va_arg(*ap, size_t);
+  size_t elem_size = va_arg(*ap, size_t);
+  const char *fmt = va_arg(*ap, char *);
+  len += json_printf(out, "[", 1);
+  for (i = 0; arr != NULL && i < arr_size / elem_size; i++) {
+    union {
+      int64_t i;
+      double d;
+    } val;
+    memcpy(&val, arr + i * elem_size,
+           elem_size > sizeof(val) ? sizeof(val) : elem_size);
+    if (i > 0) len += json_printf(out, ", ");
+    if (strchr(fmt, 'f') != NULL) {
+      len += json_printf(out, fmt, val.d);
+    } else {
+      len += json_printf(out, fmt, val.i);
+    }
+  }
+  len += json_printf(out, "]", 1);
+  return len;
+}
+
+#ifdef _WIN32
+int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap) WEAK;
+int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
+  int res = _vsnprintf(str, size, format, ap);
+  va_end(ap);
+  if (res >= size) {
+    str[size - 1] = '\0';
+  }
+  return res;
+}
+
+int cs_win_snprintf(char *str, size_t size, const char *format, ...) WEAK;
+int cs_win_snprintf(char *str, size_t size, const char *format, ...) {
+  int res;
+  va_list ap;
+  va_start(ap, format);
+  res = vsnprintf(str, size, format, ap);
+  va_end(ap);
+  return res;
+}
+#endif /* _WIN32 */
+
+int json_walk(const char *json_string, int json_string_length,
+              json_walk_callback_t callback, void *callback_data) WEAK;
+int json_walk(const char *json_string, int json_string_length,
+              json_walk_callback_t callback, void *callback_data) {
+  struct frozen frozen;
+
+  memset(&frozen, 0, sizeof(frozen));
+  frozen.end = json_string + json_string_length;
+  frozen.cur = json_string;
+  frozen.callback_data = callback_data;
+  frozen.callback = callback;
+
+  TRY(doit(&frozen));
+
+  return frozen.cur - json_string;
+}
+
+struct scan_array_info {
+  char path[JSON_MAX_PATH_LEN];
+  struct json_token *token;
+};
+
+static void json_scanf_array_elem_cb(void *callback_data, const char *name,
+                                     size_t name_len, const char *path,
+                                     const struct json_token *token) {
+  struct scan_array_info *info = (struct scan_array_info *) callback_data;
+
+  (void) name;
+  (void) name_len;
+
+  if (strcmp(path, info->path) == 0) {
+    *info->token = *token;
+  }
+}
+
+int json_scanf_array_elem(const char *s, int len, const char *path, int idx,
+                          struct json_token *token) WEAK;
+int json_scanf_array_elem(const char *s, int len, const char *path, int idx,
+                          struct json_token *token) {
+  struct scan_array_info info;
+  info.token = token;
+  memset(token, 0, sizeof(*token));
+  snprintf(info.path, sizeof(info.path), "%s[%d]", path, idx);
+  json_walk(s, len, json_scanf_array_elem_cb, &info);
+  return token->len;
+}
+
+struct json_scanf_info {
+  int num_conversions;
+  char *path;
+  const char *fmt;
+  void *target;
+  void *user_data;
+  int type;
+};
+
+int json_unescape(const char *src, int slen, char *dst, int dlen) WEAK;
+int json_unescape(const char *src, int slen, char *dst, int dlen) {
+  char *send = (char *) src + slen, *dend = dst + dlen, *orig_dst = dst, *p;
+  const char *esc1 = "\"\\/bfnrt", *esc2 = "\"\\/\b\f\n\r\t";
+
+  while (src < send) {
+    if (*src == '\\') {
+      if (++src >= send) return JSON_STRING_INCOMPLETE;
+      if (*src == 'u') {
+        /* TODO(lsm): \uXXXX escapes drag utf8 lib... Do it at some stage */
+        return JSON_STRING_INVALID;
+      } else if ((p = (char *) strchr(esc1, *src)) != NULL) {
+        if (dst < dend) *dst = esc2[p - esc1];
+      } else {
+        return JSON_STRING_INVALID;
+      }
+    } else {
+      if (dst < dend) *dst = *src;
+    }
+    dst++;
+    src++;
+  }
+
+  return dst - orig_dst;
+}
+
+static void json_scanf_cb(void *callback_data, const char *name,
+                          size_t name_len, const char *path,
+                          const struct json_token *token) {
+  struct json_scanf_info *info = (struct json_scanf_info *) callback_data;
+
+  (void) name;
+  (void) name_len;
+
+  if (strcmp(path, info->path) != 0) {
+    /* It's not the path we're looking for, so, just ignore this callback */
+    return;
+  }
+
+  if (token->ptr == NULL) {
+    /*
+     * We're not interested here in the events for which we have no value;
+     * namely, JSON_TYPE_OBJECT_START and JSON_TYPE_ARRAY_START
+     */
+    return;
+  }
+
+  switch (info->type) {
+    case 'B':
+      info->num_conversions++;
+      *(int *) info->target = (token->type == JSON_TYPE_TRUE ? 1 : 0);
+      break;
+    case 'M': {
+      union {
+        void *p;
+        json_scanner_t f;
+      } u = {info->target};
+      info->num_conversions++;
+      u.f(token->ptr, token->len, info->user_data);
+      break;
+    }
+    case 'Q': {
+      char **dst = (char **) info->target;
+      int unescaped_len = json_unescape(token->ptr, token->len, NULL, 0);
+      if (unescaped_len >= 0 &&
+          (*dst = (char *) malloc(unescaped_len + 1)) != NULL) {
+        info->num_conversions++;
+        json_unescape(token->ptr, token->len, *dst, unescaped_len);
+        (*dst)[unescaped_len] = '\0';
+      }
+      break;
+    }
+    case 'H': {
+      char **dst = (char **) info->user_data;
+      int i, len = token->len / 2;
+      *(int *) info->target = len;
+      if ((*dst = (char *) malloc(len + 1)) != NULL) {
+        for (i = 0; i < len; i++) {
+          (*dst)[i] = hexdec(token->ptr + 2 * i);
+        }
+        (*dst)[len] = '\0';
+        info->num_conversions++;
+      }
+      break;
+    }
+    case 'V': {
+      char **dst = (char **) info->target;
+      int len = token->len * 4 / 3 + 2;
+      if ((*dst = (char *) malloc(len + 1)) != NULL) {
+        int n = b64dec(token->ptr, token->len, *dst);
+        (*dst)[n] = '\0';
+        *(int *) info->user_data = n;
+        info->num_conversions++;
+      }
+      break;
+    }
+    case 'T':
+      info->num_conversions++;
+      *(struct json_token *) info->target = *token;
+      break;
+    default:
+      info->num_conversions += sscanf(token->ptr, info->fmt, info->target);
+      break;
+  }
+}
+
+int json_vscanf(const char *s, int len, const char *fmt, va_list ap) WEAK;
+int json_vscanf(const char *s, int len, const char *fmt, va_list ap) {
+  char path[JSON_MAX_PATH_LEN] = "", fmtbuf[20];
+  int i = 0;
+  char *p = NULL;
+  struct json_scanf_info info = {0, path, fmtbuf, NULL, NULL, 0};
+
+  while (fmt[i] != '\0') {
+    if (fmt[i] == '{') {
+      strcat(path, ".");
+      i++;
+    } else if (fmt[i] == '}') {
+      if ((p = strrchr(path, '.')) != NULL) *p = '\0';
+      i++;
+    } else if (fmt[i] == '%') {
+      info.target = va_arg(ap, void *);
+      info.type = fmt[i + 1];
+      switch (fmt[i + 1]) {
+        case 'M':
+        case 'V':
+        case 'H':
+          info.user_data = va_arg(ap, void *);
+        /* FALLTHROUGH */
+        case 'B':
+        case 'Q':
+        case 'T':
+          i += 2;
+          break;
+        default: {
+          const char *delims = ", \t\r\n]}";
+          int conv_len = strcspn(fmt + i + 1, delims) + 1;
+          snprintf(fmtbuf, sizeof(fmtbuf), "%.*s", conv_len, fmt + i);
+          i += conv_len;
+          i += strspn(fmt + i, delims);
+          break;
+        }
+      }
+      json_walk(s, len, json_scanf_cb, &info);
+    } else if (is_alpha(fmt[i]) || get_utf8_char_len(fmt[i]) > 1) {
+      const char *delims = ": \r\n\t";
+      int key_len = strcspn(&fmt[i], delims);
+      if ((p = strrchr(path, '.')) != NULL) p[1] = '\0';
+      sprintf(path + strlen(path), "%.*s", key_len, &fmt[i]);
+      i += key_len + strspn(fmt + i + key_len, delims);
+    } else {
+      i++;
+    }
+  }
+  return info.num_conversions;
+}
+
+int json_scanf(const char *str, int len, const char *fmt, ...) WEAK;
+int json_scanf(const char *str, int len, const char *fmt, ...) {
+  int result;
+  va_list ap;
+  va_start(ap, fmt);
+  result = json_vscanf(str, len, fmt, ap);
+  va_end(ap);
+  return result;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/ffi/ffi.c"
 #endif
 /*
@@ -10137,8 +11630,11 @@ mjs_err_t mjs_array_push(struct mjs *mjs, mjs_val_t arr, mjs_val_t v) {
 
 /* Amalgamated: #include "mjs/core.h" */
 /* Amalgamated: #include "mjs/object.h" */
+/* Amalgamated: #include "mjs/array.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/conversion.h" */
+/* Amalgamated: #include "common/str_util.h" */
 
 MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
                                     char **p, size_t *sizep,
@@ -10182,6 +11678,9 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
     ret = MJS_TYPE_ERROR;
     mjs_set_errorf(mjs, ret, "conversion from object to string is not supported");
     bf_die(&mjs->vm);
+  } else if (mjs_is_foreign(*v)) {
+    *p = "TODO_foreign";
+    *sizep = 12;
   } else {
     ret = MJS_TYPE_ERROR;
     mjs_set_errorf(mjs, ret, "unknown type to convert to string");
@@ -10270,6 +11769,13 @@ MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
   mjs_set(mjs, g, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, g, "load", ~0, mjs_mk_foreign(mjs, mjs_op_load));
+
+  mjs_val_t json_v = mjs_mk_object(mjs);
+  mjs_set(mjs, json_v, "stringify", ~0,
+          mjs_mk_foreign(mjs, mjs_op_json_stringify));
+  mjs_set(mjs, json_v, "parse", ~0,
+      mjs_mk_foreign(mjs, mjs_op_json_parse));
+  mjs_set(mjs, g, "JSON", ~0, json_v);
 }
 
 static void cb_after_bf_enter(struct bf_vm *vm) {
@@ -10354,6 +11860,7 @@ void mjs_destroy(struct mjs *mjs) {
   mbuf_free(&mjs->foreign_strings);
   mbuf_free(&mjs->owned_values);
   mbuf_free(&mjs->scopes);
+  mbuf_free(&mjs->json_visited_stack);
   mjs_ffi_args_free_list(mjs);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
@@ -10515,6 +12022,39 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err) {
     }
   }
   return ret;
+}
+
+MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v) {
+  int tag;
+  (void) mjs;
+  if (mjs_is_number(v)) {
+    return MJS_TYPE_NUMBER;
+  }
+  tag = (v & MJS_TAG_MASK) >> 48;
+  switch (tag) {
+    case MJS_TAG_FOREIGN >> 48:
+      if (mjs_is_null(v)) {
+        return MJS_TYPE_NULL;
+      }
+      return MJS_TYPE_FOREIGN;
+    case MJS_TAG_UNDEFINED >> 48:
+      return MJS_TYPE_UNDEFINED;
+    case MJS_TAG_OBJECT >> 48:
+      return MJS_TYPE_OBJECT_GENERIC;
+    case MJS_TAG_OBJECT_ARRAY >> 48:
+      return MJS_TYPE_OBJECT_ARRAY;
+    case MJS_TAG_STRING_I >> 48:
+    case MJS_TAG_STRING_O >> 48:
+    case MJS_TAG_STRING_F >> 48:
+    case MJS_TAG_STRING_D >> 48:
+    case MJS_TAG_STRING_5 >> 48:
+      return MJS_TYPE_STRING;
+    case MJS_TAG_BOOLEAN >> 48:
+      return MJS_TYPE_BOOLEAN;
+    default:
+      abort();
+      return MJS_TYPE_UNDEFINED;
+  }
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/disasm_mjs.c"
@@ -11790,6 +13330,451 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *ptr) {
   return 0;
 }
 #ifdef MG_MODULE_LINES
+#line 1 "mjs/json.c"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/object.h" */
+/* Amalgamated: #include "mjs/array.h" */
+/* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/conversion.h" */
+/* Amalgamated: #include "mjs/json.h" */
+/* Amalgamated: #include "common/str_util.h" */
+/* Amalgamated: #include "common/cs_strtod.h" */
+/* Amalgamated: #include "common/cs_dbg.h" */
+/* Amalgamated: #include "frozen/frozen.h" */
+
+#define BUF_LEFT(size, used) (((size_t)(used) < (size)) ? ((size) - (used)) : 0)
+
+/*
+ * Returns whether the value of given type should be skipped when generating
+ * JSON output
+ *
+ * So far it always returns 0, but we might add some logic later, if we
+ * implement some non-jsonnable objects
+ */
+static int should_skip_for_json(enum mjs_type type) {
+  int ret;
+  switch (type) {
+    /* All permitted values */
+    case MJS_TYPE_NULL:
+    case MJS_TYPE_BOOLEAN:
+    case MJS_TYPE_NUMBER:
+    case MJS_TYPE_STRING:
+    case MJS_TYPE_OBJECT_GENERIC:
+    case MJS_TYPE_OBJECT_ARRAY:
+      ret = 0;
+      break;
+    default:
+      ret = 1;
+      break;
+  }
+  return ret;
+}
+
+static const char *hex_digits = "0123456789abcdef";
+static char *append_hex(char *buf, char *limit, uint8_t c) {
+  if (buf < limit) *buf++ = 'u';
+  if (buf < limit) *buf++ = '0';
+  if (buf < limit) *buf++ = '0';
+  if (buf < limit) *buf++ = hex_digits[(int) ((c >> 4) % 0xf)];
+  if (buf < limit) *buf++ = hex_digits[(int) (c & 0xf)];
+  return buf;
+}
+
+/*
+ * Appends quoted s to buf. Any double quote contained in s will be escaped.
+ * Returns the number of characters that would have been added,
+ * like snprintf.
+ * If size is zero it doesn't output anything but keeps counting.
+ */
+static int snquote(char *buf, size_t size, const char *s, size_t len) {
+  char *limit = buf + size - 1;
+  const char *end;
+  /*
+   * String single character escape sequence:
+   * http://www.ecma-international.org/ecma-262/6.0/index.html#table-34
+   *
+   * 0x8 -> \b
+   * 0x9 -> \t
+   * 0xa -> \n
+   * 0xb -> \v
+   * 0xc -> \f
+   * 0xd -> \r
+   */
+  const char *specials = "btnvfr";
+  size_t i = 0;
+
+  i++;
+  if (buf < limit) *buf++ = '"';
+
+  for (end = s + len; s < end; s++) {
+    if (*s == '"' || *s == '\\') {
+      i++;
+      if (buf < limit) *buf++ = '\\';
+    } else if (*s >= '\b' && *s <= '\r') {
+      i += 2;
+      if (buf < limit) *buf++ = '\\';
+      if (buf < limit) *buf++ = specials[*s - '\b'];
+      continue;
+    } else if ((unsigned char) *s < '\b' || (*s > '\r' && *s < ' ')) {
+      i += 6 /* \uXXXX */;
+      if (buf < limit) *buf++ = '\\';
+      buf = append_hex(buf, limit, (uint8_t) *s);
+      continue;
+    }
+    i++;
+    if (buf < limit) *buf++ = *s;
+  }
+
+  i++;
+  if (buf < limit) *buf++ = '"';
+
+  if (size != 0) {
+    *buf = '\0';
+  }
+  return i;
+}
+
+MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v,
+    char *buf, size_t size,
+    size_t *res_len, uint8_t is_debug) {
+  mjs_val_t el;
+  char *vp;
+  mjs_err_t rcode = MJS_OK;
+  size_t len = 0;
+  /*
+   * TODO(dfrank) : also push all `mjs_val_t`s that are declared below
+   */
+
+  if (size > 0) *buf = '\0';
+
+  if (!is_debug && should_skip_for_json(mjs_get_type(mjs, v))) {
+    goto clean;
+  }
+
+  for (vp = mjs->json_visited_stack.buf;
+      vp < mjs->json_visited_stack.buf + mjs->json_visited_stack.len;
+      vp += sizeof(mjs_val_t)) {
+    if (*(mjs_val_t *) vp == v) {
+      strncpy(buf, "[Circular]", size);
+      len = 10;
+      goto clean;
+    }
+  }
+
+  switch (mjs_get_type(mjs, v)) {
+    case MJS_TYPE_NULL:
+    case MJS_TYPE_BOOLEAN:
+    case MJS_TYPE_NUMBER:
+    case MJS_TYPE_UNDEFINED:
+    case MJS_TYPE_FOREIGN:
+      /* For those types, regular `mjs_to_string()` works */
+      {
+        /* TODO: refactor: mjs_to_string allocates memory every time */
+        char *p = NULL;
+        int need_free = 0;
+        rcode = mjs_to_string(mjs, &v, &p, &len, &need_free);
+        c_snprintf(buf, size, "%.*s", (int) len, p);
+        if (need_free) {
+          free(p);
+        }
+      }
+      goto clean;
+
+    case MJS_TYPE_STRING: {
+      /*
+       * For strings we can't just use `primitive_to_str()`, because we need
+       * quoted value
+       */
+      size_t n;
+      const char *str = mjs_get_string(mjs, &v, &n);
+      len = snquote(buf, size, str, n);
+      goto clean;
+    }
+
+    case MJS_TYPE_OBJECT_GENERIC: {
+      char *b = buf;
+
+      mbuf_append(&mjs->json_visited_stack, (char *) &v, sizeof(v));
+      b += c_snprintf(b, BUF_LEFT(size, b - buf), "{");
+
+      struct mjs_object *o = get_object_struct(v);
+      struct mjs_property *prop = NULL;
+      for (prop = o->properties; prop != NULL; prop = prop->next) {
+        size_t n;
+        const char *s;
+        if (!is_debug && should_skip_for_json(mjs_get_type(mjs, prop->value))) {
+          continue;
+        }
+        if (b - buf != 1) { /* Not the first property to be printed */
+          b += c_snprintf(b, BUF_LEFT(size, b - buf), ",");
+        }
+        s = mjs_get_string(mjs, &prop->name, &n);
+        b += c_snprintf(b, BUF_LEFT(size, b - buf), "\"%.*s\":", (int) n, s);
+        {
+          size_t tmp = 0;
+          rcode = to_json_or_debug(mjs, prop->value, b, BUF_LEFT(size, b - buf), &tmp,
+              is_debug);
+          if (rcode != MJS_OK) {
+            goto clean_iter;
+          }
+          b += tmp;
+        }
+      }
+
+      b += c_snprintf(b, BUF_LEFT(size, b - buf), "}");
+      mjs->json_visited_stack.len -= sizeof(v);
+
+clean_iter:
+      len = b - buf;
+      goto clean;
+    }
+    case MJS_TYPE_OBJECT_ARRAY: {
+      int has;
+      char *b = buf;
+      size_t i, alen = mjs_array_length(mjs, v);
+      mbuf_append(&mjs->json_visited_stack, (char *) &v, sizeof(v));
+      b += c_snprintf(b, BUF_LEFT(size, b - buf), "[");
+      for (i = 0; i < alen; i++) {
+        el = mjs_array_get2(mjs, v, i, &has);
+        if (has) {
+          size_t tmp = 0;
+          if (!is_debug && should_skip_for_json(mjs_get_type(mjs, el))) {
+            b += c_snprintf(b, BUF_LEFT(size, b - buf), "null");
+          } else {
+            rcode = to_json_or_debug(mjs, el, b, BUF_LEFT(size, b - buf), &tmp,
+                is_debug);
+            if (rcode != MJS_OK) {
+              goto clean;
+            }
+          }
+          b += tmp;
+        } else {
+          b += c_snprintf(b, BUF_LEFT(size, b - buf), "null");
+        }
+        if (i != alen - 1) {
+          b += c_snprintf(b, BUF_LEFT(size, b - buf), ",");
+        }
+      }
+      b += c_snprintf(b, BUF_LEFT(size, b - buf), "]");
+      mjs->json_visited_stack.len -= sizeof(v);
+      len = b - buf;
+      goto clean;
+    }
+
+    case MJS_TYPES_CNT:
+      abort();
+  }
+
+  abort();
+
+  len = 0; /* for compilers that don't know about abort() */
+  goto clean;
+
+clean:
+  if (rcode != MJS_OK) {
+    len = 0;
+  }
+  if (res_len != NULL) {
+    *res_len = len;
+  }
+  return rcode;
+}
+
+MJS_PRIVATE mjs_err_t mjs_json_stringify(struct mjs *mjs, mjs_val_t v, char *buf,
+    size_t size, char **res) {
+  mjs_err_t rcode = MJS_OK;
+  char *p = buf;
+  size_t len;
+
+  to_json_or_debug(mjs, v, buf, size, &len, 0);
+
+  if (len >= size) {
+    /* Buffer is not large enough. Allocate a bigger one */
+    p = (char *) malloc(len + 1);
+    rcode = mjs_json_stringify(mjs, v, p, len + 1, res);
+    assert(*res == p);
+    goto clean;
+  } else {
+    *res = p;
+    goto clean;
+  }
+
+clean:
+  /*
+   * If we're going to return an error, and we allocated a buffer, then free
+   * it. Otherwise, caller should free it.
+   */
+  if (rcode != MJS_OK && p != buf) {
+    free(p);
+  }
+  return rcode;
+}
+
+/*
+ * JSON parsing frame: a separate frame is allocated for each nested
+ * object/array during parsing
+ */
+struct json_parse_frame {
+  mjs_val_t val;
+  struct json_parse_frame *up;
+};
+
+/*
+ * Context for JSON parsing by means of json_walk()
+ */
+struct json_parse_ctx {
+  struct mjs *mjs;
+  mjs_val_t result;
+  struct json_parse_frame *frame;
+};
+
+/* Allocate JSON parse frame */
+static struct json_parse_frame *alloc_json_frame(struct json_parse_ctx *ctx,
+    mjs_val_t v) {
+  struct json_parse_frame *frame =
+    (struct json_parse_frame *) calloc(sizeof(struct json_parse_frame), 1);
+  frame->val = v;
+  mjs_own(ctx->mjs, &frame->val);
+  return frame;
+}
+
+/* Free JSON parse frame, return the previous one (which may be NULL) */
+static struct json_parse_frame *free_json_frame(
+    struct json_parse_ctx *ctx, struct json_parse_frame *frame) {
+  struct json_parse_frame *up = frame->up;
+  mjs_disown(ctx->mjs, &frame->val);
+  free(frame);
+  return up;
+}
+
+/* Callback for json_walk() */
+static void frozen_cb(void *data, const char *name, size_t name_len,
+                      const char *path, const struct json_token *token) {
+  struct json_parse_ctx *ctx = (struct json_parse_ctx *) data;
+  mjs_val_t v = MJS_UNDEFINED;
+
+  (void) path;
+
+  mjs_own(ctx->mjs, &v);
+
+  switch (token->type) {
+    case JSON_TYPE_STRING:
+      v = mjs_mk_string(ctx->mjs, token->ptr, token->len, 1 /* copy */);
+      break;
+    case JSON_TYPE_NUMBER:
+      v = mjs_mk_number(ctx->mjs, cs_strtod(token->ptr, NULL));
+      break;
+    case JSON_TYPE_TRUE:
+      v = mjs_mk_boolean(ctx->mjs, 1);
+      break;
+    case JSON_TYPE_FALSE:
+      v = mjs_mk_boolean(ctx->mjs, 0);
+      break;
+    case JSON_TYPE_NULL:
+      v = MJS_NULL;
+      break;
+    case JSON_TYPE_OBJECT_START:
+      v = mjs_mk_object(ctx->mjs);
+      break;
+    case JSON_TYPE_ARRAY_START:
+      v = mjs_mk_array(ctx->mjs);
+      break;
+
+    case JSON_TYPE_OBJECT_END:
+    case JSON_TYPE_ARRAY_END: {
+      /* Object or array has finished: deallocate its frame */
+      ctx->frame = free_json_frame(ctx, ctx->frame);
+    } break;
+
+    default:
+      LOG(LL_ERROR, ("Wrong token type %d\n", token->type));
+      break;
+  }
+
+  if (!mjs_is_undefined(v)) {
+    if (name != NULL && name_len != 0) {
+      /* Need to define a property on the current object/array */
+      if (mjs_is_object(ctx->frame->val)) {
+        mjs_set(ctx->mjs, ctx->frame->val, name, name_len, v);
+      } else if (mjs_is_array(ctx->frame->val)) {
+        /*
+         * TODO(dfrank): consult name_len. Currently it's not a problem due to
+         * the implementation details of frozen, but it might change
+         */
+        int idx = (int) cs_strtod(name, NULL);
+        mjs_array_set(ctx->mjs, ctx->frame->val, idx, v);
+      } else {
+        LOG(LL_ERROR, ("Current value is neither object nor array\n"));
+      }
+    } else {
+      /* This is a root value */
+      assert(ctx->frame == NULL);
+
+      /*
+       * This value will also be the overall result of JSON parsing
+       * (it's already owned by the `mjs_alt_json_parse()`)
+       */
+      ctx->result = v;
+    }
+
+    if (token->type == JSON_TYPE_OBJECT_START ||
+        token->type == JSON_TYPE_ARRAY_START) {
+      /* New object or array has just started, so we need to allocate a frame
+       * for it */
+      struct json_parse_frame *new_frame = alloc_json_frame(ctx, v);
+      new_frame->up = ctx->frame;
+      ctx->frame = new_frame;
+    }
+  }
+
+  mjs_disown(ctx->mjs, &v);
+}
+
+MJS_PRIVATE mjs_err_t mjs_json_parse(struct mjs *mjs, const char *str,
+                                     size_t len, mjs_val_t *res) {
+  struct json_parse_ctx *ctx =
+    (struct json_parse_ctx *) calloc(sizeof(struct json_parse_ctx), 1);
+  int json_res;
+  enum mjs_err rcode = MJS_OK;
+
+  ctx->mjs = mjs;
+  ctx->result = MJS_UNDEFINED;
+  ctx->frame = NULL;
+
+  mjs_own(mjs, &ctx->result);
+
+  json_res = json_walk(str, len, frozen_cb, ctx);
+
+  if (json_res >= 0) {
+    /* Expression is parsed successfully */
+    *res = ctx->result;
+
+    /* There should be no allocated frames */
+    assert(ctx->frame == NULL);
+  } else {
+    /* There was an error during parsing */
+    rcode = MJS_TYPE_ERROR;
+    mjs_prepend_errorf(mjs, rcode, "invalid JSON string");
+
+    /* There might be some allocated frames in case of malformed JSON */
+    while (ctx->frame != NULL) {
+      ctx->frame = free_json_frame(ctx, ctx->frame);
+    }
+  }
+
+  mjs_disown(mjs, &ctx->result);
+  free(ctx);
+
+  return rcode;
+}
+#ifdef MG_MODULE_LINES
 #line 1 "mjs/main.c"
 #endif
 /*
@@ -12054,6 +14039,7 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/array.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/util.h" */
+/* Amalgamated: #include "mjs/json.h" */
 /* Amalgamated: #include "mjs/parser_state.h" */
 /* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
@@ -12393,6 +14379,59 @@ clean:
 
   mjs->vals.min_scope = mjs_mk_number(mjs, min_scope_saved);
 
+  mjs_push(mjs, ret);
+}
+
+void mjs_op_json_stringify(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  char *p = NULL;
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t val = MJS_UNDEFINED;
+  mjs_err_t err = MJS_OK;
+
+  if (nargs < 1) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing a value to stringify");
+    goto clean;
+  }
+  val = mjs_pop(mjs);
+
+  err = mjs_json_stringify(mjs, val, NULL, 0, &p);
+  if (err != MJS_OK) {
+    goto clean;
+  }
+
+  ret = mjs_mk_string(mjs, p, ~0, 1 /* copy */);
+  free(p);
+  p = NULL;
+
+clean:
+  mjs_push(mjs, ret);
+}
+
+void mjs_op_json_parse(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  const char *str = NULL;
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t str_v = MJS_UNDEFINED;
+  mjs_err_t err = MJS_OK;
+
+  if (nargs < 1) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing a string to parse");
+    goto clean;
+  }
+  str_v = mjs_pop(mjs);
+
+  size_t len;
+  str = mjs_get_string(mjs, &str_v, &len);
+
+  err = mjs_json_parse(mjs, str, len, &ret);
+  if (err != MJS_OK) {
+    goto clean;
+  }
+
+clean:
   mjs_push(mjs, ret);
 }
 
@@ -12891,7 +14930,7 @@ bf_word_ptr_t mjs_emit_ident_inline(struct mjs_parse_ctx *ctx,
                                     const char *ident) {
   bf_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
 
-  while (is_ident(*ident) || is_digit(*ident)) {
+  while (mjs_is_ident(*ident) || mjs_is_digit(*ident)) {
     mjs_emit_uint8(ctx, *ident++);
   }
 
@@ -13570,20 +15609,20 @@ void pinit(const char *file_name, const char *buf, struct pstate *p) {
 
 // We're not relying on the target libc ctype, as it may incorrectly
 // handle negative arguments, e.g. isspace(-1).
-static int is_space(int c) {
+static int mjs_is_space(int c) {
   return c == ' ' || c == '\r' || c == '\n' || c == '\t';
 }
 
-MJS_PRIVATE int is_digit(int c) {
+MJS_PRIVATE int mjs_is_digit(int c) {
   return c >= '0' && c <= '9';
 }
 
-static int is_alpha(int c) {
+static int mjs_is_alpha(int c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-MJS_PRIVATE int is_ident(int c) {
-  return c == '_' || c == '$' || is_alpha(c);
+MJS_PRIVATE int mjs_is_ident(int c) {
+  return c == '_' || c == '$' || mjs_is_alpha(c);
 }
 
 // Try to parse a token that can take one or two chars.
@@ -13634,7 +15673,7 @@ static int is_reserved_word_token(const char *s, int len) {
       "typeof",    "var",    "void",  "while",      "with",     "let",
       "undefined", NULL};
   int i;
-  if (!is_alpha(s[0])) return 0;
+  if (!mjs_is_alpha(s[0])) return 0;
   for (i = 0; reserved[i] != NULL; i++) {
     if (len == (int) strlen(reserved[i]) && strncmp(s, reserved[i], len) == 0)
       return i + 1;
@@ -13643,7 +15682,7 @@ static int is_reserved_word_token(const char *s, int len) {
 }
 
 static int getident(struct pstate *p) {
-  while (is_ident(p->pos[0]) || is_digit(p->pos[0])) p->pos++;
+  while (mjs_is_ident(p->pos[0]) || mjs_is_digit(p->pos[0])) p->pos++;
   p->tok_len = p->pos - p->tok_ptr;
   p->pos--;
   return TOK_IDENT;
@@ -13667,7 +15706,7 @@ static void skip_spaces_and_comments(struct pstate *p) {
   const char *pos;
   do {
     pos = p->pos;
-    while (is_space(p->pos[0])) {
+    while (mjs_is_space(p->pos[0])) {
       if (p->pos[0] == '\n') p->line_no++;
       p->pos++;
     }
@@ -13697,11 +15736,11 @@ int pnext(struct pstate *p) {
   p->tok_ptr = p->pos;
   p->tok_len = 1;
 
-  if (is_digit(p->pos[0])) {
+  if (mjs_is_digit(p->pos[0])) {
     tok = getnum(p);
   } else if (p->pos[0] == '\'' || p->pos[0] == '"') {
     tok = getstr(p);
-  } else if (is_ident(p->pos[0])) {
+  } else if (mjs_is_ident(p->pos[0])) {
     tok = getident(p);
     /*
      * NOTE: getident() has side effects on `p`, and `is_reserved_word_token()`
