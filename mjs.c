@@ -2608,6 +2608,12 @@ int json_unescape(const char *src, int slen, char *dst, int dlen);
 
 /* Amalgamated: #include "common/platform.h" */
 
+/*
+ * Maximum number of word-sized args to ffi-ed function. If at least one
+ * of the args is double, only 2 args are allowed.
+ */
+#define FFI_MAX_ARGS_CNT 6
+
 typedef void (*ffi_fn_t)(void);
 
 struct ffi_arg {
@@ -11441,19 +11447,23 @@ void ffi_set_double(struct ffi_arg *arg, uint64_t v) {
  *
  */
 
-typedef word_t (*i0_t)(word_t, word_t, word_t, word_t);
-typedef word_t (*i1_t)(double, word_t);
-typedef word_t (*i2_t)(double, double);
+typedef word_t (*w4w_t)(word_t, word_t, word_t, word_t);
+typedef word_t (*w5w_t)(word_t, word_t, word_t, word_t, word_t);
+typedef word_t (*w6w_t)(word_t, word_t, word_t, word_t, word_t, word_t);
+typedef word_t (*wdw_t)(double, word_t);
+typedef word_t (*wdd_t)(double, double);
 
-typedef double (*d0_t)(word_t, word_t, word_t, word_t);
-typedef double (*d1_t)(double, word_t);
-typedef double (*d2_t)(double, double);
+typedef double (*d4w_t)(word_t, word_t, word_t, word_t);
+typedef double (*d5w_t)(word_t, word_t, word_t, word_t, word_t);
+typedef double (*d6w_t)(word_t, word_t, word_t, word_t, word_t, word_t);
+typedef double (*ddw_t)(double, word_t);
+typedef double (*ddd_t)(double, double);
 
 int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
              struct ffi_arg *args) {
   int i, doubles = 0;
 
-  if (nargs > 4) return -1;
+  if (nargs > 6) return -1;
   for (i = 0; i < nargs; i++) {
     doubles += !!args[i].is_float;
   }
@@ -11463,13 +11473,26 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
     word_t r;
     switch (doubles) {
       case 0: {
-        i0_t f = (i0_t) func;
-        r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
-              (word_t) args[3].v.i);
+        /* No double args: we currently support up to 6 word-sized arguments */
+        if (nargs <= 4) {
+          w4w_t f = (w4w_t) func;
+          r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+                (word_t) args[3].v.i);
+        } else if (nargs == 5) {
+          w5w_t f = (w5w_t) func;
+          r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+                (word_t) args[3].v.i, (word_t) args[4].v.i);
+        } else if (nargs == 6) {
+          w6w_t f = (w6w_t) func;
+          r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+                (word_t) args[3].v.i, (word_t) args[4].v.i, (word_t) args[5].v.i);
+        } else {
+          abort();
+        }
         break;
       }
       case 1: {
-        i1_t f = (i1_t) func;
+        wdw_t f = (wdw_t) func;
         if (args[0].is_float) {
           r = f(args[0].v.d, (word_t) args[1].v.i);
         } else {
@@ -11478,7 +11501,7 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
         break;
       }
       case 2: {
-        i2_t f = (i2_t) func;
+        wdd_t f = (wdd_t) func;
         r = f(args[0].v.d, args[1].v.d);
       } break;
       default:
@@ -11489,13 +11512,26 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
     double r;
     switch (doubles) {
       case 0: {
-        d0_t f = (d0_t) func;
-        r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
-              (word_t) args[3].v.i);
+        /* No double args: we currently support up to 6 word-sized arguments */
+        if (nargs <= 4) {
+          d4w_t f = (d4w_t) func;
+          r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+                (word_t) args[3].v.i);
+        } else if (nargs == 5) {
+          d5w_t f = (d5w_t) func;
+          r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+                (word_t) args[3].v.i, (word_t) args[4].v.i);
+        } else if (nargs == 6) {
+          d6w_t f = (d6w_t) func;
+          r = f((word_t) args[0].v.i, (word_t) args[1].v.i, (word_t) args[2].v.i,
+                (word_t) args[3].v.i, (word_t) args[4].v.i, (word_t) args[5].v.i);
+        } else {
+          abort();
+        }
         break;
       }
       case 1: {
-        d1_t f = (d1_t) func;
+        ddw_t f = (ddw_t) func;
         if (args[0].is_float) {
           r = f(args[0].v.d, (word_t) args[1].v.i);
         } else {
@@ -11504,7 +11540,7 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
         break;
       }
       case 2: {
-        d2_t f = (d2_t) func;
+        ddd_t f = (ddd_t) func;
         r = f(args[0].v.d, args[1].v.d);
       } break;
       default:
@@ -12517,11 +12553,11 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   ffi_fn_t fn;
   int i, nargs, ret = 1;
   struct ffi_arg res;
-  struct ffi_arg args[4];
+  struct ffi_arg args[FFI_MAX_ARGS_CNT];
 
   /* TODO(dfrank): support multiple callbacks */
   mjs_val_t resv = mjs_mk_undefined();
-  mjs_val_t argvs[4];
+  mjs_val_t argvs[FFI_MAX_ARGS_CNT];
 
   struct cbdata cbdata;
   memset(&cbdata, 0, sizeof(cbdata));
