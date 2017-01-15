@@ -125,6 +125,21 @@ It provides scripting abilities - example of exporting
 and [LED blink example](https://github.com/cesanta/mongoose-os/blob/master/fw/examples/mjs_hello/fs/init.js).
 Note that all that made with zero amount of glue code. JS API is just an FFI-ed C API.
 
+On UNIX or Mac system, a standard `dlsym()` symbol resolver is used.
+You can run this example that loads and calls stdlib's `system()` function:
+
+```
+$ cc mjs.c -DMJS_MAIN -D_DARWIN_C_SOURCE -o /tmp/mjs
+$ /tmp/mjs -e "let f=ffi('int system(char *)'); f('ls -l')"
+total 1312
+-rw-r--r--  1 lsm  staff     693 15 Jan 19:09 LICENSE
+-rw-r--r--  1 lsm  staff    5151 15 Jan 19:09 README.md
+-rwxr-xr-x  1 lsm  staff  156192 15 Jan 20:12 a.out
+-rw-r--r--  1 lsm  staff  471212 15 Jan 20:11 mjs.c
+-rw-r--r--  1 lsm  staff   22274 15 Jan 19:09 mjs.h
+0.000000
+```
+
 
 # Licensing
 
