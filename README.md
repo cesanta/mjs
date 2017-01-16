@@ -31,14 +31,14 @@ of RAM.
 # Built-in API
 
 - `print(arg1, ...);` - print arguments to stdout, separated by space.
-- `ffi('int foo(int)');` - import C function into mJS. See next section.
+- `let f = ffi('int foo(int)');` - import C function into mJS. See next section.
 - `load('file.js', obj);` - execute file `file.js`. `obj` paramenter is
   optional, `obj` is a global namespace object. If not specified, a current
   global namespace is passed to the script, which allows `file.js` to modify
   current namespace (`global` object).
-- `JSON.parse(str)` - parse JSON string and return parsed value. Conforms to
+- `let obj = JSON.parse(str);` - parse JSON string and return parsed value. Conforms to
   the [standard JSON.parse() API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse)
-- `JSON.stringify(value[, replacer[, space]])` - stringify mJS value.
+- `let str = JSON.stringify(value[, replacer[, space]]);` - stringify mJS value.
   Conforms to the [standard JSON.stringify() API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)
 
 # C/C++ interoperability
@@ -46,7 +46,7 @@ of RAM.
 mJS requires no glue code. The mJS's Foreign Function Interface (FFI)
 allows the user to call an existing C function with an arbitrary signature.
 Currently mJS provides a simple implementation of the FFI trampoline
-that only supports a few arguments (4 32-bit arguments or 2 64-bit ones):
+that supports up to 6 32-bit arguments, or up to 2 64-bit arguments:
 
 ```javascript
 let printf = ffi('int printf(char *, int, char *)');
@@ -63,13 +63,14 @@ to use engine API for embedding. `ffi()` the functions you need directly from C!
 ## Callbacks
 
 Callbacks are implemented similarly. Consider that you have a C function
-that takes a callback and user data pointer:
+that takes a callback and user data `void *` pointer, which should be marked
+as `userdata` in the signature:
 
 ```C
-void timer(int seconds, void (*callback)(int, void *), void *udata);
+void timer(int seconds, void (*callback)(int, void *), void *user_data);
 ```
 
-This is how to make an mJS callback:
+This is how to make an mJS callback - note the usage of `userdata`:
 
 ```javascript
 let timer = ffi('void timer(int, void (*)(int, userdata), userdata)');
