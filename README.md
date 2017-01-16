@@ -53,12 +53,14 @@ let printf = ffi('int printf(char *, int, char *)');
 printf('Hi %d %s\n', 123, 'foo');
 ```
 
-Thus, only functions with a up to four simple arguments
-(`int`, `double`, `char *`, `void *`) are supported. In order to import
-more complex functions (e.g. that uses structures as arguments), write wrappers.
+Function arguments should be simple: only `int`, `double`, `char *`, `void *`
+are supported. Use `char *` for NUL-terminated C strings, `void *` for any
+other pointers. In order to import more complex functions
+(e.g. the ones that use structures as arguments), please write wrappers.
 
 mJS FFI is a unique feature. In majority of cases, it makes it unnecessary
-to use engine API for embedding. `ffi()` the functions you need directly from C!
+to use embedding API. Just `ffi()` the functions you need directly from C!
+See example below on how to try FFI functionality from the UNIX shell.
 
 ## Callbacks
 
