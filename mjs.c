@@ -12284,9 +12284,9 @@ struct cbdata {
    */
   ffi_sig_t sig;
   /* index of the function pointer param */
-  signed func_idx : 3;
+  int8_t func_idx;
   /* index of the userdata param */
-  signed userdata_idx : 3;
+  int8_t userdata_idx;
 };
 
 void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym) {
