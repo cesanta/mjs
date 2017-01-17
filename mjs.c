@@ -12294,6 +12294,7 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym) {
 }
 
 static cval_type_t parse_cval_type(struct mjs *mjs, const char *s, const char *e) {
+  while (e > s && e[-1] == ' ') e--;  /* Trim trailing spaces */
   if (strncmp(s, "void", e - s) == 0) {
     return CVAL_TYPE_NONE;
   } else if (strncmp(s, "userdata", e - s) == 0) {
@@ -12397,6 +12398,7 @@ clean:
 
 /* An argument or a return value for C callback impl */
 union ffi_cb_data_val {
+  void *p;
   uintptr_t w;
   double d;
 };
@@ -12457,6 +12459,10 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
       break;
     case CVAL_TYPE_INT:
       ret.w = mjs_get_int(cbargs->mjs, res);
+      break;
+    case CVAL_TYPE_CHAR_PTR:
+    case CVAL_TYPE_VOID_PTR:
+      ret.p = mjs_get_ptr(cbargs->mjs, res);
       break;
     case CVAL_TYPE_DOUBLE:
       ret.d = mjs_get_int(cbargs->mjs, res);
@@ -12570,18 +12576,16 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   cbdata.func_idx = -1;
   cbdata.userdata_idx = -1;
 
-  /* Find a space between the return type and function name */
-  n = strchr(s, ' ');
-  if (n == NULL) {
-    n = s;
-  } else {
-    n++;
-  }
-  e = strchr(n, '(');
-  if (e == NULL) {
-    e = n + strlen(n);
-  } else {
-    a = e + 1;
+  for (n = s; *n && *n >= 'a' && *n <= 'z';) n++;  /* Skip type name */
+  while (*n == ' ' || *n == '*') n++;  /* Skip to function name */
+  for (e = n; *e && *e != '(';) e++;  /* Skip function name */
+  if (*e == '(') a = e + 1;
+
+  cval_type_t rtype = parse_cval_type(mjs, s, n);
+  if (rtype == CVAL_TYPE_INVALID) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong ffi return type");
+    ret = 0;
+    goto clean;
   }
 
   res.size = 4;
@@ -12769,7 +12773,22 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
 
   ffi_call(fn, nargs, &res, args);
 
-  resv = mjs_mk_number(mjs, res.v.i);
+  switch (rtype) {
+    case CVAL_TYPE_CHAR_PTR: {
+      const char *s = (const char *) (uintptr_t) res.v.i;
+      resv = mjs_mk_string(mjs, s, strlen(s), 1);
+      break;
+    }
+    case CVAL_TYPE_VOID_PTR:
+      resv = mjs_mk_foreign(mjs, (void *) (uintptr_t) res.v.i);
+      break;
+    case CVAL_TYPE_INT:
+      resv = mjs_mk_number(mjs, res.v.i);
+      break;
+    default:
+      resv = mjs_mk_undefined();
+      break;
+  }
 clean:
   if (!ret) {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "failed to call FFI signature \"%s\"", s);
@@ -12880,6 +12899,8 @@ MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(
         ret.userdata_idx = i;
         break;
       case CVAL_TYPE_INT:
+      case CVAL_TYPE_VOID_PTR:
+      case CVAL_TYPE_CHAR_PTR:
         /* Do nothing */
         break;
       case CVAL_TYPE_DOUBLE:
