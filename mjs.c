@@ -12429,6 +12429,15 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
       case CVAL_TYPE_INT:
         args[i] = mjs_mk_number(cbargs->mjs, data->args[i].w);
         break;
+      case CVAL_TYPE_CHAR_PTR: {
+        const char *s = (char *) data->args[i].w;
+        if (s == NULL) s = "";
+        args[i] = mjs_mk_string(cbargs->mjs, s, ~0, 0);
+        break;
+      }
+      case CVAL_TYPE_VOID_PTR:
+        args[i] = mjs_mk_foreign(cbargs->mjs, (void *) data->args[i].w);
+        break;
       case CVAL_TYPE_DOUBLE:
         args[i] = mjs_mk_number(cbargs->mjs, data->args[i].d);
         break;
@@ -12776,7 +12785,7 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
   switch (rtype) {
     case CVAL_TYPE_CHAR_PTR: {
       const char *s = (const char *) (uintptr_t) res.v.i;
-      resv = mjs_mk_string(mjs, s, strlen(s), 1);
+      resv = mjs_mk_string(mjs, s, ~0, 1);
       break;
     }
     case CVAL_TYPE_VOID_PTR:
