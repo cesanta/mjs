@@ -12469,7 +12469,6 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
     case CVAL_TYPE_INT:
       ret.w = mjs_get_int(cbargs->mjs, res);
       break;
-    case CVAL_TYPE_CHAR_PTR:
     case CVAL_TYPE_VOID_PTR:
       ret.p = mjs_get_ptr(cbargs->mjs, res);
       break;
