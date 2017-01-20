@@ -2654,6 +2654,7 @@ void ffi_set_double(struct ffi_arg *arg, uint64_t v);
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stddef.h>
 /* Amalgamated: #include "mjs/license.h" */
 
 /*

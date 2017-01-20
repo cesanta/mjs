@@ -120,6 +120,38 @@ void *my_dlsym(void *handle, const char *name) {
 
 ```
 
+# Complete embedding example
+
+We export C function `foo` to the JS environment and call it from the JS.
+
+```c
+#include "strings.h"
+#include "mjs.h"
+
+void foo(int x) {
+  printf("Hello %d!\n", x);
+}
+
+void *my_dlsym(void *handle, const char *name) {
+  if (strcmp(name, "foo") == 0) return foo;
+  return NULL;
+}
+
+int main(void) {
+  struct mjs *mjs = mjs_create();
+  mjs_set_ffi_resolver(mjs, my_dlsym);
+  mjs_exec(mjs, "let f = ffi('void foo(int)'); f(1234)", NULL);
+  return 0;
+}
+```
+
+Compile & run:
+
+```
+$ cc main.c mjs.c -o /tmp/x && /tmp/x
+Hello 1234!
+```
+
 # Real life application
 
 mJS is used in [Mongoose OS](https://github.com/cesanta/mongoose-os) - an open

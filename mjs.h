@@ -33,6 +33,7 @@
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stddef.h>
 /* Amalgamated: #include "mjs/license.h" */
 
 /*
@@ -291,6 +292,7 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stddef.h>
 /* Amalgamated: #include "mjs/license.h" */
 
 /*
