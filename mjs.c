@@ -3294,6 +3294,7 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 MJS_PRIVATE unsigned long cstr_to_ulong(const char *s, size_t len, int *ok);
 MJS_PRIVATE mjs_err_t str_to_ulong(struct mjs *mjs, mjs_val_t v, int *ok,
                                    unsigned long *res);
+MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 
 #endif /* MJS_STRING_H_ */
 #ifdef MG_MODULE_LINES
@@ -14676,9 +14677,23 @@ void mjs_op_pos(struct bf_vm *vm) {
 
 void mjs_op_eq(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  double b = mjs_get_double(mjs, bf_pop(&vm->dstack));
-  double a = mjs_get_double(mjs, bf_pop(&vm->dstack));
-  bf_push(&vm->dstack, mjs_mk_boolean(mjs, a == b));
+  mjs_val_t b = bf_pop(&vm->dstack);
+  mjs_val_t a = bf_pop(&vm->dstack);
+  int res = 0;
+
+  if (mjs_is_number(a) && mjs_is_number(b)) {
+    res = mjs_get_double(mjs, a) == mjs_get_double(mjs, b);
+  } else if (mjs_is_string(a) && mjs_is_string(b)) {
+    res = (s_cmp(mjs, a, b) == 0);
+  } else if (a == MJS_NULL && b == MJS_NULL) {
+    res = 1;
+  } else if (a == MJS_UNDEFINED && b == MJS_UNDEFINED) {
+    res = 1;
+  } else if (mjs_is_boolean(a) && mjs_is_boolean(b)) {
+    res = mjs_get_bool(mjs, a) == mjs_get_bool(mjs, b);
+  }
+
+  bf_push(&vm->dstack, mjs_mk_boolean(mjs, res));
 }
 
 void mjs_op_lt(struct bf_vm *vm) {
@@ -15759,6 +15774,25 @@ MJS_PRIVATE mjs_err_t str_to_ulong(struct mjs *mjs, mjs_val_t v, int *ok,
   return ret;
 }
 
+
+MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
+  size_t a_len, b_len;
+  const char *a_ptr, *b_ptr;
+
+  a_ptr = mjs_get_string(mjs, &a, &a_len);
+  b_ptr = mjs_get_string(mjs, &b, &b_len);
+
+  if (a_len == b_len) {
+    return memcmp(a_ptr, b_ptr, a_len);
+  }
+  if (a_len > b_len) {
+    return 1;
+  } else if (a_len < b_len) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/tok.c"
 #endif
