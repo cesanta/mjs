@@ -25,6 +25,7 @@ of RAM.
 - No `for..in`, `for..of`, `=>`.
 - No getters, setters, `valueOf`, prototypes, classes, template strings.
 - No destructors, generators, proxies, promises.
+- No `==` or `!=`, only `===` and `!==`.
 - mJS strings are byte strings. NOT Unicode strings. `'ы'.length === 2`,
   `'ы'[0] === '\xd1'`, `'ы'[1] === '\x8b'`.
 
