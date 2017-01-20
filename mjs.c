@@ -3285,6 +3285,8 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 /* Amalgamated: #include "mjs/string_public.h" */
 
+struct bf_vm;
+
 /*
  * Size of the extra space for strings mbuf that is needed to avoid frequent
  * reallocations
@@ -3295,6 +3297,8 @@ MJS_PRIVATE unsigned long cstr_to_ulong(const char *s, size_t len, int *ok);
 MJS_PRIVATE mjs_err_t str_to_ulong(struct mjs *mjs, mjs_val_t v, int *ok,
                                    unsigned long *res);
 MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
+
+MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm);
 
 #endif /* MJS_STRING_H_ */
 #ifdef MG_MODULE_LINES
@@ -14247,6 +14251,8 @@ void mjs_op_getprop(struct bf_vm *vm) {
           size_t val_len;
           mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
           val = mjs_mk_number(mjs, val_len);
+        } else if (strcmp(s, "slice") == 0) {
+          val = mjs_mk_foreign(mjs, mjs_string_slice);
         } else if (isnum) {
           /*
            * string subscript: return a new one-byte string if the index
@@ -15568,6 +15574,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/str_util.h" */
 /* Amalgamated: #include "mjs/varint.h" */
+/* Amalgamated: #include "mjs/primitive.h" */
 
 /* TODO(lsm): NaN payload location depends on endianness, make crossplatform */
 #define GET_VAL_NAN_PAYLOAD(v) ((char *) &(v))
@@ -15795,6 +15802,80 @@ MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
   } else {
     return 0;
   }
+}
+
+/*
+ * string_idx takes and index in the string and the string size, and returns
+ * the index which is >= 0 and <= size. Negative index is interpreted as
+ * size + index.
+ */
+static int string_idx(int idx, int size) {
+  if (idx < 0) {
+    idx = size + idx;
+    if (idx < 0) {
+      idx = 0;
+    }
+  }
+  if (idx > size) {
+    idx = size;
+  }
+  return idx;
+}
+
+MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  mjs_val_t ret = mjs_mk_number(mjs, 0);
+  mjs_val_t beginSlice_v = MJS_UNDEFINED;
+  mjs_val_t endSlice_v = MJS_UNDEFINED;
+  int beginSlice = 0;
+  int endSlice = 0;
+  size_t size;
+  const char *s = NULL;
+
+  if (!mjs_is_string(mjs->vals.this_val)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "this should be a string");
+    goto clean;
+  }
+
+  s = mjs_get_string(mjs, &mjs->vals.this_val, &size);
+
+  if (nargs < 1) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'beginSlice'");
+    goto clean;
+  }
+
+  beginSlice_v = mjs_pop(mjs);
+
+  if (!mjs_is_number(beginSlice_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "beginSlice should be a number");
+    goto clean;
+  }
+
+  beginSlice = string_idx(mjs_get_int(mjs, beginSlice_v), size);
+
+  if (nargs >= 2) {
+    /* endSlice is given; use it */
+    endSlice_v = mjs_pop(mjs);
+    if (!mjs_is_number(endSlice_v)) {
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "endSlice should be a number");
+      goto clean;
+    }
+
+    endSlice = string_idx(mjs_get_int(mjs, endSlice_v), size);
+  } else {
+    /* endSlice is not given; assume the end of the string */
+    endSlice = size;
+  }
+
+  if (endSlice < beginSlice) {
+    endSlice = beginSlice;
+  }
+
+  ret = mjs_mk_string(mjs, s + beginSlice, endSlice - beginSlice, 1);
+
+clean:
+  mjs_push(mjs, ret);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/tok.c"
