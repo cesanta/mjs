@@ -14252,10 +14252,22 @@ void mjs_op_getprop(struct bf_vm *vm) {
 
     if (err == MJS_OK) {
       if (mjs_is_string(mjs->vals.last_getprop_obj)) {
+        int isnum = 0;
+        int idx = cstr_to_ulong(s, n, &isnum);
         if (strcmp(s, "length") == 0) {
           size_t val_len;
           mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
           val = mjs_mk_number(mjs, val_len);
+        } else if (isnum) {
+          /*
+           * string subscript: return a new one-byte string if the index
+           * is not out of bounds
+           */
+          size_t val_len;
+          const char *str = mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
+          if (idx >= 0 && idx < (int)val_len) {
+            val = mjs_mk_string(mjs, str + idx, 1, 1);
+          }
         }
       }
     }
