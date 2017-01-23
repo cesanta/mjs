@@ -1954,7 +1954,7 @@ void bf_print_stack(struct bf_vm *vm, struct bf_stack *stack);
 int32_t bf_to_int(bf_cell_t cell);
 bf_cell_t bf_from_int(int32_t i);
 void bf_print_cell(struct bf_vm *vm, bf_cell_t cell);
-int bf_is_true(bf_cell_t cell);
+int bf_is_true(struct bf_vm *vm, bf_cell_t cell);
 
 #endif /* MJS_BRAINFARTH_BRAINFARTH_H_ */
 #ifdef MG_MODULE_LINES
@@ -3527,6 +3527,13 @@ MJS_PRIVATE void *get_ptr(mjs_val_t v);
 MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
                                     char **p, size_t *sizep,
                                     int *need_free);
+
+/*
+ * Converts value to boolean as in the expression `if (v)`.
+ */
+MJS_PRIVATE mjs_val_t mjs_to_boolean_v(struct mjs *mjs, mjs_val_t v);
+
+MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
 
 #endif /* MJS_CONVERSION_H_ */
 #ifdef MG_MODULE_LINES
@@ -6878,7 +6885,7 @@ void bf_op_call(struct bf_vm *vm) {
 void bf_op_if(struct bf_vm *vm) {
   bf_cell_t iftrue = bf_pop(&vm->dstack);
   bf_cell_t cond = bf_pop(&vm->dstack);
-  if (bf_is_true(cond)) {
+  if (bf_is_true(vm, cond)) {
     bf_enter(vm, bf_to_int(iftrue));
   }
 }
@@ -6887,7 +6894,7 @@ void bf_op_ifelse(struct bf_vm *vm) {
   bf_cell_t iffalse = bf_pop(&vm->dstack);
   bf_cell_t iftrue = bf_pop(&vm->dstack);
   bf_cell_t cond = bf_pop(&vm->dstack);
-  bf_enter(vm, (bf_is_true(cond) ? bf_to_int(iftrue) : bf_to_int(iffalse)));
+  bf_enter(vm, (bf_is_true(vm, cond) ? bf_to_int(iftrue) : bf_to_int(iffalse)));
 }
 
 void bf_op_ndrop(struct bf_vm *vm) {
@@ -11710,6 +11717,23 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v,
 clean:
   return ret;
 }
+
+MJS_PRIVATE mjs_val_t mjs_to_boolean_v(struct mjs *mjs, mjs_val_t v) {
+  size_t len;
+  int is_truthy;
+
+  is_truthy = ((mjs_is_boolean(v) && mjs_get_bool(mjs, v)) ||
+      (mjs_is_number(v) && mjs_get_double(mjs, v) != 0.0) ||
+      (mjs_is_string(v) && mjs_get_string(mjs, &v, &len) && len > 0) ||
+      (mjs_is_object(v))) &&
+    v != MJS_TAG_NAN;
+
+  return mjs_mk_boolean(mjs, is_truthy);
+}
+
+MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
+  return mjs_get_bool(mjs, mjs_to_boolean_v(mjs, v));
+}
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/core.c"
 #endif
@@ -11728,6 +11752,7 @@ clean:
 /* Amalgamated: #include "mjs/primitive.h" */
 /* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/conversion.h" */
 /* Amalgamated: #include "mjs/ops.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
@@ -11770,12 +11795,9 @@ void bf_print_cell(struct bf_vm *vm, bf_cell_t cell) {
   }
 }
 
-int bf_is_true(bf_cell_t cell) {
-  if (mjs_is_boolean((mjs_val_t) cell)) {
-    return !!mjs_get_bool(NULL, (mjs_val_t) cell);
-  } else {
-    return !!mjs_get_int32(NULL, (mjs_val_t) cell);
-  }
+int bf_is_true(struct bf_vm *vm, bf_cell_t cell) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  return mjs_get_bool(mjs, mjs_to_boolean_v(mjs, (mjs_val_t) cell));
 }
 
 struct mjs *mjs_create() {
@@ -14702,9 +14724,9 @@ void mjs_op_logical_and(struct bf_vm *vm) {
 
 void mjs_op_logical_or(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  int b = mjs_get_bool(mjs, bf_pop(&vm->dstack));
-  int a = mjs_get_bool(mjs, bf_pop(&vm->dstack));
-  bf_push(&vm->dstack, mjs_mk_boolean(mjs, a || b));
+  mjs_val_t b = bf_pop(&vm->dstack);
+  mjs_val_t a = bf_pop(&vm->dstack);
+  bf_push(&vm->dstack, mjs_is_truthy(mjs, a) ? a : b);
 }
 
 void mjs_op_mkarr(struct bf_vm *vm) {
