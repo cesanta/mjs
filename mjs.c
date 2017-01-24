@@ -12203,7 +12203,7 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 #define MJS_DEFAULT_OBJECT_ARENA_SIZE 20
 #endif
 #ifndef MJS_DEFAULT_PROPERTY_ARENA_SIZE
-#define MJS_DEFAULT_PROPERTY_ARENA_SIZE 80
+#define MJS_DEFAULT_PROPERTY_ARENA_SIZE 20
 #endif
 
 static void object_destructor(struct mjs *mjs, void *ptr) {
