@@ -3534,7 +3534,7 @@ struct bf_vm;
  * Size of the extra space for strings mbuf that is needed to avoid frequent
  * reallocations
  */
-#define _MJS_STRING_BUF_RESERVE 500
+#define _MJS_STRING_BUF_RESERVE 100
 
 MJS_PRIVATE unsigned long cstr_to_ulong(const char *s, size_t len, int *ok);
 MJS_PRIVATE mjs_err_t str_to_ulong(struct mjs *mjs, mjs_val_t v, int *ok,
