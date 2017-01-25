@@ -7075,8 +7075,8 @@ static void bf_trace(struct bf_vm *vm) {
   } else {
     pad[0] = '\0';
   }
-  LOG(LL_DEBUG, (">> ip:%04X (%s)%sop:%02X -> %s", vm->ip, pos_name, pad,
-                 (uint8_t) op, sword));
+  LOG(LL_VERBOSE_DEBUG, (">> ip:%04X (%s)%sop:%02X -> %s", vm->ip, pos_name,
+                         pad, (uint8_t) op, sword));
 }
 
 void bf_enter_thread(struct bf_vm *vm, bf_word_ptr_t word) {
@@ -7086,16 +7086,16 @@ void bf_enter_thread(struct bf_vm *vm, bf_word_ptr_t word) {
 
 void bf_enter(struct bf_vm *vm, bf_word_ptr_t word) {
   if (word >= 0 && bf_fetch(vm, vm->ip) == 0 && segstack_size(&vm->rstack) > 0) {
-    LOG(LL_DEBUG, ("tail recursion"));
+    LOG(LL_VERBOSE_DEBUG, ("tail recursion"));
     vm->ip = bf_to_int(bf_pop(&vm->rstack));
   }
 
   if (word < 0) {
     bf_native_t nat = vm->code->native_words[-word - 1];
-    LOG(LL_DEBUG, ("calling native function %p", nat));
+    LOG(LL_VERBOSE_DEBUG, ("calling native function %p", nat));
     nat(vm);
   } else {
-    LOG(LL_DEBUG, ("%d is threaded word", word));
+    LOG(LL_VERBOSE_DEBUG, ("%d is threaded word", word));
     bf_enter_thread(vm, word);
   }
 }
@@ -7174,7 +7174,7 @@ void bf_op_quote(struct bf_vm *vm) {
   lit <<= 8;
   lit |= (uint8_t) bf_fetch(vm, vm->ip + 1);
   vm->ip += 2;
-  LOG(LL_DEBUG, ("quoting %d", lit));
+  LOG(LL_VERBOSE_DEBUG, ("quoting %d", lit));
   bf_push(&vm->dstack, bf_from_int(lit));
 }
 
@@ -7402,7 +7402,7 @@ bf_cell_t bf_mmap(struct bf_mem **mem, void *data, size_t data_len, int flags) {
   size_t num_pages =
       data_len / FR_PAGE_SIZE + (data_len % FR_PAGE_SIZE == 0 ? 0 : 1);
 
-  LOG(LL_DEBUG, ("mapping %d pages", num_pages));
+  LOG(LL_VERBOSE_DEBUG, ("mapping %d pages", num_pages));
 
   (*mem)->num_pages += num_pages;
   bf_realloc_mem(mem);
@@ -7435,7 +7435,7 @@ void bf_write_byte(struct bf_mem *mem, bf_cell_t addr, char value) {
 
   /* TODO: make this disabled in release builds */
   if (mem->pages[page].flags & FR_MEM_RO) {
-    LOG(LL_DEBUG,
+    LOG(LL_VERBOSE_DEBUG,
         ("Trapping write access to read only bf memory at addr 0x%X", addr));
     return;
   }
@@ -12588,7 +12588,7 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
   bf_cell_t r;
   struct mjs_parse_ctx ctx;
 
-  LOG(LL_DEBUG, ("parsing %s", src));
+  LOG(LL_VERBOSE_DEBUG, ("parsing %s", src));
   err = mjs_parse_buf(mjs, src, len, &ctx);
   if (err != MJS_OK) {
     return err;
@@ -12598,7 +12598,7 @@ mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
   mjs->error_msg = NULL;
   mjs->error_msg_err = MJS_OK;
 
-  LOG(LL_DEBUG, ("running %d", ctx.entry));
+  LOG(LL_VERBOSE_DEBUG, ("running %d", ctx.entry));
   bf_run(&mjs->vm, ctx.entry);
   r = bf_pop(&mjs->vm.dstack);
   err = mjs->error_msg_err;
@@ -12650,7 +12650,7 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   mjs_val_t r;
   int i;
 
-  LOG(LL_DEBUG, ("applying func %d", mjs_get_int(mjs, func)));
+  LOG(LL_VERBOSE_DEBUG, ("applying func %d", mjs_get_int(mjs, func)));
   for (i = nargs - 1; i >= 0; i--) {
     bf_push(&mjs->vm.dstack, args[i]);
   }
@@ -12887,7 +12887,8 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param, struct ffi_cb_data
   }
 
   /* Call JS function */
-  LOG(LL_DEBUG, ("calling JS callback void-void %d from C", mjs_get_int(cbargs->mjs, cbargs->func)));
+  LOG(LL_VERBOSE_DEBUG, ("calling JS callback void-void %d from C",
+                         mjs_get_int(cbargs->mjs, cbargs->func)));
   mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, MJS_UNDEFINED,
                             cbargs->sig.stat.args_cnt, args);
   if (err != MJS_OK) {
@@ -15413,8 +15414,8 @@ mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
 
   while ((tok = next_tok(&ctx->pstate)) != TOK_END_OF_INPUT) {
     tok_data.begin = ctx->pstate.tok_ptr;
-    LOG(LL_DEBUG, ("sending token %d '%.*s' state %d", tok, ctx->pstate.tok_len,
-                   tok_data.begin, ctx->state));
+    LOG(LL_VERBOSE_DEBUG, ("sending token %d '%.*s' state %d", tok,
+                            ctx->pstate.tok_len, tok_data.begin, ctx->state));
     mjsParser(parser, tok, tok_data, ctx);
   }
 
@@ -15445,8 +15446,8 @@ mjs_err_t mjs_parse_buf(struct mjs *mjs, const char *src, size_t len,
 
   mjsParserFree(parser, free);
 
-  LOG(LL_DEBUG, ("emitted %d bytes", ctx->gen - ctx->mjs->last_code));
-  LOG(LL_DEBUG, ("start at %d", ctx->mjs->last_code));
+  LOG(LL_VERBOSE_DEBUG, ("emitted %d bytes", ctx->gen - ctx->mjs->last_code));
+  LOG(LL_VERBOSE_DEBUG, ("start at %d", ctx->mjs->last_code));
 
   ctx->mjs->last_code = ctx->gen;
 
@@ -15486,7 +15487,7 @@ void mjs_dump_bcode(struct mjs *mjs, const char *filename, bf_word_ptr_t start,
 }
 
 bf_word_ptr_t mjs_emit(struct mjs_parse_ctx *ctx, bf_opcode_t op) {
-  LOG(LL_DEBUG, ("emitting opcode %d at %d", op, ctx->gen));
+  LOG(LL_VERBOSE_DEBUG, ("emitting opcode %d at %d", op, ctx->gen));
   return mjs_emit_uint8(ctx, (uint8_t) op);
 }
 
@@ -15501,7 +15502,7 @@ bf_word_ptr_t mjs_emit_call(struct mjs_parse_ctx *ctx, bf_word_ptr_t dst) {
   /* LOG(LL_ERROR, ("EMITTING CALL TO %d", dst)); */
   /* assert(dst < ctx->gen); */
   offset = dst - ctx->gen;
-  LOG(LL_DEBUG, ("emitting call to %d at %d", dst, ctx->gen));
+  LOG(LL_VERBOSE_DEBUG, ("emitting call to %d at %d", dst, ctx->gen));
   if (offset >= BF_MIN_LOCAL_OFFSET) {
     return mjs_emit_uint8(ctx, (bf_opcode_t) offset);
   } else {
@@ -15710,7 +15711,7 @@ bf_word_ptr_t mjs_emit_uint8(struct mjs_parse_ctx *ctx, uint8_t v) {
   if (!bf_is_mapped(ctx->mjs->vm.iram, ctx->gen)) {
     bf_mmap(&ctx->mjs->vm.iram, calloc(1, FR_PAGE_SIZE), FR_PAGE_SIZE, 0);
   }
-  LOG(LL_DEBUG, ("emitting byte %02X at %d", v, ctx->gen));
+  LOG(LL_VERBOSE_DEBUG, ("emitting byte %02X at %d", v, ctx->gen));
   bf_write_byte(ctx->mjs->vm.iram, ctx->gen++, v);
   return start;
 }
