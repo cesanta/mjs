@@ -2499,6 +2499,7 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_js_SETEQ (113)
 #define MJS_WORD_PTR_js_logical_and (116)
 #define MJS_WORD_PTR_js_logical_or (116)
+#define MJS_WORD_PTR_js_PLUS (116)
 #define MJS_WORD_PTR_anon_2 (116)
 #define MJS_WORD_PTR_ifstmt (118)
 #define MJS_WORD_PTR_anon_3 (123)
@@ -2606,27 +2607,28 @@ extern struct bf_code MJS_code;
 #define MJS_OP_js_SETEQ ((bf_opcode_t) 74)
 #define MJS_OP_js_logical_and ((bf_opcode_t) 75)
 #define MJS_OP_js_logical_or ((bf_opcode_t) 76)
-#define MJS_OP_ifstmt ((bf_opcode_t) 77)
-#define MJS_OP_repeat ((bf_opcode_t) 78)
-#define MJS_OP_while ((bf_opcode_t) 79)
-#define MJS_OP_jsprint ((bf_opcode_t) 80)
-#define MJS_OP_zero ((bf_opcode_t) 81)
-#define MJS_OP_one ((bf_opcode_t) 82)
-#define MJS_OP_nop ((bf_opcode_t) 83)
-#define MJS_OP_inc ((bf_opcode_t) 84)
-#define MJS_OP_swapinc ((bf_opcode_t) 85)
-#define MJS_OP_div ((bf_opcode_t) 86)
-#define MJS_OP_rem ((bf_opcode_t) 87)
-#define MJS_OP_lshift ((bf_opcode_t) 88)
-#define MJS_OP_rshift ((bf_opcode_t) 89)
-#define MJS_OP_urshift ((bf_opcode_t) 90)
-#define MJS_OP_and ((bf_opcode_t) 91)
-#define MJS_OP_or ((bf_opcode_t) 92)
-#define MJS_OP_xor ((bf_opcode_t) 93)
-#define MJS_OP_not ((bf_opcode_t) 94)
-#define MJS_OP_neg ((bf_opcode_t) 95)
-#define MJS_OP_pos ((bf_opcode_t) 96)
-#define MJS_OP_load ((bf_opcode_t) 97)
+#define MJS_OP_js_PLUS ((bf_opcode_t) 77)
+#define MJS_OP_ifstmt ((bf_opcode_t) 78)
+#define MJS_OP_repeat ((bf_opcode_t) 79)
+#define MJS_OP_while ((bf_opcode_t) 80)
+#define MJS_OP_jsprint ((bf_opcode_t) 81)
+#define MJS_OP_zero ((bf_opcode_t) 82)
+#define MJS_OP_one ((bf_opcode_t) 83)
+#define MJS_OP_nop ((bf_opcode_t) 84)
+#define MJS_OP_inc ((bf_opcode_t) 85)
+#define MJS_OP_swapinc ((bf_opcode_t) 86)
+#define MJS_OP_div ((bf_opcode_t) 87)
+#define MJS_OP_rem ((bf_opcode_t) 88)
+#define MJS_OP_lshift ((bf_opcode_t) 89)
+#define MJS_OP_rshift ((bf_opcode_t) 90)
+#define MJS_OP_urshift ((bf_opcode_t) 91)
+#define MJS_OP_and ((bf_opcode_t) 92)
+#define MJS_OP_or ((bf_opcode_t) 93)
+#define MJS_OP_xor ((bf_opcode_t) 94)
+#define MJS_OP_not ((bf_opcode_t) 95)
+#define MJS_OP_neg ((bf_opcode_t) 96)
+#define MJS_OP_pos ((bf_opcode_t) 97)
+#define MJS_OP_load ((bf_opcode_t) 98)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -3541,6 +3543,7 @@ MJS_PRIVATE unsigned long cstr_to_ulong(const char *s, size_t len, int *ok);
 MJS_PRIVATE mjs_err_t str_to_ulong(struct mjs *mjs, mjs_val_t v, int *ok,
                                    unsigned long *res);
 MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
+MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 
 MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm);
 
@@ -9510,7 +9513,7 @@ static void yy_reduce(
         break;
       case 85: /* expr ::= expr PLUS expr */
 #line 419 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_PLUS); }
+{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_PLUS); }
 #line 2068 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy32 = yylhsminor.yy32;
         break;
@@ -10149,6 +10152,8 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_logical_and> */ 
   /* 0116 -> : js_logical_or ... ; */
   /*           <mjs_op_logical_or> */ 
+  /* 0116 -> : js+ ... ; */
+  /*           <mjs_op_add> */ 
   /* 0116 -> : anon_2 ... ; */
   MJS_OP_undefined, MJS_OP_exit,
   /* 0118 -> : ifstmt ... ; */
@@ -10288,16 +10293,16 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0074 */ 113, 
   /* 0075 */ -60, 
   /* 0076 */ -61, 
-  /* 0077 */ 118, 
-  /* 0078 */ 147, 
-  /* 0079 */ 181, 
-  /* 0080 */ 204, 
-  /* 0081 */ 211, 
-  /* 0082 */ 215, 
-  /* 0083 */ 219, 
-  /* 0084 */ 222, 
-  /* 0085 */ 227, 
-  /* 0086 */ -62, 
+  /* 0077 */ -62, 
+  /* 0078 */ 118, 
+  /* 0079 */ 147, 
+  /* 0080 */ 181, 
+  /* 0081 */ 204, 
+  /* 0082 */ 211, 
+  /* 0083 */ 215, 
+  /* 0084 */ 219, 
+  /* 0085 */ 222, 
+  /* 0086 */ 227, 
   /* 0087 */ -63, 
   /* 0088 */ -64, 
   /* 0089 */ -65, 
@@ -10309,6 +10314,7 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0095 */ -71, 
   /* 0096 */ -72, 
   /* 0097 */ -73, 
+  /* 0098 */ -74, 
 };
 
 void bf_op_quote(struct bf_vm *vm);
@@ -10372,6 +10378,7 @@ void mjs_op_gt(struct bf_vm *vm);
 void mjs_op_invert(struct bf_vm *vm);
 void mjs_op_logical_and(struct bf_vm *vm);
 void mjs_op_logical_or(struct bf_vm *vm);
+void mjs_op_add(struct bf_vm *vm);
 void mjs_op_div(struct bf_vm *vm);
 void mjs_op_rem(struct bf_vm *vm);
 void mjs_op_lshift(struct bf_vm *vm);
@@ -10447,18 +10454,19 @@ bf_native_t MJS_native_words[] = {
   /* -059 */ mjs_op_invert,
   /* -060 */ mjs_op_logical_and,
   /* -061 */ mjs_op_logical_or,
-  /* -062 */ mjs_op_div,
-  /* -063 */ mjs_op_rem,
-  /* -064 */ mjs_op_lshift,
-  /* -065 */ mjs_op_rshift,
-  /* -066 */ mjs_op_urshift,
-  /* -067 */ mjs_op_and,
-  /* -068 */ mjs_op_or,
-  /* -069 */ mjs_op_xor,
-  /* -070 */ mjs_op_not,
-  /* -071 */ mjs_op_neg,
-  /* -072 */ mjs_op_pos,
-  /* -073 */ mjs_op_load,
+  /* -062 */ mjs_op_add,
+  /* -063 */ mjs_op_div,
+  /* -064 */ mjs_op_rem,
+  /* -065 */ mjs_op_lshift,
+  /* -066 */ mjs_op_rshift,
+  /* -067 */ mjs_op_urshift,
+  /* -068 */ mjs_op_and,
+  /* -069 */ mjs_op_or,
+  /* -070 */ mjs_op_xor,
+  /* -071 */ mjs_op_not,
+  /* -072 */ mjs_op_neg,
+  /* -073 */ mjs_op_pos,
+  /* -074 */ mjs_op_load,
 };
 
 const char *MJS_word_names[] = {
@@ -10540,27 +10548,28 @@ const char *MJS_word_names[] = {
   /* 0074 */ "js!=", 
   /* 0075 */ "js_logical_and", 
   /* 0076 */ "js_logical_or", 
-  /* 0077 */ "ifstmt", 
-  /* 0078 */ "repeat", 
-  /* 0079 */ "while", 
-  /* 0080 */ "jsprint", 
-  /* 0081 */ "zero", 
-  /* 0082 */ "one", 
-  /* 0083 */ "nop", 
-  /* 0084 */ "inc", 
-  /* 0085 */ "swapinc", 
-  /* 0086 */ "div", 
-  /* 0087 */ "rem", 
-  /* 0088 */ "lshift", 
-  /* 0089 */ "rshift", 
-  /* 0090 */ "urshift", 
-  /* 0091 */ "and", 
-  /* 0092 */ "or", 
-  /* 0093 */ "xor", 
-  /* 0094 */ "not", 
-  /* 0095 */ "neg", 
-  /* 0096 */ "pos", 
-  /* 0097 */ "load", 
+  /* 0077 */ "js+", 
+  /* 0078 */ "ifstmt", 
+  /* 0079 */ "repeat", 
+  /* 0080 */ "while", 
+  /* 0081 */ "jsprint", 
+  /* 0082 */ "zero", 
+  /* 0083 */ "one", 
+  /* 0084 */ "nop", 
+  /* 0085 */ "inc", 
+  /* 0086 */ "swapinc", 
+  /* 0087 */ "div", 
+  /* 0088 */ "rem", 
+  /* 0089 */ "lshift", 
+  /* 0090 */ "rshift", 
+  /* 0091 */ "urshift", 
+  /* 0092 */ "and", 
+  /* 0093 */ "or", 
+  /* 0094 */ "xor", 
+  /* 0095 */ "not", 
+  /* 0096 */ "neg", 
+  /* 0097 */ "pos", 
+  /* 0098 */ "load", 
 };
 
 const char *MJS_pos_names[] = {
@@ -15141,6 +15150,23 @@ void mjs_op_eq(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_mk_boolean(mjs, res));
 }
 
+void mjs_op_add(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs_val_t b = bf_pop(&vm->dstack);
+  mjs_val_t a = bf_pop(&vm->dstack);
+  mjs_val_t res = MJS_UNDEFINED;
+
+  if (mjs_is_number(a) && mjs_is_number(b)) {
+    res = mjs_mk_number(mjs, mjs_get_double(mjs, a) + mjs_get_double(mjs, b));
+  } else if (mjs_is_string(a) && mjs_is_string(b)) {
+    res = s_concat(mjs, a, b);
+  } else {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "values can't be added");
+  }
+
+  bf_push(&vm->dstack, res);
+}
+
 void mjs_op_lt(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   double b = mjs_get_double(mjs, bf_pop(&vm->dstack));
@@ -16241,6 +16267,31 @@ MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
     return 0;
   }
 }
+
+MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
+  size_t a_len, b_len, res_len;
+  const char *a_ptr, *b_ptr, *res_ptr;
+  mjs_val_t res;
+
+  /* Find out lengths of both srtings */
+  a_ptr = mjs_get_string(mjs, &a, &a_len);
+  b_ptr = mjs_get_string(mjs, &b, &b_len);
+
+  /* Create a placeholder string */
+  res = mjs_mk_string(mjs, NULL, a_len + b_len, 1);
+
+  /* mjs_mk_string() may have reallocated mbuf - revalidate pointers */
+  a_ptr = mjs_get_string(mjs, &a, &a_len);
+  b_ptr = mjs_get_string(mjs, &b, &b_len);
+
+  /* Copy strings into the placeholder */
+  res_ptr = mjs_get_string(mjs, &res, &res_len);
+  memcpy((char *) res_ptr, a_ptr, a_len);
+  memcpy((char *) res_ptr + a_len, b_ptr, b_len);
+
+  return res;
+}
+
 
 /*
  * string_idx takes and index in the string and the string size, and returns
