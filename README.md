@@ -13,7 +13,8 @@ implements a strict subset of ES6 (JavaScript version 6).
 - Any valid ES6 code is not necessarily a valid mJS code.
 
 On 32-bit ARM mJS engine takes about 25k of flash memory, and less than 1k
-of RAM.
+of RAM. See [intro article](http://goo.gl/zJYyWF) for more details.
+
 
 # Restrictions
 
