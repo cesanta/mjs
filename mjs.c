@@ -14662,7 +14662,43 @@ void mjs_op_setprop(struct bf_vm *vm) {
   mjs_val_t val = bf_pop(&vm->dstack);
   mjs_val_t name = bf_pop(&vm->dstack);
   mjs_val_t obj = bf_pop(&vm->dstack);
-  mjs_set_v(mjs, obj, name, val);
+  char *s = NULL;
+  int need_free = 0;
+
+  if (mjs_is_object(obj)) {
+    mjs_set_v(mjs, obj, name, val);
+  } else if (mjs_is_foreign(obj)) {
+    /*
+     * We don't have setters, so in order to support properties which behave
+     * like setters, we have to parse name right here, instead of having real
+     * built-in prototype objects
+     */
+
+    size_t n;
+
+    mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
+
+    int isnum = 0;
+    int idx = cstr_to_ulong(s, n, &isnum);
+
+    if (err == MJS_OK) {
+      uint8_t *ptr = (uint8_t *)mjs_get_ptr(mjs, obj);
+      int intval = mjs_get_int(mjs, val);
+      if (!isnum) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+        goto clean;
+      } else if (!mjs_is_number(val) || intval < 0 || intval > 0xff) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "only number 0 .. 255 can be assigned");
+        goto clean;
+      }
+      *(ptr + idx) = (uint8_t)intval;
+    }
+  }
+clean:
+  if (need_free) {
+    free(s);
+    s = NULL;
+  }
   bf_push(&vm->dstack, val);
 }
 
@@ -14693,10 +14729,11 @@ void mjs_op_getprop(struct bf_vm *vm) {
 
     mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
 
+    int isnum = 0;
+    int idx = cstr_to_ulong(s, n, &isnum);
+
     if (err == MJS_OK) {
       if (mjs_is_string(mjs->vals.last_getprop_obj)) {
-        int isnum = 0;
-        int idx = cstr_to_ulong(s, n, &isnum);
         if (strcmp(s, "length") == 0) {
           size_t val_len;
           mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
@@ -14713,6 +14750,13 @@ void mjs_op_getprop(struct bf_vm *vm) {
           if (idx >= 0 && idx < (int)val_len) {
             val = mjs_mk_string(mjs, str + idx, 1, 1);
           }
+        }
+      } else if (mjs_is_foreign(mjs->vals.last_getprop_obj)) {
+        if (!isnum) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+        } else {
+          uint8_t *ptr = (uint8_t *)mjs_get_ptr(mjs, mjs->vals.last_getprop_obj);
+          val = mjs_mk_number(mjs, *(ptr + idx));
         }
       }
     }
