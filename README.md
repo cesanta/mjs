@@ -42,6 +42,9 @@ of RAM. See [intro article](http://goo.gl/zJYyWF) for more details.
   the [standard JSON.parse() API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse)
 - `let str = JSON.stringify(value[, replacer[, space]]);` - stringify mJS value.
   Conforms to the [standard JSON.stringify() API](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)
+- `"abcdef".slice(1,3) === "bc"` - the `slice(start, end)` string method returns a substring beteen two indices.
+- `let foo = ffi('void *foo(void)'); let ptr = foo(); ptr[0] === 17;` - mJS can access memory using C `void *` pointer subscripts `ptrVar[index]`. Return byte value at that location.
+- `let foo = ffi('void *foo(void)'); let ptr = foo(); let s = fstr(ptr, 3, 10);` - create a string backed by a C memory chunk, `fstr(ptrVar, offset, length)`. A string `s` starts at memory location `ptrVar + offset`, and is `length` bytes long.
 
 # C/C++ interoperability
 
