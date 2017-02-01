@@ -3546,6 +3546,7 @@ MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 
 MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm);
+MJS_PRIVATE void mjs_fstr(struct bf_vm *vm);
 
 #endif /* MJS_STRING_H_ */
 #ifdef MG_MODULE_LINES
@@ -12239,7 +12240,9 @@ void bf_print_cell(struct bf_vm *vm, bf_cell_t cell) {
   if (mjs_is_number(v)) {
     printf("%d", mjs_get_int(mjs, v));
   } else if (mjs_is_string(v)) {
-    printf("%s", mjs_get_cstring(mjs, &v));
+    size_t size;
+    const char *s = mjs_get_string(mjs, &v, &size);
+    printf("%.*s", (int)size, s);
   } else if (mjs_is_undefined(v)) {
     printf("undefined");
   } else if (mjs_is_null(v)) {
@@ -12267,6 +12270,7 @@ MJS_PRIVATE void mjs_init_globals(struct mjs *mjs, mjs_val_t g) {
   mjs_set(mjs, g, "ffi", ~0, mjs_mk_number(mjs, MJS_WORD_PTR_ffi));
   mjs_set(mjs, g, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, g, "load", ~0, mjs_mk_foreign(mjs, mjs_op_load));
+  mjs_set(mjs, g, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
 
   mjs_val_t json_v = mjs_mk_object(mjs);
   mjs_set(mjs, json_v, "stringify", ~0,
@@ -16191,40 +16195,43 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
 
   if (len == ~((size_t) 0)) len = strlen(p);
 
-  if (len <= 4) {
-    char *s = GET_VAL_NAN_PAYLOAD(offset) + 1;
-    offset = 0;
-    if (p != 0) {
-      memcpy(s, p, len);
-    }
-    s[-1] = len;
-    tag = MJS_TAG_STRING_I;
-  } else if (len == 5) {
-    char *s = GET_VAL_NAN_PAYLOAD(offset);
-    offset = 0;
-    if (p != 0) {
-      memcpy(s, p, len);
-    }
-    tag = MJS_TAG_STRING_5;
-  } else if ((dict_index = v_find_string_in_dictionary(p, len)) >= 0) {
-    offset = 0;
-    GET_VAL_NAN_PAYLOAD(offset)[0] = dict_index;
-    tag = MJS_TAG_STRING_D;
-  } else if (copy) {
-    if (gc_strings_is_gc_needed(mjs)) {
-      mjs->need_gc = 1;
-    }
+  if (copy) {
+    /* owned string */
+    if (len <= 4) {
+      char *s = GET_VAL_NAN_PAYLOAD(offset) + 1;
+      offset = 0;
+      if (p != 0) {
+        memcpy(s, p, len);
+      }
+      s[-1] = len;
+      tag = MJS_TAG_STRING_I;
+    } else if (len == 5) {
+      char *s = GET_VAL_NAN_PAYLOAD(offset);
+      offset = 0;
+      if (p != 0) {
+        memcpy(s, p, len);
+      }
+      tag = MJS_TAG_STRING_5;
+    } else if ((dict_index = v_find_string_in_dictionary(p, len)) >= 0) {
+      offset = 0;
+      GET_VAL_NAN_PAYLOAD(offset)[0] = dict_index;
+      tag = MJS_TAG_STRING_D;
+    } else {
+      if (gc_strings_is_gc_needed(mjs)) {
+        mjs->need_gc = 1;
+      }
 
-    /*
-     * Before embedding new string, check if the reallocation is needed.  If
-     * so, perform the reallocation by calling `mbuf_resize` manually, since we
-     * need to preallocate some extra space (`_MJS_STRING_BUF_RESERVE`)
-     */
-    if ((m->len + len) > m->size) {
-      mbuf_resize(m, m->len + len + _MJS_STRING_BUF_RESERVE);
+      /*
+       * Before embedding new string, check if the reallocation is needed.  If
+       * so, perform the reallocation by calling `mbuf_resize` manually, since we
+       * need to preallocate some extra space (`_MJS_STRING_BUF_RESERVE`)
+       */
+      if ((m->len + len) > m->size) {
+        mbuf_resize(m, m->len + len + _MJS_STRING_BUF_RESERVE);
+      }
+      embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
+      tag = MJS_TAG_STRING_O;
     }
-    embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
-    tag = MJS_TAG_STRING_O;
   } else {
     /* foreign string */
     if (sizeof(void *) <= 4 && len <= UINT16_MAX) {
@@ -16467,6 +16474,60 @@ MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm) {
 clean:
   mjs_push(mjs, ret);
 }
+
+MJS_PRIVATE void mjs_fstr(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  mjs_val_t ret = MJS_UNDEFINED;
+
+  char *ptr = NULL;
+  int offset = 0;
+  int len = 0;
+
+  mjs_val_t ptr_v = MJS_UNDEFINED;
+  mjs_val_t offset_v = MJS_UNDEFINED;
+  mjs_val_t len_v = MJS_UNDEFINED;
+
+  if (nargs == 2) {
+    ptr_v = mjs_pop(mjs);
+    len_v = mjs_pop(mjs);
+  } else if (nargs == 3) {
+    ptr_v = mjs_pop(mjs);
+    offset_v = mjs_pop(mjs);
+    len_v = mjs_pop(mjs);
+  } else {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
+    goto clean;
+  }
+
+  if (!mjs_is_foreign(ptr_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "ptr should be a foreign pointer");
+    goto clean;
+  }
+
+  if (offset_v != MJS_UNDEFINED && !mjs_is_number(offset_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "offset should be a number");
+    goto clean;
+  }
+
+  if (!mjs_is_number(len_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "len should be a number");
+    goto clean;
+  }
+
+  /* all arguments are fine */
+
+  ptr = (char *)mjs_get_ptr(mjs, ptr_v);
+  if (offset_v != MJS_UNDEFINED) {
+    offset = mjs_get_int(mjs, offset_v);
+  }
+  len = mjs_get_int(mjs, len_v);
+
+  ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
+
+clean:
+  mjs_push(mjs, ret);
+}
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/tok.c"
 #endif
@@ -16670,7 +16731,9 @@ void mjs_fprint(FILE *f, struct mjs *mjs, mjs_val_t v) {
   } else if (mjs_is_boolean(v)) {
     fprintf(f, "%s", mjs_get_bool(mjs, v) ? "true" : "false");
   } else if (mjs_is_string(v)) {
-    fprintf(f, "%s", mjs_get_cstring(mjs, &v));
+    size_t size;
+    const char *s = mjs_get_string(mjs, &v, &size);
+    printf("%.*s", (int)size, s);
   } else if (mjs_is_object(v)) {
     fprintf(f, "[object Object]");
   }
