@@ -10176,7 +10176,7 @@ bf_opcode_t MJS_opcodes[] = {
   /* 0181 -> : while ... ; */
   MJS_OP_quote, 0, -85, MJS_OP_loop, MJS_OP_undefined, MJS_OP_exit,
   /* 0187 -> : anon_8 ... ; */
-  MJS_OP_str, /* " " */  ' ', 0, MJS_OP_print, MJS_OP_exit,
+  MJS_OP_str, /* " " */  1, ' ', MJS_OP_print, MJS_OP_exit,
   /* 0192 -> : anon_9 ... ; */
   MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, -69, MJS_OP_if, MJS_OP_exit,
   /* 0204 -> : jsprint ... ; */
@@ -14623,6 +14623,28 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 /* Amalgamated: #include "mjs/parser.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
+/*
+ * Like decode_varint(), but reads data from the bf_mem
+ */
+static size_t bf_mem_decode_varint(struct bf_mem *mem, bf_word_ptr_t ptr, int *llen) {
+  size_t i = 0, string_len = 0;
+
+  do {
+    /*
+     * Each byte of varint contains 7 bits, in little endian order.
+     * MSB is a continuation bit: it tells whether next byte is used.
+     */
+    string_len |= (bf_read_byte(mem, ptr + i) & 0x7f) << (7 * i);
+    /*
+     * First we increment i, then check whether it is within boundary and
+     * whether decoded byte had continuation bit set.
+     */
+  } while (++i < sizeof(size_t) && (bf_read_byte(mem, ptr + i - 1) & 0x80));
+  *llen = i;
+
+  return string_len;
+}
+
 void mjs_op_todo(struct bf_vm *vm) {
   (void) vm;
   LOG(LL_ERROR, ("TODO"));
@@ -14632,15 +14654,22 @@ void mjs_op_str(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   char ch;
   char buf[MJS_STRING_LITERAL_MAX_LEN];
-  size_t len = 0;
-  do {
-    ch = (char) bf_read_byte(vm->iram, vm->ip++);
-    if (len < MJS_STRING_LITERAL_MAX_LEN) {
-      buf[len++] = ch;
-    }
-  } while (ch != '\0');
+  size_t len = 0, i = 0;
 
-  bf_push(&vm->dstack, mjs_mk_string(mjs, buf, len - 1, 1));
+  {
+    int llen = 0;
+    len = bf_mem_decode_varint(vm->iram, vm->ip, &llen);
+    vm->ip += llen;
+  }
+
+  for (i = 0; i < len; i++) {
+    ch = (char) bf_read_byte(vm->iram, vm->ip++);
+    if (i < MJS_STRING_LITERAL_MAX_LEN) {
+      buf[i] = ch;
+    }
+  }
+
+  bf_push(&vm->dstack, mjs_mk_string(mjs, buf, len, 1));
 }
 
 void mjs_op_mkobj(struct bf_vm *vm) {
@@ -15375,6 +15404,7 @@ void mjs_op_arrpush(struct bf_vm *vm) {
 /* Amalgamated: #include "mjs/str_util.h" */
 /* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/vm.gen.h" */
+/* Amalgamated: #include "mjs/varint.h" */
 
 static unsigned long mjs_get_column(const char *code, const char *pos) {
   const char *p = pos;
@@ -15615,10 +15645,20 @@ bf_word_ptr_t mjs_emit_str_inline(struct mjs_parse_ctx *ctx, const char *lit) {
   }
 
   ulen = unescape(lit, len - 1, buf);
+
+  {
+    uint8_t lendata[4];
+    int llen = encode_varint(ulen, lendata);
+    assert(llen <= sizeof(lendata));
+
+    for (i = 0; i < (size_t)llen; i++) {
+      mjs_emit_uint8(ctx, lendata[i]);
+    }
+  }
+
   for (i = 0; i < ulen; i++) {
     mjs_emit_uint8(ctx, buf[i]);
   }
-  mjs_emit_uint8(ctx, 0);
   return start;
 }
 
@@ -15631,12 +15671,26 @@ bf_word_ptr_t mjs_emit_str(struct mjs_parse_ctx *ctx, const char *lit) {
 bf_word_ptr_t mjs_emit_ident_inline(struct mjs_parse_ctx *ctx,
                                     const char *ident) {
   bf_word_ptr_t start = mjs_emit(ctx, MJS_OP_str);
+  const char *p = ident;
 
-  while (mjs_is_ident(*ident) || mjs_is_digit(*ident)) {
-    mjs_emit_uint8(ctx, *ident++);
+  while (mjs_is_ident(*p) || mjs_is_digit(*p)) p++;
+
+  {
+    uint8_t lendata[4];
+    int llen = encode_varint(p - ident, lendata);
+    int i;
+    assert(llen <= sizeof(lendata));
+
+    for (i = 0; i < llen; i++) {
+      mjs_emit_uint8(ctx, lendata[i]);
+    }
   }
 
-  mjs_emit_uint8(ctx, 0);
+  p = ident;
+  while (mjs_is_ident(*p) || mjs_is_digit(*p)) {
+    mjs_emit_uint8(ctx, *p++);
+  }
+
   return start;
 }
 
