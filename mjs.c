@@ -9140,7 +9140,7 @@ static void yy_reduce(
         break;
       case 33: /* expr ::= IDENTIFIER PLUS_ASSIGN expr */
 #line 258 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_PLUS); }
+{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_js_PLUS); }
 #line 1692 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy32 = yylhsminor.yy32;
         break;
@@ -9207,14 +9207,14 @@ static void yy_reduce(
       case 44: /* expr ::= PLUS_PLUS IDENTIFIER */
 #line 270 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_assign(ctx, yymsp[0].minor.yy0.begin, MJS_WORD_PTR_one, MJS_OP_PLUS);
+  yymsp[-1].minor.yy32=mjs_emit_assign(ctx, yymsp[0].minor.yy0.begin, MJS_WORD_PTR_one, MJS_OP_js_PLUS);
 }
 #line 1760 "mjs/mjs.lem.c"
         break;
       case 45: /* expr ::= IDENTIFIER PLUS_PLUS */
 #line 273 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_postop(ctx, yymsp[-1].minor.yy0.begin, MJS_OP_PLUS);
+  yylhsminor.yy32=mjs_emit_postop(ctx, yymsp[-1].minor.yy0.begin, MJS_OP_js_PLUS);
 }
 #line 1767 "mjs/mjs.lem.c"
   yymsp[-1].minor.yy32 = yylhsminor.yy32;
@@ -9256,7 +9256,7 @@ static void yy_reduce(
       case 50: /* expr ::= objprop_for_opassign PLUS_ASSIGN expr */
 #line 298 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_PLUS);
+  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_PLUS);
 }
 #line 1809 "mjs/mjs.lem.c"
   yymsp[-2].minor.yy32 = yylhsminor.yy32;
@@ -9344,7 +9344,7 @@ static void yy_reduce(
       case 61: /* expr ::= PLUS_PLUS objprop_for_opassign */
 #line 343 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_objprop_assign(ctx, yymsp[0].minor.yy32, MJS_WORD_PTR_one, MJS_OP_PLUS);
+  yymsp[-1].minor.yy32=mjs_emit_objprop_assign(ctx, yymsp[0].minor.yy32, MJS_WORD_PTR_one, MJS_OP_js_PLUS);
 }
 #line 1897 "mjs/mjs.lem.c"
         break;
@@ -9359,7 +9359,7 @@ static void yy_reduce(
 #line 352 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t i = mjs_emit_ident(ctx, yymsp[-1].minor.yy0.begin);
-  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-3].minor.yy32, i, MJS_OP_PLUS);
+  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-3].minor.yy32, i, MJS_OP_js_PLUS);
 }
 #line 1912 "mjs/mjs.lem.c"
   yymsp[-3].minor.yy32 = yylhsminor.yy32;
@@ -9367,7 +9367,7 @@ static void yy_reduce(
       case 64: /* expr ::= simple_expr OPEN_BRACKET expr CLOSE_BRACKET PLUS_PLUS */
 #line 356 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-4].minor.yy32, yymsp[-2].minor.yy32, MJS_OP_PLUS);
+  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-4].minor.yy32, yymsp[-2].minor.yy32, MJS_OP_js_PLUS);
 }
 #line 1920 "mjs/mjs.lem.c"
   yymsp[-4].minor.yy32 = yylhsminor.yy32;
