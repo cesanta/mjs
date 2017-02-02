@@ -15630,7 +15630,7 @@ bf_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, bf_word_ptr_t a,
 }
 
 bf_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit) {
-  int n = atoi(lit);
+  double n = strtod(lit, NULL);
   bf_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
   mjs_emit_uint16(ctx, (uint16_t) n);
   mjs_emit(ctx, MJS_OP_exit);
