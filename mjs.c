@@ -3546,6 +3546,7 @@ MJS_PRIVATE int s_cmp(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 
 MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm);
+MJS_PRIVATE void mjs_string_char_code_at(struct bf_vm *vm);
 MJS_PRIVATE void mjs_fstr(struct bf_vm *vm);
 
 #endif /* MJS_STRING_H_ */
@@ -14773,6 +14774,8 @@ void mjs_op_getprop(struct bf_vm *vm) {
           val = mjs_mk_number(mjs, val_len);
         } else if (strcmp(s, "slice") == 0) {
           val = mjs_mk_foreign(mjs, mjs_string_slice);
+        } else if (strcmp(s, "charCodeAt") == 0) {
+          val = mjs_mk_foreign(mjs, mjs_string_char_code_at);
         } else if (isnum) {
           /*
            * string subscript: return a new one-byte string if the index
@@ -16470,6 +16473,43 @@ MJS_PRIVATE void mjs_string_slice(struct bf_vm *vm) {
   }
 
   ret = mjs_mk_string(mjs, s + beginSlice, endSlice - beginSlice, 1);
+
+clean:
+  mjs_push(mjs, ret);
+}
+
+MJS_PRIVATE void mjs_string_char_code_at(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  int nargs = mjs_get_int(mjs, mjs_pop(mjs));
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t idx_v = MJS_UNDEFINED;
+  int idx = 0;
+  size_t size;
+  const char *s = NULL;
+
+  if (!mjs_is_string(mjs->vals.this_val)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "this should be a string");
+    goto clean;
+  }
+
+  s = mjs_get_string(mjs, &mjs->vals.this_val, &size);
+
+  if (nargs < 1) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'index'");
+    goto clean;
+  }
+
+  idx_v = mjs_pop(mjs);
+
+  if (!mjs_is_number(idx_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index should be a number");
+    goto clean;
+  }
+
+  idx = string_idx(mjs_get_int(mjs, idx_v), size);
+  if (idx >= 0 && idx < (int)size) {
+    ret = mjs_mk_number(mjs, ((unsigned char *)s)[idx]);
+  }
 
 clean:
   mjs_push(mjs, ret);

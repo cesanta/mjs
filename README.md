@@ -41,6 +41,7 @@ of RAM. See [intro article](http://goo.gl/zJYyWF) for more details.
 - `let value = JSON.parse(str);` - parse JSON string and return parsed value.
 - `let str = JSON.stringify(value);` - stringify mJS value.
 - `"abcdef".slice(1,3) === "bc"` - the `slice(start, end)` string method returns a substring between two indices.
+- `"abcdef".charCodeAt(0) === 0x61` - the `charCodeAt(index)` string method returns an ASCII code of the char at the given index. NOT UTF-16 code.
 - `let foo = ffi('void *foo(void)'); let ptr = foo(); ptr[0] === 17;` - mJS can access memory using C `void *` pointer subscripts `ptrVar[index]`. Return byte value at that location.
 - `let foo = ffi('void *foo(void)'); let ptr = foo(); let s = fstr(ptr, 3, 10);` - create a string backed by a C memory chunk, `fstr(ptrVar, offset, length)`. A string `s` starts at memory location `ptrVar + offset`, and is `length` bytes long. Short form is also available: `fstr(ptrVar, length)`.
 
