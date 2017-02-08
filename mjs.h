@@ -195,7 +195,8 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
  * Otherwise, an old message gets prepended with the new one, followed by a
  * colon. (the previously set error code is kept)
  */
-mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
+                             ...);
 
 /*
  * return a string representation of an error.
@@ -454,7 +455,8 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
  * Otherwise, an old message gets prepended with the new one, followed by a
  * colon. (the previously set error code is kept)
  */
-mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
+mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
+                             ...);
 
 /*
  * return a string representation of an error.
@@ -477,7 +479,7 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 /* Amalgamated: #include "mjs/core_public.h" */
 
 mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
-    mjs_val_t *res);
+                       mjs_val_t *res);
 mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
 
@@ -535,7 +537,7 @@ mjs_val_t mjs_mk_object(struct mjs *mjs);
  * `strlen(name)` is used.
  */
 mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
-    size_t name_len);
+                  size_t name_len);
 
 /*
  * Like mjs_get but with a JS string.
@@ -546,14 +548,13 @@ mjs_val_t mjs_get_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name);
  * Set object property. Behaves just like JavaScript assignment.
  */
 mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len,
-    mjs_val_t val);
+                  mjs_val_t val);
 
 /*
  * Like mjs_set but the name is already a JS string.
  */
 mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
-    mjs_val_t val);
-
+                    mjs_val_t val);
 
 #endif /* MJS_OBJECT_PUBLIC_H_ */
 #ifdef MG_MODULE_LINES
