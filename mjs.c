@@ -2439,6 +2439,7 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_print (3)
 #define MJS_WORD_PTR_cr (3)
 #define MJS_WORD_PTR_DOT_s (3)
+#define MJS_WORD_PTR_DOT_r (3)
 #define MJS_WORD_PTR_EQ (3)
 #define MJS_WORD_PTR_LT (3)
 #define MJS_WORD_PTR_GT (3)
@@ -2463,6 +2464,10 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_GT_scopes (16)
 #define MJS_WORD_PTR_scopes_GT (16)
 #define MJS_WORD_PTR_scope_AT (16)
+#define MJS_WORD_PTR_brcont_rspos_AT (16)
+#define MJS_WORD_PTR_brcont_rspos_SET (16)
+#define MJS_WORD_PTR_brcont_scope_AT (16)
+#define MJS_WORD_PTR_brcont_scope_SET (16)
 #define MJS_WORD_PTR_mkobj (16)
 #define MJS_WORD_PTR_addprop (16)
 #define MJS_WORD_PTR_setprop (24)
@@ -2478,60 +2483,67 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_jscall_exit (30)
 #define MJS_WORD_PTR_jscall_wrap (37)
 #define MJS_WORD_PTR_jsenter (39)
-#define MJS_WORD_PTR_jsexit (55)
-#define MJS_WORD_PTR_anon_0 (64)
-#define MJS_WORD_PTR_anon_1 (66)
-#define MJS_WORD_PTR_setarg (68)
-#define MJS_WORD_PTR_ffi (88)
-#define MJS_WORD_PTR_undefined (90)
-#define MJS_WORD_PTR_null (90)
-#define MJS_WORD_PTR_true (90)
-#define MJS_WORD_PTR_false (90)
-#define MJS_WORD_PTR_this_for_call (90)
-#define MJS_WORD_PTR_2dup (90)
-#define MJS_WORD_PTR_dec (93)
-#define MJS_WORD_PTR_GTEQ (98)
-#define MJS_WORD_PTR_LTEQ (101)
-#define MJS_WORD_PTR_SETEQ (104)
-#define MJS_WORD_PTR_js_EQ (107)
-#define MJS_WORD_PTR_js_LT (107)
-#define MJS_WORD_PTR_js_GT (107)
-#define MJS_WORD_PTR_jsinvert (107)
-#define MJS_WORD_PTR_js_GTEQ (107)
-#define MJS_WORD_PTR_js_LTEQ (110)
-#define MJS_WORD_PTR_js_SETEQ (113)
-#define MJS_WORD_PTR_js_logical_and (116)
-#define MJS_WORD_PTR_js_logical_or (116)
-#define MJS_WORD_PTR_js_PLUS (116)
-#define MJS_WORD_PTR_anon_2 (116)
-#define MJS_WORD_PTR_ifstmt (118)
-#define MJS_WORD_PTR_anon_3 (123)
-#define MJS_WORD_PTR_anon_4 (140)
-#define MJS_WORD_PTR_repeat (147)
-#define MJS_WORD_PTR_anon_5 (160)
-#define MJS_WORD_PTR_anon_6 (166)
-#define MJS_WORD_PTR_anon_7 (171)
-#define MJS_WORD_PTR_while (181)
-#define MJS_WORD_PTR_anon_8 (187)
-#define MJS_WORD_PTR_anon_9 (192)
-#define MJS_WORD_PTR_jsprint (204)
-#define MJS_WORD_PTR_zero (211)
-#define MJS_WORD_PTR_one (215)
-#define MJS_WORD_PTR_nop (219)
-#define MJS_WORD_PTR_inc (222)
-#define MJS_WORD_PTR_swapinc (227)
-#define MJS_WORD_PTR_div (230)
-#define MJS_WORD_PTR_rem (230)
-#define MJS_WORD_PTR_lshift (230)
-#define MJS_WORD_PTR_rshift (230)
-#define MJS_WORD_PTR_urshift (230)
-#define MJS_WORD_PTR_and (230)
-#define MJS_WORD_PTR_or (230)
-#define MJS_WORD_PTR_xor (230)
-#define MJS_WORD_PTR_not (230)
-#define MJS_WORD_PTR_neg (230)
-#define MJS_WORD_PTR_pos (230)
-#define MJS_WORD_PTR_load (230)
+#define MJS_WORD_PTR_jsexit (63)
+#define MJS_WORD_PTR_anon_0 (76)
+#define MJS_WORD_PTR_anon_1 (78)
+#define MJS_WORD_PTR_setarg (80)
+#define MJS_WORD_PTR_ffi (100)
+#define MJS_WORD_PTR_undefined (102)
+#define MJS_WORD_PTR_null (102)
+#define MJS_WORD_PTR_true (102)
+#define MJS_WORD_PTR_false (102)
+#define MJS_WORD_PTR_this_for_call (102)
+#define MJS_WORD_PTR_2dup (102)
+#define MJS_WORD_PTR_dec (105)
+#define MJS_WORD_PTR_GTEQ (110)
+#define MJS_WORD_PTR_LTEQ (113)
+#define MJS_WORD_PTR_SETEQ (116)
+#define MJS_WORD_PTR_js_EQ (119)
+#define MJS_WORD_PTR_js_LT (119)
+#define MJS_WORD_PTR_js_GT (119)
+#define MJS_WORD_PTR_jsinvert (119)
+#define MJS_WORD_PTR_js_GTEQ (119)
+#define MJS_WORD_PTR_js_LTEQ (122)
+#define MJS_WORD_PTR_js_SETEQ (125)
+#define MJS_WORD_PTR_js_logical_and (128)
+#define MJS_WORD_PTR_js_logical_or (128)
+#define MJS_WORD_PTR_js_PLUS (128)
+#define MJS_WORD_PTR_anon_2 (128)
+#define MJS_WORD_PTR_ifstmt (130)
+#define MJS_WORD_PTR_anon_3 (135)
+#define MJS_WORD_PTR_anon_4 (152)
+#define MJS_WORD_PTR_repeat (159)
+#define MJS_WORD_PTR_brcont_body_enter (172)
+#define MJS_WORD_PTR_brcont_body_exit (191)
+#define MJS_WORD_PTR_brcont_body (208)
+#define MJS_WORD_PTR_anon_5 (215)
+#define MJS_WORD_PTR_anon_6 (219)
+#define MJS_WORD_PTR_brcont (221)
+#define MJS_WORD_PTR_anon_7 (234)
+#define MJS_WORD_PTR_anon_8 (240)
+#define MJS_WORD_PTR_anon_9 (243)
+#define MJS_WORD_PTR_anon_10 (253)
+#define MJS_WORD_PTR_while (259)
+#define MJS_WORD_PTR_anon_11 (268)
+#define MJS_WORD_PTR_anon_12 (273)
+#define MJS_WORD_PTR_jsprint (285)
+#define MJS_WORD_PTR_zero (292)
+#define MJS_WORD_PTR_one (296)
+#define MJS_WORD_PTR_nop (300)
+#define MJS_WORD_PTR_inc (303)
+#define MJS_WORD_PTR_swapinc (308)
+#define MJS_WORD_PTR_div (311)
+#define MJS_WORD_PTR_rem (311)
+#define MJS_WORD_PTR_lshift (311)
+#define MJS_WORD_PTR_rshift (311)
+#define MJS_WORD_PTR_urshift (311)
+#define MJS_WORD_PTR_and (311)
+#define MJS_WORD_PTR_or (311)
+#define MJS_WORD_PTR_xor (311)
+#define MJS_WORD_PTR_not (311)
+#define MJS_WORD_PTR_neg (311)
+#define MJS_WORD_PTR_pos (311)
+#define MJS_WORD_PTR_load (311)
 #define MJS_OP_quote ((bf_opcode_t) -1)
 #define MJS_OP_exit ((bf_opcode_t) 0)
 #define MJS_OP_drop ((bf_opcode_t) 1)
@@ -2551,87 +2563,96 @@ extern struct bf_code MJS_code;
 #define MJS_OP_print ((bf_opcode_t) 15)
 #define MJS_OP_cr ((bf_opcode_t) 16)
 #define MJS_OP_DOT_s ((bf_opcode_t) 17)
-#define MJS_OP_EQ ((bf_opcode_t) 18)
-#define MJS_OP_LT ((bf_opcode_t) 19)
-#define MJS_OP_GT ((bf_opcode_t) 20)
-#define MJS_OP_invert ((bf_opcode_t) 21)
-#define MJS_OP_PLUS ((bf_opcode_t) 22)
-#define MJS_OP_MINUS ((bf_opcode_t) 23)
-#define MJS_OP_STAR ((bf_opcode_t) 24)
-#define MJS_OP_call ((bf_opcode_t) 25)
-#define MJS_OP_if ((bf_opcode_t) 26)
-#define MJS_OP_ifelse ((bf_opcode_t) 27)
-#define MJS_OP_loop ((bf_opcode_t) 28)
-#define MJS_OP_ndrop ((bf_opcode_t) 29)
-#define MJS_OP_str ((bf_opcode_t) 30)
-#define MJS_OP_scope_idx_AT ((bf_opcode_t) 31)
-#define MJS_OP_scope_idx_SET ((bf_opcode_t) 32)
-#define MJS_OP_scope_min_AT ((bf_opcode_t) 33)
-#define MJS_OP_scope_min_SET ((bf_opcode_t) 34)
-#define MJS_OP_this_val_AT ((bf_opcode_t) 35)
-#define MJS_OP_this_val_SET ((bf_opcode_t) 36)
-#define MJS_OP_frame_AT ((bf_opcode_t) 37)
-#define MJS_OP_frame_SET ((bf_opcode_t) 38)
-#define MJS_OP_GT_scopes ((bf_opcode_t) 39)
-#define MJS_OP_scopes_GT ((bf_opcode_t) 40)
-#define MJS_OP_scope_AT ((bf_opcode_t) 41)
-#define MJS_OP_mkobj ((bf_opcode_t) 42)
-#define MJS_OP_addprop ((bf_opcode_t) 43)
-#define MJS_OP_setprop ((bf_opcode_t) 44)
-#define MJS_OP_getprop ((bf_opcode_t) 45)
-#define MJS_OP_getvar ((bf_opcode_t) 46)
-#define MJS_OP_setvar ((bf_opcode_t) 47)
-#define MJS_OP_createvar ((bf_opcode_t) 48)
-#define MJS_OP_mkarr ((bf_opcode_t) 49)
-#define MJS_OP_arrpush ((bf_opcode_t) 50)
-#define MJS_OP_blockenter ((bf_opcode_t) 51)
-#define MJS_OP_blockexit ((bf_opcode_t) 52)
-#define MJS_OP_jscall ((bf_opcode_t) 53)
-#define MJS_OP_jscall_exit ((bf_opcode_t) 54)
-#define MJS_OP_jscall_wrap ((bf_opcode_t) 55)
-#define MJS_OP_jsenter ((bf_opcode_t) 56)
-#define MJS_OP_jsexit ((bf_opcode_t) 57)
-#define MJS_OP_setarg ((bf_opcode_t) 58)
-#define MJS_OP_undefined ((bf_opcode_t) 59)
-#define MJS_OP_null ((bf_opcode_t) 60)
-#define MJS_OP_true ((bf_opcode_t) 61)
-#define MJS_OP_false ((bf_opcode_t) 62)
-#define MJS_OP_this_for_call ((bf_opcode_t) 63)
-#define MJS_OP_2dup ((bf_opcode_t) 64)
-#define MJS_OP_GTEQ ((bf_opcode_t) 65)
-#define MJS_OP_LTEQ ((bf_opcode_t) 66)
-#define MJS_OP_SETEQ ((bf_opcode_t) 67)
-#define MJS_OP_js_EQ ((bf_opcode_t) 68)
-#define MJS_OP_js_LT ((bf_opcode_t) 69)
-#define MJS_OP_js_GT ((bf_opcode_t) 70)
-#define MJS_OP_jsinvert ((bf_opcode_t) 71)
-#define MJS_OP_js_GTEQ ((bf_opcode_t) 72)
-#define MJS_OP_js_LTEQ ((bf_opcode_t) 73)
-#define MJS_OP_js_SETEQ ((bf_opcode_t) 74)
-#define MJS_OP_js_logical_and ((bf_opcode_t) 75)
-#define MJS_OP_js_logical_or ((bf_opcode_t) 76)
-#define MJS_OP_js_PLUS ((bf_opcode_t) 77)
-#define MJS_OP_ifstmt ((bf_opcode_t) 78)
-#define MJS_OP_repeat ((bf_opcode_t) 79)
-#define MJS_OP_while ((bf_opcode_t) 80)
-#define MJS_OP_jsprint ((bf_opcode_t) 81)
-#define MJS_OP_zero ((bf_opcode_t) 82)
-#define MJS_OP_one ((bf_opcode_t) 83)
-#define MJS_OP_nop ((bf_opcode_t) 84)
-#define MJS_OP_inc ((bf_opcode_t) 85)
-#define MJS_OP_swapinc ((bf_opcode_t) 86)
-#define MJS_OP_div ((bf_opcode_t) 87)
-#define MJS_OP_rem ((bf_opcode_t) 88)
-#define MJS_OP_lshift ((bf_opcode_t) 89)
-#define MJS_OP_rshift ((bf_opcode_t) 90)
-#define MJS_OP_urshift ((bf_opcode_t) 91)
-#define MJS_OP_and ((bf_opcode_t) 92)
-#define MJS_OP_or ((bf_opcode_t) 93)
-#define MJS_OP_xor ((bf_opcode_t) 94)
-#define MJS_OP_not ((bf_opcode_t) 95)
-#define MJS_OP_neg ((bf_opcode_t) 96)
-#define MJS_OP_pos ((bf_opcode_t) 97)
-#define MJS_OP_load ((bf_opcode_t) 98)
+#define MJS_OP_DOT_r ((bf_opcode_t) 18)
+#define MJS_OP_EQ ((bf_opcode_t) 19)
+#define MJS_OP_LT ((bf_opcode_t) 20)
+#define MJS_OP_GT ((bf_opcode_t) 21)
+#define MJS_OP_invert ((bf_opcode_t) 22)
+#define MJS_OP_PLUS ((bf_opcode_t) 23)
+#define MJS_OP_MINUS ((bf_opcode_t) 24)
+#define MJS_OP_STAR ((bf_opcode_t) 25)
+#define MJS_OP_call ((bf_opcode_t) 26)
+#define MJS_OP_if ((bf_opcode_t) 27)
+#define MJS_OP_ifelse ((bf_opcode_t) 28)
+#define MJS_OP_loop ((bf_opcode_t) 29)
+#define MJS_OP_ndrop ((bf_opcode_t) 30)
+#define MJS_OP_str ((bf_opcode_t) 31)
+#define MJS_OP_scope_idx_AT ((bf_opcode_t) 32)
+#define MJS_OP_scope_idx_SET ((bf_opcode_t) 33)
+#define MJS_OP_scope_min_AT ((bf_opcode_t) 34)
+#define MJS_OP_scope_min_SET ((bf_opcode_t) 35)
+#define MJS_OP_this_val_AT ((bf_opcode_t) 36)
+#define MJS_OP_this_val_SET ((bf_opcode_t) 37)
+#define MJS_OP_frame_AT ((bf_opcode_t) 38)
+#define MJS_OP_frame_SET ((bf_opcode_t) 39)
+#define MJS_OP_GT_scopes ((bf_opcode_t) 40)
+#define MJS_OP_scopes_GT ((bf_opcode_t) 41)
+#define MJS_OP_scope_AT ((bf_opcode_t) 42)
+#define MJS_OP_brcont_rspos_AT ((bf_opcode_t) 43)
+#define MJS_OP_brcont_rspos_SET ((bf_opcode_t) 44)
+#define MJS_OP_brcont_scope_AT ((bf_opcode_t) 45)
+#define MJS_OP_brcont_scope_SET ((bf_opcode_t) 46)
+#define MJS_OP_mkobj ((bf_opcode_t) 47)
+#define MJS_OP_addprop ((bf_opcode_t) 48)
+#define MJS_OP_setprop ((bf_opcode_t) 49)
+#define MJS_OP_getprop ((bf_opcode_t) 50)
+#define MJS_OP_getvar ((bf_opcode_t) 51)
+#define MJS_OP_setvar ((bf_opcode_t) 52)
+#define MJS_OP_createvar ((bf_opcode_t) 53)
+#define MJS_OP_mkarr ((bf_opcode_t) 54)
+#define MJS_OP_arrpush ((bf_opcode_t) 55)
+#define MJS_OP_blockenter ((bf_opcode_t) 56)
+#define MJS_OP_blockexit ((bf_opcode_t) 57)
+#define MJS_OP_jscall ((bf_opcode_t) 58)
+#define MJS_OP_jscall_exit ((bf_opcode_t) 59)
+#define MJS_OP_jscall_wrap ((bf_opcode_t) 60)
+#define MJS_OP_jsenter ((bf_opcode_t) 61)
+#define MJS_OP_jsexit ((bf_opcode_t) 62)
+#define MJS_OP_setarg ((bf_opcode_t) 63)
+#define MJS_OP_undefined ((bf_opcode_t) 64)
+#define MJS_OP_null ((bf_opcode_t) 65)
+#define MJS_OP_true ((bf_opcode_t) 66)
+#define MJS_OP_false ((bf_opcode_t) 67)
+#define MJS_OP_this_for_call ((bf_opcode_t) 68)
+#define MJS_OP_2dup ((bf_opcode_t) 69)
+#define MJS_OP_GTEQ ((bf_opcode_t) 70)
+#define MJS_OP_LTEQ ((bf_opcode_t) 71)
+#define MJS_OP_SETEQ ((bf_opcode_t) 72)
+#define MJS_OP_js_EQ ((bf_opcode_t) 73)
+#define MJS_OP_js_LT ((bf_opcode_t) 74)
+#define MJS_OP_js_GT ((bf_opcode_t) 75)
+#define MJS_OP_jsinvert ((bf_opcode_t) 76)
+#define MJS_OP_js_GTEQ ((bf_opcode_t) 77)
+#define MJS_OP_js_LTEQ ((bf_opcode_t) 78)
+#define MJS_OP_js_SETEQ ((bf_opcode_t) 79)
+#define MJS_OP_js_logical_and ((bf_opcode_t) 80)
+#define MJS_OP_js_logical_or ((bf_opcode_t) 81)
+#define MJS_OP_js_PLUS ((bf_opcode_t) 82)
+#define MJS_OP_ifstmt ((bf_opcode_t) 83)
+#define MJS_OP_repeat ((bf_opcode_t) 84)
+#define MJS_OP_brcont_body_enter ((bf_opcode_t) 85)
+#define MJS_OP_brcont_body_exit ((bf_opcode_t) 86)
+#define MJS_OP_brcont_body ((bf_opcode_t) 87)
+#define MJS_OP_brcont ((bf_opcode_t) 88)
+#define MJS_OP_while ((bf_opcode_t) 89)
+#define MJS_OP_jsprint ((bf_opcode_t) 90)
+#define MJS_OP_zero ((bf_opcode_t) 91)
+#define MJS_OP_one ((bf_opcode_t) 92)
+#define MJS_OP_nop ((bf_opcode_t) 93)
+#define MJS_OP_inc ((bf_opcode_t) 94)
+#define MJS_OP_swapinc ((bf_opcode_t) 95)
+#define MJS_OP_div ((bf_opcode_t) 96)
+#define MJS_OP_rem ((bf_opcode_t) 97)
+#define MJS_OP_lshift ((bf_opcode_t) 98)
+#define MJS_OP_rshift ((bf_opcode_t) 99)
+#define MJS_OP_urshift ((bf_opcode_t) 100)
+#define MJS_OP_and ((bf_opcode_t) 101)
+#define MJS_OP_or ((bf_opcode_t) 102)
+#define MJS_OP_xor ((bf_opcode_t) 103)
+#define MJS_OP_not ((bf_opcode_t) 104)
+#define MJS_OP_neg ((bf_opcode_t) 105)
+#define MJS_OP_pos ((bf_opcode_t) 106)
+#define MJS_OP_load ((bf_opcode_t) 107)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -3344,6 +3365,18 @@ struct mjs_vals {
   mjs_val_t call_frame;
 
   /*
+   * Position in the return stack which should be restored on break/continue.
+   * When no break/continue is allowed, i's equal to -1.
+   */
+  mjs_val_t brcont_rspos;
+
+  /*
+   * Index of the scope (in `mjs->scopes`) which should be restored on
+   * break/continue.
+   */
+  mjs_val_t brcont_scope;
+
+  /*
    * Current `this` value.
    */
   mjs_val_t this_val;
@@ -3976,10 +4009,12 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 #define TOK_FUNCTION                        58
 #define TOK_LET                             59
 #define TOK_RETURN                          60
-#define TOK_IF                              61
-#define TOK_WHILE                           62
-#define TOK_FOR                             63
-#define TOK_SEMICOLON                       64
+#define TOK_BREAK                           61
+#define TOK_CONTINUE                        62
+#define TOK_IF                              63
+#define TOK_WHILE                           64
+#define TOK_FOR                             65
+#define TOK_SEMICOLON                       66
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/parser.h"
 #endif
@@ -7301,6 +7336,10 @@ void bf_op_print_stack(struct bf_vm *vm) {
   bf_print_stack(vm, &vm->dstack);
 }
 
+void bf_op_print_rstack(struct bf_vm *vm) {
+  bf_print_stack(vm, &vm->rstack);
+}
+
 void bf_op_eq(struct bf_vm *vm) {
   bf_cell_t b = bf_pop(&vm->dstack);
   bf_cell_t a = bf_pop(&vm->dstack);
@@ -7560,14 +7599,14 @@ void bf_write_byte(struct bf_mem *mem, bf_cell_t addr, char value) {
 #endif
 /************* Begin control #defines *****************************************/
 #define YYCODETYPE unsigned char
-#define YYNOCODE 95
+#define YYNOCODE 97
 #define YYACTIONTYPE unsigned short int
 #define mjsParserTOKENTYPE struct mjs_token
 typedef union {
   int yyinit;
   mjsParserTOKENTYPE yy0;
-  bf_word_ptr_t yy32;
-  const char * yy88;
+  bf_word_ptr_t yy8;
+  const char * yy44;
 } YYMINORTYPE;
 #ifndef YYSTACKDEPTH
 #define YYSTACKDEPTH 100
@@ -7577,15 +7616,15 @@ typedef union {
 #define mjsParserARG_FETCH struct mjs_parse_ctx *ctx = yypParser->ctx
 #define mjsParserARG_STORE yypParser->ctx = ctx
 #define YYNSTATE             183
-#define YYNRULE              131
+#define YYNRULE              133
 #define YY_MAX_SHIFT         182
-#define YY_MIN_SHIFTREDUCE   245
-#define YY_MAX_SHIFTREDUCE   375
-#define YY_MIN_REDUCE        376
-#define YY_MAX_REDUCE        506
-#define YY_ERROR_ACTION      507
-#define YY_ACCEPT_ACTION     508
-#define YY_NO_ACTION         509
+#define YY_MIN_SHIFTREDUCE   247
+#define YY_MAX_SHIFTREDUCE   379
+#define YY_MIN_REDUCE        380
+#define YY_MAX_REDUCE        512
+#define YY_ERROR_ACTION      513
+#define YY_ACCEPT_ACTION     514
+#define YY_NO_ACTION         515
 /************* End control #defines *******************************************/
 
 /* Define the yytestcase() macro to be a no-op if is not already defined
@@ -7657,409 +7696,437 @@ typedef union {
 **  yy_default[]       Default action for each state.
 **
 *********** Begin parsing tables **********************************************/
-#define YY_ACTTAB_COUNT (1686)
+#define YY_ACTTAB_COUNT (1830)
 static const YYACTIONTYPE yy_action[] = {
  /*     0 */   134,   45,   47,   46,   71,   67,   66,  174,  174,   54,
  /*    10 */    53,   58,   57,   56,   55,   64,   62,   60,   52,   51,
  /*    20 */    50,   49,   48,   64,   62,   60,   52,   51,   50,   49,
  /*    30 */    48,  131,   75,   76,  134,  157,  157,   74,   73,   78,
- /*    40 */    77,  173,   72,   11,  177,   10,   59,  255,  256,  257,
- /*    50 */   258,  259,  260,  261,    1,  361,  180,   83,   81,   22,
- /*    60 */   172,  170,  169,   12,  275,  130,   75,   76,  160,  265,
- /*    70 */   179,   74,   73,   78,   77,  339,   72,   11,   50,   49,
- /*    80 */    48,  255,  256,  257,  258,  259,  260,  261,    1,   82,
- /*    90 */   175,   83,   81,   22,  172,  170,  169,   75,   76,  379,
- /*   100 */   379,  379,   74,   73,   78,   77,  362,   72,   11,  381,
- /*   110 */   381,  381,  255,  256,  257,  258,  176,  260,  261,    1,
- /*   120 */   268,   17,   83,   81,   22,  172,  170,  169,  363,   45,
- /*   130 */    47,   46,   71,   67,   66,  273,  348,   54,   53,   58,
- /*   140 */    57,   56,   55,   64,   62,   60,   52,   51,   50,   49,
- /*   150 */    48,   45,   47,   46,   71,   67,   66,    9,    5,   54,
- /*   160 */    53,   58,   57,   56,   55,   64,   62,   60,   52,   51,
- /*   170 */    50,   49,   48,   45,   47,   46,   71,   67,   66,  347,
- /*   180 */     7,   54,   53,   58,   57,   56,   55,   64,   62,   60,
- /*   190 */    52,   51,   50,   49,   48,   58,   57,   56,   55,   64,
- /*   200 */    62,   60,   52,   51,   50,   49,   48,   45,   47,   46,
- /*   210 */    71,   67,   66,  370,   44,   54,   53,   58,   57,   56,
- /*   220 */    55,   64,   62,   60,   52,   51,   50,   49,   48,   80,
- /*   230 */     4,   45,   47,   46,   71,   67,   66,  250,  262,   54,
- /*   240 */    53,   58,   57,   56,   55,   64,   62,   60,   52,   51,
- /*   250 */    50,   49,   48,  134,   45,   47,   46,   71,   67,   66,
- /*   260 */    13,  152,   54,   53,   58,   57,   56,   55,   64,   62,
- /*   270 */    60,   52,   51,   50,   49,   48,   52,   51,   50,   49,
- /*   280 */    48,   14,  276,  247,   86,   75,   76,  380,  380,  380,
- /*   290 */    74,   73,   78,   77,   15,   72,   11,  178,   10,   63,
- /*   300 */   255,  256,  257,  258,  259,  260,  261,   79,  134,   20,
- /*   310 */    87,   81,   22,   45,   47,   46,   71,   67,   66,    6,
- /*   320 */    21,   54,   53,   58,   57,   56,   55,   64,   62,   60,
- /*   330 */    52,   51,   50,   49,   48,  134,  181,   10,   19,   85,
- /*   340 */    75,   76,   84,   23,    2,   74,   73,   78,   77,  493,
- /*   350 */    72,   11,  251,  180,  249,  255,  256,  257,  258,  259,
- /*   360 */   260,  261,   79,  153,    3,   87,  263,   75,   76,  252,
- /*   370 */    68,   16,   74,   73,   78,   77,  376,   72,   11,  133,
- /*   380 */   378,   82,  255,  256,  257,  258,  259,  260,  261,   79,
- /*   390 */   378,  378,   87,   46,   71,   67,   66,  378,  378,   54,
- /*   400 */    53,   58,   57,   56,   55,   64,   62,   60,   52,   51,
- /*   410 */    50,   49,   48,   71,   67,   66,  378,  378,   54,   53,
- /*   420 */    58,   57,   56,   55,   64,   62,   60,   52,   51,   50,
- /*   430 */    49,   48,  180,  378,  162,  156,  246,   99,  378,  378,
- /*   440 */   246,  246,  246,  246,  160,  265,  378,  378,  378,  378,
- /*   450 */   378,  137,  354,  378,  378,    8,   67,   66,    8,  163,
- /*   460 */    54,   53,   58,   57,   56,   55,   64,   62,   60,   52,
- /*   470 */    51,   50,   49,   48,   66,  378,  378,   54,   53,   58,
- /*   480 */    57,   56,   55,   64,   62,   60,   52,   51,   50,   49,
- /*   490 */    48,   70,   65,   33,   32,   31,   30,   29,   28,   27,
- /*   500 */    26,   25,   24,  378,  378,  508,  182,  156,  246,   99,
- /*   510 */   378,  378,  246,  246,  246,  246,  378,  378,  378,  378,
- /*   520 */   378,  378,  378,  137,  354,  290,  292,    8,  378,  378,
- /*   530 */     8,  163,   18,  444,  444,  444,  444,  444,  444,  444,
- /*   540 */   444,  444,  444,  444,  492,  378,  378,  378,   54,   53,
- /*   550 */    58,   57,   56,   55,   64,   62,   60,   52,   51,   50,
- /*   560 */    49,   48,  378,  378,  378,  378,  309,  311,  378,  378,
- /*   570 */   378,   69,  443,  443,  443,  443,  443,  443,  443,  443,
- /*   580 */   443,  443,  443,   70,   65,   33,   32,   31,   30,   29,
- /*   590 */    28,   27,   26,   25,   24,  164,  156,  246,   99,  378,
- /*   600 */   378,  246,  246,  246,  246,  308,  310,  151,  378,  378,
- /*   610 */   378,  378,  137,  354,  378,  378,    8,  290,  292,    8,
- /*   620 */   163,  161,  156,  246,   99,  155,  378,  246,  246,  246,
- /*   630 */   246,  378,  378,  378,  378,  378,  378,  378,  137,  354,
- /*   640 */   378,  248,    8,  378,  378,    8,  163,  378,  378,   72,
- /*   650 */    11,  378,  378,  378,  255,  256,  257,  258,  259,  260,
- /*   660 */   261,   79,  378,  378,   87,  378,  378,   72,   11,  378,
- /*   670 */   378,  378,  255,  256,  257,  258,  259,  260,  261,   79,
- /*   680 */   378,  378,   87,   72,   11,  378,  378,  378,  255,  256,
- /*   690 */   257,  258,  259,  260,  261,   79,  378,  378,   87,  156,
- /*   700 */   246,   99,  378,  378,  246,  246,  246,  246,  378,  378,
- /*   710 */   378,  378,  378,  378,  378,  137,  165,  378,  378,  367,
- /*   720 */   367,  378,  378,  378,  156,  246,   99,  378,  378,  246,
- /*   730 */   246,  246,  246,  378,  378,  378,  378,  378,  378,  378,
- /*   740 */   137,  165,  378,  378,  346,  346,  156,  246,   99,  378,
- /*   750 */   378,  246,  246,  246,  246,  378,  378,  378,  378,  378,
- /*   760 */   378,  378,  137,  165,  378,  378,  345,  345,  156,  246,
- /*   770 */    99,  378,  378,  246,  246,  246,  246,  378,  378,  378,
- /*   780 */   378,  378,  378,  378,  137,  165,  378,  378,  171,  171,
- /*   790 */    61,   43,   42,   41,   40,   39,   38,   37,   36,   35,
- /*   800 */    34,  156,  246,   99,  378,  378,  246,  246,  246,  246,
- /*   810 */   378,  378,  378,  378,  378,  378,  378,  137,  353,  378,
- /*   820 */   378,  350,  156,  246,   99,  378,  378,  246,  246,  246,
- /*   830 */   246,  378,  378,  378,  378,  378,  378,  378,  137,  352,
- /*   840 */   378,  378,  349,  156,  246,  121,  158,  254,  246,  246,
- /*   850 */   246,  246,  378,  378,  378,  156,  246,  124,  378,  137,
- /*   860 */   246,  246,  246,  246,  378,  378,  159,  270,  156,  246,
- /*   870 */    99,  137,  378,  246,  246,  246,  246,  378,  378,  378,
- /*   880 */   378,  378,  378,  378,  137,  351,  378,  156,  246,   96,
- /*   890 */   378,  378,  246,  246,  246,  246,  378,  378,  378,  156,
- /*   900 */   246,   96,  378,  137,  246,  246,  246,  246,  378,  166,
- /*   910 */   378,  378,  156,  246,   96,  137,  378,  246,  246,  246,
- /*   920 */   246,  167,  378,  378,  378,  156,  246,  121,  137,  253,
- /*   930 */   246,  246,  246,  246,  168,  378,  378,  156,  246,  124,
- /*   940 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  269,
- /*   950 */   378,  378,  378,  137,  156,  246,  294,  378,  378,  246,
- /*   960 */   246,  246,  246,  378,  378,  378,  378,  378,  378,  378,
- /*   970 */   137,  156,  246,   88,  378,  378,  246,  246,  246,  246,
- /*   980 */   378,  378,  378,  156,  246,   89,  378,  137,  246,  246,
- /*   990 */   246,  246,  378,  378,  378,  156,  246,   90,  378,  137,
- /*  1000 */   246,  246,  246,  246,  378,  378,  378,  156,  246,   97,
- /*  1010 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1020 */   246,   98,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1030 */   378,  156,  246,  100,  378,  137,  246,  246,  246,  246,
- /*  1040 */   378,  378,  378,  156,  246,  101,  378,  137,  246,  246,
- /*  1050 */   246,  246,  378,  378,  378,  156,  246,  102,  378,  137,
- /*  1060 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  103,
- /*  1070 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1080 */   246,  104,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1090 */   378,  156,  246,  105,  378,  137,  246,  246,  246,  246,
- /*  1100 */   378,  378,  378,  156,  246,  106,  378,  137,  246,  246,
- /*  1110 */   246,  246,  378,  378,  378,  156,  246,  107,  378,  137,
- /*  1120 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  108,
- /*  1130 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1140 */   246,  109,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1150 */   378,  156,  246,  110,  378,  137,  246,  246,  246,  246,
- /*  1160 */   378,  378,  378,  156,  246,  111,  378,  137,  246,  246,
- /*  1170 */   246,  246,  378,  378,  378,  156,  246,  112,  378,  137,
- /*  1180 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  113,
- /*  1190 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1200 */   246,  114,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1210 */   378,  156,  246,  115,  378,  137,  246,  246,  246,  246,
- /*  1220 */   378,  378,  378,  156,  246,  116,  378,  137,  246,  246,
- /*  1230 */   246,  246,  378,  378,  378,  156,  246,  117,  378,  137,
- /*  1240 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  118,
- /*  1250 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1260 */   246,  119,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1270 */   378,  156,  246,  120,  378,  137,  246,  246,  246,  246,
- /*  1280 */   378,  378,  378,  156,  246,   91,  378,  137,  246,  246,
- /*  1290 */   246,  246,  378,  378,  378,  156,  246,  127,  378,  137,
- /*  1300 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  126,
- /*  1310 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1320 */   246,  334,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1330 */   378,  156,  246,  333,  378,  137,  246,  246,  246,  246,
- /*  1340 */   378,  378,  378,  156,  246,  332,  378,  137,  246,  246,
- /*  1350 */   246,  246,  378,  378,  378,  156,  246,  145,  378,  137,
- /*  1360 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  146,
- /*  1370 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1380 */   246,  135,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1390 */   378,  156,  246,  136,  378,  137,  246,  246,  246,  246,
- /*  1400 */   378,  378,  378,  156,  246,  139,  378,  137,  246,  246,
- /*  1410 */   246,  246,  378,  378,  378,  156,  246,  140,  378,  137,
- /*  1420 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  141,
- /*  1430 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1440 */   246,  138,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1450 */   378,  156,  246,   92,  378,  137,  246,  246,  246,  246,
- /*  1460 */   378,  378,  378,  156,  246,  144,  378,  137,  246,  246,
- /*  1470 */   246,  246,  378,  378,  378,  156,  246,  122,  378,  137,
- /*  1480 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  143,
- /*  1490 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1500 */   246,   93,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1510 */   378,  156,  246,  142,  378,  137,  246,  246,  246,  246,
- /*  1520 */   378,  378,  378,  156,  246,  123,  378,  137,  246,  246,
- /*  1530 */   246,  246,  378,  378,  378,  156,  246,  132,  378,  137,
- /*  1540 */   246,  246,  246,  246,  378,  378,  378,  156,  246,  129,
- /*  1550 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  156,
- /*  1560 */   246,  125,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1570 */   378,  156,  246,  293,  378,  137,  246,  246,  246,  246,
- /*  1580 */   378,  378,  378,  156,  246,   95,  378,  137,  246,  246,
- /*  1590 */   246,  246,  378,  378,  378,  156,  246,  128,  378,  137,
- /*  1600 */   246,  246,  246,  246,  378,  378,  378,  156,  246,   94,
- /*  1610 */   378,  137,  246,  246,  246,  246,  378,  378,  378,  154,
- /*  1620 */   246,  378,  378,  137,  246,  246,  246,  246,  378,  378,
- /*  1630 */   378,  154,  246,  378,  378,  307,  246,  246,  246,  246,
- /*  1640 */   378,  378,  378,  147,  246,  378,  378,  306,  246,  246,
- /*  1650 */   246,  246,  378,  148,  246,  378,  378,  378,  246,  246,
- /*  1660 */   246,  246,  378,  378,  378,  149,  246,  378,  378,  378,
- /*  1670 */   246,  246,  246,  246,  378,  378,  378,  150,  246,  378,
- /*  1680 */   378,  378,  246,  246,  246,  246,
+ /*    40 */    77,  173,   72,   11,  177,   10,   59,  257,  258,  259,
+ /*    50 */   260,  261,  262,  263,    1,  277,  180,   83,   81,   22,
+ /*    60 */   346,  347,  172,  170,  169,   12,   75,   76,  130,  265,
+ /*    70 */    85,   74,   73,   78,   77,  179,   72,   11,   50,   49,
+ /*    80 */    48,  257,  258,  259,  260,  261,  262,  263,    1,   82,
+ /*    90 */   341,   83,   81,   22,  346,  347,  172,  170,  169,  175,
+ /*   100 */    75,   76,  134,  270,   17,   74,   73,   78,   77,  367,
+ /*   110 */    72,   11,   82,  365,  275,  257,  258,  259,  260,  176,
+ /*   120 */   262,  263,    1,    4,   80,   83,   81,   22,  346,  347,
+ /*   130 */   172,  170,  169,  264,   75,   76,  383,  383,  383,   74,
+ /*   140 */    73,   78,   77,  352,   72,   11,    9,  351,  374,  257,
+ /*   150 */   258,  259,  260,  261,  262,  263,   79,   15,   13,   87,
+ /*   160 */    81,   22,  346,  347,  366,   14,   45,   47,   46,   71,
+ /*   170 */    67,   66,   20,    6,   54,   53,   58,   57,   56,   55,
+ /*   180 */    64,   62,   60,   52,   51,   50,   49,   48,   45,   47,
+ /*   190 */    46,   71,   67,   66,   21,    5,   54,   53,   58,   57,
+ /*   200 */    56,   55,   64,   62,   60,   52,   51,   50,   49,   48,
+ /*   210 */    45,   47,   46,   71,   67,   66,   23,    7,   54,   53,
+ /*   220 */    58,   57,   56,   55,   64,   62,   60,   52,   51,   50,
+ /*   230 */    49,   48,   58,   57,   56,   55,   64,   62,   60,   52,
+ /*   240 */    51,   50,   49,   48,   45,   47,   46,   71,   67,   66,
+ /*   250 */    84,   44,   54,   53,   58,   57,   56,   55,   64,   62,
+ /*   260 */    60,   52,   51,   50,   49,   48,    2,  499,   45,   47,
+ /*   270 */    46,   71,   67,   66,  252,  251,   54,   53,   58,   57,
+ /*   280 */    56,   55,   64,   62,   60,   52,   51,   50,   49,   48,
+ /*   290 */   153,   45,   47,   46,   71,   67,   66,    3,  152,   54,
+ /*   300 */    53,   58,   57,   56,   55,   64,   62,   60,   52,   51,
+ /*   310 */    50,   49,   48,   45,   47,   46,   71,   67,   66,  134,
+ /*   320 */   249,   54,   53,   58,   57,   56,   55,   64,   62,   60,
+ /*   330 */    52,   51,   50,   49,   48,   54,   53,   58,   57,   56,
+ /*   340 */    55,   64,   62,   60,   52,   51,   50,   49,   48,   68,
+ /*   350 */   133,   75,   76,  134,  380,  382,   74,   73,   78,   77,
+ /*   360 */   382,   72,   11,  253,  382,  382,  257,  258,  259,  260,
+ /*   370 */   261,  262,  263,   79,  147,  248,   87,  382,  382,  248,
+ /*   380 */   248,  248,  248,  382,  382,   75,   76,  385,  385,  385,
+ /*   390 */    74,   73,   78,   77,  382,   72,   11,  382,  382,  382,
+ /*   400 */   257,  258,  259,  260,  261,  262,  263,   79,  382,  382,
+ /*   410 */    87,   46,   71,   67,   66,  382,  382,   54,   53,   58,
+ /*   420 */    57,   56,   55,   64,   62,   60,   52,   51,   50,   49,
+ /*   430 */    48,   71,   67,   66,  382,  382,   54,   53,   58,   57,
+ /*   440 */    56,   55,   64,   62,   60,   52,   51,   50,   49,   48,
+ /*   450 */   384,  384,  384,  382,  180,  382,  162,  156,  248,   99,
+ /*   460 */   382,  382,  248,  248,  248,  248,  160,  267,  178,   10,
+ /*   470 */    63,  382,  382,  137,  358,  382,  382,    8,   67,   66,
+ /*   480 */     8,  163,   54,   53,   58,   57,   56,   55,   64,   62,
+ /*   490 */    60,   52,   51,   50,   49,   48,   66,  382,  382,   54,
+ /*   500 */    53,   58,   57,   56,   55,   64,   62,   60,   52,   51,
+ /*   510 */    50,   49,   48,   70,   65,   33,   32,   31,   30,   29,
+ /*   520 */    28,   27,   26,   25,   24,   52,   51,   50,   49,   48,
+ /*   530 */   382,  382,  514,  182,  156,  248,   99,  382,  382,  248,
+ /*   540 */   248,  248,  248,  181,   10,   19,  382,  292,  294,  382,
+ /*   550 */   137,  358,  382,  382,    8,  148,  248,    8,  163,  382,
+ /*   560 */   248,  248,  248,  248,  382,  278,  498,   86,  254,  382,
+ /*   570 */    16,   18,  448,  448,  448,  448,  448,  448,  448,  448,
+ /*   580 */   448,  448,  448,   69,  447,  447,  447,  447,  447,  447,
+ /*   590 */   447,  447,  447,  447,  447,  164,  156,  248,   99,  382,
+ /*   600 */   382,  248,  248,  248,  248,  311,  313,  382,  382,  382,
+ /*   610 */   382,  382,  137,  358,  382,  382,    8,  310,  312,    8,
+ /*   620 */   163,  382,   70,   65,   33,   32,   31,   30,   29,   28,
+ /*   630 */    27,   26,   25,   24,  151,  382,  382,  382,  382,  382,
+ /*   640 */   382,  180,  161,  156,  248,   99,  382,  155,  248,  248,
+ /*   650 */   248,  248,  382,  160,  267,  382,  292,  294,  382,  137,
+ /*   660 */   358,  382,  382,    8,  382,  250,    8,  163,  382,  382,
+ /*   670 */   382,  382,  382,  382,  382,  382,   72,   11,  382,  382,
+ /*   680 */   382,  257,  258,  259,  260,  261,  262,  263,   79,   72,
+ /*   690 */    11,   87,  382,  382,  257,  258,  259,  260,  261,  262,
+ /*   700 */   263,   79,  382,  382,   87,  382,  382,   72,   11,  382,
+ /*   710 */   382,  382,  257,  258,  259,  260,  261,  262,  263,   79,
+ /*   720 */   382,  382,   87,  156,  248,   99,  382,  382,  248,  248,
+ /*   730 */   248,  248,  382,  382,  382,  382,  382,  382,  382,  137,
+ /*   740 */   165,  382,  382,  371,  371,  382,  382,  382,  156,  248,
+ /*   750 */    99,  382,  382,  248,  248,  248,  248,  382,  382,  382,
+ /*   760 */   382,  382,  382,  382,  137,  165,  382,  382,  350,  350,
+ /*   770 */   156,  248,   99,  382,  382,  248,  248,  248,  248,  382,
+ /*   780 */   382,  382,  382,  382,  382,  382,  137,  165,  382,  382,
+ /*   790 */   349,  349,  382,  382,  156,  248,   99,  382,  382,  248,
+ /*   800 */   248,  248,  248,  382,  382,  382,  382,  382,  382,  382,
+ /*   810 */   137,  165,  382,  382,  171,  171,   61,   43,   42,   41,
+ /*   820 */    40,   39,   38,   37,   36,   35,   34,  156,  248,   99,
+ /*   830 */   382,  382,  248,  248,  248,  248,  382,  382,  382,  382,
+ /*   840 */   382,  382,  382,  137,  357,  382,  382,  354,  156,  248,
+ /*   850 */    99,  382,  382,  248,  248,  248,  248,  382,  382,  382,
+ /*   860 */   382,  382,  382,  382,  137,  356,  382,  382,  353,  382,
+ /*   870 */   382,  156,  248,  121,  158,  256,  248,  248,  248,  248,
+ /*   880 */   382,  382,  382,  156,  248,  124,  382,  137,  248,  248,
+ /*   890 */   248,  248,  382,  382,  159,  272,  156,  248,   99,  137,
+ /*   900 */   382,  248,  248,  248,  248,  382,  382,  382,  382,  382,
+ /*   910 */   382,  382,  137,  355,  382,  156,  248,   96,  382,  382,
+ /*   920 */   248,  248,  248,  248,  382,  382,  382,  156,  248,   96,
+ /*   930 */   382,  137,  248,  248,  248,  248,  382,  166,  382,  382,
+ /*   940 */   156,  248,   96,  137,  382,  248,  248,  248,  248,  167,
+ /*   950 */   382,  382,  382,  382,  382,  382,  137,  382,  382,  156,
+ /*   960 */   248,  121,  168,  255,  248,  248,  248,  248,  382,  382,
+ /*   970 */   382,  156,  248,  124,  382,  137,  248,  248,  248,  248,
+ /*   980 */   382,  382,  382,  271,  156,  248,  296,  137,  382,  248,
+ /*   990 */   248,  248,  248,  382,  382,  382,  382,  382,  382,  382,
+ /*  1000 */   137,  156,  248,   88,  382,  382,  248,  248,  248,  248,
+ /*  1010 */   382,  382,  382,  156,  248,   89,  382,  137,  248,  248,
+ /*  1020 */   248,  248,  382,  382,  382,  382,  382,  382,  382,  137,
+ /*  1030 */   382,  156,  248,   90,  382,  382,  248,  248,  248,  248,
+ /*  1040 */   382,  382,  382,  156,  248,   97,  382,  137,  248,  248,
+ /*  1050 */   248,  248,  382,  382,  382,  156,  248,   98,  382,  137,
+ /*  1060 */   248,  248,  248,  248,  382,  382,  382,  382,  382,  382,
+ /*  1070 */   382,  137,  156,  248,  100,  382,  382,  248,  248,  248,
+ /*  1080 */   248,  382,  382,  382,  382,  156,  248,  101,  137,  382,
+ /*  1090 */   248,  248,  248,  248,  382,  382,  382,  382,  382,  382,
+ /*  1100 */   382,  137,  382,  156,  248,  102,  382,  382,  248,  248,
+ /*  1110 */   248,  248,  382,  382,  382,  156,  248,  103,  382,  137,
+ /*  1120 */   248,  248,  248,  248,  382,  382,  382,  156,  248,  104,
+ /*  1130 */   382,  137,  248,  248,  248,  248,  382,  382,  382,  382,
+ /*  1140 */   382,  382,  382,  137,  156,  248,  105,  382,  382,  248,
+ /*  1150 */   248,  248,  248,  382,  382,  382,  382,  156,  248,  106,
+ /*  1160 */   137,  382,  248,  248,  248,  248,  382,  382,  382,  382,
+ /*  1170 */   382,  382,  382,  137,  382,  156,  248,  107,  382,  382,
+ /*  1180 */   248,  248,  248,  248,  382,  382,  382,  156,  248,  108,
+ /*  1190 */   382,  137,  248,  248,  248,  248,  382,  382,  382,  156,
+ /*  1200 */   248,  109,  382,  137,  248,  248,  248,  248,  382,  382,
+ /*  1210 */   382,  382,  382,  382,  382,  137,  156,  248,  110,  382,
+ /*  1220 */   382,  248,  248,  248,  248,  382,  382,  382,  382,  156,
+ /*  1230 */   248,  111,  137,  382,  248,  248,  248,  248,  382,  382,
+ /*  1240 */   382,  382,  382,  382,  382,  137,  382,  156,  248,  112,
+ /*  1250 */   382,  382,  248,  248,  248,  248,  382,  382,  382,  156,
+ /*  1260 */   248,  113,  382,  137,  248,  248,  248,  248,  382,  382,
+ /*  1270 */   382,  156,  248,  114,  382,  137,  248,  248,  248,  248,
+ /*  1280 */   382,  382,  382,  382,  382,  382,  382,  137,  156,  248,
+ /*  1290 */   115,  382,  382,  248,  248,  248,  248,  382,  382,  382,
+ /*  1300 */   382,  156,  248,  116,  137,  382,  248,  248,  248,  248,
+ /*  1310 */   382,  382,  382,  382,  382,  382,  382,  137,  382,  156,
+ /*  1320 */   248,  117,  382,  382,  248,  248,  248,  248,  382,  382,
+ /*  1330 */   382,  156,  248,  118,  382,  137,  248,  248,  248,  248,
+ /*  1340 */   382,  382,  382,  156,  248,  119,  382,  137,  248,  248,
+ /*  1350 */   248,  248,  382,  382,  382,  382,  382,  382,  382,  137,
+ /*  1360 */   156,  248,  120,  382,  382,  248,  248,  248,  248,  382,
+ /*  1370 */   382,  382,  382,  156,  248,   91,  137,  382,  248,  248,
+ /*  1380 */   248,  248,  382,  382,  382,  382,  382,  382,  382,  137,
+ /*  1390 */   382,  156,  248,  127,  382,  382,  248,  248,  248,  248,
+ /*  1400 */   382,  382,  382,  156,  248,  126,  382,  137,  248,  248,
+ /*  1410 */   248,  248,  382,  382,  382,  156,  248,  336,  382,  137,
+ /*  1420 */   248,  248,  248,  248,  382,  382,  382,  382,  382,  382,
+ /*  1430 */   382,  137,  156,  248,  335,  382,  382,  248,  248,  248,
+ /*  1440 */   248,  382,  382,  382,  382,  156,  248,  334,  137,  382,
+ /*  1450 */   248,  248,  248,  248,  382,  382,  382,  382,  382,  382,
+ /*  1460 */   382,  137,  382,  156,  248,  145,  382,  382,  248,  248,
+ /*  1470 */   248,  248,  382,  382,  382,  156,  248,  146,  382,  137,
+ /*  1480 */   248,  248,  248,  248,  382,  382,  382,  156,  248,  135,
+ /*  1490 */   382,  137,  248,  248,  248,  248,  382,  382,  382,  382,
+ /*  1500 */   382,  382,  382,  137,  156,  248,  136,  382,  382,  248,
+ /*  1510 */   248,  248,  248,  382,  382,  382,  382,  156,  248,  139,
+ /*  1520 */   137,  382,  248,  248,  248,  248,  382,  382,  382,  382,
+ /*  1530 */   382,  382,  382,  137,  382,  156,  248,  140,  382,  382,
+ /*  1540 */   248,  248,  248,  248,  382,  382,  382,  156,  248,  141,
+ /*  1550 */   382,  137,  248,  248,  248,  248,  382,  382,  382,  156,
+ /*  1560 */   248,  138,  382,  137,  248,  248,  248,  248,  382,  382,
+ /*  1570 */   382,  382,  382,  382,  382,  137,  156,  248,   92,  382,
+ /*  1580 */   382,  248,  248,  248,  248,  382,  382,  382,  382,  156,
+ /*  1590 */   248,  144,  137,  382,  248,  248,  248,  248,  382,  382,
+ /*  1600 */   382,  382,  382,  382,  382,  137,  382,  156,  248,  122,
+ /*  1610 */   382,  382,  248,  248,  248,  248,  382,  382,  382,  156,
+ /*  1620 */   248,  143,  382,  137,  248,  248,  248,  248,  382,  382,
+ /*  1630 */   382,  156,  248,   93,  382,  137,  248,  248,  248,  248,
+ /*  1640 */   382,  382,  382,  382,  382,  382,  382,  137,  156,  248,
+ /*  1650 */   142,  382,  382,  248,  248,  248,  248,  382,  382,  382,
+ /*  1660 */   382,  156,  248,  123,  137,  382,  248,  248,  248,  248,
+ /*  1670 */   382,  382,  382,  382,  382,  382,  382,  137,  382,  156,
+ /*  1680 */   248,  132,  382,  382,  248,  248,  248,  248,  382,  382,
+ /*  1690 */   382,  156,  248,  129,  382,  137,  248,  248,  248,  248,
+ /*  1700 */   382,  382,  382,  156,  248,  125,  382,  137,  248,  248,
+ /*  1710 */   248,  248,  382,  382,  382,  382,  382,  382,  382,  137,
+ /*  1720 */   156,  248,  295,  382,  382,  248,  248,  248,  248,  382,
+ /*  1730 */   382,  382,  382,  156,  248,   95,  137,  382,  248,  248,
+ /*  1740 */   248,  248,  382,  382,  382,  382,  382,  382,  382,  137,
+ /*  1750 */   382,  156,  248,  128,  382,  382,  248,  248,  248,  248,
+ /*  1760 */   382,  382,  382,  156,  248,   94,  382,  137,  248,  248,
+ /*  1770 */   248,  248,  382,  382,  382,  154,  248,  382,  382,  137,
+ /*  1780 */   248,  248,  248,  248,  382,  382,  382,  382,  382,  382,
+ /*  1790 */   382,  309,  154,  248,  382,  382,  382,  248,  248,  248,
+ /*  1800 */   248,  382,  382,  382,  382,  149,  248,  382,  308,  382,
+ /*  1810 */   248,  248,  248,  248,  382,  382,  382,  382,  382,  382,
+ /*  1820 */   382,  150,  248,  382,  382,  382,  248,  248,  248,  248,
 };
 static const YYCODETYPE yy_lookahead[] = {
- /*     0 */     1,   16,   17,   18,   19,   20,   21,   87,   88,   24,
+ /*     0 */     1,   16,   17,   18,   19,   20,   21,   89,   90,   24,
  /*    10 */    25,   26,   27,   28,   29,   30,   31,   32,   33,   34,
  /*    20 */    35,   36,   37,   30,   31,   32,   33,   34,   35,   36,
- /*    30 */    37,   46,   33,   34,    1,   83,   84,   38,   39,   40,
+ /*    30 */    37,   46,   33,   34,    1,   85,   86,   38,   39,   40,
  /*    40 */    41,    1,   43,   44,   42,   43,   44,   48,   49,   50,
- /*    50 */    51,   52,   53,   54,   55,    1,   66,   58,   59,   60,
- /*    60 */    61,   62,   63,   64,    1,    1,   33,   34,   78,   79,
- /*    70 */    82,   38,   39,   40,   41,   88,   43,   44,   35,   36,
+ /*    50 */    51,   52,   53,   54,   55,    1,   68,   58,   59,   60,
+ /*    60 */    61,   62,   63,   64,   65,   66,   33,   34,    1,   81,
+ /*    70 */     1,   38,   39,   40,   41,   84,   43,   44,   35,   36,
  /*    80 */    37,   48,   49,   50,   51,   52,   53,   54,   55,   43,
- /*    90 */    82,   58,   59,   60,   61,   62,   63,   33,   34,   42,
- /*   100 */    43,   44,   38,   39,   40,   41,   52,   43,   44,   42,
- /*   110 */    43,   44,   48,   49,   50,   51,   52,   53,   54,   55,
- /*   120 */    46,   47,   58,   59,   60,   61,   62,   63,   84,   16,
- /*   130 */    17,   18,   19,   20,   21,   56,   56,   24,   25,   26,
- /*   140 */    27,   28,   29,   30,   31,   32,   33,   34,   35,   36,
- /*   150 */    37,   16,   17,   18,   19,   20,   21,   64,   45,   24,
- /*   160 */    25,   26,   27,   28,   29,   30,   31,   32,   33,   34,
- /*   170 */    35,   36,   37,   16,   17,   18,   19,   20,   21,   56,
- /*   180 */    45,   24,   25,   26,   27,   28,   29,   30,   31,   32,
- /*   190 */    33,   34,   35,   36,   37,   26,   27,   28,   29,   30,
- /*   200 */    31,   32,   33,   34,   35,   36,   37,   16,   17,   18,
- /*   210 */    19,   20,   21,   64,   57,   24,   25,   26,   27,   28,
- /*   220 */    29,   30,   31,   32,   33,   34,   35,   36,   37,   47,
- /*   230 */    45,   16,   17,   18,   19,   20,   21,   46,   56,   24,
- /*   240 */    25,   26,   27,   28,   29,   30,   31,   32,   33,   34,
- /*   250 */    35,   36,   37,    1,   16,   17,   18,   19,   20,   21,
- /*   260 */    64,   46,   24,   25,   26,   27,   28,   29,   30,   31,
- /*   270 */    32,   33,   34,   35,   36,   37,   33,   34,   35,   36,
- /*   280 */    37,   64,   45,   45,   47,   33,   34,   42,   43,   44,
- /*   290 */    38,   39,   40,   41,   43,   43,   44,   42,   43,   44,
- /*   300 */    48,   49,   50,   51,   52,   53,   54,   55,    1,   43,
- /*   310 */    58,   59,   60,   16,   17,   18,   19,   20,   21,    3,
- /*   320 */    43,   24,   25,   26,   27,   28,   29,   30,   31,   32,
- /*   330 */    33,   34,   35,   36,   37,    1,   42,   43,   44,    1,
- /*   340 */    33,   34,   47,    4,   55,   38,   39,   40,   41,   57,
- /*   350 */    43,   44,   45,   66,    1,   48,   49,   50,   51,   52,
- /*   360 */    53,   54,   55,    1,   55,   58,   79,   33,   34,   45,
- /*   370 */    57,   47,   38,   39,   40,   41,    0,   43,   44,    1,
- /*   380 */    94,   43,   48,   49,   50,   51,   52,   53,   54,   55,
- /*   390 */    94,   94,   58,   18,   19,   20,   21,   94,   94,   24,
- /*   400 */    25,   26,   27,   28,   29,   30,   31,   32,   33,   34,
- /*   410 */    35,   36,   37,   19,   20,   21,   94,   94,   24,   25,
- /*   420 */    26,   27,   28,   29,   30,   31,   32,   33,   34,   35,
- /*   430 */    36,   37,   66,   94,   68,   69,   70,   71,   94,   94,
- /*   440 */    74,   75,   76,   77,   78,   79,   94,   94,   94,   94,
- /*   450 */    94,   85,   86,   94,   94,   89,   20,   21,   92,   93,
- /*   460 */    24,   25,   26,   27,   28,   29,   30,   31,   32,   33,
- /*   470 */    34,   35,   36,   37,   21,   94,   94,   24,   25,   26,
- /*   480 */    27,   28,   29,   30,   31,   32,   33,   34,   35,   36,
- /*   490 */    37,    4,    5,    6,    7,    8,    9,   10,   11,   12,
- /*   500 */    13,   14,   15,   94,   94,   67,   68,   69,   70,   71,
- /*   510 */    94,   94,   74,   75,   76,   77,   94,   94,   94,   94,
- /*   520 */    94,   94,   94,   85,   86,   38,   39,   89,   94,   94,
- /*   530 */    92,   93,    4,    5,    6,    7,    8,    9,   10,   11,
- /*   540 */    12,   13,   14,   15,   57,   94,   94,   94,   24,   25,
- /*   550 */    26,   27,   28,   29,   30,   31,   32,   33,   34,   35,
- /*   560 */    36,   37,   94,   94,   94,   94,   38,   39,   94,   94,
- /*   570 */    94,    4,    5,    6,    7,    8,    9,   10,   11,   12,
+ /*    90 */    90,   58,   59,   60,   61,   62,   63,   64,   65,   84,
+ /*   100 */    33,   34,    1,   46,   47,   38,   39,   40,   41,   86,
+ /*   110 */    43,   44,   43,    1,   56,   48,   49,   50,   51,   52,
+ /*   120 */    53,   54,   55,   45,   47,   58,   59,   60,   61,   62,
+ /*   130 */    63,   64,   65,   56,   33,   34,   42,   43,   44,   38,
+ /*   140 */    39,   40,   41,   56,   43,   44,   66,   56,   66,   48,
+ /*   150 */    49,   50,   51,   52,   53,   54,   55,   43,   66,   58,
+ /*   160 */    59,   60,   61,   62,   52,   66,   16,   17,   18,   19,
+ /*   170 */    20,   21,   43,    3,   24,   25,   26,   27,   28,   29,
+ /*   180 */    30,   31,   32,   33,   34,   35,   36,   37,   16,   17,
+ /*   190 */    18,   19,   20,   21,   43,   45,   24,   25,   26,   27,
+ /*   200 */    28,   29,   30,   31,   32,   33,   34,   35,   36,   37,
+ /*   210 */    16,   17,   18,   19,   20,   21,    4,   45,   24,   25,
+ /*   220 */    26,   27,   28,   29,   30,   31,   32,   33,   34,   35,
+ /*   230 */    36,   37,   26,   27,   28,   29,   30,   31,   32,   33,
+ /*   240 */    34,   35,   36,   37,   16,   17,   18,   19,   20,   21,
+ /*   250 */    47,   57,   24,   25,   26,   27,   28,   29,   30,   31,
+ /*   260 */    32,   33,   34,   35,   36,   37,   55,   57,   16,   17,
+ /*   270 */    18,   19,   20,   21,   46,    1,   24,   25,   26,   27,
+ /*   280 */    28,   29,   30,   31,   32,   33,   34,   35,   36,   37,
+ /*   290 */     1,   16,   17,   18,   19,   20,   21,   55,   46,   24,
+ /*   300 */    25,   26,   27,   28,   29,   30,   31,   32,   33,   34,
+ /*   310 */    35,   36,   37,   16,   17,   18,   19,   20,   21,    1,
+ /*   320 */    45,   24,   25,   26,   27,   28,   29,   30,   31,   32,
+ /*   330 */    33,   34,   35,   36,   37,   24,   25,   26,   27,   28,
+ /*   340 */    29,   30,   31,   32,   33,   34,   35,   36,   37,   57,
+ /*   350 */     1,   33,   34,    1,    0,   96,   38,   39,   40,   41,
+ /*   360 */    96,   43,   44,   45,   96,   96,   48,   49,   50,   51,
+ /*   370 */    52,   53,   54,   55,   71,   72,   58,   96,   96,   76,
+ /*   380 */    77,   78,   79,   96,   96,   33,   34,   42,   43,   44,
+ /*   390 */    38,   39,   40,   41,   96,   43,   44,   96,   96,   96,
+ /*   400 */    48,   49,   50,   51,   52,   53,   54,   55,   96,   96,
+ /*   410 */    58,   18,   19,   20,   21,   96,   96,   24,   25,   26,
+ /*   420 */    27,   28,   29,   30,   31,   32,   33,   34,   35,   36,
+ /*   430 */    37,   19,   20,   21,   96,   96,   24,   25,   26,   27,
+ /*   440 */    28,   29,   30,   31,   32,   33,   34,   35,   36,   37,
+ /*   450 */    42,   43,   44,   96,   68,   96,   70,   71,   72,   73,
+ /*   460 */    96,   96,   76,   77,   78,   79,   80,   81,   42,   43,
+ /*   470 */    44,   96,   96,   87,   88,   96,   96,   91,   20,   21,
+ /*   480 */    94,   95,   24,   25,   26,   27,   28,   29,   30,   31,
+ /*   490 */    32,   33,   34,   35,   36,   37,   21,   96,   96,   24,
+ /*   500 */    25,   26,   27,   28,   29,   30,   31,   32,   33,   34,
+ /*   510 */    35,   36,   37,    4,    5,    6,    7,    8,    9,   10,
+ /*   520 */    11,   12,   13,   14,   15,   33,   34,   35,   36,   37,
+ /*   530 */    96,   96,   69,   70,   71,   72,   73,   96,   96,   76,
+ /*   540 */    77,   78,   79,   42,   43,   44,   96,   38,   39,   96,
+ /*   550 */    87,   88,   96,   96,   91,   71,   72,   94,   95,   96,
+ /*   560 */    76,   77,   78,   79,   96,   45,   57,   47,   45,   96,
+ /*   570 */    47,    4,    5,    6,    7,    8,    9,   10,   11,   12,
  /*   580 */    13,   14,   15,    4,    5,    6,    7,    8,    9,   10,
- /*   590 */    11,   12,   13,   14,   15,   68,   69,   70,   71,   94,
- /*   600 */    94,   74,   75,   76,   77,   38,   39,    1,   94,   94,
- /*   610 */    94,   94,   85,   86,   94,   94,   89,   38,   39,   92,
- /*   620 */    93,   68,   69,   70,   71,    1,   94,   74,   75,   76,
- /*   630 */    77,   94,   94,   94,   94,   94,   94,   94,   85,   86,
- /*   640 */    94,    1,   89,   94,   94,   92,   93,   94,   94,   43,
- /*   650 */    44,   94,   94,   94,   48,   49,   50,   51,   52,   53,
- /*   660 */    54,   55,   94,   94,   58,   94,   94,   43,   44,   94,
- /*   670 */    94,   94,   48,   49,   50,   51,   52,   53,   54,   55,
- /*   680 */    94,   94,   58,   43,   44,   94,   94,   94,   48,   49,
- /*   690 */    50,   51,   52,   53,   54,   55,   94,   94,   58,   69,
- /*   700 */    70,   71,   94,   94,   74,   75,   76,   77,   94,   94,
- /*   710 */    94,   94,   94,   94,   94,   85,   86,   94,   94,   89,
- /*   720 */    90,   94,   94,   94,   69,   70,   71,   94,   94,   74,
- /*   730 */    75,   76,   77,   94,   94,   94,   94,   94,   94,   94,
- /*   740 */    85,   86,   94,   94,   89,   90,   69,   70,   71,   94,
- /*   750 */    94,   74,   75,   76,   77,   94,   94,   94,   94,   94,
- /*   760 */    94,   94,   85,   86,   94,   94,   89,   90,   69,   70,
- /*   770 */    71,   94,   94,   74,   75,   76,   77,   94,   94,   94,
- /*   780 */    94,   94,   94,   94,   85,   86,   94,   94,   89,   90,
- /*   790 */     5,    6,    7,    8,    9,   10,   11,   12,   13,   14,
- /*   800 */    15,   69,   70,   71,   94,   94,   74,   75,   76,   77,
- /*   810 */    94,   94,   94,   94,   94,   94,   94,   85,   86,   94,
- /*   820 */    94,   89,   69,   70,   71,   94,   94,   74,   75,   76,
- /*   830 */    77,   94,   94,   94,   94,   94,   94,   94,   85,   86,
- /*   840 */    94,   94,   89,   69,   70,   71,   72,   73,   74,   75,
- /*   850 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*   860 */    74,   75,   76,   77,   94,   94,   80,   81,   69,   70,
- /*   870 */    71,   85,   94,   74,   75,   76,   77,   94,   94,   94,
- /*   880 */    94,   94,   94,   94,   85,   86,   94,   69,   70,   71,
- /*   890 */    94,   94,   74,   75,   76,   77,   94,   94,   94,   69,
- /*   900 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   91,
- /*   910 */    94,   94,   69,   70,   71,   85,   94,   74,   75,   76,
- /*   920 */    77,   91,   94,   94,   94,   69,   70,   71,   85,   73,
- /*   930 */    74,   75,   76,   77,   91,   94,   94,   69,   70,   71,
- /*   940 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   81,
- /*   950 */    94,   94,   94,   85,   69,   70,   71,   94,   94,   74,
- /*   960 */    75,   76,   77,   94,   94,   94,   94,   94,   94,   94,
- /*   970 */    85,   69,   70,   71,   94,   94,   74,   75,   76,   77,
- /*   980 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*   990 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1000 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1010 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1020 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1030 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1040 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1050 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1060 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1070 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1080 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1090 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1100 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1110 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1120 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1130 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1140 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1150 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1160 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1170 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1180 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1190 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1200 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1210 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1220 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1230 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1240 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1250 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1260 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1270 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1280 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1290 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1300 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1310 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1320 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1330 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1340 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1350 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1360 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1370 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1380 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1390 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1400 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1410 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1420 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1430 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1440 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1450 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1460 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1470 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1480 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1490 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1500 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1510 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1520 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1530 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1540 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1550 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1560 */    70,   71,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1570 */    94,   69,   70,   71,   94,   85,   74,   75,   76,   77,
- /*  1580 */    94,   94,   94,   69,   70,   71,   94,   85,   74,   75,
- /*  1590 */    76,   77,   94,   94,   94,   69,   70,   71,   94,   85,
- /*  1600 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   71,
- /*  1610 */    94,   85,   74,   75,   76,   77,   94,   94,   94,   69,
- /*  1620 */    70,   94,   94,   85,   74,   75,   76,   77,   94,   94,
- /*  1630 */    94,   69,   70,   94,   94,   85,   74,   75,   76,   77,
- /*  1640 */    94,   94,   94,   69,   70,   94,   94,   85,   74,   75,
- /*  1650 */    76,   77,   94,   69,   70,   94,   94,   94,   74,   75,
- /*  1660 */    76,   77,   94,   94,   94,   69,   70,   94,   94,   94,
- /*  1670 */    74,   75,   76,   77,   94,   94,   94,   69,   70,   94,
- /*  1680 */    94,   94,   74,   75,   76,   77,
+ /*   590 */    11,   12,   13,   14,   15,   70,   71,   72,   73,   96,
+ /*   600 */    96,   76,   77,   78,   79,   38,   39,   96,   96,   96,
+ /*   610 */    96,   96,   87,   88,   96,   96,   91,   38,   39,   94,
+ /*   620 */    95,   96,    4,    5,    6,    7,    8,    9,   10,   11,
+ /*   630 */    12,   13,   14,   15,    1,   96,   96,   96,   96,   96,
+ /*   640 */    96,   68,   70,   71,   72,   73,   96,    1,   76,   77,
+ /*   650 */    78,   79,   96,   80,   81,   96,   38,   39,   96,   87,
+ /*   660 */    88,   96,   96,   91,   96,    1,   94,   95,   96,   96,
+ /*   670 */    96,   96,   96,   96,   96,   96,   43,   44,   96,   96,
+ /*   680 */    96,   48,   49,   50,   51,   52,   53,   54,   55,   43,
+ /*   690 */    44,   58,   96,   96,   48,   49,   50,   51,   52,   53,
+ /*   700 */    54,   55,   96,   96,   58,   96,   96,   43,   44,   96,
+ /*   710 */    96,   96,   48,   49,   50,   51,   52,   53,   54,   55,
+ /*   720 */    96,   96,   58,   71,   72,   73,   96,   96,   76,   77,
+ /*   730 */    78,   79,   96,   96,   96,   96,   96,   96,   96,   87,
+ /*   740 */    88,   96,   96,   91,   92,   96,   96,   96,   71,   72,
+ /*   750 */    73,   96,   96,   76,   77,   78,   79,   96,   96,   96,
+ /*   760 */    96,   96,   96,   96,   87,   88,   96,   96,   91,   92,
+ /*   770 */    71,   72,   73,   96,   96,   76,   77,   78,   79,   96,
+ /*   780 */    96,   96,   96,   96,   96,   96,   87,   88,   96,   96,
+ /*   790 */    91,   92,   96,   96,   71,   72,   73,   96,   96,   76,
+ /*   800 */    77,   78,   79,   96,   96,   96,   96,   96,   96,   96,
+ /*   810 */    87,   88,   96,   96,   91,   92,    5,    6,    7,    8,
+ /*   820 */     9,   10,   11,   12,   13,   14,   15,   71,   72,   73,
+ /*   830 */    96,   96,   76,   77,   78,   79,   96,   96,   96,   96,
+ /*   840 */    96,   96,   96,   87,   88,   96,   96,   91,   71,   72,
+ /*   850 */    73,   96,   96,   76,   77,   78,   79,   96,   96,   96,
+ /*   860 */    96,   96,   96,   96,   87,   88,   96,   96,   91,   96,
+ /*   870 */    96,   71,   72,   73,   74,   75,   76,   77,   78,   79,
+ /*   880 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*   890 */    78,   79,   96,   96,   82,   83,   71,   72,   73,   87,
+ /*   900 */    96,   76,   77,   78,   79,   96,   96,   96,   96,   96,
+ /*   910 */    96,   96,   87,   88,   96,   71,   72,   73,   96,   96,
+ /*   920 */    76,   77,   78,   79,   96,   96,   96,   71,   72,   73,
+ /*   930 */    96,   87,   76,   77,   78,   79,   96,   93,   96,   96,
+ /*   940 */    71,   72,   73,   87,   96,   76,   77,   78,   79,   93,
+ /*   950 */    96,   96,   96,   96,   96,   96,   87,   96,   96,   71,
+ /*   960 */    72,   73,   93,   75,   76,   77,   78,   79,   96,   96,
+ /*   970 */    96,   71,   72,   73,   96,   87,   76,   77,   78,   79,
+ /*   980 */    96,   96,   96,   83,   71,   72,   73,   87,   96,   76,
+ /*   990 */    77,   78,   79,   96,   96,   96,   96,   96,   96,   96,
+ /*  1000 */    87,   71,   72,   73,   96,   96,   76,   77,   78,   79,
+ /*  1010 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*  1020 */    78,   79,   96,   96,   96,   96,   96,   96,   96,   87,
+ /*  1030 */    96,   71,   72,   73,   96,   96,   76,   77,   78,   79,
+ /*  1040 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*  1050 */    78,   79,   96,   96,   96,   71,   72,   73,   96,   87,
+ /*  1060 */    76,   77,   78,   79,   96,   96,   96,   96,   96,   96,
+ /*  1070 */    96,   87,   71,   72,   73,   96,   96,   76,   77,   78,
+ /*  1080 */    79,   96,   96,   96,   96,   71,   72,   73,   87,   96,
+ /*  1090 */    76,   77,   78,   79,   96,   96,   96,   96,   96,   96,
+ /*  1100 */    96,   87,   96,   71,   72,   73,   96,   96,   76,   77,
+ /*  1110 */    78,   79,   96,   96,   96,   71,   72,   73,   96,   87,
+ /*  1120 */    76,   77,   78,   79,   96,   96,   96,   71,   72,   73,
+ /*  1130 */    96,   87,   76,   77,   78,   79,   96,   96,   96,   96,
+ /*  1140 */    96,   96,   96,   87,   71,   72,   73,   96,   96,   76,
+ /*  1150 */    77,   78,   79,   96,   96,   96,   96,   71,   72,   73,
+ /*  1160 */    87,   96,   76,   77,   78,   79,   96,   96,   96,   96,
+ /*  1170 */    96,   96,   96,   87,   96,   71,   72,   73,   96,   96,
+ /*  1180 */    76,   77,   78,   79,   96,   96,   96,   71,   72,   73,
+ /*  1190 */    96,   87,   76,   77,   78,   79,   96,   96,   96,   71,
+ /*  1200 */    72,   73,   96,   87,   76,   77,   78,   79,   96,   96,
+ /*  1210 */    96,   96,   96,   96,   96,   87,   71,   72,   73,   96,
+ /*  1220 */    96,   76,   77,   78,   79,   96,   96,   96,   96,   71,
+ /*  1230 */    72,   73,   87,   96,   76,   77,   78,   79,   96,   96,
+ /*  1240 */    96,   96,   96,   96,   96,   87,   96,   71,   72,   73,
+ /*  1250 */    96,   96,   76,   77,   78,   79,   96,   96,   96,   71,
+ /*  1260 */    72,   73,   96,   87,   76,   77,   78,   79,   96,   96,
+ /*  1270 */    96,   71,   72,   73,   96,   87,   76,   77,   78,   79,
+ /*  1280 */    96,   96,   96,   96,   96,   96,   96,   87,   71,   72,
+ /*  1290 */    73,   96,   96,   76,   77,   78,   79,   96,   96,   96,
+ /*  1300 */    96,   71,   72,   73,   87,   96,   76,   77,   78,   79,
+ /*  1310 */    96,   96,   96,   96,   96,   96,   96,   87,   96,   71,
+ /*  1320 */    72,   73,   96,   96,   76,   77,   78,   79,   96,   96,
+ /*  1330 */    96,   71,   72,   73,   96,   87,   76,   77,   78,   79,
+ /*  1340 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*  1350 */    78,   79,   96,   96,   96,   96,   96,   96,   96,   87,
+ /*  1360 */    71,   72,   73,   96,   96,   76,   77,   78,   79,   96,
+ /*  1370 */    96,   96,   96,   71,   72,   73,   87,   96,   76,   77,
+ /*  1380 */    78,   79,   96,   96,   96,   96,   96,   96,   96,   87,
+ /*  1390 */    96,   71,   72,   73,   96,   96,   76,   77,   78,   79,
+ /*  1400 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*  1410 */    78,   79,   96,   96,   96,   71,   72,   73,   96,   87,
+ /*  1420 */    76,   77,   78,   79,   96,   96,   96,   96,   96,   96,
+ /*  1430 */    96,   87,   71,   72,   73,   96,   96,   76,   77,   78,
+ /*  1440 */    79,   96,   96,   96,   96,   71,   72,   73,   87,   96,
+ /*  1450 */    76,   77,   78,   79,   96,   96,   96,   96,   96,   96,
+ /*  1460 */    96,   87,   96,   71,   72,   73,   96,   96,   76,   77,
+ /*  1470 */    78,   79,   96,   96,   96,   71,   72,   73,   96,   87,
+ /*  1480 */    76,   77,   78,   79,   96,   96,   96,   71,   72,   73,
+ /*  1490 */    96,   87,   76,   77,   78,   79,   96,   96,   96,   96,
+ /*  1500 */    96,   96,   96,   87,   71,   72,   73,   96,   96,   76,
+ /*  1510 */    77,   78,   79,   96,   96,   96,   96,   71,   72,   73,
+ /*  1520 */    87,   96,   76,   77,   78,   79,   96,   96,   96,   96,
+ /*  1530 */    96,   96,   96,   87,   96,   71,   72,   73,   96,   96,
+ /*  1540 */    76,   77,   78,   79,   96,   96,   96,   71,   72,   73,
+ /*  1550 */    96,   87,   76,   77,   78,   79,   96,   96,   96,   71,
+ /*  1560 */    72,   73,   96,   87,   76,   77,   78,   79,   96,   96,
+ /*  1570 */    96,   96,   96,   96,   96,   87,   71,   72,   73,   96,
+ /*  1580 */    96,   76,   77,   78,   79,   96,   96,   96,   96,   71,
+ /*  1590 */    72,   73,   87,   96,   76,   77,   78,   79,   96,   96,
+ /*  1600 */    96,   96,   96,   96,   96,   87,   96,   71,   72,   73,
+ /*  1610 */    96,   96,   76,   77,   78,   79,   96,   96,   96,   71,
+ /*  1620 */    72,   73,   96,   87,   76,   77,   78,   79,   96,   96,
+ /*  1630 */    96,   71,   72,   73,   96,   87,   76,   77,   78,   79,
+ /*  1640 */    96,   96,   96,   96,   96,   96,   96,   87,   71,   72,
+ /*  1650 */    73,   96,   96,   76,   77,   78,   79,   96,   96,   96,
+ /*  1660 */    96,   71,   72,   73,   87,   96,   76,   77,   78,   79,
+ /*  1670 */    96,   96,   96,   96,   96,   96,   96,   87,   96,   71,
+ /*  1680 */    72,   73,   96,   96,   76,   77,   78,   79,   96,   96,
+ /*  1690 */    96,   71,   72,   73,   96,   87,   76,   77,   78,   79,
+ /*  1700 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*  1710 */    78,   79,   96,   96,   96,   96,   96,   96,   96,   87,
+ /*  1720 */    71,   72,   73,   96,   96,   76,   77,   78,   79,   96,
+ /*  1730 */    96,   96,   96,   71,   72,   73,   87,   96,   76,   77,
+ /*  1740 */    78,   79,   96,   96,   96,   96,   96,   96,   96,   87,
+ /*  1750 */    96,   71,   72,   73,   96,   96,   76,   77,   78,   79,
+ /*  1760 */    96,   96,   96,   71,   72,   73,   96,   87,   76,   77,
+ /*  1770 */    78,   79,   96,   96,   96,   71,   72,   96,   96,   87,
+ /*  1780 */    76,   77,   78,   79,   96,   96,   96,   96,   96,   96,
+ /*  1790 */    96,   87,   71,   72,   96,   96,   96,   76,   77,   78,
+ /*  1800 */    79,   96,   96,   96,   96,   71,   72,   96,   87,   96,
+ /*  1810 */    76,   77,   78,   79,   96,   96,   96,   96,   96,   96,
+ /*  1820 */    96,   71,   72,   96,   96,   96,   76,   77,   78,   79,
 };
-#define YY_SHIFT_USE_DFLT (1686)
+#define YY_SHIFT_USE_DFLT (1830)
 #define YY_SHIFT_COUNT    (182)
 #define YY_SHIFT_MIN      (-15)
-#define YY_SHIFT_MAX      (785)
+#define YY_SHIFT_MAX      (811)
 static const short yy_shift_ofst[] = {
- /*     0 */    33,   64,   33,   33,   33,   33,   33,   33,   -1,   33,
- /*    10 */   307,  334,  252,  334,  334,  334,  334,  334,  334,  334,
- /*    20 */   334,  334,  334,  334,  334,  334,  334,  334,  334,  334,
- /*    30 */   334,  334,  334,  334,  334,  334,  334,  334,  334,  334,
- /*    40 */   334,  334,  334,  334,  334,  334,  334,  334,  334,  334,
- /*    50 */   334,  334,  334,  334,  334,  334,  334,  334,  334,  334,
- /*    60 */   334,  334,  334,  334,  334,  334,  334,  334,  334,  334,
- /*    70 */   334,  334,  334,  606,  624,  640,  640,  640,  640,   54,
- /*    80 */    54,   40,   63,  338,   40,   46,   63,   46,  -15,  113,
- /*    90 */   135,  157,  191,  215,  238,  297,  297,  297,  297,  297,
+ /*     0 */    33,   67,   33,   33,   33,   33,   33,   33,   -1,   33,
+ /*    10 */   318,  352,  101,  352,  352,  352,  352,  352,  352,  352,
+ /*    20 */   352,  352,  352,  352,  352,  352,  352,  352,  352,  352,
+ /*    30 */   352,  352,  352,  352,  352,  352,  352,  352,  352,  352,
+ /*    40 */   352,  352,  352,  352,  352,  352,  352,  352,  352,  352,
+ /*    50 */   352,  352,  352,  352,  352,  352,  352,  352,  352,  352,
+ /*    60 */   352,  352,  352,  352,  352,  352,  352,  352,  352,  352,
+ /*    70 */   352,  352,  352,  633,  646,  664,  664,  664,  664,  112,
+ /*    80 */   112,   40,   54,   69,   40,   46,   54,   46,  -15,  150,
+ /*    90 */   172,  194,  228,  252,  275,  297,  297,  297,  297,  297,
  /*   100 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
  /*   110 */   297,  297,  297,  297,  297,  297,  297,  297,  297,  297,
- /*   120 */   297,  297,  297,  297,  297,  297,  375,  394,  436,  453,
- /*   130 */   487,  528,  524,  567,  579,  169,  169,  785,   -7,   -7,
- /*   140 */    -7,   -7,  243,  243,  243,   43,   43,    2,    2,    2,
- /*   150 */     2,   57,   67,  245,  255,   57,  294,  237,  324,   74,
- /*   160 */   182,   79,   80,   93,  123,  149,  185,  196,  217,  251,
- /*   170 */   266,  316,  277,  339,  295,  289,  292,  353,  362,  309,
- /*   180 */   313,  378,  376,
+ /*   120 */   297,  297,  297,  297,  297,  297,  393,  412,  458,  475,
+ /*   130 */   509,  567,  311,  579,  618,  206,  206,  811,   -7,   -7,
+ /*   140 */    -7,   -7,  492,  492,  492,   43,   43,    2,    2,    2,
+ /*   150 */     2,   94,  345,  408,  426,   94,  501,  520,  523,   57,
+ /*   160 */    77,   58,   87,   80,   91,   82,   78,   92,   99,  114,
+ /*   170 */   129,  170,  151,  212,  203,  211,  210,  274,  289,  242,
+ /*   180 */   292,  349,  354,
 };
-#define YY_REDUCE_USE_DFLT (-81)
+#define YY_REDUCE_USE_DFLT (-83)
 #define YY_REDUCE_COUNT (87)
-#define YY_REDUCE_MIN   (-80)
-#define YY_REDUCE_MAX   (1608)
+#define YY_REDUCE_MIN   (-82)
+#define YY_REDUCE_MAX   (1750)
 static const short yy_reduce_ofst[] = {
- /*     0 */   438,  366,  527,  553,  630,  655,  677,  699,  732,  753,
- /*    10 */   774,  786,  799,  818,  830,  843,  856,  868,  885,  902,
- /*    20 */   914,  926,  938,  950,  962,  974,  986,  998, 1010, 1022,
- /*    30 */  1034, 1046, 1058, 1070, 1082, 1094, 1106, 1118, 1130, 1142,
- /*    40 */  1154, 1166, 1178, 1190, 1202, 1214, 1226, 1238, 1250, 1262,
- /*    50 */  1274, 1286, 1298, 1310, 1322, 1334, 1346, 1358, 1370, 1382,
- /*    60 */  1394, 1406, 1418, 1430, 1442, 1454, 1466, 1478, 1490, 1502,
- /*    70 */  1514, 1526, 1538, 1550, 1562, 1574, 1584, 1596, 1608,  -10,
- /*    80 */   287,  -80,  -48,  -12,  -13,    8,   44,  -12,
+ /*     0 */   463,  386,  525,  572,  652,  677,  699,  723,  756,  777,
+ /*    10 */   800,  812,  825,  844,  856,  869,  888,  900,  913,  930,
+ /*    20 */   942,  960,  972,  984, 1001, 1014, 1032, 1044, 1056, 1073,
+ /*    30 */  1086, 1104, 1116, 1128, 1145, 1158, 1176, 1188, 1200, 1217,
+ /*    40 */  1230, 1248, 1260, 1272, 1289, 1302, 1320, 1332, 1344, 1361,
+ /*    50 */  1374, 1392, 1404, 1416, 1433, 1446, 1464, 1476, 1488, 1505,
+ /*    60 */  1518, 1536, 1548, 1560, 1577, 1590, 1608, 1620, 1632, 1649,
+ /*    70 */  1662, 1680, 1692, 1704, 1721,  303,  484, 1734, 1750,  573,
+ /*    80 */   -12,  -82,  -50,   -9,    0,   15,   23,   -9,
 };
 static const YYACTIONTYPE yy_default[] = {
- /*     0 */   507,  397,  507,  507,  507,  507,  507,  507,  503,  506,
- /*    10 */   507,  402,  507,  499,  499,  499,  507,  507,  507,  507,
- /*    20 */   507,  507,  473,  507,  507,  507,  507,  507,  507,  507,
- /*    30 */   507,  507,  507,  507,  507,  507,  507,  507,  507,  507,
- /*    40 */   507,  507,  507,  507,  507,  507,  507,  507,  507,  507,
- /*    50 */   507,  507,  507,  507,  507,  507,  507,  507,  507,  507,
- /*    60 */   507,  507,  507,  507,  507,  507,  507,  507,  507,  507,
- /*    70 */   507,  507,  507,  507,  507,  507,  507,  507,  507,  397,
- /*    80 */   395,  507,  405,  507,  507,  507,  507,  507,  507,  507,
- /*    90 */   507,  507,  507,  507,  507,  408,  500,  474,  471,  496,
- /*   100 */   419,  418,  417,  416,  415,  414,  413,  412,  411,  410,
- /*   110 */   436,  435,  434,  433,  432,  431,  430,  429,  428,  427,
- /*   120 */   468,  486,  426,  409,  403,  398,  466,  467,  449,  450,
- /*   130 */   379,  381,  451,  380,  379,  460,  459,  507,  455,  458,
- /*   140 */   457,  456,  452,  453,  454,  462,  461,  448,  447,  446,
- /*   150 */   445,  422,  444,  443,  507,  420,  487,  507,  507,  507,
- /*   160 */   507,  507,  507,  504,  507,  507,  507,  507,  507,  507,
- /*   170 */   507,  475,  507,  472,  469,  507,  390,  507,  507,  507,
- /*   180 */   507,  507,  507,
+ /*     0 */   513,  401,  513,  513,  513,  513,  513,  513,  509,  512,
+ /*    10 */   513,  406,  513,  505,  505,  505,  513,  513,  513,  513,
+ /*    20 */   513,  513,  477,  513,  513,  513,  513,  513,  513,  513,
+ /*    30 */   513,  513,  513,  513,  513,  513,  513,  513,  513,  513,
+ /*    40 */   513,  513,  513,  513,  513,  513,  513,  513,  513,  513,
+ /*    50 */   513,  513,  513,  513,  513,  513,  513,  513,  513,  513,
+ /*    60 */   513,  513,  513,  513,  513,  513,  513,  513,  513,  513,
+ /*    70 */   513,  513,  513,  513,  513,  513,  513,  513,  513,  401,
+ /*    80 */   399,  513,  409,  513,  513,  513,  513,  513,  513,  513,
+ /*    90 */   513,  513,  513,  513,  513,  412,  506,  478,  475,  502,
+ /*   100 */   423,  422,  421,  420,  419,  418,  417,  416,  415,  414,
+ /*   110 */   440,  439,  438,  437,  436,  435,  434,  433,  432,  431,
+ /*   120 */   472,  492,  430,  413,  407,  402,  470,  471,  453,  454,
+ /*   130 */   383,  385,  455,  384,  383,  464,  463,  513,  459,  462,
+ /*   140 */   461,  460,  456,  457,  458,  466,  465,  452,  451,  450,
+ /*   150 */   449,  426,  448,  447,  513,  424,  493,  513,  513,  513,
+ /*   160 */   513,  513,  513,  510,  513,  513,  513,  513,  513,  513,
+ /*   170 */   513,  481,  513,  476,  473,  513,  394,  513,  513,  513,
+ /*   180 */   513,  513,  513,
 };
 /********** End of lemon-generated parsing tables *****************************/
 
@@ -8179,15 +8246,15 @@ static const char *const yyTokenName[] = {
   "NULL",          "UNDEFINED",     "THIS",          "NUMBER",      
   "STRING_LITERAL",  "TRUE",          "FALSE",         "OPEN_CURLY",  
   "CLOSE_CURLY",   "COLON",         "FUNCTION",      "LET",         
-  "RETURN",        "IF",            "WHILE",         "FOR",         
-  "SEMICOLON",     "error",         "objspeclhs",    "program",     
-  "stmtlist",      "simple_expr",   "literal",       "expr",        
-  "callarglist",   "callarg",       "boolean_literal",  "func_literal",
-  "object_literal",  "array_literal",  "objspeclist",   "objspec",     
-  "arrayspeclist",  "arrspec",       "arglistparen",  "arglist",     
-  "argspec",       "objprop_for_opassign",  "sstmt",         "letspecs",    
-  "letspec",       "cstmt",         "block_or_stmt",  "optexpr",     
-  "cstmtlist",     "sstmtlist",   
+  "RETURN",        "BREAK",         "CONTINUE",      "IF",          
+  "WHILE",         "FOR",           "SEMICOLON",     "error",       
+  "objspeclhs",    "program",       "stmtlist",      "simple_expr", 
+  "literal",       "expr",          "callarglist",   "callarg",     
+  "boolean_literal",  "func_literal",  "object_literal",  "array_literal",
+  "objspeclist",   "objspec",       "arrayspeclist",  "arrspec",     
+  "arglistparen",  "arglist",       "argspec",       "objprop_for_opassign",
+  "sstmt",         "letspecs",      "letspec",       "cstmt",       
+  "block_or_stmt",  "optexpr",       "cstmtlist",     "sstmtlist",   
 };
 #endif /* NDEBUG */
 
@@ -8294,38 +8361,40 @@ static const char *const yyRuleName[] = {
  /*  96 */ "letspec ::= IDENTIFIER",
  /*  97 */ "sstmt ::= RETURN",
  /*  98 */ "sstmt ::= RETURN expr",
- /*  99 */ "cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt",
- /* 100 */ "cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt ELSE block_or_stmt",
- /* 101 */ "cstmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block_or_stmt",
- /* 102 */ "cstmt ::= FUNCTION IDENTIFIER arglistparen OPEN_CURLY stmtlist CLOSE_CURLY",
- /* 103 */ "cstmt ::= OPEN_CURLY stmtlist CLOSE_CURLY",
- /* 104 */ "cstmtlist ::= sstmtlist SEMICOLON cstmt",
- /* 105 */ "cstmtlist ::= cstmtlist cstmt",
- /* 106 */ "sstmtlist ::= cstmtlist SEMICOLON sstmt",
- /* 107 */ "sstmtlist ::= sstmtlist SEMICOLON sstmt",
- /* 108 */ "sstmtlist ::= cstmtlist sstmt",
- /* 109 */ "sstmtlist ::= sstmt",
- /* 110 */ "callarg ::= expr",
- /* 111 */ "expr ::= simple_expr",
- /* 112 */ "literal ::= boolean_literal",
- /* 113 */ "literal ::= func_literal",
- /* 114 */ "literal ::= object_literal",
- /* 115 */ "literal ::= array_literal",
- /* 116 */ "objspeclhs ::= IDENTIFIER",
- /* 117 */ "objspeclhs ::= STRING_LITERAL",
- /* 118 */ "arglist ::= arglist COMMA argspec",
- /* 119 */ "arglist ::= argspec",
- /* 120 */ "sstmt ::= expr",
- /* 121 */ "letspecs ::= letspec",
- /* 122 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
- /* 123 */ "optexpr ::=",
- /* 124 */ "optexpr ::= expr",
- /* 125 */ "block_or_stmt ::= sstmt SEMICOLON",
- /* 126 */ "block_or_stmt ::= cstmt",
- /* 127 */ "stmtlist ::= cstmtlist",
- /* 128 */ "stmtlist ::= sstmtlist",
- /* 129 */ "cstmtlist ::= cstmt",
- /* 130 */ "sstmtlist ::= sstmtlist SEMICOLON",
+ /*  99 */ "sstmt ::= BREAK",
+ /* 100 */ "sstmt ::= CONTINUE",
+ /* 101 */ "cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt",
+ /* 102 */ "cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt ELSE block_or_stmt",
+ /* 103 */ "cstmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block_or_stmt",
+ /* 104 */ "cstmt ::= FUNCTION IDENTIFIER arglistparen OPEN_CURLY stmtlist CLOSE_CURLY",
+ /* 105 */ "cstmt ::= OPEN_CURLY stmtlist CLOSE_CURLY",
+ /* 106 */ "cstmtlist ::= sstmtlist SEMICOLON cstmt",
+ /* 107 */ "cstmtlist ::= cstmtlist cstmt",
+ /* 108 */ "sstmtlist ::= cstmtlist SEMICOLON sstmt",
+ /* 109 */ "sstmtlist ::= sstmtlist SEMICOLON sstmt",
+ /* 110 */ "sstmtlist ::= cstmtlist sstmt",
+ /* 111 */ "sstmtlist ::= sstmt",
+ /* 112 */ "callarg ::= expr",
+ /* 113 */ "expr ::= simple_expr",
+ /* 114 */ "literal ::= boolean_literal",
+ /* 115 */ "literal ::= func_literal",
+ /* 116 */ "literal ::= object_literal",
+ /* 117 */ "literal ::= array_literal",
+ /* 118 */ "objspeclhs ::= IDENTIFIER",
+ /* 119 */ "objspeclhs ::= STRING_LITERAL",
+ /* 120 */ "arglist ::= arglist COMMA argspec",
+ /* 121 */ "arglist ::= argspec",
+ /* 122 */ "sstmt ::= expr",
+ /* 123 */ "letspecs ::= letspec",
+ /* 124 */ "cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt",
+ /* 125 */ "optexpr ::=",
+ /* 126 */ "optexpr ::= expr",
+ /* 127 */ "block_or_stmt ::= sstmt SEMICOLON",
+ /* 128 */ "block_or_stmt ::= cstmt",
+ /* 129 */ "stmtlist ::= cstmtlist",
+ /* 130 */ "stmtlist ::= sstmtlist",
+ /* 131 */ "cstmtlist ::= cstmt",
+ /* 132 */ "sstmtlist ::= sstmtlist SEMICOLON",
 };
 #endif /* NDEBUG */
 
@@ -8435,14 +8504,14 @@ static void yy_destructor(
     ** inside the C code.
     */
 /********* Begin destructor definitions ***************************************/
-    case 67: /* program */
+    case 69: /* program */
 {
 #line 41 "mjs/mjs.lem.c"
 
   (void) ctx;
   (void) yypminor;
 
-#line 977 "mjs/mjs.lem.c"
+#line 1007 "mjs/mjs.lem.c"
 }
       break;
 /********* End destructor definitions *****************************************/
@@ -8616,7 +8685,7 @@ static void yyStackOverflow(yyParser *yypParser){
 #line 36 "mjs/mjs.lem.c"
 
   printf("Giving up.  Parser stack overflow\n");
-#line 1151 "mjs/mjs.lem.c"
+#line 1181 "mjs/mjs.lem.c"
 /******** End %stack_overflow code ********************************************/
    mjsParserARG_STORE; /* Suppress warning about unused %extra_argument var */
 }
@@ -8688,137 +8757,139 @@ static const struct {
   YYCODETYPE lhs;         /* Symbol on the left-hand side of the rule */
   unsigned char nrhs;     /* Number of right-hand side symbols in the rule */
 } yyRuleInfo[] = {
-  { 67, 1 },
   { 69, 1 },
-  { 69, 3 },
-  { 69, 1 },
-  { 69, 3 },
-  { 69, 4 },
-  { 69, 3 },
-  { 69, 4 },
-  { 72, 3 },
+  { 71, 1 },
+  { 71, 3 },
+  { 71, 1 },
+  { 71, 3 },
+  { 71, 4 },
+  { 71, 3 },
+  { 71, 4 },
+  { 74, 3 },
+  { 74, 1 },
   { 72, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 74, 1 },
-  { 74, 1 },
-  { 76, 3 },
+  { 72, 1 },
+  { 72, 1 },
+  { 72, 1 },
+  { 72, 1 },
+  { 76, 1 },
+  { 76, 1 },
   { 78, 3 },
-  { 78, 2 },
-  { 78, 1 },
-  { 78, 0 },
-  { 79, 3 },
-  { 77, 3 },
   { 80, 3 },
+  { 80, 2 },
   { 80, 1 },
   { 80, 0 },
-  { 81, 1 },
-  { 75, 5 },
-  { 83, 0 },
-  { 84, 1 },
+  { 81, 3 },
+  { 79, 3 },
   { 82, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 5 },
-  { 71, 6 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 4 },
-  { 71, 5 },
-  { 71, 4 },
-  { 71, 5 },
-  { 85, 3 },
-  { 85, 4 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 2 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 3 },
-  { 71, 5 },
-  { 86, 2 },
-  { 87, 3 },
-  { 88, 3 },
-  { 88, 1 },
-  { 86, 1 },
-  { 86, 2 },
-  { 89, 5 },
-  { 89, 7 },
-  { 89, 5 },
-  { 89, 6 },
-  { 89, 3 },
-  { 92, 3 },
-  { 92, 2 },
-  { 93, 3 },
-  { 93, 3 },
-  { 93, 2 },
-  { 93, 1 },
-  { 73, 1 },
-  { 71, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 70, 1 },
-  { 66, 1 },
-  { 66, 1 },
-  { 83, 3 },
+  { 82, 1 },
+  { 82, 0 },
   { 83, 1 },
+  { 77, 5 },
+  { 85, 0 },
   { 86, 1 },
-  { 87, 1 },
-  { 89, 9 },
-  { 91, 0 },
-  { 91, 1 },
-  { 90, 2 },
+  { 84, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 5 },
+  { 73, 6 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 4 },
+  { 73, 5 },
+  { 73, 4 },
+  { 73, 5 },
+  { 87, 3 },
+  { 87, 4 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 2 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 3 },
+  { 73, 5 },
+  { 88, 2 },
+  { 89, 3 },
+  { 90, 3 },
   { 90, 1 },
+  { 88, 1 },
+  { 88, 2 },
+  { 88, 1 },
+  { 88, 1 },
+  { 91, 5 },
+  { 91, 7 },
+  { 91, 5 },
+  { 91, 6 },
+  { 91, 3 },
+  { 94, 3 },
+  { 94, 2 },
+  { 95, 3 },
+  { 95, 3 },
+  { 95, 2 },
+  { 95, 1 },
+  { 75, 1 },
+  { 73, 1 },
+  { 72, 1 },
+  { 72, 1 },
+  { 72, 1 },
+  { 72, 1 },
   { 68, 1 },
   { 68, 1 },
+  { 85, 3 },
+  { 85, 1 },
+  { 88, 1 },
+  { 89, 1 },
+  { 91, 9 },
+  { 93, 0 },
+  { 93, 1 },
+  { 92, 2 },
   { 92, 1 },
-  { 93, 2 },
+  { 70, 1 },
+  { 70, 1 },
+  { 94, 1 },
+  { 95, 2 },
 };
 
 static void yy_accept(yyParser*);  /* Forward Declaration */
@@ -8884,233 +8955,233 @@ static void yy_reduce(
         YYMINORTYPE yylhsminor;
       case 0: /* program ::= stmtlist */
 #line 65 "mjs/mjs.lem.c"
-{ ctx->state = 1; ctx->entry = yymsp[0].minor.yy32; }
-#line 1420 "mjs/mjs.lem.c"
+{ ctx->state = 1; ctx->entry = yymsp[0].minor.yy8; }
+#line 1452 "mjs/mjs.lem.c"
         break;
       case 1: /* simple_expr ::= literal */
 #line 72 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=yymsp[0].minor.yy32; }
-#line 1425 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=yymsp[0].minor.yy8; }
+#line 1457 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 2: /* simple_expr ::= OPEN_PAREN expr CLOSE_PAREN */
       case 17: /* object_literal ::= OPEN_CURLY objspeclist CLOSE_CURLY */ yytestcase(yyruleno==17);
       case 23: /* array_literal ::= OPEN_BRACKET arrayspeclist CLOSE_BRACKET */ yytestcase(yyruleno==23);
 #line 75 "mjs/mjs.lem.c"
-{ yymsp[-2].minor.yy32=yymsp[-1].minor.yy32; }
-#line 1433 "mjs/mjs.lem.c"
+{ yymsp[-2].minor.yy8=yymsp[-1].minor.yy8; }
+#line 1465 "mjs/mjs.lem.c"
         break;
       case 3: /* simple_expr ::= IDENTIFIER */
 #line 78 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_var(ctx, yymsp[0].minor.yy0.begin); }
-#line 1438 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_var(ctx, yymsp[0].minor.yy0.begin); }
+#line 1470 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 4: /* simple_expr ::= simple_expr DOT IDENTIFIER */
 #line 81 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[-2].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_getprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1449 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1481 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 5: /* simple_expr ::= simple_expr OPEN_BRACKET expr CLOSE_BRACKET */
 #line 89 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[-3].minor.yy32);
-  mjs_emit_call(ctx, yymsp[-1].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[-3].minor.yy8);
+  mjs_emit_call(ctx, yymsp[-1].minor.yy8);
   mjs_emit(ctx, MJS_OP_getprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1460 "mjs/mjs.lem.c"
-  yymsp[-3].minor.yy32 = yylhsminor.yy32;
+#line 1492 "mjs/mjs.lem.c"
+  yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 6: /* simple_expr ::= simple_expr OPEN_PAREN CLOSE_PAREN */
 #line 97 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit(ctx, MJS_OP_zero);
-  mjs_emit_call(ctx, yymsp[-2].minor.yy32);
+  yylhsminor.yy8=mjs_emit(ctx, MJS_OP_zero);
+  mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit(ctx, MJS_OP_this_for_call);
   mjs_emit(ctx, MJS_OP_swap);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1473 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1505 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 7: /* simple_expr ::= simple_expr OPEN_PAREN callarglist CLOSE_PAREN */
 #line 105 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit(ctx, MJS_OP_zero);
-  mjs_emit_call(ctx, yymsp[-1].minor.yy32);
-  mjs_emit_call(ctx, yymsp[-3].minor.yy32);
+  yylhsminor.yy8=mjs_emit(ctx, MJS_OP_zero);
+  mjs_emit_call(ctx, yymsp[-1].minor.yy8);
+  mjs_emit_call(ctx, yymsp[-3].minor.yy8);
   mjs_emit(ctx, MJS_OP_this_for_call);
   mjs_emit(ctx, MJS_OP_swap);
   mjs_emit(ctx, MJS_OP_jscall);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1487 "mjs/mjs.lem.c"
-  yymsp[-3].minor.yy32 = yylhsminor.yy32;
+#line 1519 "mjs/mjs.lem.c"
+  yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 8: /* callarglist ::= callarglist COMMA callarg */
 #line 114 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_swapinc);
-  mjs_emit_call(ctx, yymsp[-2].minor.yy32);
+  mjs_emit_call(ctx, yymsp[-2].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1498 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1530 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 9: /* callarglist ::= callarg */
 #line 120 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_swapinc);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1508 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+#line 1540 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 10: /* literal ::= NULL */
 #line 132 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy32=mjs_emit(ctx, MJS_OP_null);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_null);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1517 "mjs/mjs.lem.c"
+#line 1549 "mjs/mjs.lem.c"
         break;
       case 11: /* literal ::= UNDEFINED */
 #line 136 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy32=mjs_emit(ctx, MJS_OP_undefined);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1525 "mjs/mjs.lem.c"
+#line 1557 "mjs/mjs.lem.c"
         break;
       case 12: /* literal ::= THIS */
 #line 140 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy32=mjs_emit(ctx, MJS_OP_this_val_AT);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_this_val_AT);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1533 "mjs/mjs.lem.c"
+#line 1565 "mjs/mjs.lem.c"
         break;
       case 13: /* literal ::= NUMBER */
 #line 144 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
-#line 1538 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_num(ctx, yymsp[0].minor.yy0.begin); }
+#line 1570 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 14: /* literal ::= STRING_LITERAL */
 #line 145 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
-#line 1544 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_str(ctx, yymsp[0].minor.yy0.begin); }
+#line 1576 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 15: /* boolean_literal ::= TRUE */
 #line 152 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy32=mjs_emit(ctx, MJS_OP_true);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_true);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1553 "mjs/mjs.lem.c"
+#line 1585 "mjs/mjs.lem.c"
         break;
       case 16: /* boolean_literal ::= FALSE */
 #line 156 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy32=mjs_emit(ctx, MJS_OP_false);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_false);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1561 "mjs/mjs.lem.c"
+#line 1593 "mjs/mjs.lem.c"
         break;
       case 18: /* objspeclist ::= objspeclist COMMA objspec */
       case 24: /* arrayspeclist ::= arrayspeclist COMMA arrspec */ yytestcase(yyruleno==24);
       case 94: /* letspecs ::= letspecs COMMA letspec */ yytestcase(yyruleno==94);
 #line 165 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[-2].minor.yy32);
-  mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[-2].minor.yy8);
+  mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1572 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1604 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 19: /* objspeclist ::= objspeclist COMMA */
 #line 170 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=yymsp[-1].minor.yy32;
+  yylhsminor.yy8=yymsp[-1].minor.yy8;
 }
-#line 1580 "mjs/mjs.lem.c"
-  yymsp[-1].minor.yy32 = yylhsminor.yy32;
+#line 1612 "mjs/mjs.lem.c"
+  yymsp[-1].minor.yy8 = yylhsminor.yy8;
         break;
       case 20: /* objspeclist ::= objspec */
 #line 173 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit(ctx, MJS_OP_mkobj);
-  mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit(ctx, MJS_OP_mkobj);
+  mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1590 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+#line 1622 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 21: /* objspeclist ::= */
 #line 178 "mjs/mjs.lem.c"
 {
-  yymsp[1].minor.yy32=mjs_emit(ctx, MJS_OP_mkobj);
+  yymsp[1].minor.yy8=mjs_emit(ctx, MJS_OP_mkobj);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1599 "mjs/mjs.lem.c"
+#line 1631 "mjs/mjs.lem.c"
         break;
       case 22: /* objspec ::= objspeclhs COLON expr */
 #line 183 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy88);
-  mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy44);
+  mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_addprop);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1609 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1641 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 25: /* arrayspeclist ::= arrspec */
 #line 201 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit(ctx, MJS_OP_mkarr);
-  mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit(ctx, MJS_OP_mkarr);
+  mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1619 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+#line 1651 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 26: /* arrayspeclist ::= */
 #line 206 "mjs/mjs.lem.c"
 {
-  yymsp[1].minor.yy32=mjs_emit(ctx, MJS_OP_mkarr);
+  yymsp[1].minor.yy8=mjs_emit(ctx, MJS_OP_mkarr);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1628 "mjs/mjs.lem.c"
+#line 1660 "mjs/mjs.lem.c"
         break;
       case 27: /* arrspec ::= expr */
 #line 211 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_arrpush);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1637 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+#line 1669 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 28: /* func_literal ::= FUNCTION arglistparen OPEN_CURLY stmtlist CLOSE_CURLY */
 #line 221 "mjs/mjs.lem.c"
 {
-  yymsp[-4].minor.yy32=mjs_emit_func(ctx, yymsp[-3].minor.yy32, yymsp[-1].minor.yy32);
+  yymsp[-4].minor.yy8=mjs_emit_func(ctx, yymsp[-3].minor.yy8, yymsp[-1].minor.yy8);
 }
-#line 1645 "mjs/mjs.lem.c"
+#line 1677 "mjs/mjs.lem.c"
         break;
       case 29: /* arglist ::= */
 #line 228 "mjs/mjs.lem.c"
@@ -9119,9 +9190,9 @@ static void yy_reduce(
    * mjs_emit_func() will check if arguments pointer is an invalid word ptr,
    * and if so, will skip calling the word generated by `argspec`s.
    */
-  yymsp[1].minor.yy32 = BF_INVALID_WORD_PTR;
+  yymsp[1].minor.yy8 = BF_INVALID_WORD_PTR;
 }
-#line 1656 "mjs/mjs.lem.c"
+#line 1688 "mjs/mjs.lem.c"
         break;
       case 30: /* argspec ::= IDENTIFIER */
 #line 235 "mjs/mjs.lem.c"
@@ -9131,608 +9202,636 @@ static void yy_reduce(
    * NOTE: do not emit `exit`, it'll be emitted by arglistparen, after
    * all `setarg`s.
    */
-  yylhsminor.yy32=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
+  yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_setarg);
 }
-#line 1669 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+#line 1701 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 31: /* arglistparen ::= OPEN_PAREN arglist CLOSE_PAREN */
 #line 245 "mjs/mjs.lem.c"
 {
   /* will return the beginning of the arglist */
-  yymsp[-2].minor.yy32 = yymsp[-1].minor.yy32;
-  if (yymsp[-1].minor.yy32 != BF_INVALID_WORD_PTR) {
+  yymsp[-2].minor.yy8 = yymsp[-1].minor.yy8;
+  if (yymsp[-1].minor.yy8 != BF_INVALID_WORD_PTR) {
     /* terminate `"foo" setarg "bar" setarg` with an exit */
     mjs_emit(ctx, MJS_OP_exit);
   }
 }
-#line 1682 "mjs/mjs.lem.c"
+#line 1714 "mjs/mjs.lem.c"
         break;
       case 32: /* expr ::= IDENTIFIER ASSIGN expr */
 #line 257 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, 0); }
-#line 1687 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, 0); }
+#line 1719 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 33: /* expr ::= IDENTIFIER PLUS_ASSIGN expr */
 #line 258 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_js_PLUS); }
-#line 1693 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_js_PLUS); }
+#line 1725 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 34: /* expr ::= IDENTIFIER MINUS_ASSIGN expr */
 #line 259 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_MINUS); }
-#line 1699 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_MINUS); }
+#line 1731 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 35: /* expr ::= IDENTIFIER MUL_ASSIGN expr */
 #line 260 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_STAR); }
-#line 1705 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_STAR); }
+#line 1737 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 36: /* expr ::= IDENTIFIER DIV_ASSIGN expr */
 #line 261 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_div); }
-#line 1711 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_div); }
+#line 1743 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 37: /* expr ::= IDENTIFIER REM_ASSIGN expr */
 #line 262 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_rem); }
-#line 1717 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_rem); }
+#line 1749 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 38: /* expr ::= IDENTIFIER LSHIFT_ASSIGN expr */
 #line 263 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_lshift); }
-#line 1723 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_lshift); }
+#line 1755 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 39: /* expr ::= IDENTIFIER RSHIFT_ASSIGN expr */
 #line 264 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_rshift); }
-#line 1729 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_rshift); }
+#line 1761 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 40: /* expr ::= IDENTIFIER URSHIFT_ASSIGN expr */
 #line 265 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_urshift); }
-#line 1735 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_urshift); }
+#line 1767 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 41: /* expr ::= IDENTIFIER AND_ASSIGN expr */
 #line 266 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_and); }
-#line 1741 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_and); }
+#line 1773 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 42: /* expr ::= IDENTIFIER XOR_ASSIGN expr */
 #line 267 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_xor); }
-#line 1747 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_xor); }
+#line 1779 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 43: /* expr ::= IDENTIFIER OR_ASSIGN expr */
 #line 268 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy32, MJS_OP_or); }
-#line 1753 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_assign(ctx, yymsp[-2].minor.yy0.begin, yymsp[0].minor.yy8, MJS_OP_or); }
+#line 1785 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 44: /* expr ::= PLUS_PLUS IDENTIFIER */
 #line 270 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_assign(ctx, yymsp[0].minor.yy0.begin, MJS_WORD_PTR_one, MJS_OP_js_PLUS);
+  yymsp[-1].minor.yy8=mjs_emit_assign(ctx, yymsp[0].minor.yy0.begin, MJS_WORD_PTR_one, MJS_OP_js_PLUS);
 }
-#line 1761 "mjs/mjs.lem.c"
+#line 1793 "mjs/mjs.lem.c"
         break;
       case 45: /* expr ::= IDENTIFIER PLUS_PLUS */
 #line 273 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_postop(ctx, yymsp[-1].minor.yy0.begin, MJS_OP_js_PLUS);
+  yylhsminor.yy8=mjs_emit_postop(ctx, yymsp[-1].minor.yy0.begin, MJS_OP_js_PLUS);
 }
-#line 1768 "mjs/mjs.lem.c"
-  yymsp[-1].minor.yy32 = yylhsminor.yy32;
+#line 1800 "mjs/mjs.lem.c"
+  yymsp[-1].minor.yy8 = yylhsminor.yy8;
         break;
       case 46: /* expr ::= MINUS_MINUS IDENTIFIER */
 #line 276 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_assign(ctx, yymsp[0].minor.yy0.begin, MJS_WORD_PTR_one, MJS_OP_MINUS);
+  yymsp[-1].minor.yy8=mjs_emit_assign(ctx, yymsp[0].minor.yy0.begin, MJS_WORD_PTR_one, MJS_OP_MINUS);
 }
-#line 1776 "mjs/mjs.lem.c"
+#line 1808 "mjs/mjs.lem.c"
         break;
       case 47: /* expr ::= IDENTIFIER MINUS_MINUS */
 #line 279 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_postop(ctx, yymsp[-1].minor.yy0.begin, MJS_OP_MINUS);
+  yylhsminor.yy8=mjs_emit_postop(ctx, yymsp[-1].minor.yy0.begin, MJS_OP_MINUS);
 }
-#line 1783 "mjs/mjs.lem.c"
-  yymsp[-1].minor.yy32 = yylhsminor.yy32;
+#line 1815 "mjs/mjs.lem.c"
+  yymsp[-1].minor.yy8 = yylhsminor.yy8;
         break;
       case 48: /* expr ::= simple_expr DOT IDENTIFIER ASSIGN expr */
 #line 287 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t i = mjs_emit_ident(ctx, yymsp[-2].minor.yy0.begin);
-  bf_word_ptr_t prop = mjs_emit_objprop(ctx, yymsp[-4].minor.yy32, i, 0);
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, prop, yymsp[0].minor.yy32, 0);
+  bf_word_ptr_t prop = mjs_emit_objprop(ctx, yymsp[-4].minor.yy8, i, 0);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, prop, yymsp[0].minor.yy8, 0);
 }
-#line 1793 "mjs/mjs.lem.c"
-  yymsp[-4].minor.yy32 = yylhsminor.yy32;
+#line 1825 "mjs/mjs.lem.c"
+  yymsp[-4].minor.yy8 = yylhsminor.yy8;
         break;
       case 49: /* expr ::= simple_expr OPEN_BRACKET expr CLOSE_BRACKET ASSIGN expr */
 #line 292 "mjs/mjs.lem.c"
 {
-  bf_word_ptr_t prop = mjs_emit_objprop(ctx, yymsp[-5].minor.yy32, yymsp[-3].minor.yy32, 0);
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, prop, yymsp[0].minor.yy32, 0);
+  bf_word_ptr_t prop = mjs_emit_objprop(ctx, yymsp[-5].minor.yy8, yymsp[-3].minor.yy8, 0);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, prop, yymsp[0].minor.yy8, 0);
 }
-#line 1802 "mjs/mjs.lem.c"
-  yymsp[-5].minor.yy32 = yylhsminor.yy32;
+#line 1834 "mjs/mjs.lem.c"
+  yymsp[-5].minor.yy8 = yylhsminor.yy8;
         break;
       case 50: /* expr ::= objprop_for_opassign PLUS_ASSIGN expr */
 #line 298 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_PLUS);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_PLUS);
 }
-#line 1810 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1842 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 51: /* expr ::= objprop_for_opassign MINUS_ASSIGN expr */
 #line 302 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_MINUS);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_MINUS);
 }
-#line 1818 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1850 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 52: /* expr ::= objprop_for_opassign MUL_ASSIGN expr */
 #line 306 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_STAR);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_STAR);
 }
-#line 1826 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1858 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 53: /* expr ::= objprop_for_opassign DIV_ASSIGN expr */
 #line 310 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_div);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_div);
 }
-#line 1834 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1866 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 54: /* expr ::= objprop_for_opassign REM_ASSIGN expr */
 #line 314 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_rem);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_rem);
 }
-#line 1842 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1874 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 55: /* expr ::= objprop_for_opassign LSHIFT_ASSIGN expr */
 #line 318 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_lshift);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_lshift);
 }
-#line 1850 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1882 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 56: /* expr ::= objprop_for_opassign RSHIFT_ASSIGN expr */
 #line 322 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_rshift);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_rshift);
 }
-#line 1858 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1890 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 57: /* expr ::= objprop_for_opassign URSHIFT_ASSIGN expr */
 #line 326 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_urshift);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_urshift);
 }
-#line 1866 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1898 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 58: /* expr ::= objprop_for_opassign AND_ASSIGN expr */
 #line 330 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_and);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_and);
 }
-#line 1874 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1906 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 59: /* expr ::= objprop_for_opassign XOR_ASSIGN expr */
 #line 334 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_xor);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_xor);
 }
-#line 1882 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1914 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 60: /* expr ::= objprop_for_opassign OR_ASSIGN expr */
 #line 338 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_or);
+  yylhsminor.yy8=mjs_emit_objprop_assign(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_or);
 }
-#line 1890 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1922 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 61: /* expr ::= PLUS_PLUS objprop_for_opassign */
 #line 343 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_objprop_assign(ctx, yymsp[0].minor.yy32, MJS_WORD_PTR_one, MJS_OP_js_PLUS);
+  yymsp[-1].minor.yy8=mjs_emit_objprop_assign(ctx, yymsp[0].minor.yy8, MJS_WORD_PTR_one, MJS_OP_js_PLUS);
 }
-#line 1898 "mjs/mjs.lem.c"
+#line 1930 "mjs/mjs.lem.c"
         break;
       case 62: /* expr ::= MINUS_MINUS objprop_for_opassign */
 #line 346 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_objprop_assign(ctx, yymsp[0].minor.yy32, MJS_WORD_PTR_one, MJS_OP_MINUS);
+  yymsp[-1].minor.yy8=mjs_emit_objprop_assign(ctx, yymsp[0].minor.yy8, MJS_WORD_PTR_one, MJS_OP_MINUS);
 }
-#line 1905 "mjs/mjs.lem.c"
+#line 1937 "mjs/mjs.lem.c"
         break;
       case 63: /* expr ::= simple_expr DOT IDENTIFIER PLUS_PLUS */
 #line 352 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t i = mjs_emit_ident(ctx, yymsp[-1].minor.yy0.begin);
-  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-3].minor.yy32, i, MJS_OP_js_PLUS);
+  yylhsminor.yy8=mjs_emit_postop_prop(ctx, yymsp[-3].minor.yy8, i, MJS_OP_js_PLUS);
 }
-#line 1913 "mjs/mjs.lem.c"
-  yymsp[-3].minor.yy32 = yylhsminor.yy32;
+#line 1945 "mjs/mjs.lem.c"
+  yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 64: /* expr ::= simple_expr OPEN_BRACKET expr CLOSE_BRACKET PLUS_PLUS */
 #line 356 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-4].minor.yy32, yymsp[-2].minor.yy32, MJS_OP_js_PLUS);
+  yylhsminor.yy8=mjs_emit_postop_prop(ctx, yymsp[-4].minor.yy8, yymsp[-2].minor.yy8, MJS_OP_js_PLUS);
 }
-#line 1921 "mjs/mjs.lem.c"
-  yymsp[-4].minor.yy32 = yylhsminor.yy32;
+#line 1953 "mjs/mjs.lem.c"
+  yymsp[-4].minor.yy8 = yylhsminor.yy8;
         break;
       case 65: /* expr ::= simple_expr DOT IDENTIFIER MINUS_MINUS */
 #line 359 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t i = mjs_emit_ident(ctx, yymsp[-1].minor.yy0.begin);
-  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-3].minor.yy32, i, MJS_OP_MINUS);
+  yylhsminor.yy8=mjs_emit_postop_prop(ctx, yymsp[-3].minor.yy8, i, MJS_OP_MINUS);
 }
-#line 1930 "mjs/mjs.lem.c"
-  yymsp[-3].minor.yy32 = yylhsminor.yy32;
+#line 1962 "mjs/mjs.lem.c"
+  yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 66: /* expr ::= simple_expr OPEN_BRACKET expr CLOSE_BRACKET MINUS_MINUS */
 #line 363 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_postop_prop(ctx, yymsp[-4].minor.yy32, yymsp[-2].minor.yy32, MJS_OP_MINUS);
+  yylhsminor.yy8=mjs_emit_postop_prop(ctx, yymsp[-4].minor.yy8, yymsp[-2].minor.yy8, MJS_OP_MINUS);
 }
-#line 1938 "mjs/mjs.lem.c"
-  yymsp[-4].minor.yy32 = yylhsminor.yy32;
+#line 1970 "mjs/mjs.lem.c"
+  yymsp[-4].minor.yy8 = yylhsminor.yy8;
         break;
       case 67: /* objprop_for_opassign ::= simple_expr DOT IDENTIFIER */
 #line 372 "mjs/mjs.lem.c"
 {
   bf_word_ptr_t i = mjs_emit_ident(ctx, yymsp[0].minor.yy0.begin);
-  yylhsminor.yy32=mjs_emit_objprop(ctx, yymsp[-2].minor.yy32, i, 1);
+  yylhsminor.yy8=mjs_emit_objprop(ctx, yymsp[-2].minor.yy8, i, 1);
 }
-#line 1947 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 1979 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 68: /* objprop_for_opassign ::= simple_expr OPEN_BRACKET expr CLOSE_BRACKET */
 #line 376 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_objprop(ctx, yymsp[-3].minor.yy32, yymsp[-1].minor.yy32, 1);
+  yylhsminor.yy8=mjs_emit_objprop(ctx, yymsp[-3].minor.yy8, yymsp[-1].minor.yy8, 1);
 }
-#line 1955 "mjs/mjs.lem.c"
-  yymsp[-3].minor.yy32 = yylhsminor.yy32;
+#line 1987 "mjs/mjs.lem.c"
+  yymsp[-3].minor.yy8 = yylhsminor.yy8;
         break;
       case 69: /* expr ::= NOT simple_expr */
 #line 383 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yymsp[-1].minor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_jsinvert);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1965 "mjs/mjs.lem.c"
+#line 1997 "mjs/mjs.lem.c"
         break;
       case 70: /* expr ::= TILDA simple_expr */
 #line 388 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yymsp[-1].minor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_not);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1974 "mjs/mjs.lem.c"
+#line 2006 "mjs/mjs.lem.c"
         break;
       case 71: /* expr ::= MINUS simple_expr */
 #line 393 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yymsp[-1].minor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_neg);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1983 "mjs/mjs.lem.c"
+#line 2015 "mjs/mjs.lem.c"
         break;
       case 72: /* expr ::= PLUS simple_expr */
 #line 399 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yymsp[-1].minor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_pos);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 1992 "mjs/mjs.lem.c"
+#line 2024 "mjs/mjs.lem.c"
         break;
       case 73: /* expr ::= expr OR expr */
 #line 407 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_or); }
-#line 1997 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_or); }
+#line 2029 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 74: /* expr ::= expr XOR expr */
 #line 408 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_xor); }
-#line 2003 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_xor); }
+#line 2035 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 75: /* expr ::= expr AND expr */
 #line 409 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_and); }
-#line 2009 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_and); }
+#line 2041 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 76: /* expr ::= expr LSHIFT expr */
 #line 410 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_lshift); }
-#line 2015 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_lshift); }
+#line 2047 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 77: /* expr ::= expr RSHIFT expr */
 #line 411 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_rshift); }
-#line 2021 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_rshift); }
+#line 2053 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 78: /* expr ::= expr URSHIFT expr */
 #line 412 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_urshift); }
-#line 2027 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_urshift); }
+#line 2059 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 79: /* expr ::= expr LE expr */
 #line 413 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_LTEQ); }
-#line 2033 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_LTEQ); }
+#line 2065 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 80: /* expr ::= expr LT expr */
 #line 414 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_LT); }
-#line 2039 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_LT); }
+#line 2071 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 81: /* expr ::= expr GE expr */
 #line 415 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_GTEQ); }
-#line 2045 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_GTEQ); }
+#line 2077 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 82: /* expr ::= expr GT expr */
 #line 416 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_GT); }
-#line 2051 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_GT); }
+#line 2083 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 83: /* expr ::= expr EQ_EQ expr */
 #line 417 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_EQ); }
-#line 2057 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_EQ); }
+#line 2089 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 84: /* expr ::= expr NE_NE expr */
 #line 418 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_SETEQ); }
-#line 2063 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_SETEQ); }
+#line 2095 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 85: /* expr ::= expr PLUS expr */
 #line 419 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_PLUS); }
-#line 2069 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_PLUS); }
+#line 2101 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 86: /* expr ::= expr MINUS expr */
 #line 420 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_MINUS); }
-#line 2075 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_MINUS); }
+#line 2107 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 87: /* expr ::= expr MUL expr */
 #line 421 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_STAR); }
-#line 2081 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_STAR); }
+#line 2113 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 88: /* expr ::= expr DIV expr */
 #line 422 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_div); }
-#line 2087 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_div); }
+#line 2119 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 89: /* expr ::= expr REM expr */
 #line 423 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_rem); }
-#line 2093 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+{ yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_rem); }
+#line 2125 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 90: /* expr ::= expr LOGICAL_AND expr */
 #line 424 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_logical_and);
+  yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_logical_and);
 }
-#line 2101 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 2133 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 91: /* expr ::= expr LOGICAL_OR expr */
 #line 427 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_bin(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32, MJS_OP_js_logical_or);
+  yylhsminor.yy8=mjs_emit_bin(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8, MJS_OP_js_logical_or);
 }
-#line 2109 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 2141 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 92: /* expr ::= expr QUESTION expr COLON expr */
 #line 433 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_call(ctx, yymsp[-4].minor.yy32);
-  mjs_emit_quote(ctx, yymsp[-2].minor.yy32);
-  mjs_emit_quote(ctx, yymsp[0].minor.yy32);
+  yylhsminor.yy8=mjs_emit_call(ctx, yymsp[-4].minor.yy8);
+  mjs_emit_quote(ctx, yymsp[-2].minor.yy8);
+  mjs_emit_quote(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_ifelse);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2121 "mjs/mjs.lem.c"
-  yymsp[-4].minor.yy32 = yylhsminor.yy32;
+#line 2153 "mjs/mjs.lem.c"
+  yymsp[-4].minor.yy8 = yylhsminor.yy8;
         break;
       case 93: /* sstmt ::= LET letspecs */
 #line 452 "mjs/mjs.lem.c"
-{ yymsp[-1].minor.yy32=yymsp[0].minor.yy32; }
-#line 2127 "mjs/mjs.lem.c"
+{ yymsp[-1].minor.yy8=yymsp[0].minor.yy8; }
+#line 2159 "mjs/mjs.lem.c"
         break;
       case 95: /* letspec ::= IDENTIFIER ASSIGN expr */
 #line 459 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy0.begin);
+  yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[-2].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_dup);
   mjs_emit(ctx, MJS_OP_createvar);
-  mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_setvar);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2139 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+#line 2171 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
       case 96: /* letspec ::= IDENTIFIER */
 #line 467 "mjs/mjs.lem.c"
 {
-  yylhsminor.yy32=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
+  yylhsminor.yy8=mjs_emit_str_or_ident(ctx, yymsp[0].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_createvar);
   mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2150 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+#line 2182 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       case 97: /* sstmt ::= RETURN */
 #line 476 "mjs/mjs.lem.c"
 {
-  yymsp[0].minor.yy32=mjs_emit(ctx, MJS_OP_undefined);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_jsexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2160 "mjs/mjs.lem.c"
+#line 2192 "mjs/mjs.lem.c"
         break;
       case 98: /* sstmt ::= RETURN expr */
 #line 482 "mjs/mjs.lem.c"
 {
-  yymsp[-1].minor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32);
+  yymsp[-1].minor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_jsexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2169 "mjs/mjs.lem.c"
+#line 2201 "mjs/mjs.lem.c"
         break;
-      case 99: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt */
-#line 496 "mjs/mjs.lem.c"
+      case 99: /* sstmt ::= BREAK */
+#line 491 "mjs/mjs.lem.c"
 {
-  yymsp[-4].minor.yy32=mjs_emit_call(ctx, yymsp[-2].minor.yy32);
-  mjs_emit_quote(ctx, yymsp[0].minor.yy32);
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
+  mjs_emit(ctx, MJS_OP_zero); /* "break" marker for brcont_body_exit */
+  mjs_emit(ctx, MJS_OP_brcont_body_exit);
+  /*
+   * MJS_OP_exit is not needed here, because brcont_body_exit restores RS index
+   * to the previously stored value, so everything after calling
+   * brcont_body_exit will be ignored anyway
+   */
+}
+#line 2215 "mjs/mjs.lem.c"
+        break;
+      case 100: /* sstmt ::= CONTINUE */
+#line 504 "mjs/mjs.lem.c"
+{
+  yymsp[0].minor.yy8=mjs_emit(ctx, MJS_OP_undefined);
+  mjs_emit(ctx, MJS_OP_one); /* "continue" marker for brcont_body_exit */
+  mjs_emit(ctx, MJS_OP_brcont_body_exit);
+  /*
+   * MJS_OP_exit is not needed here, because brcont_body_exit restores RS index
+   * to the previously stored value, so everything after calling
+   * brcont_body_exit will be ignored anyway
+   */
+}
+#line 2229 "mjs/mjs.lem.c"
+        break;
+      case 101: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt */
+#line 522 "mjs/mjs.lem.c"
+{
+  yymsp[-4].minor.yy8=mjs_emit_call(ctx, yymsp[-2].minor.yy8);
+  mjs_emit_quote(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_ifstmt);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2179 "mjs/mjs.lem.c"
+#line 2239 "mjs/mjs.lem.c"
         break;
-      case 100: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt ELSE block_or_stmt */
-#line 504 "mjs/mjs.lem.c"
+      case 102: /* cstmt ::= IF OPEN_PAREN expr CLOSE_PAREN block_or_stmt ELSE block_or_stmt */
+#line 530 "mjs/mjs.lem.c"
 {
-  yymsp[-6].minor.yy32=mjs_emit_call(ctx, yymsp[-4].minor.yy32);
-  mjs_emit_quote(ctx, yymsp[-2].minor.yy32);
-  mjs_emit_quote(ctx, yymsp[0].minor.yy32);
+  yymsp[-6].minor.yy8=mjs_emit_call(ctx, yymsp[-4].minor.yy8);
+  mjs_emit_quote(ctx, yymsp[-2].minor.yy8);
+  mjs_emit_quote(ctx, yymsp[0].minor.yy8);
   mjs_emit(ctx, MJS_OP_ifelse);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2190 "mjs/mjs.lem.c"
+#line 2250 "mjs/mjs.lem.c"
         break;
-      case 101: /* cstmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block_or_stmt */
-#line 514 "mjs/mjs.lem.c"
+      case 103: /* cstmt ::= WHILE OPEN_PAREN expr CLOSE_PAREN block_or_stmt */
+#line 540 "mjs/mjs.lem.c"
 {
-  yymsp[-4].minor.yy32=mjs_emit_quote(ctx, yymsp[0].minor.yy32);
-  mjs_emit_quote(ctx, yymsp[-2].minor.yy32);
+  yymsp[-4].minor.yy8=mjs_emit_quote(ctx, yymsp[0].minor.yy8);
+  mjs_emit_quote(ctx, yymsp[-2].minor.yy8);
   mjs_emit(ctx, MJS_OP_while);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2200 "mjs/mjs.lem.c"
+#line 2260 "mjs/mjs.lem.c"
         break;
-      case 102: /* cstmt ::= FUNCTION IDENTIFIER arglistparen OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 534 "mjs/mjs.lem.c"
+      case 104: /* cstmt ::= FUNCTION IDENTIFIER arglistparen OPEN_CURLY stmtlist CLOSE_CURLY */
+#line 560 "mjs/mjs.lem.c"
 {
-  bf_word_ptr_t f = mjs_emit_func(ctx, yymsp[-3].minor.yy32, yymsp[-1].minor.yy32);
-  yymsp[-5].minor.yy32 = mjs_emit_str_or_ident(ctx, yymsp[-4].minor.yy0.begin);
+  bf_word_ptr_t f = mjs_emit_func(ctx, yymsp[-3].minor.yy8, yymsp[-1].minor.yy8);
+  yymsp[-5].minor.yy8 = mjs_emit_str_or_ident(ctx, yymsp[-4].minor.yy0.begin);
   mjs_emit(ctx, MJS_OP_dup);
   mjs_emit(ctx, MJS_OP_createvar);
   mjs_emit_call(ctx, f);
   mjs_emit(ctx, MJS_OP_setvar);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2213 "mjs/mjs.lem.c"
+#line 2273 "mjs/mjs.lem.c"
         break;
-      case 103: /* cstmt ::= OPEN_CURLY stmtlist CLOSE_CURLY */
-#line 546 "mjs/mjs.lem.c"
+      case 105: /* cstmt ::= OPEN_CURLY stmtlist CLOSE_CURLY */
+#line 572 "mjs/mjs.lem.c"
 {
-  yymsp[-2].minor.yy32=mjs_emit(ctx, MJS_OP_blockenter);
-  mjs_emit_call(ctx, yymsp[-1].minor.yy32);
+  yymsp[-2].minor.yy8=mjs_emit(ctx, MJS_OP_blockenter);
+  mjs_emit_call(ctx, yymsp[-1].minor.yy8);
   mjs_emit(ctx, MJS_OP_blockexit);
   mjs_emit(ctx, MJS_OP_exit);
 }
-#line 2223 "mjs/mjs.lem.c"
+#line 2283 "mjs/mjs.lem.c"
         break;
-      case 104: /* cstmtlist ::= sstmtlist SEMICOLON cstmt */
-      case 106: /* sstmtlist ::= cstmtlist SEMICOLON sstmt */ yytestcase(yyruleno==106);
-      case 107: /* sstmtlist ::= sstmtlist SEMICOLON sstmt */ yytestcase(yyruleno==107);
-#line 583 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_add_stmt(ctx, yymsp[-2].minor.yy32, yymsp[0].minor.yy32); }
-#line 2230 "mjs/mjs.lem.c"
-  yymsp[-2].minor.yy32 = yylhsminor.yy32;
+      case 106: /* cstmtlist ::= sstmtlist SEMICOLON cstmt */
+      case 108: /* sstmtlist ::= cstmtlist SEMICOLON sstmt */ yytestcase(yyruleno==108);
+      case 109: /* sstmtlist ::= sstmtlist SEMICOLON sstmt */ yytestcase(yyruleno==109);
+#line 609 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_add_stmt(ctx, yymsp[-2].minor.yy8, yymsp[0].minor.yy8); }
+#line 2290 "mjs/mjs.lem.c"
+  yymsp[-2].minor.yy8 = yylhsminor.yy8;
         break;
-      case 105: /* cstmtlist ::= cstmtlist cstmt */
-      case 108: /* sstmtlist ::= cstmtlist sstmt */ yytestcase(yyruleno==108);
-#line 584 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_add_stmt(ctx, yymsp[-1].minor.yy32, yymsp[0].minor.yy32); }
-#line 2237 "mjs/mjs.lem.c"
-  yymsp[-1].minor.yy32 = yylhsminor.yy32;
+      case 107: /* cstmtlist ::= cstmtlist cstmt */
+      case 110: /* sstmtlist ::= cstmtlist sstmt */ yytestcase(yyruleno==110);
+#line 610 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_add_stmt(ctx, yymsp[-1].minor.yy8, yymsp[0].minor.yy8); }
+#line 2297 "mjs/mjs.lem.c"
+  yymsp[-1].minor.yy8 = yylhsminor.yy8;
         break;
-      case 109: /* sstmtlist ::= sstmt */
-#line 590 "mjs/mjs.lem.c"
-{ yylhsminor.yy32=mjs_emit_call(ctx, yymsp[0].minor.yy32); mjs_emit(ctx, MJS_OP_exit); }
-#line 2243 "mjs/mjs.lem.c"
-  yymsp[0].minor.yy32 = yylhsminor.yy32;
+      case 111: /* sstmtlist ::= sstmt */
+#line 616 "mjs/mjs.lem.c"
+{ yylhsminor.yy8=mjs_emit_call(ctx, yymsp[0].minor.yy8); mjs_emit(ctx, MJS_OP_exit); }
+#line 2303 "mjs/mjs.lem.c"
+  yymsp[0].minor.yy8 = yylhsminor.yy8;
         break;
       default:
-      /* (110) callarg ::= expr */ yytestcase(yyruleno==110);
-      /* (111) expr ::= simple_expr */ yytestcase(yyruleno==111);
-      /* (112) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=112);
-      /* (113) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=113);
-      /* (114) literal ::= object_literal (OPTIMIZED OUT) */ assert(yyruleno!=114);
-      /* (115) literal ::= array_literal (OPTIMIZED OUT) */ assert(yyruleno!=115);
-      /* (116) objspeclhs ::= IDENTIFIER */ yytestcase(yyruleno==116);
-      /* (117) objspeclhs ::= STRING_LITERAL */ yytestcase(yyruleno==117);
-      /* (118) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==118);
-      /* (119) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=119);
-      /* (120) sstmt ::= expr */ yytestcase(yyruleno==120);
-      /* (121) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=121);
-      /* (122) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==122);
-      /* (123) optexpr ::= */ yytestcase(yyruleno==123);
-      /* (124) optexpr ::= expr */ yytestcase(yyruleno==124);
-      /* (125) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==125);
-      /* (126) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=126);
-      /* (127) stmtlist ::= cstmtlist */ yytestcase(yyruleno==127);
-      /* (128) stmtlist ::= sstmtlist */ yytestcase(yyruleno==128);
-      /* (129) cstmtlist ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=129);
-      /* (130) sstmtlist ::= sstmtlist SEMICOLON */ yytestcase(yyruleno==130);
+      /* (112) callarg ::= expr */ yytestcase(yyruleno==112);
+      /* (113) expr ::= simple_expr */ yytestcase(yyruleno==113);
+      /* (114) literal ::= boolean_literal (OPTIMIZED OUT) */ assert(yyruleno!=114);
+      /* (115) literal ::= func_literal (OPTIMIZED OUT) */ assert(yyruleno!=115);
+      /* (116) literal ::= object_literal (OPTIMIZED OUT) */ assert(yyruleno!=116);
+      /* (117) literal ::= array_literal (OPTIMIZED OUT) */ assert(yyruleno!=117);
+      /* (118) objspeclhs ::= IDENTIFIER */ yytestcase(yyruleno==118);
+      /* (119) objspeclhs ::= STRING_LITERAL */ yytestcase(yyruleno==119);
+      /* (120) arglist ::= arglist COMMA argspec */ yytestcase(yyruleno==120);
+      /* (121) arglist ::= argspec (OPTIMIZED OUT) */ assert(yyruleno!=121);
+      /* (122) sstmt ::= expr */ yytestcase(yyruleno==122);
+      /* (123) letspecs ::= letspec (OPTIMIZED OUT) */ assert(yyruleno!=123);
+      /* (124) cstmt ::= FOR OPEN_PAREN optexpr SEMICOLON optexpr SEMICOLON optexpr CLOSE_PAREN block_or_stmt */ yytestcase(yyruleno==124);
+      /* (125) optexpr ::= */ yytestcase(yyruleno==125);
+      /* (126) optexpr ::= expr */ yytestcase(yyruleno==126);
+      /* (127) block_or_stmt ::= sstmt SEMICOLON */ yytestcase(yyruleno==127);
+      /* (128) block_or_stmt ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=128);
+      /* (129) stmtlist ::= cstmtlist */ yytestcase(yyruleno==129);
+      /* (130) stmtlist ::= sstmtlist */ yytestcase(yyruleno==130);
+      /* (131) cstmtlist ::= cstmt (OPTIMIZED OUT) */ assert(yyruleno!=131);
+      /* (132) sstmtlist ::= sstmtlist SEMICOLON */ yytestcase(yyruleno==132);
         break;
 /********** End reduce actions ************************************************/
   };
@@ -9775,7 +9874,7 @@ static void yy_parse_failed(
 /************ Begin %parse_failure code ***************************************/
 #line 28 "mjs/mjs.lem.c"
 
-#line 2310 "mjs/mjs.lem.c"
+#line 2370 "mjs/mjs.lem.c"
 /************ End %parse_failure code *****************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -9796,7 +9895,7 @@ static void yy_syntax_error(
 
   ctx->syntax_error = TOKEN;
   (void) yymajor;
-#line 2331 "mjs/mjs.lem.c"
+#line 2391 "mjs/mjs.lem.c"
 /************ End %syntax_error code ******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -9822,7 +9921,7 @@ static void yy_accept(
 /*********** Begin %parse_accept code *****************************************/
 #line 25 "mjs/mjs.lem.c"
 
-#line 2357 "mjs/mjs.lem.c"
+#line 2417 "mjs/mjs.lem.c"
 /*********** End %parse_accept code *******************************************/
   mjsParserARG_STORE; /* Suppress warning about unused %extra_argument variable */
 }
@@ -10045,6 +10144,8 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <bf_op_cr> */ 
   /* 0003 -> : .s ... ; */
   /*           <bf_op_print_stack> */ 
+  /* 0003 -> : .r ... ; */
+  /*           <bf_op_print_rstack> */ 
   /* 0003 -> : = ... ; */
   /*           <bf_op_eq> */ 
   /* 0003 -> : < ... ; */
@@ -10093,6 +10194,14 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_scope_pop> */ 
   /* 0016 -> : scope@ ... ; */
   /*           <mjs_op_scope_tos> */ 
+  /* 0016 -> : brcont_rspos@ ... ; */
+  /*           <mjs_op_brcont_rspos_get> */ 
+  /* 0016 -> : brcont_rspos! ... ; */
+  /*           <mjs_op_brcont_rspos_set> */ 
+  /* 0016 -> : brcont_scope@ ... ; */
+  /*           <mjs_op_brcont_scope_get> */ 
+  /* 0016 -> : brcont_scope! ... ; */
+  /*           <mjs_op_brcont_scope_set> */ 
   /* 0016 -> : mkobj ... ; */
   /*           <mjs_op_mkobj> */ 
   /* 0016 -> : addprop ... ; */
@@ -10122,116 +10231,130 @@ bf_opcode_t MJS_opcodes[] = {
   /* 0037 -> : jscall_wrap ... ; */
   MJS_OP_jscall, MJS_OP_exit,
   /* 0039 -> : jsenter ... ; */
-  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_frame_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_frame_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
-  /* 0055 -> : jsexit ... ; */
-  MJS_OP_frame_AT, MJS_OP_rp_SET, MJS_OP_scope_min_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_frame_SET, MJS_OP_r_GT, MJS_OP_scope_min_SET, MJS_OP_exit,
-  /* 0064 -> : anon_0 ... ; */
+  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_frame_AT, MJS_OP_GT_r, MJS_OP_brcont_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_scope_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_frame_SET, MJS_OP_quote, -1, -1, MJS_OP_brcont_rspos_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
+  /* 0063 -> : jsexit ... ; */
+  MJS_OP_frame_AT, MJS_OP_rp_SET, MJS_OP_scope_min_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_brcont_scope_SET, MJS_OP_r_GT, MJS_OP_brcont_rspos_SET, MJS_OP_r_GT, MJS_OP_frame_SET, MJS_OP_r_GT, MJS_OP_scope_min_SET, MJS_OP_exit,
+  /* 0076 -> : anon_0 ... ; */
   MJS_OP_undefined, MJS_OP_exit,
-  /* 0066 -> : anon_1 ... ; */
+  /* 0078 -> : anon_1 ... ; */
   MJS_OP_rot, MJS_OP_exit,
-  /* 0068 -> : setarg ... ; */
-  MJS_OP_rot, MJS_OP_one, MJS_OP_MINUS, MJS_OP_dup, MJS_OP_GT_r, MJS_OP_quote, 0, 0, MJS_OP_LT, MJS_OP_quote, 0, 64, MJS_OP_quote, 0, 66, MJS_OP_ifelse, MJS_OP_addprop, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_exit,
-  /* 0088 -> : ffi ... ; */
+  /* 0080 -> : setarg ... ; */
+  MJS_OP_rot, MJS_OP_one, MJS_OP_MINUS, MJS_OP_dup, MJS_OP_GT_r, MJS_OP_quote, 0, 0, MJS_OP_LT, MJS_OP_quote, 0, 76, MJS_OP_quote, 0, 78, MJS_OP_ifelse, MJS_OP_addprop, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_exit,
+  /* 0100 -> : ffi ... ; */
   MJS_OP_drop, MJS_OP_exit,
-  /* 0090 -> : undefined ... ; */
+  /* 0102 -> : undefined ... ; */
   /*           <mjs_op_undefined> */ 
-  /* 0090 -> : null ... ; */
+  /* 0102 -> : null ... ; */
   /*           <mjs_op_null> */ 
-  /* 0090 -> : true ... ; */
+  /* 0102 -> : true ... ; */
   /*           <mjs_op_true> */ 
-  /* 0090 -> : false ... ; */
+  /* 0102 -> : false ... ; */
   /*           <mjs_op_false> */ 
-  /* 0090 -> : this_for_call ... ; */
+  /* 0102 -> : this_for_call ... ; */
   /*           <mjs_op_this_for_call> */ 
-  /* 0090 -> : 2dup ... ; */
+  /* 0102 -> : 2dup ... ; */
   MJS_OP_over, MJS_OP_over, MJS_OP_exit,
-  /* 0093 -> : dec ... ; */
+  /* 0105 -> : dec ... ; */
   MJS_OP_quote, -1, -1, MJS_OP_PLUS, MJS_OP_exit,
-  /* 0098 -> : >= ... ; */
+  /* 0110 -> : >= ... ; */
   MJS_OP_LT, MJS_OP_invert, MJS_OP_exit,
-  /* 0101 -> : <= ... ; */
+  /* 0113 -> : <= ... ; */
   MJS_OP_GT, MJS_OP_invert, MJS_OP_exit,
-  /* 0104 -> : != ... ; */
+  /* 0116 -> : != ... ; */
   MJS_OP_EQ, MJS_OP_invert, MJS_OP_exit,
-  /* 0107 -> : js= ... ; */
+  /* 0119 -> : js= ... ; */
   /*           <mjs_op_eq> */ 
-  /* 0107 -> : js< ... ; */
+  /* 0119 -> : js< ... ; */
   /*           <mjs_op_lt> */ 
-  /* 0107 -> : js> ... ; */
+  /* 0119 -> : js> ... ; */
   /*           <mjs_op_gt> */ 
-  /* 0107 -> : jsinvert ... ; */
+  /* 0119 -> : jsinvert ... ; */
   /*           <mjs_op_invert> */ 
-  /* 0107 -> : js>= ... ; */
+  /* 0119 -> : js>= ... ; */
   MJS_OP_js_LT, MJS_OP_jsinvert, MJS_OP_exit,
-  /* 0110 -> : js<= ... ; */
+  /* 0122 -> : js<= ... ; */
   MJS_OP_js_GT, MJS_OP_jsinvert, MJS_OP_exit,
-  /* 0113 -> : js!= ... ; */
+  /* 0125 -> : js!= ... ; */
   MJS_OP_js_EQ, MJS_OP_jsinvert, MJS_OP_exit,
-  /* 0116 -> : js_logical_and ... ; */
+  /* 0128 -> : js_logical_and ... ; */
   /*           <mjs_op_logical_and> */ 
-  /* 0116 -> : js_logical_or ... ; */
+  /* 0128 -> : js_logical_or ... ; */
   /*           <mjs_op_logical_or> */ 
-  /* 0116 -> : js+ ... ; */
+  /* 0128 -> : js+ ... ; */
   /*           <mjs_op_add> */ 
-  /* 0116 -> : anon_2 ... ; */
+  /* 0128 -> : anon_2 ... ; */
   MJS_OP_undefined, MJS_OP_exit,
-  /* 0118 -> : ifstmt ... ; */
-  MJS_OP_quote, 0, 116, MJS_OP_ifelse, MJS_OP_exit,
-  /* 0123 -> : anon_3 ... ; */
+  /* 0130 -> : ifstmt ... ; */
+  MJS_OP_quote, 0, -128, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0135 -> : anon_3 ... ; */
   MJS_OP_2dup, MJS_OP_GT_r, MJS_OP_GT_r, MJS_OP_call, MJS_OP_r_GT, MJS_OP_r_GT, MJS_OP_swap, -37, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GTEQ, MJS_OP_GT_r, MJS_OP_swap, MJS_OP_r_GT, MJS_OP_exit,
-  /* 0140 -> : anon_4 ... ; */
-  -47, MJS_OP_swap, MJS_OP_quote, 0, 123, MJS_OP_loop, MJS_OP_exit,
-  /* 0147 -> : repeat ... ; */
-  MJS_OP_swap, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GT, MJS_OP_quote, 0, -116, MJS_OP_if, MJS_OP_drop, MJS_OP_drop, MJS_OP_exit,
-  /* 0160 -> : anon_5 ... ; */
+  /* 0152 -> : anon_4 ... ; */
+  -47, MJS_OP_swap, MJS_OP_quote, 0, -121, MJS_OP_loop, MJS_OP_exit,
+  /* 0159 -> : repeat ... ; */
+  MJS_OP_swap, MJS_OP_dup, MJS_OP_quote, 0, 0, MJS_OP_GT, MJS_OP_quote, 0, -104, MJS_OP_if, MJS_OP_drop, MJS_OP_drop, MJS_OP_exit,
+  /* 0172 -> : brcont_body_enter ... ; */
+  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_sp_AT, MJS_OP_quote, 0, 1, MJS_OP_MINUS, MJS_OP_GT_r, MJS_OP_brcont_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_scope_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_brcont_rspos_SET, MJS_OP_scope_idx_AT, MJS_OP_brcont_scope_SET, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
+  /* 0191 -> : brcont_body_exit ... ; */
+  MJS_OP_brcont_rspos_AT, MJS_OP_rp_SET, MJS_OP_brcont_scope_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_brcont_scope_SET, MJS_OP_r_GT, MJS_OP_brcont_rspos_SET, MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_GT_r, MJS_OP_GT_r, MJS_OP_tmp_AT, MJS_OP_sp_SET, MJS_OP_r_GT, MJS_OP_r_GT, MJS_OP_exit,
+  /* 0208 -> : brcont_body ... ; */
+  MJS_OP_brcont_body_enter, MJS_OP_call, MJS_OP_quote, 0, 0, MJS_OP_brcont_body_exit, MJS_OP_exit,
+  /* 0215 -> : anon_5 ... ; */
+  MJS_OP_swap, MJS_OP_drop, MJS_OP_brcont, MJS_OP_exit,
+  /* 0219 -> : anon_6 ... ; */
+  MJS_OP_drop, MJS_OP_exit,
+  /* 0221 -> : brcont ... ; */
+  MJS_OP_dup, MJS_OP_GT_r, MJS_OP_brcont_body, MJS_OP_r_GT, MJS_OP_swap, MJS_OP_quote, 0, -41, MJS_OP_quote, 0, -37, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0234 -> : anon_7 ... ; */
   MJS_OP_call, MJS_OP_drop, MJS_OP_quote, 0, 1, MJS_OP_exit,
-  /* 0166 -> : anon_6 ... ; */
-  MJS_OP_drop, MJS_OP_drop, MJS_OP_drop, MJS_OP_zero, MJS_OP_exit,
-  /* 0171 -> : anon_7 ... ; */
-  MJS_OP_2dup, MJS_OP_call, MJS_OP_quote, 0, -96, MJS_OP_quote, 0, -90, MJS_OP_ifelse, MJS_OP_exit,
-  /* 0181 -> : while ... ; */
-  MJS_OP_quote, 0, -85, MJS_OP_loop, MJS_OP_undefined, MJS_OP_exit,
-  /* 0187 -> : anon_8 ... ; */
+  /* 0240 -> : anon_8 ... ; */
+  MJS_OP_drop, MJS_OP_zero, MJS_OP_exit,
+  /* 0243 -> : anon_9 ... ; */
+  MJS_OP_2dup, MJS_OP_call, MJS_OP_quote, 0, -22, MJS_OP_quote, 0, -16, MJS_OP_ifelse, MJS_OP_exit,
+  /* 0253 -> : anon_10 ... ; */
+  MJS_OP_quote, 0, -13, MJS_OP_loop, MJS_OP_undefined, MJS_OP_exit,
+  /* 0259 -> : while ... ; */
+  MJS_OP_quote, 0, -3, MJS_OP_brcont, MJS_OP_swap, MJS_OP_drop, MJS_OP_swap, MJS_OP_drop, MJS_OP_exit,
+  /* 0268 -> : anon_11 ... ; */
   MJS_OP_str, /* " " */  1, ' ', MJS_OP_print, MJS_OP_exit,
-  /* 0192 -> : anon_9 ... ; */
-  MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 0, -69, MJS_OP_if, MJS_OP_exit,
-  /* 0204 -> : jsprint ... ; */
-  MJS_OP_quote, 0, -64, MJS_OP_repeat, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
-  /* 0211 -> : zero ... ; */
+  /* 0273 -> : anon_12 ... ; */
+  MJS_OP_swap, MJS_OP_print, MJS_OP_quote, 0, 0, MJS_OP_EQ, MJS_OP_invert, MJS_OP_quote, 1, 12, MJS_OP_if, MJS_OP_exit,
+  /* 0285 -> : jsprint ... ; */
+  MJS_OP_quote, 1, 17, MJS_OP_repeat, MJS_OP_cr, MJS_OP_undefined, MJS_OP_exit,
+  /* 0292 -> : zero ... ; */
   MJS_OP_quote, 0, 0, MJS_OP_exit,
-  /* 0215 -> : one ... ; */
+  /* 0296 -> : one ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_exit,
-  /* 0219 -> : nop ... ; */
+  /* 0300 -> : nop ... ; */
   MJS_OP_zero, MJS_OP_drop, MJS_OP_exit,
-  /* 0222 -> : inc ... ; */
+  /* 0303 -> : inc ... ; */
   MJS_OP_quote, 0, 1, MJS_OP_PLUS, MJS_OP_exit,
-  /* 0227 -> : swapinc ... ; */
+  /* 0308 -> : swapinc ... ; */
   MJS_OP_swap, MJS_OP_inc, MJS_OP_exit,
-  /* 0230 -> : div ... ; */
+  /* 0311 -> : div ... ; */
   /*           <mjs_op_div> */ 
-  /* 0230 -> : rem ... ; */
+  /* 0311 -> : rem ... ; */
   /*           <mjs_op_rem> */ 
-  /* 0230 -> : lshift ... ; */
+  /* 0311 -> : lshift ... ; */
   /*           <mjs_op_lshift> */ 
-  /* 0230 -> : rshift ... ; */
+  /* 0311 -> : rshift ... ; */
   /*           <mjs_op_rshift> */ 
-  /* 0230 -> : urshift ... ; */
+  /* 0311 -> : urshift ... ; */
   /*           <mjs_op_urshift> */ 
-  /* 0230 -> : and ... ; */
+  /* 0311 -> : and ... ; */
   /*           <mjs_op_and> */ 
-  /* 0230 -> : or ... ; */
+  /* 0311 -> : or ... ; */
   /*           <mjs_op_or> */ 
-  /* 0230 -> : xor ... ; */
+  /* 0311 -> : xor ... ; */
   /*           <mjs_op_xor> */ 
-  /* 0230 -> : not ... ; */
+  /* 0311 -> : not ... ; */
   /*           <mjs_op_not> */ 
-  /* 0230 -> : neg ... ; */
+  /* 0311 -> : neg ... ; */
   /*           <mjs_op_neg> */ 
-  /* 0230 -> : pos ... ; */
+  /* 0311 -> : pos ... ; */
   /*           <mjs_op_pos> */ 
-  /* 0230 -> : load ... ; */
+  /* 0311 -> : load ... ; */
   /*           <mjs_op_load> */ 
-}; /* 230 * sizeof(bf_opcode_t) */
+}; /* 311 * sizeof(bf_opcode_t) */
 
 bf_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
@@ -10263,8 +10386,8 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0025 */ -26, 
   /* 0026 */ -27, 
   /* 0027 */ -28, 
-  /* 0028 */ 3, 
-  /* 0029 */ -29, 
+  /* 0028 */ -29, 
+  /* 0029 */ 3, 
   /* 0030 */ -30, 
   /* 0031 */ -31, 
   /* 0032 */ -32, 
@@ -10278,62 +10401,71 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0040 */ -40, 
   /* 0041 */ -41, 
   /* 0042 */ -42, 
-  /* 0043 */ 16, 
-  /* 0044 */ -43, 
-  /* 0045 */ -44, 
-  /* 0046 */ -45, 
-  /* 0047 */ -46, 
-  /* 0048 */ -47, 
+  /* 0043 */ -43, 
+  /* 0044 */ -44, 
+  /* 0045 */ -45, 
+  /* 0046 */ -46, 
+  /* 0047 */ -47, 
+  /* 0048 */ 16, 
   /* 0049 */ -48, 
   /* 0050 */ -49, 
-  /* 0051 */ 24, 
-  /* 0052 */ 27, 
-  /* 0053 */ -50, 
-  /* 0054 */ 30, 
-  /* 0055 */ 37, 
-  /* 0056 */ 39, 
-  /* 0057 */ 55, 
-  /* 0058 */ 68, 
-  /* 0059 */ -51, 
-  /* 0060 */ -52, 
-  /* 0061 */ -53, 
-  /* 0062 */ -54, 
-  /* 0063 */ -55, 
-  /* 0064 */ 90, 
-  /* 0065 */ 98, 
-  /* 0066 */ 101, 
-  /* 0067 */ 104, 
-  /* 0068 */ -56, 
-  /* 0069 */ -57, 
-  /* 0070 */ -58, 
-  /* 0071 */ -59, 
-  /* 0072 */ 107, 
-  /* 0073 */ 110, 
-  /* 0074 */ 113, 
-  /* 0075 */ -60, 
-  /* 0076 */ -61, 
-  /* 0077 */ -62, 
-  /* 0078 */ 118, 
-  /* 0079 */ 147, 
-  /* 0080 */ 181, 
-  /* 0081 */ 204, 
-  /* 0082 */ 211, 
-  /* 0083 */ 215, 
-  /* 0084 */ 219, 
-  /* 0085 */ 222, 
-  /* 0086 */ 227, 
-  /* 0087 */ -63, 
-  /* 0088 */ -64, 
-  /* 0089 */ -65, 
-  /* 0090 */ -66, 
-  /* 0091 */ -67, 
-  /* 0092 */ -68, 
-  /* 0093 */ -69, 
-  /* 0094 */ -70, 
-  /* 0095 */ -71, 
-  /* 0096 */ -72, 
-  /* 0097 */ -73, 
-  /* 0098 */ -74, 
+  /* 0051 */ -50, 
+  /* 0052 */ -51, 
+  /* 0053 */ -52, 
+  /* 0054 */ -53, 
+  /* 0055 */ -54, 
+  /* 0056 */ 24, 
+  /* 0057 */ 27, 
+  /* 0058 */ -55, 
+  /* 0059 */ 30, 
+  /* 0060 */ 37, 
+  /* 0061 */ 39, 
+  /* 0062 */ 63, 
+  /* 0063 */ 80, 
+  /* 0064 */ -56, 
+  /* 0065 */ -57, 
+  /* 0066 */ -58, 
+  /* 0067 */ -59, 
+  /* 0068 */ -60, 
+  /* 0069 */ 102, 
+  /* 0070 */ 110, 
+  /* 0071 */ 113, 
+  /* 0072 */ 116, 
+  /* 0073 */ -61, 
+  /* 0074 */ -62, 
+  /* 0075 */ -63, 
+  /* 0076 */ -64, 
+  /* 0077 */ 119, 
+  /* 0078 */ 122, 
+  /* 0079 */ 125, 
+  /* 0080 */ -65, 
+  /* 0081 */ -66, 
+  /* 0082 */ -67, 
+  /* 0083 */ 130, 
+  /* 0084 */ 159, 
+  /* 0085 */ 172, 
+  /* 0086 */ 191, 
+  /* 0087 */ 208, 
+  /* 0088 */ 221, 
+  /* 0089 */ 259, 
+  /* 0090 */ 285, 
+  /* 0091 */ 292, 
+  /* 0092 */ 296, 
+  /* 0093 */ 300, 
+  /* 0094 */ 303, 
+  /* 0095 */ 308, 
+  /* 0096 */ -68, 
+  /* 0097 */ -69, 
+  /* 0098 */ -70, 
+  /* 0099 */ -71, 
+  /* 0100 */ -72, 
+  /* 0101 */ -73, 
+  /* 0102 */ -74, 
+  /* 0103 */ -75, 
+  /* 0104 */ -76, 
+  /* 0105 */ -77, 
+  /* 0106 */ -78, 
+  /* 0107 */ -79, 
 };
 
 void bf_op_quote(struct bf_vm *vm);
@@ -10354,6 +10486,7 @@ void bf_op_unstash(struct bf_vm *vm);
 void bf_op_print(struct bf_vm *vm);
 void bf_op_cr(struct bf_vm *vm);
 void bf_op_print_stack(struct bf_vm *vm);
+void bf_op_print_rstack(struct bf_vm *vm);
 void bf_op_eq(struct bf_vm *vm);
 void bf_op_lt(struct bf_vm *vm);
 void bf_op_gt(struct bf_vm *vm);
@@ -10377,6 +10510,10 @@ void mjs_op_setframe(struct bf_vm *vm);
 void mjs_op_scope_push(struct bf_vm *vm);
 void mjs_op_scope_pop(struct bf_vm *vm);
 void mjs_op_scope_tos(struct bf_vm *vm);
+void mjs_op_brcont_rspos_get(struct bf_vm *vm);
+void mjs_op_brcont_rspos_set(struct bf_vm *vm);
+void mjs_op_brcont_scope_get(struct bf_vm *vm);
+void mjs_op_brcont_scope_set(struct bf_vm *vm);
 void mjs_op_mkobj(struct bf_vm *vm);
 void mjs_op_setprop(struct bf_vm *vm);
 void mjs_op_getprop(struct bf_vm *vm);
@@ -10430,62 +10567,67 @@ bf_native_t MJS_native_words[] = {
   /* -016 */ bf_op_print,
   /* -017 */ bf_op_cr,
   /* -018 */ bf_op_print_stack,
-  /* -019 */ bf_op_eq,
-  /* -020 */ bf_op_lt,
-  /* -021 */ bf_op_gt,
-  /* -022 */ bf_op_invert,
-  /* -023 */ bf_op_add,
-  /* -024 */ bf_op_sub,
-  /* -025 */ bf_op_mul,
-  /* -026 */ bf_op_call,
-  /* -027 */ bf_op_if,
-  /* -028 */ bf_op_ifelse,
-  /* -029 */ bf_op_ndrop,
-  /* -030 */ mjs_op_str,
-  /* -031 */ mjs_op_scope_idx_get,
-  /* -032 */ mjs_op_scope_idx_set,
-  /* -033 */ mjs_op_scope_min_get,
-  /* -034 */ mjs_op_scope_min_set,
-  /* -035 */ mjs_op_this_val_get,
-  /* -036 */ mjs_op_this_val_set,
-  /* -037 */ mjs_op_getframe,
-  /* -038 */ mjs_op_setframe,
-  /* -039 */ mjs_op_scope_push,
-  /* -040 */ mjs_op_scope_pop,
-  /* -041 */ mjs_op_scope_tos,
-  /* -042 */ mjs_op_mkobj,
-  /* -043 */ mjs_op_setprop,
-  /* -044 */ mjs_op_getprop,
-  /* -045 */ mjs_op_getvar,
-  /* -046 */ mjs_op_setvar,
-  /* -047 */ mjs_op_createvar,
-  /* -048 */ mjs_op_mkarr,
-  /* -049 */ mjs_op_arrpush,
-  /* -050 */ mjs_op_jscall,
-  /* -051 */ mjs_op_undefined,
-  /* -052 */ mjs_op_null,
-  /* -053 */ mjs_op_true,
-  /* -054 */ mjs_op_false,
-  /* -055 */ mjs_op_this_for_call,
-  /* -056 */ mjs_op_eq,
-  /* -057 */ mjs_op_lt,
-  /* -058 */ mjs_op_gt,
-  /* -059 */ mjs_op_invert,
-  /* -060 */ mjs_op_logical_and,
-  /* -061 */ mjs_op_logical_or,
-  /* -062 */ mjs_op_add,
-  /* -063 */ mjs_op_div,
-  /* -064 */ mjs_op_rem,
-  /* -065 */ mjs_op_lshift,
-  /* -066 */ mjs_op_rshift,
-  /* -067 */ mjs_op_urshift,
-  /* -068 */ mjs_op_and,
-  /* -069 */ mjs_op_or,
-  /* -070 */ mjs_op_xor,
-  /* -071 */ mjs_op_not,
-  /* -072 */ mjs_op_neg,
-  /* -073 */ mjs_op_pos,
-  /* -074 */ mjs_op_load,
+  /* -019 */ bf_op_print_rstack,
+  /* -020 */ bf_op_eq,
+  /* -021 */ bf_op_lt,
+  /* -022 */ bf_op_gt,
+  /* -023 */ bf_op_invert,
+  /* -024 */ bf_op_add,
+  /* -025 */ bf_op_sub,
+  /* -026 */ bf_op_mul,
+  /* -027 */ bf_op_call,
+  /* -028 */ bf_op_if,
+  /* -029 */ bf_op_ifelse,
+  /* -030 */ bf_op_ndrop,
+  /* -031 */ mjs_op_str,
+  /* -032 */ mjs_op_scope_idx_get,
+  /* -033 */ mjs_op_scope_idx_set,
+  /* -034 */ mjs_op_scope_min_get,
+  /* -035 */ mjs_op_scope_min_set,
+  /* -036 */ mjs_op_this_val_get,
+  /* -037 */ mjs_op_this_val_set,
+  /* -038 */ mjs_op_getframe,
+  /* -039 */ mjs_op_setframe,
+  /* -040 */ mjs_op_scope_push,
+  /* -041 */ mjs_op_scope_pop,
+  /* -042 */ mjs_op_scope_tos,
+  /* -043 */ mjs_op_brcont_rspos_get,
+  /* -044 */ mjs_op_brcont_rspos_set,
+  /* -045 */ mjs_op_brcont_scope_get,
+  /* -046 */ mjs_op_brcont_scope_set,
+  /* -047 */ mjs_op_mkobj,
+  /* -048 */ mjs_op_setprop,
+  /* -049 */ mjs_op_getprop,
+  /* -050 */ mjs_op_getvar,
+  /* -051 */ mjs_op_setvar,
+  /* -052 */ mjs_op_createvar,
+  /* -053 */ mjs_op_mkarr,
+  /* -054 */ mjs_op_arrpush,
+  /* -055 */ mjs_op_jscall,
+  /* -056 */ mjs_op_undefined,
+  /* -057 */ mjs_op_null,
+  /* -058 */ mjs_op_true,
+  /* -059 */ mjs_op_false,
+  /* -060 */ mjs_op_this_for_call,
+  /* -061 */ mjs_op_eq,
+  /* -062 */ mjs_op_lt,
+  /* -063 */ mjs_op_gt,
+  /* -064 */ mjs_op_invert,
+  /* -065 */ mjs_op_logical_and,
+  /* -066 */ mjs_op_logical_or,
+  /* -067 */ mjs_op_add,
+  /* -068 */ mjs_op_div,
+  /* -069 */ mjs_op_rem,
+  /* -070 */ mjs_op_lshift,
+  /* -071 */ mjs_op_rshift,
+  /* -072 */ mjs_op_urshift,
+  /* -073 */ mjs_op_and,
+  /* -074 */ mjs_op_or,
+  /* -075 */ mjs_op_xor,
+  /* -076 */ mjs_op_not,
+  /* -077 */ mjs_op_neg,
+  /* -078 */ mjs_op_pos,
+  /* -079 */ mjs_op_load,
 };
 
 const char *MJS_word_names[] = {
@@ -10508,87 +10650,96 @@ const char *MJS_word_names[] = {
   /* 0015 */ "print", 
   /* 0016 */ "cr", 
   /* 0017 */ ".s", 
-  /* 0018 */ "=", 
-  /* 0019 */ "<", 
-  /* 0020 */ ">", 
-  /* 0021 */ "invert", 
-  /* 0022 */ "+", 
-  /* 0023 */ "-", 
-  /* 0024 */ "*", 
-  /* 0025 */ "call", 
-  /* 0026 */ "if", 
-  /* 0027 */ "ifelse", 
-  /* 0028 */ "loop", 
-  /* 0029 */ "ndrop", 
-  /* 0030 */ "str", 
-  /* 0031 */ "scope_idx@", 
-  /* 0032 */ "scope_idx!", 
-  /* 0033 */ "scope_min@", 
-  /* 0034 */ "scope_min!", 
-  /* 0035 */ "this_val@", 
-  /* 0036 */ "this_val!", 
-  /* 0037 */ "frame@", 
-  /* 0038 */ "frame!", 
-  /* 0039 */ ">scopes", 
-  /* 0040 */ "scopes>", 
-  /* 0041 */ "scope@", 
-  /* 0042 */ "mkobj", 
-  /* 0043 */ "addprop", 
-  /* 0044 */ "setprop", 
-  /* 0045 */ "getprop", 
-  /* 0046 */ "getvar", 
-  /* 0047 */ "setvar", 
-  /* 0048 */ "createvar", 
-  /* 0049 */ "mkarr", 
-  /* 0050 */ "arrpush", 
-  /* 0051 */ "blockenter", 
-  /* 0052 */ "blockexit", 
-  /* 0053 */ "jscall", 
-  /* 0054 */ "jscall_exit", 
-  /* 0055 */ "jscall_wrap", 
-  /* 0056 */ "jsenter", 
-  /* 0057 */ "jsexit", 
-  /* 0058 */ "setarg", 
-  /* 0059 */ "undefined", 
-  /* 0060 */ "null", 
-  /* 0061 */ "true", 
-  /* 0062 */ "false", 
-  /* 0063 */ "this_for_call", 
-  /* 0064 */ "2dup", 
-  /* 0065 */ ">=", 
-  /* 0066 */ "<=", 
-  /* 0067 */ "!=", 
-  /* 0068 */ "js=", 
-  /* 0069 */ "js<", 
-  /* 0070 */ "js>", 
-  /* 0071 */ "jsinvert", 
-  /* 0072 */ "js>=", 
-  /* 0073 */ "js<=", 
-  /* 0074 */ "js!=", 
-  /* 0075 */ "js_logical_and", 
-  /* 0076 */ "js_logical_or", 
-  /* 0077 */ "js+", 
-  /* 0078 */ "ifstmt", 
-  /* 0079 */ "repeat", 
-  /* 0080 */ "while", 
-  /* 0081 */ "jsprint", 
-  /* 0082 */ "zero", 
-  /* 0083 */ "one", 
-  /* 0084 */ "nop", 
-  /* 0085 */ "inc", 
-  /* 0086 */ "swapinc", 
-  /* 0087 */ "div", 
-  /* 0088 */ "rem", 
-  /* 0089 */ "lshift", 
-  /* 0090 */ "rshift", 
-  /* 0091 */ "urshift", 
-  /* 0092 */ "and", 
-  /* 0093 */ "or", 
-  /* 0094 */ "xor", 
-  /* 0095 */ "not", 
-  /* 0096 */ "neg", 
-  /* 0097 */ "pos", 
-  /* 0098 */ "load", 
+  /* 0018 */ ".r", 
+  /* 0019 */ "=", 
+  /* 0020 */ "<", 
+  /* 0021 */ ">", 
+  /* 0022 */ "invert", 
+  /* 0023 */ "+", 
+  /* 0024 */ "-", 
+  /* 0025 */ "*", 
+  /* 0026 */ "call", 
+  /* 0027 */ "if", 
+  /* 0028 */ "ifelse", 
+  /* 0029 */ "loop", 
+  /* 0030 */ "ndrop", 
+  /* 0031 */ "str", 
+  /* 0032 */ "scope_idx@", 
+  /* 0033 */ "scope_idx!", 
+  /* 0034 */ "scope_min@", 
+  /* 0035 */ "scope_min!", 
+  /* 0036 */ "this_val@", 
+  /* 0037 */ "this_val!", 
+  /* 0038 */ "frame@", 
+  /* 0039 */ "frame!", 
+  /* 0040 */ ">scopes", 
+  /* 0041 */ "scopes>", 
+  /* 0042 */ "scope@", 
+  /* 0043 */ "brcont_rspos@", 
+  /* 0044 */ "brcont_rspos!", 
+  /* 0045 */ "brcont_scope@", 
+  /* 0046 */ "brcont_scope!", 
+  /* 0047 */ "mkobj", 
+  /* 0048 */ "addprop", 
+  /* 0049 */ "setprop", 
+  /* 0050 */ "getprop", 
+  /* 0051 */ "getvar", 
+  /* 0052 */ "setvar", 
+  /* 0053 */ "createvar", 
+  /* 0054 */ "mkarr", 
+  /* 0055 */ "arrpush", 
+  /* 0056 */ "blockenter", 
+  /* 0057 */ "blockexit", 
+  /* 0058 */ "jscall", 
+  /* 0059 */ "jscall_exit", 
+  /* 0060 */ "jscall_wrap", 
+  /* 0061 */ "jsenter", 
+  /* 0062 */ "jsexit", 
+  /* 0063 */ "setarg", 
+  /* 0064 */ "undefined", 
+  /* 0065 */ "null", 
+  /* 0066 */ "true", 
+  /* 0067 */ "false", 
+  /* 0068 */ "this_for_call", 
+  /* 0069 */ "2dup", 
+  /* 0070 */ ">=", 
+  /* 0071 */ "<=", 
+  /* 0072 */ "!=", 
+  /* 0073 */ "js=", 
+  /* 0074 */ "js<", 
+  /* 0075 */ "js>", 
+  /* 0076 */ "jsinvert", 
+  /* 0077 */ "js>=", 
+  /* 0078 */ "js<=", 
+  /* 0079 */ "js!=", 
+  /* 0080 */ "js_logical_and", 
+  /* 0081 */ "js_logical_or", 
+  /* 0082 */ "js+", 
+  /* 0083 */ "ifstmt", 
+  /* 0084 */ "repeat", 
+  /* 0085 */ "brcont_body_enter", 
+  /* 0086 */ "brcont_body_exit", 
+  /* 0087 */ "brcont_body", 
+  /* 0088 */ "brcont", 
+  /* 0089 */ "while", 
+  /* 0090 */ "jsprint", 
+  /* 0091 */ "zero", 
+  /* 0092 */ "one", 
+  /* 0093 */ "nop", 
+  /* 0094 */ "inc", 
+  /* 0095 */ "swapinc", 
+  /* 0096 */ "div", 
+  /* 0097 */ "rem", 
+  /* 0098 */ "lshift", 
+  /* 0099 */ "rshift", 
+  /* 0100 */ "urshift", 
+  /* 0101 */ "and", 
+  /* 0102 */ "or", 
+  /* 0103 */ "xor", 
+  /* 0104 */ "not", 
+  /* 0105 */ "neg", 
+  /* 0106 */ "pos", 
+  /* 0107 */ "load", 
 };
 
 const char *MJS_pos_names[] = {
@@ -10647,6 +10798,14 @@ const char *MJS_pos_names[] = {
   "jsenter+13", 
   "jsenter+14", 
   "jsenter+15", 
+  "jsenter+16", 
+  "jsenter+17", 
+  "jsenter+18", 
+  "jsenter+19", 
+  "jsenter+20", 
+  "jsenter+21", 
+  "jsenter+22", 
+  "jsenter+23", 
   "jsexit", 
   "jsexit+1", 
   "jsexit+2", 
@@ -10656,6 +10815,10 @@ const char *MJS_pos_names[] = {
   "jsexit+6", 
   "jsexit+7", 
   "jsexit+8", 
+  "jsexit+9", 
+  "jsexit+10", 
+  "jsexit+11", 
+  "jsexit+12", 
   "anon_0", 
   "anon_0+1", 
   "anon_1", 
@@ -10752,38 +10915,77 @@ const char *MJS_pos_names[] = {
   "repeat+10", 
   "repeat+11", 
   "repeat+12", 
+  "brcont_body_enter", 
+  "brcont_body_enter+1", 
+  "brcont_body_enter+2", 
+  "brcont_body_enter+3", 
+  "brcont_body_enter+4", 
+  "brcont_body_enter+5", 
+  "brcont_body_enter+6", 
+  "brcont_body_enter+7", 
+  "brcont_body_enter+8", 
+  "brcont_body_enter+9", 
+  "brcont_body_enter+10", 
+  "brcont_body_enter+11", 
+  "brcont_body_enter+12", 
+  "brcont_body_enter+13", 
+  "brcont_body_enter+14", 
+  "brcont_body_enter+15", 
+  "brcont_body_enter+16", 
+  "brcont_body_enter+17", 
+  "brcont_body_enter+18", 
+  "brcont_body_exit", 
+  "brcont_body_exit+1", 
+  "brcont_body_exit+2", 
+  "brcont_body_exit+3", 
+  "brcont_body_exit+4", 
+  "brcont_body_exit+5", 
+  "brcont_body_exit+6", 
+  "brcont_body_exit+7", 
+  "brcont_body_exit+8", 
+  "brcont_body_exit+9", 
+  "brcont_body_exit+10", 
+  "brcont_body_exit+11", 
+  "brcont_body_exit+12", 
+  "brcont_body_exit+13", 
+  "brcont_body_exit+14", 
+  "brcont_body_exit+15", 
+  "brcont_body_exit+16", 
+  "brcont_body", 
+  "brcont_body+1", 
+  "brcont_body+2", 
+  "brcont_body+3", 
+  "brcont_body+4", 
+  "brcont_body+5", 
+  "brcont_body+6", 
   "anon_5", 
   "anon_5+1", 
   "anon_5+2", 
   "anon_5+3", 
-  "anon_5+4", 
-  "anon_5+5", 
   "anon_6", 
   "anon_6+1", 
-  "anon_6+2", 
-  "anon_6+3", 
-  "anon_6+4", 
+  "brcont", 
+  "brcont+1", 
+  "brcont+2", 
+  "brcont+3", 
+  "brcont+4", 
+  "brcont+5", 
+  "brcont+6", 
+  "brcont+7", 
+  "brcont+8", 
+  "brcont+9", 
+  "brcont+10", 
+  "brcont+11", 
+  "brcont+12", 
   "anon_7", 
   "anon_7+1", 
   "anon_7+2", 
   "anon_7+3", 
   "anon_7+4", 
   "anon_7+5", 
-  "anon_7+6", 
-  "anon_7+7", 
-  "anon_7+8", 
-  "anon_7+9", 
-  "while", 
-  "while+1", 
-  "while+2", 
-  "while+3", 
-  "while+4", 
-  "while+5", 
   "anon_8", 
   "anon_8+1", 
   "anon_8+2", 
-  "anon_8+3", 
-  "anon_8+4", 
   "anon_9", 
   "anon_9+1", 
   "anon_9+2", 
@@ -10794,8 +10996,38 @@ const char *MJS_pos_names[] = {
   "anon_9+7", 
   "anon_9+8", 
   "anon_9+9", 
-  "anon_9+10", 
-  "anon_9+11", 
+  "anon_10", 
+  "anon_10+1", 
+  "anon_10+2", 
+  "anon_10+3", 
+  "anon_10+4", 
+  "anon_10+5", 
+  "while", 
+  "while+1", 
+  "while+2", 
+  "while+3", 
+  "while+4", 
+  "while+5", 
+  "while+6", 
+  "while+7", 
+  "while+8", 
+  "anon_11", 
+  "anon_11+1", 
+  "anon_11+2", 
+  "anon_11+3", 
+  "anon_11+4", 
+  "anon_12", 
+  "anon_12+1", 
+  "anon_12+2", 
+  "anon_12+3", 
+  "anon_12+4", 
+  "anon_12+5", 
+  "anon_12+6", 
+  "anon_12+7", 
+  "anon_12+8", 
+  "anon_12+9", 
+  "anon_12+10", 
+  "anon_12+11", 
   "jsprint", 
   "jsprint+1", 
   "jsprint+2", 
@@ -15037,6 +15269,26 @@ void mjs_op_scope_tos(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_scope_tos(mjs));
 }
 
+void mjs_op_brcont_rspos_get(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  bf_push(&vm->dstack, mjs->vals.brcont_rspos);
+}
+
+void mjs_op_brcont_rspos_set(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs->vals.brcont_rspos = bf_pop(&vm->dstack);
+}
+
+void mjs_op_brcont_scope_get(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  bf_push(&vm->dstack, mjs->vals.brcont_scope);
+}
+
+void mjs_op_brcont_scope_set(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  mjs->vals.brcont_scope = bf_pop(&vm->dstack);
+}
+
 void mjs_op_undefined(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_mk_undefined());
 }
@@ -15542,6 +15794,8 @@ static int next_tok(struct pstate *p) {
     case TOK_KEYWORD_FALSE: return TOK_FALSE;
     case TOK_KEYWORD_FUNCTION: return TOK_FUNCTION;
     case TOK_KEYWORD_RETURN: return TOK_RETURN;
+    case TOK_KEYWORD_BREAK: return TOK_BREAK;
+    case TOK_KEYWORD_CONTINUE: return TOK_CONTINUE;
     case TOK_KEYWORD_WHILE: return TOK_WHILE;
     case TOK_KEYWORD_FOR: return TOK_FOR;
     case TOK_KEYWORD_THIS: return TOK_THIS;
@@ -15865,7 +16119,12 @@ bf_word_ptr_t mjs_emit_func(struct mjs_parse_ctx *ctx, bf_word_ptr_t args,
   mjs_emit(ctx, MJS_OP_drop);
   mjs_emit(ctx, MJS_OP_undefined);
   mjs_emit(ctx, MJS_OP_jsexit);
-  mjs_emit(ctx, MJS_OP_exit);
+
+  /*
+   * NOTE: MJS_OP_exit is not needed here, because jsexit restores RS index
+   * to the previously stored value, so everything after calling jsexit will
+   * be ignored anyway
+   */
 
   start = mjs_emit_quote(ctx, def);
   mjs_emit(ctx, MJS_OP_exit);
