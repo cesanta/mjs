@@ -2459,8 +2459,8 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_scope_min_SET (16)
 #define MJS_WORD_PTR_this_val_AT (16)
 #define MJS_WORD_PTR_this_val_SET (16)
-#define MJS_WORD_PTR_frame_AT (16)
-#define MJS_WORD_PTR_frame_SET (16)
+#define MJS_WORD_PTR_jsfunc_rspos_AT (16)
+#define MJS_WORD_PTR_jsfunc_rspos_SET (16)
 #define MJS_WORD_PTR_GT_scopes (16)
 #define MJS_WORD_PTR_scopes_GT (16)
 #define MJS_WORD_PTR_scope_AT (16)
@@ -2583,8 +2583,8 @@ extern struct bf_code MJS_code;
 #define MJS_OP_scope_min_SET ((bf_opcode_t) 35)
 #define MJS_OP_this_val_AT ((bf_opcode_t) 36)
 #define MJS_OP_this_val_SET ((bf_opcode_t) 37)
-#define MJS_OP_frame_AT ((bf_opcode_t) 38)
-#define MJS_OP_frame_SET ((bf_opcode_t) 39)
+#define MJS_OP_jsfunc_rspos_AT ((bf_opcode_t) 38)
+#define MJS_OP_jsfunc_rspos_SET ((bf_opcode_t) 39)
 #define MJS_OP_GT_scopes ((bf_opcode_t) 40)
 #define MJS_OP_scopes_GT ((bf_opcode_t) 41)
 #define MJS_OP_scope_AT ((bf_opcode_t) 42)
@@ -3347,36 +3347,6 @@ enum getprop_distance {
 
 struct mjs_vals {
   /*
-   * Min index of the scope (in `mjs->scopes`) which current function can use.
-   * Independently of this value, all functions can use scope 0, which is the
-   * Global Object.
-   *
-   * TODO(dfrank): store as int, not mjs_val_t
-   */
-  mjs_val_t min_scope;
-
-  /*
-   * Position in the return stack which should be restored when the current
-   * function returns. At top level, it's equal to -1.
-   *
-   * TODO(dfrank): rename appropriately
-   * TODO(dfrank): store as int, not mjs_val_t
-   */
-  mjs_val_t call_frame;
-
-  /*
-   * Position in the return stack which should be restored on break/continue.
-   * When no break/continue is allowed, i's equal to -1.
-   */
-  mjs_val_t brcont_rspos;
-
-  /*
-   * Index of the scope (in `mjs->scopes`) which should be restored on
-   * break/continue.
-   */
-  mjs_val_t brcont_scope;
-
-  /*
    * Current `this` value.
    */
   mjs_val_t this_val;
@@ -3404,6 +3374,38 @@ struct mjs {
 
   struct mbuf owned_values; /* buffer for GC roots owned by C code */
   struct mjs_vals vals;
+
+  /* Current JS function context */
+  struct {
+    /*
+     * Min index of the scope (in `mjs->scopes`) which current function can
+     * use. And when the function returns, scope idx should be restored to this
+     * value.
+     *
+     * Independently of this value, all functions can use scope 0, which is the
+     * Global Object.
+     */
+    int min_scope_idx;
+    /*
+     * Position in the return stack which should be restored when the current
+     * function returns. At top level, it's equal to -1.
+     */
+    int rspos;
+  } jsfunc;
+
+  /* Current break/continue block context */
+  struct {
+    /*
+     * Index of the scope (in `mjs->scopes`) which should be restored on
+     * break/continue.
+     */
+    int scope_idx;
+    /*
+     * Position in the return stack which should be restored on break/continue.
+     * When no break/continue is allowed, i's equal to -1.
+     */
+    int rspos;
+  } brcont;
 
   /*
    * Sequence of `mjs_val_t`s which are scope objects.
@@ -10184,10 +10186,10 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_this_val_get> */ 
   /* 0016 -> : this_val! ... ; */
   /*           <mjs_op_this_val_set> */ 
-  /* 0016 -> : frame@ ... ; */
-  /*           <mjs_op_getframe> */ 
-  /* 0016 -> : frame! ... ; */
-  /*           <mjs_op_setframe> */ 
+  /* 0016 -> : jsfunc_rspos@ ... ; */
+  /*           <mjs_op_jsfunc_rspos_get> */ 
+  /* 0016 -> : jsfunc_rspos! ... ; */
+  /*           <mjs_op_jsfunc_rspos_set> */ 
   /* 0016 -> : >scopes ... ; */
   /*           <mjs_op_scope_push> */ 
   /* 0016 -> : scopes> ... ; */
@@ -10231,9 +10233,9 @@ bf_opcode_t MJS_opcodes[] = {
   /* 0037 -> : jscall_wrap ... ; */
   MJS_OP_jscall, MJS_OP_exit,
   /* 0039 -> : jsenter ... ; */
-  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_frame_AT, MJS_OP_GT_r, MJS_OP_brcont_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_scope_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_frame_SET, MJS_OP_quote, -1, -1, MJS_OP_brcont_rspos_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
+  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_jsfunc_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_scope_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_jsfunc_rspos_SET, MJS_OP_quote, -1, -1, MJS_OP_brcont_rspos_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
   /* 0063 -> : jsexit ... ; */
-  MJS_OP_frame_AT, MJS_OP_rp_SET, MJS_OP_scope_min_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_brcont_scope_SET, MJS_OP_r_GT, MJS_OP_brcont_rspos_SET, MJS_OP_r_GT, MJS_OP_frame_SET, MJS_OP_r_GT, MJS_OP_scope_min_SET, MJS_OP_exit,
+  MJS_OP_jsfunc_rspos_AT, MJS_OP_rp_SET, MJS_OP_scope_min_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_brcont_scope_SET, MJS_OP_r_GT, MJS_OP_brcont_rspos_SET, MJS_OP_r_GT, MJS_OP_jsfunc_rspos_SET, MJS_OP_r_GT, MJS_OP_scope_min_SET, MJS_OP_exit,
   /* 0076 -> : anon_0 ... ; */
   MJS_OP_undefined, MJS_OP_exit,
   /* 0078 -> : anon_1 ... ; */
@@ -10505,8 +10507,8 @@ void mjs_op_scope_min_get(struct bf_vm *vm);
 void mjs_op_scope_min_set(struct bf_vm *vm);
 void mjs_op_this_val_get(struct bf_vm *vm);
 void mjs_op_this_val_set(struct bf_vm *vm);
-void mjs_op_getframe(struct bf_vm *vm);
-void mjs_op_setframe(struct bf_vm *vm);
+void mjs_op_jsfunc_rspos_get(struct bf_vm *vm);
+void mjs_op_jsfunc_rspos_set(struct bf_vm *vm);
 void mjs_op_scope_push(struct bf_vm *vm);
 void mjs_op_scope_pop(struct bf_vm *vm);
 void mjs_op_scope_tos(struct bf_vm *vm);
@@ -10586,8 +10588,8 @@ bf_native_t MJS_native_words[] = {
   /* -035 */ mjs_op_scope_min_set,
   /* -036 */ mjs_op_this_val_get,
   /* -037 */ mjs_op_this_val_set,
-  /* -038 */ mjs_op_getframe,
-  /* -039 */ mjs_op_setframe,
+  /* -038 */ mjs_op_jsfunc_rspos_get,
+  /* -039 */ mjs_op_jsfunc_rspos_set,
   /* -040 */ mjs_op_scope_push,
   /* -041 */ mjs_op_scope_pop,
   /* -042 */ mjs_op_scope_tos,
@@ -10670,8 +10672,8 @@ const char *MJS_word_names[] = {
   /* 0035 */ "scope_min!", 
   /* 0036 */ "this_val@", 
   /* 0037 */ "this_val!", 
-  /* 0038 */ "frame@", 
-  /* 0039 */ "frame!", 
+  /* 0038 */ "jsfunc_rspos@", 
+  /* 0039 */ "jsfunc_rspos!", 
   /* 0040 */ ">scopes", 
   /* 0041 */ "scopes>", 
   /* 0042 */ "scope@", 
@@ -12595,8 +12597,8 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts) {
   /* create Global Object and push it to the scope chain */
   mjs_push_scope(mjs, mjs_mk_object(mjs));
 
-  mjs->vals.call_frame = mjs_mk_number(mjs, -1);
-  mjs->vals.min_scope = mjs_mk_number(mjs, 0 /* global object */);
+  mjs->jsfunc.rspos = -1;
+  mjs->jsfunc.min_scope_idx = 0 /* global object */;
 
   mjs->vals.this_val = MJS_UNDEFINED;
 
@@ -15095,7 +15097,7 @@ MJS_PRIVATE struct mjs_property *mjs_lookup_property(struct mjs *mjs,
 
   assert(mjs->scopes.len % sizeof(mjs_val_t) == 0);
   int idx = mjs->scopes.len / sizeof(mjs_val_t);
-  int lim = mjs_get_int(mjs, mjs->vals.min_scope);
+  int lim = mjs->jsfunc.min_scope_idx;
   while (p == NULL && idx > 0) {
     mjs_val_t *scope;
     idx--;
@@ -15226,12 +15228,12 @@ void mjs_op_scope_idx_set(struct bf_vm *vm) {
 
 void mjs_op_scope_min_get(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  bf_push(&vm->dstack, mjs->vals.min_scope);
+  bf_push(&vm->dstack, mjs_mk_number(mjs, mjs->jsfunc.min_scope_idx));
 }
 
 void mjs_op_scope_min_set(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs->vals.min_scope = bf_pop(&vm->dstack);
+  mjs->jsfunc.min_scope_idx = mjs_get_int(mjs, bf_pop(&vm->dstack));
 }
 
 void mjs_op_this_val_get(struct bf_vm *vm) {
@@ -15244,14 +15246,14 @@ void mjs_op_this_val_set(struct bf_vm *vm) {
   mjs->vals.this_val = bf_pop(&vm->dstack);
 }
 
-void mjs_op_getframe(struct bf_vm *vm) {
+void mjs_op_jsfunc_rspos_get(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  bf_push(&vm->dstack, mjs->vals.call_frame);
+  bf_push(&vm->dstack, mjs_mk_number(mjs, mjs->jsfunc.rspos));
 }
 
-void mjs_op_setframe(struct bf_vm *vm) {
+void mjs_op_jsfunc_rspos_set(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs->vals.call_frame = bf_pop(&vm->dstack);
+  mjs->jsfunc.rspos = mjs_get_int(mjs, bf_pop(&vm->dstack));
 }
 
 void mjs_op_scope_push(struct bf_vm *vm) {
@@ -15271,22 +15273,22 @@ void mjs_op_scope_tos(struct bf_vm *vm) {
 
 void mjs_op_brcont_rspos_get(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  bf_push(&vm->dstack, mjs->vals.brcont_rspos);
+  bf_push(&vm->dstack, mjs_mk_number(mjs, mjs->brcont.rspos));
 }
 
 void mjs_op_brcont_rspos_set(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs->vals.brcont_rspos = bf_pop(&vm->dstack);
+  mjs->brcont.rspos = mjs_get_int(mjs, bf_pop(&vm->dstack));
 }
 
 void mjs_op_brcont_scope_get(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  bf_push(&vm->dstack, mjs->vals.brcont_scope);
+  bf_push(&vm->dstack, mjs_mk_number(mjs, mjs->brcont.scope_idx));
 }
 
 void mjs_op_brcont_scope_set(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
-  mjs->vals.brcont_scope = bf_pop(&vm->dstack);
+  mjs->brcont.scope_idx = mjs_get_int(mjs, bf_pop(&vm->dstack));
 }
 
 void mjs_op_undefined(struct bf_vm *vm) {
@@ -15358,8 +15360,8 @@ void mjs_op_load(struct bf_vm *vm) {
   /* get current global object and push it to the stack */
   bf_push(&vm->dstack, mjs_scope_get_by_idx(mjs, 0));
   mjs_op_scope_push(&mjs->vm);
-  min_scope_saved = mjs_get_int(mjs, mjs->vals.min_scope);
-  mjs->vals.min_scope = mjs_mk_number(mjs, mjs->scopes.len / sizeof(mjs_val_t));
+  min_scope_saved = mjs->jsfunc.min_scope_idx;
+  mjs->jsfunc.min_scope_idx = mjs->scopes.len / sizeof(mjs_val_t);
 
   /* evaluate the code */
   bf_run(vm, ctx.entry);
@@ -15376,7 +15378,7 @@ clean:
     mjs_disown(mjs, &global_obj_saved_v);
   }
 
-  mjs->vals.min_scope = mjs_mk_number(mjs, min_scope_saved);
+  mjs->jsfunc.min_scope_idx = min_scope_saved;
 
   mjs_push(mjs, ret);
 }
