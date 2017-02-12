@@ -2479,9 +2479,9 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_arrpush (24)
 #define MJS_WORD_PTR_blockenter (24)
 #define MJS_WORD_PTR_blockexit (27)
-#define MJS_WORD_PTR_jscall (30)
+#define MJS_WORD_PTR__jscall_native (30)
 #define MJS_WORD_PTR_jscall_exit (30)
-#define MJS_WORD_PTR_jscall_wrap (37)
+#define MJS_WORD_PTR_jscall (37)
 #define MJS_WORD_PTR_jsenter (39)
 #define MJS_WORD_PTR_jsexit (63)
 #define MJS_WORD_PTR_anon_0 (76)
@@ -2603,9 +2603,9 @@ extern struct bf_code MJS_code;
 #define MJS_OP_arrpush ((bf_opcode_t) 55)
 #define MJS_OP_blockenter ((bf_opcode_t) 56)
 #define MJS_OP_blockexit ((bf_opcode_t) 57)
-#define MJS_OP_jscall ((bf_opcode_t) 58)
+#define MJS_OP__jscall_native ((bf_opcode_t) 58)
 #define MJS_OP_jscall_exit ((bf_opcode_t) 59)
-#define MJS_OP_jscall_wrap ((bf_opcode_t) 60)
+#define MJS_OP_jscall ((bf_opcode_t) 60)
 #define MJS_OP_jsenter ((bf_opcode_t) 61)
 #define MJS_OP_jsexit ((bf_opcode_t) 62)
 #define MJS_OP_setarg ((bf_opcode_t) 63)
@@ -10226,14 +10226,14 @@ bf_opcode_t MJS_opcodes[] = {
   MJS_OP_mkobj, MJS_OP_GT_scopes, MJS_OP_exit,
   /* 0027 -> : blockexit ... ; */
   MJS_OP_scopes_GT, MJS_OP_drop, MJS_OP_exit,
-  /* 0030 -> : jscall ... ; */
+  /* 0030 -> : _jscall_native ... ; */
   /*           <mjs_op_jscall> */ 
   /* 0030 -> : jscall_exit ... ; */
   MJS_OP_tmp_SET, MJS_OP_r_GT, MJS_OP_sp_SET, MJS_OP_r_GT, MJS_OP_this_val_SET, MJS_OP_tmp_AT, MJS_OP_exit,
-  /* 0037 -> : jscall_wrap ... ; */
-  MJS_OP_jscall, MJS_OP_exit,
+  /* 0037 -> : jscall ... ; */
+  MJS_OP__jscall_native, MJS_OP_exit,
   /* 0039 -> : jsenter ... ; */
-  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_jsfunc_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_scope_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_jsfunc_rspos_SET, MJS_OP_quote, -1, -1, MJS_OP_brcont_rspos_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
+  MJS_OP_r_GT, MJS_OP_tmp_SET, MJS_OP_scope_min_AT, MJS_OP_GT_r, MJS_OP_jsfunc_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_rspos_AT, MJS_OP_GT_r, MJS_OP_brcont_scope_AT, MJS_OP_GT_r, MJS_OP_rp_AT, MJS_OP_jsfunc_rspos_SET, MJS_OP_scope_idx_AT, MJS_OP_scope_min_SET, MJS_OP_mkobj, MJS_OP_dup, MJS_OP_GT_scopes, MJS_OP_quote, -1, -1, MJS_OP_brcont_rspos_SET, MJS_OP_tmp_AT, MJS_OP_GT_r, MJS_OP_exit,
   /* 0063 -> : jsexit ... ; */
   MJS_OP_jsfunc_rspos_AT, MJS_OP_rp_SET, MJS_OP_scope_min_AT, MJS_OP_scope_idx_SET, MJS_OP_r_GT, MJS_OP_brcont_scope_SET, MJS_OP_r_GT, MJS_OP_brcont_rspos_SET, MJS_OP_r_GT, MJS_OP_jsfunc_rspos_SET, MJS_OP_r_GT, MJS_OP_scope_min_SET, MJS_OP_exit,
   /* 0076 -> : anon_0 ... ; */
@@ -10692,9 +10692,9 @@ const char *MJS_word_names[] = {
   /* 0055 */ "arrpush", 
   /* 0056 */ "blockenter", 
   /* 0057 */ "blockexit", 
-  /* 0058 */ "jscall", 
+  /* 0058 */ "_jscall_native", 
   /* 0059 */ "jscall_exit", 
-  /* 0060 */ "jscall_wrap", 
+  /* 0060 */ "jscall", 
   /* 0061 */ "jsenter", 
   /* 0062 */ "jsexit", 
   /* 0063 */ "setarg", 
@@ -10782,8 +10782,8 @@ const char *MJS_pos_names[] = {
   "jscall_exit+4", 
   "jscall_exit+5", 
   "jscall_exit+6", 
-  "jscall_wrap", 
-  "jscall_wrap+1", 
+  "jscall", 
+  "jscall+1", 
   "jsenter", 
   "jsenter+1", 
   "jsenter+2", 
@@ -12929,7 +12929,7 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   bf_push(&mjs->vm.dstack, mjs_mk_number(mjs, nargs));
   bf_push(&mjs->vm.dstack, this_val);
   bf_push(&mjs->vm.dstack, func);
-  bf_run(&mjs->vm, MJS_WORD_PTR_jscall_wrap);
+  bf_run(&mjs->vm, MJS_WORD_PTR_jscall);
   r = bf_pop(&mjs->vm.dstack);
   err = mjs->error_msg_err;
 
