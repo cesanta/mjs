@@ -12983,18 +12983,38 @@ MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v) {
 
 /* Amalgamated: #include "mjs/vm.gen.h" */
 
+/*
+ * Like decode_varint(), but reads data from the bf_mem
+ */
+static size_t file_decode_varint(FILE *in, int *llen) {
+  size_t i = 0, string_len = 0;
+  unsigned char ch;
+
+  do {
+    fread(&ch, 1, 1, in);
+    /*
+     * Each byte of varint contains 7 bits, in little endian order.
+     * MSB is a continuation bit: it tells whether next byte is used.
+     */
+    string_len |= (ch & 0x7f) << (7 * i);
+    /*
+     * First we increment i, then check whether it is within boundary and
+     * whether decoded byte had continuation bit set.
+     */
+  } while (++i < sizeof(size_t) && (ch & 0x80));
+  *llen = i;
+
+  return string_len;
+}
+
 int disasm_custom(char b, FILE *in, int *pos) {
   if (b == MJS_OP_str) {
     char buf[128];
-    char ch;
-    int p = 0;
-    do {
-      fread(&ch, 1, 1, in);
-      buf[p++] = ch;
-    } while (ch != '\0');
-
-    printf("\"%s\" ", buf);
-    *pos += p;
+    int llen = 0;
+    size_t len = file_decode_varint(in, &llen);
+    *pos += llen + len;
+    fread(buf, len, 1, in);
+    printf("\"%.*s\" ", (int) len, buf);
     return 1;
   }
   return 0;
