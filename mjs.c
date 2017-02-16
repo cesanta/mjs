@@ -7185,7 +7185,9 @@ void bf_run(struct bf_vm *vm, bf_word_ptr_t word) {
   bf_push(&vm->rstack, bf_from_int(FR_EXIT_RUN));
 
   while (vm->ip != FR_EXIT_RUN && bf_is_mapped(vm->iram, vm->ip)) {
-    bf_trace(vm);
+    if (cs_log_level >= LL_VERBOSE_DEBUG) {
+      bf_trace(vm);
+    }
 
     op = bf_fetch(vm, vm->ip);
     vm->ip++;
