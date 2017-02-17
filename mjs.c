@@ -680,136 +680,6 @@ int sl_set_ssl_opts(struct mg_connection *nc);
 
 #endif /* CS_COMMON_PLATFORMS_SIMPLELINK_CS_SIMPLELINK_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "common/segstack/segstack.h"
-#endif
-/*
- * Copyright (c) 2014-2017 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * Segmented stack: a stack implementation which stores cells in separately
- * allocated segments.
- *
- * The implementation allows random cell access, although it's optimized for
- * the top of stack (TOS) to be accessed: accessing TOS is O(1), whereas
- * accessing 0th cell is O(n).
- *
- * Cell and segment sizes are arbitrary and are configurable in runtime, thus
- * segstack can be used in various parts of the system with different
- * configuration. There are no compile-time options. Segstack makes no
- * assumption about the cell type or anything: it operates with plain pointers
- * to cell data.
- */
-
-#ifndef CS_COMMON_SEGSTACK_SEGSTACK_H_
-#define CS_COMMON_SEGSTACK_SEGSTACK_H_
-
-#include <stdint.h>
-
-/* SegStack options */
-struct segstack_opt {
-  /* Size of a single cell, in bytes. */
-  uint8_t cell_size;
-  /* Size of a segment of cells, in cells. */
-  uint8_t seg_size;
-  /*
-   * How many segments to "stash": when a number of free segments becomes
-   * larger, the extra one gets freed. For no stash, set to 0, although that
-   * may result in frequent allocations and freeings.
-   */
-  uint8_t stash_segs;
-};
-
-struct segstack {
-  /* Options given to segstack_init() */
-  struct segstack_opt opt;
-
-  /* Current number of stashed segments (can't be larger than opt.stash_segs) */
-  uint8_t stashed_segs;
-
-  /* Number of cells used. Initially, it's 0. */
-  int size;
-
-  /* Pointer to the top-of-stack segment */
-  struct segstack_seg *tos_seg;
-
-  /*
-   * Pointer to the last segment. Needed to implement stashing.
-   */
-  struct segstack_seg *last_seg;
-};
-
-/*
- * Segment of cells. Actual size depends on options.
- */
-struct segstack_seg {
-  struct segstack_seg *prev;
-  uint8_t data[];
-};
-
-/*
- * Initializes segstack `ss` with the given options `opt`.
- */
-void segstack_init(struct segstack *ss, const struct segstack_opt *opt);
-
-/*
- * Frees all the segments allocated by the stack; the structure `ss` itself
- * is zeroed out and not freed.
- */
-void segstack_free(struct segstack *ss);
-
-/*
- * Returns current stack size.
- */
-int segstack_size(struct segstack *ss);
-
-/*
- * Sets new stack size. NOTE that size can only be made smaller; an attempt
- * to make it larger will result in a crash.
- */
-void segstack_set_size(struct segstack *ss, int size);
-
-/*
- * Returns a pointer to the TOS cell data. If the stack size is 0, returns
- * NULL. Equivalent of `segstack_at(ss, -1)`.
- *
- * NOTE that calling `segstack_pop()` might invalidate the pointer returned
- * by this function.
- */
-void *segstack_tos(struct segstack *ss);
-
-/*
- * Returns a pointer to the data of the cell by the given index. If index is
- * out of bounds, returns NULL.
- *
- * Negative index is interpreted as size + idx; thus, TOS can be accessed with
- * the index -1.
- *
- * NOTE that calling `segstack_pop()` might invalidate the pointer returned
- * by this function.
- */
-void *segstack_at(struct segstack *ss, int idx);
-
-/*
- * Pushes a new cell on the stack.
- */
-void segstack_push(struct segstack *ss, const void *cellp);
-
-/*
- * Pops a cell from the stack. If `cellp` is not NULL, writes the data of the
- * popped cell there.
- *
- * This function can't just return a pointer (as `segstack_tos()` does),
- * because in case of zero `stash_segs`, this pointer will already be invalid.
- *
- * NOTE that calling this function also invalidates pointers previously
- * returned by `segstack_tos()` and `segstack_at()`.
- */
-void segstack_pop(struct segstack *ss, void *cellp);
-
-#endif /* CS_COMMON_SEGSTACK_SEGSTACK_H_ */
-#ifdef MG_MODULE_LINES
 #line 1 "common/platforms/platform_esp32.h"
 #endif
 /*
@@ -1977,136 +1847,6 @@ char *utfutf(char *s1, char *s2);
 #endif /* __cplusplus */
 #endif /* CS_COMMON_UTF_H_ */
 #ifdef MG_MODULE_LINES
-#line 1 "common/segstack/segstack.h"
-#endif
-/*
- * Copyright (c) 2014-2017 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * Segmented stack: a stack implementation which stores cells in separately
- * allocated segments.
- *
- * The implementation allows random cell access, although it's optimized for
- * the top of stack (TOS) to be accessed: accessing TOS is O(1), whereas
- * accessing 0th cell is O(n).
- *
- * Cell and segment sizes are arbitrary and are configurable in runtime, thus
- * segstack can be used in various parts of the system with different
- * configuration. There are no compile-time options. Segstack makes no
- * assumption about the cell type or anything: it operates with plain pointers
- * to cell data.
- */
-
-#ifndef CS_COMMON_SEGSTACK_SEGSTACK_H_
-#define CS_COMMON_SEGSTACK_SEGSTACK_H_
-
-#include <stdint.h>
-
-/* SegStack options */
-struct segstack_opt {
-  /* Size of a single cell, in bytes. */
-  uint8_t cell_size;
-  /* Size of a segment of cells, in cells. */
-  uint8_t seg_size;
-  /*
-   * How many segments to "stash": when a number of free segments becomes
-   * larger, the extra one gets freed. For no stash, set to 0, although that
-   * may result in frequent allocations and freeings.
-   */
-  uint8_t stash_segs;
-};
-
-struct segstack {
-  /* Options given to segstack_init() */
-  struct segstack_opt opt;
-
-  /* Current number of stashed segments (can't be larger than opt.stash_segs) */
-  uint8_t stashed_segs;
-
-  /* Number of cells used. Initially, it's 0. */
-  int size;
-
-  /* Pointer to the top-of-stack segment */
-  struct segstack_seg *tos_seg;
-
-  /*
-   * Pointer to the last segment. Needed to implement stashing.
-   */
-  struct segstack_seg *last_seg;
-};
-
-/*
- * Segment of cells. Actual size depends on options.
- */
-struct segstack_seg {
-  struct segstack_seg *prev;
-  uint8_t data[];
-};
-
-/*
- * Initializes segstack `ss` with the given options `opt`.
- */
-void segstack_init(struct segstack *ss, const struct segstack_opt *opt);
-
-/*
- * Frees all the segments allocated by the stack; the structure `ss` itself
- * is zeroed out and not freed.
- */
-void segstack_free(struct segstack *ss);
-
-/*
- * Returns current stack size.
- */
-int segstack_size(struct segstack *ss);
-
-/*
- * Sets new stack size. NOTE that size can only be made smaller; an attempt
- * to make it larger will result in a crash.
- */
-void segstack_set_size(struct segstack *ss, int size);
-
-/*
- * Returns a pointer to the TOS cell data. If the stack size is 0, returns
- * NULL. Equivalent of `segstack_at(ss, -1)`.
- *
- * NOTE that calling `segstack_pop()` might invalidate the pointer returned
- * by this function.
- */
-void *segstack_tos(struct segstack *ss);
-
-/*
- * Returns a pointer to the data of the cell by the given index. If index is
- * out of bounds, returns NULL.
- *
- * Negative index is interpreted as size + idx; thus, TOS can be accessed with
- * the index -1.
- *
- * NOTE that calling `segstack_pop()` might invalidate the pointer returned
- * by this function.
- */
-void *segstack_at(struct segstack *ss, int idx);
-
-/*
- * Pushes a new cell on the stack.
- */
-void segstack_push(struct segstack *ss, const void *cellp);
-
-/*
- * Pops a cell from the stack. If `cellp` is not NULL, writes the data of the
- * popped cell there.
- *
- * This function can't just return a pointer (as `segstack_tos()` does),
- * because in case of zero `stash_segs`, this pointer will already be invalid.
- *
- * NOTE that calling this function also invalidates pointers previously
- * returned by `segstack_tos()` and `segstack_at()`.
- */
-void segstack_pop(struct segstack *ss, void *cellp);
-
-#endif /* CS_COMMON_SEGSTACK_SEGSTACK_H_ */
-#ifdef MG_MODULE_LINES
 #line 1 "mjs/bf/bf.h"
 #endif
 /*
@@ -2118,7 +1858,9 @@ void segstack_pop(struct segstack *ss, void *cellp);
 #define MJS_BRAINFARTH_BRAINFARTH_H_
 
 /* Amalgamated: #include "common/platform.h" */
-/* Amalgamated: #include "common/segstack/segstack.h" */
+/* Amalgamated: #include "common/mbuf.h" */
+
+#define FR_STACK_SIZE 256
 
 #define FR_EXIT_RUN -1
 
@@ -2165,8 +1907,8 @@ struct bf_vm {
   struct bf_mem *iram;
 
   bf_word_ptr_t ip;
-  struct segstack dstack; /* data stack */
-  struct segstack rstack; /* return stack */
+  struct mbuf dstack; /* data stack */
+  struct mbuf rstack; /* return stack */
   bf_cell_t tmp;
 
   struct bf_callbacks cb;
@@ -2188,12 +1930,12 @@ void bf_die(struct bf_vm *vm);
 
 bf_word_ptr_t bf_lookup_word(struct bf_vm *vm, bf_opcode_t op);
 
-void bf_push(struct segstack *stack, bf_cell_t value);
-bf_cell_t bf_pop(struct segstack *stack);
+void bf_push(struct mbuf *stack, bf_cell_t value);
+bf_cell_t bf_pop(struct mbuf *stack);
 /* returns the top of the stack value */
-bf_cell_t bf_tos(struct segstack *stack);
+bf_cell_t bf_tos(struct mbuf *stack);
 
-void bf_print_stack(struct bf_vm *vm, struct segstack *stack);
+void bf_print_stack(struct bf_vm *vm, struct mbuf *stack);
 
 /* these should be implemented by whoever embeds the VM */
 
@@ -4491,202 +4233,6 @@ MJS_PRIVATE int calc_llen(size_t len);
 
 #endif /* MJS_VARINT_H_ */
 #ifndef MG_EXPORT_INTERNAL_HEADERS
-#ifdef MG_MODULE_LINES
-#line 1 "common/segstack/segstack.c"
-#endif
-/*
- * Copyright (c) 2014-2017 Cesanta Software Limited
- * All rights reserved
- */
-
-/* Amalgamated: #include "segstack.h" */
-
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
-
-/*
- * Returns an index of the segment for the given cell index. If negative
- * cellidx is given, -1 is retured.
- */
-#define SS_SEG_IDX(ss, cellidx) \
-  ((cellidx) >= 0 ? ((cellidx) / (ss)->opt.seg_size) : -1)
-
-/*
- * Returns an index of the cell inside of the segment.
- */
-#define SS_SEG_CELL_IDX(ss, cellidx) ((cellidx) % (ss)->opt.seg_size)
-
-/*
- * Returns the size of a segment in bytes.
- */
-#define SS_SEG_SIZE_BYTES(ss) \
-  (sizeof(struct segstack_seg) + (ss)->opt.cell_size * (ss)->opt.seg_size)
-
-static void *s_segstack_get_cellp(struct segstack *ss, int cellidx,
-                                  struct segstack_seg **pseg);
-static void s_segstack_free_last_seg(struct segstack *ss);
-
-void segstack_init(struct segstack *ss, const struct segstack_opt *opt) {
-  memset(ss, 0, sizeof(*ss));
-  memcpy(&ss->opt, opt, sizeof(ss->opt));
-  /* TODO(dfrank): check the validity of the options */
-}
-
-void segstack_free(struct segstack *ss) {
-  while (ss->last_seg != NULL) {
-    s_segstack_free_last_seg(ss);
-  }
-  memset(ss, 0, sizeof(*ss));
-}
-
-int segstack_size(struct segstack *ss) {
-  return ss->size;
-}
-
-void segstack_set_size(struct segstack *ss, int size) {
-  assert(segstack_size(ss) >= size);
-  while (segstack_size(ss) > size) {
-    segstack_pop(ss, NULL);
-  }
-}
-
-void *segstack_tos(struct segstack *ss) {
-  return segstack_at(ss, -1);
-}
-
-void *segstack_at(struct segstack *ss, int idx) {
-  if (idx < 0) {
-    idx = ss->size + idx;
-  }
-
-  if (idx < 0 || idx >= ss->size) {
-    return NULL;
-  }
-
-  return s_segstack_get_cellp(ss, idx, NULL);
-}
-
-void segstack_push(struct segstack *ss, const void *cellp) {
-  void *tgt_cellp = s_segstack_get_cellp(ss, ss->size, &ss->tos_seg);
-  ss->size++;
-  memcpy((char *) tgt_cellp, (char *) cellp, ss->opt.cell_size);
-}
-
-void segstack_pop(struct segstack *ss, void *cellp) {
-  assert(ss->size > 0);
-  struct segstack_seg *old_tos_seg = ss->tos_seg;
-
-  /* If the caller provided a pointer to write the popped value to, do it */
-  if (cellp != NULL) {
-    memcpy(cellp, segstack_tos(ss), ss->opt.cell_size);
-  }
-
-  /* Pop the top element from the stack */
-  s_segstack_get_cellp(ss, ss->size - 2, &ss->tos_seg);
-  ss->size--;
-
-  if (old_tos_seg != ss->tos_seg) {
-    /* A new segment just became unused */
-    assert(old_tos_seg->prev == ss->tos_seg);
-
-    if (ss->stashed_segs < ss->opt.stash_segs) {
-      /* We should stash this unused segment */
-      ss->stashed_segs++;
-    } else {
-      /* No more segments should be stashed, so, free the last one */
-      s_segstack_free_last_seg(ss);
-    }
-  }
-}
-
-/*
- * Returns segment by the TOS delta. If `tos_delta` is 0, returns the TOS
- * segment.  If `tos_delta > 0`, returns one of the previous segments.  If
- * `tos_delta` is equal to -1, returns the next segment: eigher previously
- * stashed, or newly allocated.
- *
- * Other values of `tos_delta` are illegal.
- */
-static struct segstack_seg *s_segstack_get_seg(struct segstack *ss,
-                                               int tos_delta) {
-  struct segstack_seg *cur_seg = NULL;
-  if (tos_delta >= 0) {
-    /* We need to get TOS segment or below */
-    cur_seg = ss->tos_seg;
-    while (tos_delta-- > 0) {
-      cur_seg = cur_seg->prev;
-    }
-  } else if (tos_delta == -1) {
-    /* We need to get the "next" segment after TOS */
-    if (ss->stashed_segs > 0) {
-      /* The needed segment is already allocated (stashed), we need to find it
-       */
-      assert(ss->last_seg != NULL);
-      assert(ss->last_seg != ss->tos_seg);
-
-      cur_seg = ss->last_seg;
-      while (cur_seg->prev != ss->tos_seg) {
-        cur_seg = cur_seg->prev;
-        assert(cur_seg != NULL);
-      }
-
-      ss->stashed_segs--;
-    } else {
-      /* We need to allocate a new segment */
-      ss->last_seg = (struct segstack_seg *) calloc(1, SS_SEG_SIZE_BYTES(ss));
-      ss->last_seg->prev = ss->tos_seg;
-      cur_seg = ss->last_seg;
-    }
-  } else {
-    abort();
-  }
-  return cur_seg;
-}
-
-/*
- * Returns a pointer to the cell by the given cell index. If `pseg` is not NULL,
- * a pointer to a segment which contains the cell will be written there.
- *
- * Cell index might be in range [-1, ss->size].
- *
- * If cellidx is -1, NULL is returned.
- *
- * If cellidx is equal to `ss->size`, a pointer to the next cell is returned
- * (probably from stashed or newly allocated segment).
- */
-static void *s_segstack_get_cellp(struct segstack *ss, int cellidx,
-                                  struct segstack_seg **pseg) {
-  int tos_seg_idx = SS_SEG_IDX(ss, ss->size - 1);
-  int need_seg_idx = SS_SEG_IDX(ss, cellidx);
-  int need_seg_cell_idx = SS_SEG_CELL_IDX(ss, cellidx);
-
-  struct segstack_seg *seg = NULL;
-
-  assert(cellidx >= -1 && cellidx <= ss->size);
-
-  seg = s_segstack_get_seg(ss, tos_seg_idx - need_seg_idx);
-
-  if (pseg != NULL) {
-    *pseg = seg;
-  }
-
-  if (seg != NULL) {
-    return seg->data + ss->opt.cell_size * need_seg_cell_idx;
-  } else {
-    return NULL;
-  }
-}
-
-/*
- * Frees last segment.
- */
-static void s_segstack_free_last_seg(struct segstack *ss) {
-  assert(ss->last_seg != NULL);
-  struct segstack_seg *t = ss->last_seg;
-  ss->last_seg = ss->last_seg->prev;
-  free(t);
-}
 #ifdef MG_MODULE_LINES
 #line 1 "common/cs_dbg.c"
 #endif
@@ -7082,8 +6628,8 @@ static void bf_cb_stub(struct bf_vm *vm) {
 
 void bf_destroy_vm(struct bf_vm *vm) {
   bf_destroy_mem(vm->iram);
-  segstack_free(&vm->dstack);
-  segstack_free(&vm->rstack);
+  mbuf_free(&vm->dstack);
+  mbuf_free(&vm->rstack);
 }
 
 void bf_init_vm(struct bf_vm *vm, struct bf_code *code,
@@ -7101,16 +6647,8 @@ void bf_init_vm(struct bf_vm *vm, struct bf_code *code,
     vm->cb.after_bf_enter = bf_cb_stub;
   }
 
-  {
-    struct segstack_opt ssopt;
-    memset(&ssopt, 0, sizeof(ssopt));
-    ssopt.cell_size = sizeof(bf_cell_t);
-    ssopt.seg_size = 10 /* cells */;
-    ssopt.stash_segs = 1;
-
-    segstack_init(&vm->dstack, &ssopt);
-    segstack_init(&vm->rstack, &ssopt);
-  }
+  mbuf_init(&vm->dstack, 0);
+  mbuf_init(&vm->rstack, 0);
 
   vm->iram = bf_create_mem();
   if (code != NULL && code->opcodes != NULL) {
@@ -7159,9 +6697,8 @@ void bf_enter_thread(struct bf_vm *vm, bf_word_ptr_t word) {
 }
 
 void bf_enter(struct bf_vm *vm, bf_word_ptr_t word) {
-  if (word >= 0 && bf_fetch(vm, vm->ip) == 0 &&
-      segstack_size(&vm->rstack) > 0) {
-    LOG(LL_VERBOSE_DEBUG, ("tail recursion"));
+  if (word >= 0 && bf_fetch(vm, vm->ip) == 0 && vm->rstack.len > 0) {
+    LOG(LL_DEBUG, ("tail recursion"));
     vm->ip = bf_to_int(bf_pop(&vm->rstack));
   }
 
@@ -7215,26 +6752,28 @@ bf_word_ptr_t bf_lookup_word(struct bf_vm *vm, bf_opcode_t op) {
   }
 }
 
-void bf_push(struct segstack *stack, bf_cell_t value) {
-  segstack_push(stack, &value);
+void bf_push(struct mbuf *stack, bf_cell_t value) {
+  mbuf_append(stack, &value, sizeof(value));
 }
 
-bf_cell_t bf_pop(struct segstack *stack) {
-  bf_cell_t ret = 0;
-  segstack_pop(stack, &ret);
-  return ret;
+bf_cell_t bf_pop(struct mbuf *stack) {
+  assert(stack->len >= sizeof(bf_cell_t));
+  stack->len -= sizeof(bf_cell_t);
+  return *((bf_cell_t *) (stack->buf + stack->len));
 }
 
-bf_cell_t bf_tos(struct segstack *stack) {
-  return *(bf_cell_t *) segstack_tos(stack);
+bf_cell_t bf_tos(struct mbuf *stack) {
+  assert(stack->len >= sizeof(bf_cell_t));
+  return *((bf_cell_t *) (stack->buf + stack->len - sizeof(bf_cell_t)));
 }
 
-void bf_print_stack(struct bf_vm *vm, struct segstack *stack) {
-  int i;
+void bf_print_stack(struct bf_vm *vm, struct mbuf *stack) {
+  size_t i;
   /* gforth style stack print */
-  printf("<%d> ", segstack_size(stack));
-  for (i = 0; i < segstack_size(stack); i++) {
-    bf_print_cell(vm, *(bf_cell_t *) segstack_at(stack, i));
+  size_t max = stack->len / sizeof(bf_cell_t);
+  printf("<%zu> ", max);
+  for (i = 0; i < max; i++) {
+    bf_print_cell(vm, *((bf_cell_t *) (stack->buf + i * sizeof(bf_cell_t))));
     printf(" ");
   }
 }
@@ -7318,19 +6857,19 @@ void bf_op_popr(struct bf_vm *vm) {
 }
 
 void bf_op_sp_save(struct bf_vm *vm) {
-  bf_push(&vm->dstack, bf_from_int(segstack_size(&vm->dstack)));
+  bf_push(&vm->dstack, bf_from_int(vm->dstack.len / sizeof(bf_cell_t)));
 }
 
 void bf_op_sp_restore(struct bf_vm *vm) {
-  segstack_set_size(&vm->dstack, bf_to_int(bf_pop(&vm->dstack)));
+  vm->dstack.len = bf_to_int(bf_pop(&vm->dstack)) * sizeof(bf_cell_t);
 }
 
 void bf_op_rp_save(struct bf_vm *vm) {
-  bf_push(&vm->dstack, bf_from_int(segstack_size(&vm->rstack)));
+  bf_push(&vm->dstack, bf_from_int(vm->rstack.len / sizeof(bf_cell_t)));
 }
 
 void bf_op_rp_restore(struct bf_vm *vm) {
-  segstack_set_size(&vm->rstack, bf_to_int(bf_pop(&vm->dstack)));
+  vm->rstack.len = bf_to_int(bf_pop(&vm->dstack)) * sizeof(bf_cell_t);
 }
 
 void bf_op_stash(struct bf_vm *vm) {
@@ -7421,10 +6960,8 @@ void bf_op_ifelse(struct bf_vm *vm) {
 }
 
 void bf_op_ndrop(struct bf_vm *vm) {
-  int n = bf_to_int(bf_pop(&vm->dstack));
-  while (n--) {
-    segstack_pop(&vm->dstack, NULL);
-  }
+  bf_cell_t n = bf_pop(&vm->dstack);
+  vm->dstack.len -= bf_to_int(n) * sizeof(bf_cell_t);
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/bf/mem.c"
@@ -14296,16 +13833,6 @@ static void gc_mark_mbuf_val(struct mjs *mjs, const struct mbuf *mbuf) {
                     mbuf->len / sizeof(mjs_val_t));
 }
 
-static void gc_mark_bf_stack(struct mjs *mjs, struct segstack *stack) {
-  int i;
-  mjs_val_t *v;
-  for (i = 0; i < segstack_size(stack); i++) {
-    v = (mjs_val_t *) segstack_at(stack, i);
-    gc_mark(mjs, *v);
-    gc_mark_string(mjs, v);
-  }
-}
-
 static void gc_mark_ffi_cbargs_list(struct mjs *mjs, ffi_cb_args_t *cbargs) {
   for (; cbargs != NULL; cbargs = cbargs->next) {
     gc_mark(mjs, cbargs->func);
@@ -14323,8 +13850,8 @@ void mjs_gc(struct mjs *mjs, int full) {
   gc_mark_mbuf_pt(mjs, &mjs->owned_values);
   gc_mark_mbuf_val(mjs, &mjs->scopes);
 
-  gc_mark_bf_stack(mjs, &mjs->vm.dstack);
-  gc_mark_bf_stack(mjs, &mjs->vm.rstack);
+  gc_mark_mbuf_val(mjs, &mjs->vm.dstack);
+  gc_mark_mbuf_val(mjs, &mjs->vm.rstack);
 
   gc_mark(mjs, (mjs_val_t) mjs->vm.tmp);
   gc_mark_string(mjs, (mjs_val_t *) &mjs->vm.tmp);
@@ -15349,7 +14876,7 @@ void mjs_op_jscall(struct bf_vm *vm) {
   mjs_val_t func = bf_pop(&vm->dstack);
   mjs_val_t fthis = bf_pop(&vm->dstack);
   size_t nargs = bf_to_int(bf_tos(&vm->dstack));
-  size_t stack_pos = segstack_size(&vm->dstack) - 1 /* nargs */;
+  size_t stack_pos = vm->dstack.len / sizeof(bf_cell_t) - 1 /* nargs */;
 
   assert(stack_pos >= nargs);
   /*
