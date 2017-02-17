@@ -14756,6 +14756,93 @@ clean:
   bf_push(&vm->dstack, val);
 }
 
+static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
+                                  const char *name, size_t name_len,
+                                  mjs_val_t *res) {
+  int isnum = 0;
+  int idx = cstr_to_ulong(name, name_len, &isnum);
+
+  if (strcmp(name, "length") == 0) {
+    size_t val_len;
+    mjs_get_string(mjs, &val, &val_len);
+    *res = mjs_mk_number(mjs, val_len);
+    return 1;
+  } else if (strcmp(name, "slice") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_string_slice);
+    return 1;
+  } else if (strcmp(name, "charCodeAt") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
+    return 1;
+  } else if (isnum) {
+    /*
+     * string subscript: return a new one-byte string if the index
+     * is not out of bounds
+     */
+    size_t val_len;
+    const char *str = mjs_get_string(mjs, &val, &val_len);
+    if (idx >= 0 && idx < (int) val_len) {
+      *res = mjs_mk_string(mjs, str + idx, 1, 1);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
+                                 const char *name, size_t name_len,
+                                 mjs_val_t *res) {
+  if (strcmp(name, "length") == 0) {
+    *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
+    return 1;
+  }
+
+  (void) name_len;
+  return 0;
+}
+
+static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
+                                   const char *name, size_t name_len,
+                                   mjs_val_t *res) {
+  int isnum = 0;
+  int idx = cstr_to_ulong(name, name_len, &isnum);
+
+  if (!isnum) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+  } else {
+    uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, val);
+    *res = mjs_mk_number(mjs, *(ptr + idx));
+    return 1;
+  }
+  return 0;
+}
+
+static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
+                           mjs_val_t *res) {
+  size_t n;
+  char *s = NULL;
+  int need_free = 0;
+  int handled = 0;
+
+  mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
+
+  if (err == MJS_OK) {
+    if (mjs_is_string(val)) {
+      handled = getprop_builtin_string(mjs, val, s, n, res);
+    } else if (mjs_is_array(val)) {
+      handled = getprop_builtin_array(mjs, val, s, n, res);
+    } else if (mjs_is_foreign(val)) {
+      handled = getprop_builtin_foreign(mjs, val, s, n, res);
+    }
+  }
+
+  if (need_free) {
+    free(s);
+    s = NULL;
+  }
+
+  return handled;
+}
+
 void mjs_op_getprop(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   mjs_val_t name = bf_pop(&vm->dstack);
@@ -14768,60 +14855,15 @@ void mjs_op_getprop(struct bf_vm *vm) {
   mjs->vals.last_getprop_obj = bf_pop(&vm->dstack);
   mjs->words_since_getprop = (enum getprop_distance) 0;
 
-  if (mjs_is_object(mjs->vals.last_getprop_obj)) {
-    /* The "object" is actually an object: just take a property from it */
-    val = mjs_get_v(mjs, mjs->vals.last_getprop_obj, name);
-  } else {
-    /*
-     * We don't have getters, so in order to support properties which behave
-     * like getters (e.g. "string".length), we have to parse name right here,
-     * instead of having real built-in prototype objects
-     */
-    size_t n;
-    char *s = NULL;
-    int need_free = 0;
-
-    mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
-
-    int isnum = 0;
-    int idx = cstr_to_ulong(s, n, &isnum);
-
-    if (err == MJS_OK) {
-      if (mjs_is_string(mjs->vals.last_getprop_obj)) {
-        if (strcmp(s, "length") == 0) {
-          size_t val_len;
-          mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
-          val = mjs_mk_number(mjs, val_len);
-        } else if (strcmp(s, "slice") == 0) {
-          val = mjs_mk_foreign(mjs, mjs_string_slice);
-        } else if (strcmp(s, "charCodeAt") == 0) {
-          val = mjs_mk_foreign(mjs, mjs_string_char_code_at);
-        } else if (isnum) {
-          /*
-           * string subscript: return a new one-byte string if the index
-           * is not out of bounds
-           */
-          size_t val_len;
-          const char *str =
-              mjs_get_string(mjs, &mjs->vals.last_getprop_obj, &val_len);
-          if (idx >= 0 && idx < (int) val_len) {
-            val = mjs_mk_string(mjs, str + idx, 1, 1);
-          }
-        }
-      } else if (mjs_is_foreign(mjs->vals.last_getprop_obj)) {
-        if (!isnum) {
-          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
-        } else {
-          uint8_t *ptr =
-              (uint8_t *) mjs_get_ptr(mjs, mjs->vals.last_getprop_obj);
-          val = mjs_mk_number(mjs, *(ptr + idx));
-        }
-      }
-    }
-
-    if (need_free) {
-      free(s);
-      s = NULL;
+  /*
+   * We don't have getters, so in order to support properties which behave
+   * like getters (e.g. "string".length), we have to parse name right here,
+   * instead of having real built-in prototype objects
+   */
+  if (!getprop_builtin(mjs, mjs->vals.last_getprop_obj, name, &val)) {
+    if (mjs_is_object(mjs->vals.last_getprop_obj)) {
+      /* The "object" is actually an object: just take a property from it */
+      val = mjs_get_v(mjs, mjs->vals.last_getprop_obj, name);
     }
   }
 
