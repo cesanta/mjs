@@ -6700,7 +6700,7 @@ void bf_enter_thread(struct bf_vm *vm, bf_word_ptr_t word) {
 
 void bf_enter(struct bf_vm *vm, bf_word_ptr_t word) {
   if (word >= 0 && bf_fetch(vm, vm->ip) == 0 && vm->rstack.len > 0) {
-    LOG(LL_DEBUG, ("tail recursion"));
+    LOG(LL_VERBOSE_DEBUG, ("tail recursion"));
     vm->ip = bf_to_int(bf_pop(&vm->rstack));
   }
 
