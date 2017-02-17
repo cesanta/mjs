@@ -2195,6 +2195,7 @@ extern struct bf_code MJS_code;
 #define MJS_WORD_PTR_loop (3)
 #define MJS_WORD_PTR_ndrop (16)
 #define MJS_WORD_PTR_str (16)
+#define MJS_WORD_PTR_num (16)
 #define MJS_WORD_PTR_scope_idx_AT (16)
 #define MJS_WORD_PTR_scope_idx_SET (16)
 #define MJS_WORD_PTR_scope_min_AT (16)
@@ -2331,86 +2332,87 @@ extern struct bf_code MJS_code;
 #define MJS_OP_loop ((bf_opcode_t) 29)
 #define MJS_OP_ndrop ((bf_opcode_t) 30)
 #define MJS_OP_str ((bf_opcode_t) 31)
-#define MJS_OP_scope_idx_AT ((bf_opcode_t) 32)
-#define MJS_OP_scope_idx_SET ((bf_opcode_t) 33)
-#define MJS_OP_scope_min_AT ((bf_opcode_t) 34)
-#define MJS_OP_scope_min_SET ((bf_opcode_t) 35)
-#define MJS_OP_this_val_AT ((bf_opcode_t) 36)
-#define MJS_OP_this_val_SET ((bf_opcode_t) 37)
-#define MJS_OP_jsfunc_rspos_AT ((bf_opcode_t) 38)
-#define MJS_OP_jsfunc_rspos_SET ((bf_opcode_t) 39)
-#define MJS_OP_GT_scopes ((bf_opcode_t) 40)
-#define MJS_OP_scopes_GT ((bf_opcode_t) 41)
-#define MJS_OP_scope_AT ((bf_opcode_t) 42)
-#define MJS_OP_brcont_rspos_AT ((bf_opcode_t) 43)
-#define MJS_OP_brcont_rspos_SET ((bf_opcode_t) 44)
-#define MJS_OP_brcont_scope_AT ((bf_opcode_t) 45)
-#define MJS_OP_brcont_scope_SET ((bf_opcode_t) 46)
-#define MJS_OP_mkobj ((bf_opcode_t) 47)
-#define MJS_OP_addprop ((bf_opcode_t) 48)
-#define MJS_OP_setprop ((bf_opcode_t) 49)
-#define MJS_OP_getprop ((bf_opcode_t) 50)
-#define MJS_OP_getvar ((bf_opcode_t) 51)
-#define MJS_OP_setvar ((bf_opcode_t) 52)
-#define MJS_OP_createvar ((bf_opcode_t) 53)
-#define MJS_OP_mkarr ((bf_opcode_t) 54)
-#define MJS_OP_arrpush ((bf_opcode_t) 55)
-#define MJS_OP_blockenter ((bf_opcode_t) 56)
-#define MJS_OP_blockexit ((bf_opcode_t) 57)
-#define MJS_OP__jscall_native ((bf_opcode_t) 58)
-#define MJS_OP_jscall_exit ((bf_opcode_t) 59)
-#define MJS_OP_jscall ((bf_opcode_t) 60)
-#define MJS_OP_jsenter ((bf_opcode_t) 61)
-#define MJS_OP_jsexit ((bf_opcode_t) 62)
-#define MJS_OP_setarg ((bf_opcode_t) 63)
-#define MJS_OP_undefined ((bf_opcode_t) 64)
-#define MJS_OP_null ((bf_opcode_t) 65)
-#define MJS_OP_true ((bf_opcode_t) 66)
-#define MJS_OP_false ((bf_opcode_t) 67)
-#define MJS_OP_this_for_call ((bf_opcode_t) 68)
-#define MJS_OP_2dup ((bf_opcode_t) 69)
-#define MJS_OP_3dup ((bf_opcode_t) 70)
-#define MJS_OP_4dup ((bf_opcode_t) 71)
-#define MJS_OP_GTEQ ((bf_opcode_t) 72)
-#define MJS_OP_LTEQ ((bf_opcode_t) 73)
-#define MJS_OP_SETEQ ((bf_opcode_t) 74)
-#define MJS_OP_js_EQ ((bf_opcode_t) 75)
-#define MJS_OP_js_LT ((bf_opcode_t) 76)
-#define MJS_OP_js_GT ((bf_opcode_t) 77)
-#define MJS_OP_jsinvert ((bf_opcode_t) 78)
-#define MJS_OP_js_GTEQ ((bf_opcode_t) 79)
-#define MJS_OP_js_LTEQ ((bf_opcode_t) 80)
-#define MJS_OP_js_SETEQ ((bf_opcode_t) 81)
-#define MJS_OP_js_logical_and ((bf_opcode_t) 82)
-#define MJS_OP_js_logical_or ((bf_opcode_t) 83)
-#define MJS_OP_js_PLUS ((bf_opcode_t) 84)
-#define MJS_OP_ifstmt ((bf_opcode_t) 85)
-#define MJS_OP_repeat ((bf_opcode_t) 86)
-#define MJS_OP_brcont_body_enter ((bf_opcode_t) 87)
-#define MJS_OP_brcont_body_exit ((bf_opcode_t) 88)
-#define MJS_OP_brcont_body ((bf_opcode_t) 89)
-#define MJS_OP_brcont ((bf_opcode_t) 90)
-#define MJS_OP_call_if_nonzero ((bf_opcode_t) 91)
-#define MJS_OP_while ((bf_opcode_t) 92)
-#define MJS_OP_forloop ((bf_opcode_t) 93)
-#define MJS_OP_jsprint ((bf_opcode_t) 94)
-#define MJS_OP_zero ((bf_opcode_t) 95)
-#define MJS_OP_one ((bf_opcode_t) 96)
-#define MJS_OP_nop ((bf_opcode_t) 97)
-#define MJS_OP_inc ((bf_opcode_t) 98)
-#define MJS_OP_swapinc ((bf_opcode_t) 99)
-#define MJS_OP_div ((bf_opcode_t) 100)
-#define MJS_OP_rem ((bf_opcode_t) 101)
-#define MJS_OP_lshift ((bf_opcode_t) 102)
-#define MJS_OP_rshift ((bf_opcode_t) 103)
-#define MJS_OP_urshift ((bf_opcode_t) 104)
-#define MJS_OP_and ((bf_opcode_t) 105)
-#define MJS_OP_or ((bf_opcode_t) 106)
-#define MJS_OP_xor ((bf_opcode_t) 107)
-#define MJS_OP_not ((bf_opcode_t) 108)
-#define MJS_OP_neg ((bf_opcode_t) 109)
-#define MJS_OP_pos ((bf_opcode_t) 110)
-#define MJS_OP_load ((bf_opcode_t) 111)
+#define MJS_OP_num ((bf_opcode_t) 32)
+#define MJS_OP_scope_idx_AT ((bf_opcode_t) 33)
+#define MJS_OP_scope_idx_SET ((bf_opcode_t) 34)
+#define MJS_OP_scope_min_AT ((bf_opcode_t) 35)
+#define MJS_OP_scope_min_SET ((bf_opcode_t) 36)
+#define MJS_OP_this_val_AT ((bf_opcode_t) 37)
+#define MJS_OP_this_val_SET ((bf_opcode_t) 38)
+#define MJS_OP_jsfunc_rspos_AT ((bf_opcode_t) 39)
+#define MJS_OP_jsfunc_rspos_SET ((bf_opcode_t) 40)
+#define MJS_OP_GT_scopes ((bf_opcode_t) 41)
+#define MJS_OP_scopes_GT ((bf_opcode_t) 42)
+#define MJS_OP_scope_AT ((bf_opcode_t) 43)
+#define MJS_OP_brcont_rspos_AT ((bf_opcode_t) 44)
+#define MJS_OP_brcont_rspos_SET ((bf_opcode_t) 45)
+#define MJS_OP_brcont_scope_AT ((bf_opcode_t) 46)
+#define MJS_OP_brcont_scope_SET ((bf_opcode_t) 47)
+#define MJS_OP_mkobj ((bf_opcode_t) 48)
+#define MJS_OP_addprop ((bf_opcode_t) 49)
+#define MJS_OP_setprop ((bf_opcode_t) 50)
+#define MJS_OP_getprop ((bf_opcode_t) 51)
+#define MJS_OP_getvar ((bf_opcode_t) 52)
+#define MJS_OP_setvar ((bf_opcode_t) 53)
+#define MJS_OP_createvar ((bf_opcode_t) 54)
+#define MJS_OP_mkarr ((bf_opcode_t) 55)
+#define MJS_OP_arrpush ((bf_opcode_t) 56)
+#define MJS_OP_blockenter ((bf_opcode_t) 57)
+#define MJS_OP_blockexit ((bf_opcode_t) 58)
+#define MJS_OP__jscall_native ((bf_opcode_t) 59)
+#define MJS_OP_jscall_exit ((bf_opcode_t) 60)
+#define MJS_OP_jscall ((bf_opcode_t) 61)
+#define MJS_OP_jsenter ((bf_opcode_t) 62)
+#define MJS_OP_jsexit ((bf_opcode_t) 63)
+#define MJS_OP_setarg ((bf_opcode_t) 64)
+#define MJS_OP_undefined ((bf_opcode_t) 65)
+#define MJS_OP_null ((bf_opcode_t) 66)
+#define MJS_OP_true ((bf_opcode_t) 67)
+#define MJS_OP_false ((bf_opcode_t) 68)
+#define MJS_OP_this_for_call ((bf_opcode_t) 69)
+#define MJS_OP_2dup ((bf_opcode_t) 70)
+#define MJS_OP_3dup ((bf_opcode_t) 71)
+#define MJS_OP_4dup ((bf_opcode_t) 72)
+#define MJS_OP_GTEQ ((bf_opcode_t) 73)
+#define MJS_OP_LTEQ ((bf_opcode_t) 74)
+#define MJS_OP_SETEQ ((bf_opcode_t) 75)
+#define MJS_OP_js_EQ ((bf_opcode_t) 76)
+#define MJS_OP_js_LT ((bf_opcode_t) 77)
+#define MJS_OP_js_GT ((bf_opcode_t) 78)
+#define MJS_OP_jsinvert ((bf_opcode_t) 79)
+#define MJS_OP_js_GTEQ ((bf_opcode_t) 80)
+#define MJS_OP_js_LTEQ ((bf_opcode_t) 81)
+#define MJS_OP_js_SETEQ ((bf_opcode_t) 82)
+#define MJS_OP_js_logical_and ((bf_opcode_t) 83)
+#define MJS_OP_js_logical_or ((bf_opcode_t) 84)
+#define MJS_OP_js_PLUS ((bf_opcode_t) 85)
+#define MJS_OP_ifstmt ((bf_opcode_t) 86)
+#define MJS_OP_repeat ((bf_opcode_t) 87)
+#define MJS_OP_brcont_body_enter ((bf_opcode_t) 88)
+#define MJS_OP_brcont_body_exit ((bf_opcode_t) 89)
+#define MJS_OP_brcont_body ((bf_opcode_t) 90)
+#define MJS_OP_brcont ((bf_opcode_t) 91)
+#define MJS_OP_call_if_nonzero ((bf_opcode_t) 92)
+#define MJS_OP_while ((bf_opcode_t) 93)
+#define MJS_OP_forloop ((bf_opcode_t) 94)
+#define MJS_OP_jsprint ((bf_opcode_t) 95)
+#define MJS_OP_zero ((bf_opcode_t) 96)
+#define MJS_OP_one ((bf_opcode_t) 97)
+#define MJS_OP_nop ((bf_opcode_t) 98)
+#define MJS_OP_inc ((bf_opcode_t) 99)
+#define MJS_OP_swapinc ((bf_opcode_t) 100)
+#define MJS_OP_div ((bf_opcode_t) 101)
+#define MJS_OP_rem ((bf_opcode_t) 102)
+#define MJS_OP_lshift ((bf_opcode_t) 103)
+#define MJS_OP_rshift ((bf_opcode_t) 104)
+#define MJS_OP_urshift ((bf_opcode_t) 105)
+#define MJS_OP_and ((bf_opcode_t) 106)
+#define MJS_OP_or ((bf_opcode_t) 107)
+#define MJS_OP_xor ((bf_opcode_t) 108)
+#define MJS_OP_not ((bf_opcode_t) 109)
+#define MJS_OP_neg ((bf_opcode_t) 110)
+#define MJS_OP_pos ((bf_opcode_t) 111)
+#define MJS_OP_load ((bf_opcode_t) 112)
 
 #endif /* MJS_GEN_OPCODES_H_ */
 #ifdef MG_MODULE_LINES
@@ -9746,6 +9748,8 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <bf_op_ndrop> */ 
   /* 0016 -> : str ... ; */
   /*           <mjs_op_str> */ 
+  /* 0016 -> : num ... ; */
+  /*           <mjs_op_num> */ 
   /* 0016 -> : scope_idx@ ... ; */
   /*           <mjs_op_scope_idx_get> */ 
   /* 0016 -> : scope_idx! ... ; */
@@ -10004,59 +10008,59 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0045 */ -45, 
   /* 0046 */ -46, 
   /* 0047 */ -47, 
-  /* 0048 */ 16, 
-  /* 0049 */ -48, 
+  /* 0048 */ -48, 
+  /* 0049 */ 16, 
   /* 0050 */ -49, 
   /* 0051 */ -50, 
   /* 0052 */ -51, 
   /* 0053 */ -52, 
   /* 0054 */ -53, 
   /* 0055 */ -54, 
-  /* 0056 */ 24, 
-  /* 0057 */ 27, 
-  /* 0058 */ -55, 
-  /* 0059 */ 30, 
-  /* 0060 */ 37, 
-  /* 0061 */ 39, 
-  /* 0062 */ 63, 
-  /* 0063 */ 80, 
-  /* 0064 */ -56, 
+  /* 0056 */ -55, 
+  /* 0057 */ 24, 
+  /* 0058 */ 27, 
+  /* 0059 */ -56, 
+  /* 0060 */ 30, 
+  /* 0061 */ 37, 
+  /* 0062 */ 39, 
+  /* 0063 */ 63, 
+  /* 0064 */ 80, 
   /* 0065 */ -57, 
   /* 0066 */ -58, 
   /* 0067 */ -59, 
   /* 0068 */ -60, 
-  /* 0069 */ 102, 
-  /* 0070 */ 105, 
-  /* 0071 */ -61, 
-  /* 0072 */ 118, 
-  /* 0073 */ 121, 
-  /* 0074 */ 124, 
-  /* 0075 */ -62, 
+  /* 0069 */ -61, 
+  /* 0070 */ 102, 
+  /* 0071 */ 105, 
+  /* 0072 */ -62, 
+  /* 0073 */ 118, 
+  /* 0074 */ 121, 
+  /* 0075 */ 124, 
   /* 0076 */ -63, 
   /* 0077 */ -64, 
   /* 0078 */ -65, 
-  /* 0079 */ 127, 
-  /* 0080 */ 130, 
-  /* 0081 */ 133, 
-  /* 0082 */ -66, 
+  /* 0079 */ -66, 
+  /* 0080 */ 127, 
+  /* 0081 */ 130, 
+  /* 0082 */ 133, 
   /* 0083 */ -67, 
   /* 0084 */ -68, 
-  /* 0085 */ 138, 
-  /* 0086 */ 167, 
-  /* 0087 */ 180, 
-  /* 0088 */ 199, 
-  /* 0089 */ 216, 
-  /* 0090 */ 229, 
-  /* 0091 */ 248, 
-  /* 0092 */ 289, 
-  /* 0093 */ 344, 
-  /* 0094 */ 380, 
-  /* 0095 */ 387, 
-  /* 0096 */ 391, 
-  /* 0097 */ 395, 
-  /* 0098 */ 398, 
-  /* 0099 */ 403, 
-  /* 0100 */ -69, 
+  /* 0085 */ -69, 
+  /* 0086 */ 138, 
+  /* 0087 */ 167, 
+  /* 0088 */ 180, 
+  /* 0089 */ 199, 
+  /* 0090 */ 216, 
+  /* 0091 */ 229, 
+  /* 0092 */ 248, 
+  /* 0093 */ 289, 
+  /* 0094 */ 344, 
+  /* 0095 */ 380, 
+  /* 0096 */ 387, 
+  /* 0097 */ 391, 
+  /* 0098 */ 395, 
+  /* 0099 */ 398, 
+  /* 0100 */ 403, 
   /* 0101 */ -70, 
   /* 0102 */ -71, 
   /* 0103 */ -72, 
@@ -10068,6 +10072,7 @@ bf_word_ptr_t MJS_word_ptrs[] = {
   /* 0109 */ -78, 
   /* 0110 */ -79, 
   /* 0111 */ -80, 
+  /* 0112 */ -81, 
 };
 
 void bf_op_quote(struct bf_vm *vm);
@@ -10101,6 +10106,7 @@ void bf_op_if(struct bf_vm *vm);
 void bf_op_ifelse(struct bf_vm *vm);
 void bf_op_ndrop(struct bf_vm *vm);
 void mjs_op_str(struct bf_vm *vm);
+void mjs_op_num(struct bf_vm *vm);
 void mjs_op_scope_idx_get(struct bf_vm *vm);
 void mjs_op_scope_idx_set(struct bf_vm *vm);
 void mjs_op_scope_min_get(struct bf_vm *vm);
@@ -10183,55 +10189,56 @@ bf_native_t MJS_native_words[] = {
   /* -029 */ bf_op_ifelse,
   /* -030 */ bf_op_ndrop,
   /* -031 */ mjs_op_str,
-  /* -032 */ mjs_op_scope_idx_get,
-  /* -033 */ mjs_op_scope_idx_set,
-  /* -034 */ mjs_op_scope_min_get,
-  /* -035 */ mjs_op_scope_min_set,
-  /* -036 */ mjs_op_this_val_get,
-  /* -037 */ mjs_op_this_val_set,
-  /* -038 */ mjs_op_jsfunc_rspos_get,
-  /* -039 */ mjs_op_jsfunc_rspos_set,
-  /* -040 */ mjs_op_scope_push,
-  /* -041 */ mjs_op_scope_pop,
-  /* -042 */ mjs_op_scope_tos,
-  /* -043 */ mjs_op_brcont_rspos_get,
-  /* -044 */ mjs_op_brcont_rspos_set,
-  /* -045 */ mjs_op_brcont_scope_get,
-  /* -046 */ mjs_op_brcont_scope_set,
-  /* -047 */ mjs_op_mkobj,
-  /* -048 */ mjs_op_setprop,
-  /* -049 */ mjs_op_getprop,
-  /* -050 */ mjs_op_getvar,
-  /* -051 */ mjs_op_setvar,
-  /* -052 */ mjs_op_createvar,
-  /* -053 */ mjs_op_mkarr,
-  /* -054 */ mjs_op_arrpush,
-  /* -055 */ mjs_op_jscall,
-  /* -056 */ mjs_op_undefined,
-  /* -057 */ mjs_op_null,
-  /* -058 */ mjs_op_true,
-  /* -059 */ mjs_op_false,
-  /* -060 */ mjs_op_this_for_call,
-  /* -061 */ mjs_op_4dup,
-  /* -062 */ mjs_op_eq,
-  /* -063 */ mjs_op_lt,
-  /* -064 */ mjs_op_gt,
-  /* -065 */ mjs_op_invert,
-  /* -066 */ mjs_op_logical_and,
-  /* -067 */ mjs_op_logical_or,
-  /* -068 */ mjs_op_add,
-  /* -069 */ mjs_op_div,
-  /* -070 */ mjs_op_rem,
-  /* -071 */ mjs_op_lshift,
-  /* -072 */ mjs_op_rshift,
-  /* -073 */ mjs_op_urshift,
-  /* -074 */ mjs_op_and,
-  /* -075 */ mjs_op_or,
-  /* -076 */ mjs_op_xor,
-  /* -077 */ mjs_op_not,
-  /* -078 */ mjs_op_neg,
-  /* -079 */ mjs_op_pos,
-  /* -080 */ mjs_op_load,
+  /* -032 */ mjs_op_num,
+  /* -033 */ mjs_op_scope_idx_get,
+  /* -034 */ mjs_op_scope_idx_set,
+  /* -035 */ mjs_op_scope_min_get,
+  /* -036 */ mjs_op_scope_min_set,
+  /* -037 */ mjs_op_this_val_get,
+  /* -038 */ mjs_op_this_val_set,
+  /* -039 */ mjs_op_jsfunc_rspos_get,
+  /* -040 */ mjs_op_jsfunc_rspos_set,
+  /* -041 */ mjs_op_scope_push,
+  /* -042 */ mjs_op_scope_pop,
+  /* -043 */ mjs_op_scope_tos,
+  /* -044 */ mjs_op_brcont_rspos_get,
+  /* -045 */ mjs_op_brcont_rspos_set,
+  /* -046 */ mjs_op_brcont_scope_get,
+  /* -047 */ mjs_op_brcont_scope_set,
+  /* -048 */ mjs_op_mkobj,
+  /* -049 */ mjs_op_setprop,
+  /* -050 */ mjs_op_getprop,
+  /* -051 */ mjs_op_getvar,
+  /* -052 */ mjs_op_setvar,
+  /* -053 */ mjs_op_createvar,
+  /* -054 */ mjs_op_mkarr,
+  /* -055 */ mjs_op_arrpush,
+  /* -056 */ mjs_op_jscall,
+  /* -057 */ mjs_op_undefined,
+  /* -058 */ mjs_op_null,
+  /* -059 */ mjs_op_true,
+  /* -060 */ mjs_op_false,
+  /* -061 */ mjs_op_this_for_call,
+  /* -062 */ mjs_op_4dup,
+  /* -063 */ mjs_op_eq,
+  /* -064 */ mjs_op_lt,
+  /* -065 */ mjs_op_gt,
+  /* -066 */ mjs_op_invert,
+  /* -067 */ mjs_op_logical_and,
+  /* -068 */ mjs_op_logical_or,
+  /* -069 */ mjs_op_add,
+  /* -070 */ mjs_op_div,
+  /* -071 */ mjs_op_rem,
+  /* -072 */ mjs_op_lshift,
+  /* -073 */ mjs_op_rshift,
+  /* -074 */ mjs_op_urshift,
+  /* -075 */ mjs_op_and,
+  /* -076 */ mjs_op_or,
+  /* -077 */ mjs_op_xor,
+  /* -078 */ mjs_op_not,
+  /* -079 */ mjs_op_neg,
+  /* -080 */ mjs_op_pos,
+  /* -081 */ mjs_op_load,
 };
 
 const char *MJS_word_names[] = {
@@ -10268,86 +10275,87 @@ const char *MJS_word_names[] = {
   /* 0029 */ "loop", 
   /* 0030 */ "ndrop", 
   /* 0031 */ "str", 
-  /* 0032 */ "scope_idx@", 
-  /* 0033 */ "scope_idx!", 
-  /* 0034 */ "scope_min@", 
-  /* 0035 */ "scope_min!", 
-  /* 0036 */ "this_val@", 
-  /* 0037 */ "this_val!", 
-  /* 0038 */ "jsfunc_rspos@", 
-  /* 0039 */ "jsfunc_rspos!", 
-  /* 0040 */ ">scopes", 
-  /* 0041 */ "scopes>", 
-  /* 0042 */ "scope@", 
-  /* 0043 */ "brcont_rspos@", 
-  /* 0044 */ "brcont_rspos!", 
-  /* 0045 */ "brcont_scope@", 
-  /* 0046 */ "brcont_scope!", 
-  /* 0047 */ "mkobj", 
-  /* 0048 */ "addprop", 
-  /* 0049 */ "setprop", 
-  /* 0050 */ "getprop", 
-  /* 0051 */ "getvar", 
-  /* 0052 */ "setvar", 
-  /* 0053 */ "createvar", 
-  /* 0054 */ "mkarr", 
-  /* 0055 */ "arrpush", 
-  /* 0056 */ "blockenter", 
-  /* 0057 */ "blockexit", 
-  /* 0058 */ "_jscall_native", 
-  /* 0059 */ "jscall_exit", 
-  /* 0060 */ "jscall", 
-  /* 0061 */ "jsenter", 
-  /* 0062 */ "jsexit", 
-  /* 0063 */ "setarg", 
-  /* 0064 */ "undefined", 
-  /* 0065 */ "null", 
-  /* 0066 */ "true", 
-  /* 0067 */ "false", 
-  /* 0068 */ "this_for_call", 
-  /* 0069 */ "2dup", 
-  /* 0070 */ "3dup", 
-  /* 0071 */ "4dup", 
-  /* 0072 */ ">=", 
-  /* 0073 */ "<=", 
-  /* 0074 */ "!=", 
-  /* 0075 */ "js=", 
-  /* 0076 */ "js<", 
-  /* 0077 */ "js>", 
-  /* 0078 */ "jsinvert", 
-  /* 0079 */ "js>=", 
-  /* 0080 */ "js<=", 
-  /* 0081 */ "js!=", 
-  /* 0082 */ "js_logical_and", 
-  /* 0083 */ "js_logical_or", 
-  /* 0084 */ "js+", 
-  /* 0085 */ "ifstmt", 
-  /* 0086 */ "repeat", 
-  /* 0087 */ "brcont_body_enter", 
-  /* 0088 */ "brcont_body_exit", 
-  /* 0089 */ "brcont_body", 
-  /* 0090 */ "brcont", 
-  /* 0091 */ "call_if_nonzero", 
-  /* 0092 */ "while", 
-  /* 0093 */ "forloop", 
-  /* 0094 */ "jsprint", 
-  /* 0095 */ "zero", 
-  /* 0096 */ "one", 
-  /* 0097 */ "nop", 
-  /* 0098 */ "inc", 
-  /* 0099 */ "swapinc", 
-  /* 0100 */ "div", 
-  /* 0101 */ "rem", 
-  /* 0102 */ "lshift", 
-  /* 0103 */ "rshift", 
-  /* 0104 */ "urshift", 
-  /* 0105 */ "and", 
-  /* 0106 */ "or", 
-  /* 0107 */ "xor", 
-  /* 0108 */ "not", 
-  /* 0109 */ "neg", 
-  /* 0110 */ "pos", 
-  /* 0111 */ "load", 
+  /* 0032 */ "num", 
+  /* 0033 */ "scope_idx@", 
+  /* 0034 */ "scope_idx!", 
+  /* 0035 */ "scope_min@", 
+  /* 0036 */ "scope_min!", 
+  /* 0037 */ "this_val@", 
+  /* 0038 */ "this_val!", 
+  /* 0039 */ "jsfunc_rspos@", 
+  /* 0040 */ "jsfunc_rspos!", 
+  /* 0041 */ ">scopes", 
+  /* 0042 */ "scopes>", 
+  /* 0043 */ "scope@", 
+  /* 0044 */ "brcont_rspos@", 
+  /* 0045 */ "brcont_rspos!", 
+  /* 0046 */ "brcont_scope@", 
+  /* 0047 */ "brcont_scope!", 
+  /* 0048 */ "mkobj", 
+  /* 0049 */ "addprop", 
+  /* 0050 */ "setprop", 
+  /* 0051 */ "getprop", 
+  /* 0052 */ "getvar", 
+  /* 0053 */ "setvar", 
+  /* 0054 */ "createvar", 
+  /* 0055 */ "mkarr", 
+  /* 0056 */ "arrpush", 
+  /* 0057 */ "blockenter", 
+  /* 0058 */ "blockexit", 
+  /* 0059 */ "_jscall_native", 
+  /* 0060 */ "jscall_exit", 
+  /* 0061 */ "jscall", 
+  /* 0062 */ "jsenter", 
+  /* 0063 */ "jsexit", 
+  /* 0064 */ "setarg", 
+  /* 0065 */ "undefined", 
+  /* 0066 */ "null", 
+  /* 0067 */ "true", 
+  /* 0068 */ "false", 
+  /* 0069 */ "this_for_call", 
+  /* 0070 */ "2dup", 
+  /* 0071 */ "3dup", 
+  /* 0072 */ "4dup", 
+  /* 0073 */ ">=", 
+  /* 0074 */ "<=", 
+  /* 0075 */ "!=", 
+  /* 0076 */ "js=", 
+  /* 0077 */ "js<", 
+  /* 0078 */ "js>", 
+  /* 0079 */ "jsinvert", 
+  /* 0080 */ "js>=", 
+  /* 0081 */ "js<=", 
+  /* 0082 */ "js!=", 
+  /* 0083 */ "js_logical_and", 
+  /* 0084 */ "js_logical_or", 
+  /* 0085 */ "js+", 
+  /* 0086 */ "ifstmt", 
+  /* 0087 */ "repeat", 
+  /* 0088 */ "brcont_body_enter", 
+  /* 0089 */ "brcont_body_exit", 
+  /* 0090 */ "brcont_body", 
+  /* 0091 */ "brcont", 
+  /* 0092 */ "call_if_nonzero", 
+  /* 0093 */ "while", 
+  /* 0094 */ "forloop", 
+  /* 0095 */ "jsprint", 
+  /* 0096 */ "zero", 
+  /* 0097 */ "one", 
+  /* 0098 */ "nop", 
+  /* 0099 */ "inc", 
+  /* 0100 */ "swapinc", 
+  /* 0101 */ "div", 
+  /* 0102 */ "rem", 
+  /* 0103 */ "lshift", 
+  /* 0104 */ "rshift", 
+  /* 0105 */ "urshift", 
+  /* 0106 */ "and", 
+  /* 0107 */ "or", 
+  /* 0108 */ "xor", 
+  /* 0109 */ "not", 
+  /* 0110 */ "neg", 
+  /* 0111 */ "pos", 
+  /* 0112 */ "load", 
 };
 
 const char *MJS_pos_names[] = {
@@ -12547,16 +12555,26 @@ static size_t file_decode_varint(FILE *in, int *llen) {
 }
 
 int disasm_custom(char b, FILE *in, int *pos) {
-  if (b == MJS_OP_str) {
-    char buf[128];
-    int llen = 0;
-    size_t len = file_decode_varint(in, &llen);
-    *pos += llen + len;
-    fread(buf, len, 1, in);
-    printf("\"%.*s\" ", (int) len, buf);
-    return 1;
+  switch (b) {
+    case MJS_OP_str: {
+      char buf[128];
+      int llen = 0;
+      size_t len = file_decode_varint(in, &llen);
+      *pos += llen + len;
+      fread(buf, len, 1, in);
+      printf("\"%.*s\" ", (int) len, buf);
+    }
+      return 1;
+    case MJS_OP_num: {
+      double d;
+      fread(&d, sizeof(d), 1, in);
+      *pos += sizeof(d);
+      printf("%f ", d);
+    }
+      return 1;
+    default:
+      return 0;
   }
-  return 0;
 }
 #ifdef MG_MODULE_LINES
 #line 1 "mjs/exec.c"
@@ -14660,6 +14678,24 @@ void mjs_op_str(struct bf_vm *vm) {
   bf_push(&vm->dstack, mjs_mk_string(mjs, buf, len, 1));
 }
 
+void mjs_op_num(struct bf_vm *vm) {
+  struct mjs *mjs = (struct mjs *) vm->user_data;
+  size_t i;
+
+  union {
+    double d;
+    uint64_t i;
+  } val;
+  val.i = 0;
+
+  for (i = 0; i < sizeof(val); i++) {
+    val.i <<= 8;
+    val.i |= (uint8_t) bf_read_byte(vm->iram, vm->ip++);
+  }
+
+  bf_push(&vm->dstack, mjs_mk_number(mjs, val.d));
+}
+
 void mjs_op_mkobj(struct bf_vm *vm) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   bf_push(&vm->dstack, mjs_mk_object(mjs));
@@ -15660,8 +15696,16 @@ bf_word_ptr_t mjs_emit_bin(struct mjs_parse_ctx *ctx, bf_word_ptr_t a,
 
 bf_word_ptr_t mjs_emit_num(struct mjs_parse_ctx *ctx, const char *lit) {
   double n = strtod(lit, NULL);
-  bf_word_ptr_t start = mjs_emit(ctx, MJS_OP_quote);
-  mjs_emit_uint16(ctx, (uint16_t) n);
+
+  union {
+    double d;
+    uint64_t i;
+  } val;
+  val.d = n;
+
+  bf_word_ptr_t start = mjs_emit(ctx, MJS_OP_num);
+  /* TODO(dfrank): use varint for ints */
+  mjs_emit_uint64(ctx, (uint64_t) val.i);
   mjs_emit(ctx, MJS_OP_exit);
   return start;
 }
