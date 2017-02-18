@@ -1959,14 +1959,16 @@ int bf_is_true(struct bf_vm *vm, bf_cell_t cell);
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "mjs/bf/bf.h" */
 
-#define FR_PAGE_SIZE 512
-
-#define FR_MEM_RO (1 << 0)
-#define FR_MEM_FOREIGN (1 << 1)
+#define BF_MEM_SIZE_BITS 9
+#define FR_PAGE_SIZE (1 << BF_MEM_SIZE_BITS)
+#define BF_PAGE_NO(addr) (addr >> BF_MEM_SIZE_BITS)
+#define BF_PAGE_OFF(addr) (addr & (FR_PAGE_SIZE - 1))
 
 struct bf_page {
   void *base;
   uint16_t flags;
+#define FR_MEM_RO (1 << 0)
+#define FR_MEM_FOREIGN (1 << 1)
 };
 
 struct bf_mem {
@@ -7037,20 +7039,20 @@ bf_cell_t bf_mmap(struct bf_mem **mem, void *data, size_t data_len, int flags) {
 }
 
 int bf_is_mapped(struct bf_mem *mem, bf_cell_t addr) {
-  uint16_t page = addr / FR_PAGE_SIZE;
+  uint16_t page = BF_PAGE_NO(addr);
   return page < mem->num_pages;
 }
 
 char bf_read_byte(struct bf_mem *mem, bf_cell_t addr) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  uint16_t off = addr % FR_PAGE_SIZE;
+  uint16_t page = BF_PAGE_NO(addr);
+  uint16_t off = BF_PAGE_OFF(addr);
   assert(page < mem->num_pages);
   return ((char *) mem->pages[page].base)[off];
 }
 
 void bf_write_byte(struct bf_mem *mem, bf_cell_t addr, char value) {
-  uint16_t page = addr / FR_PAGE_SIZE;
-  uint16_t off = addr % FR_PAGE_SIZE;
+  uint16_t page = BF_PAGE_NO(addr);
+  uint16_t off = BF_PAGE_OFF(addr);
   assert(page < mem->num_pages);
 
   /* TODO: make this disabled in release builds */
