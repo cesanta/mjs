@@ -13142,7 +13142,8 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
         case CVAL_TYPE_DOUBLE:
           ffi_set_double(&args[i], mjs_get_double(mjs, arg));
           break;
-        case CVAL_TYPE_CHAR_PTR:
+        case CVAL_TYPE_CHAR_PTR: {
+          size_t s;
           if (!mjs_is_string(arg)) {
             mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
                                "actual arg #%d is not a string", i);
@@ -13150,8 +13151,8 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
             goto clean;
           }
           argvs[i] = arg;
-          ffi_set_ptr(&args[i], (void *) mjs_get_cstring(mjs, &argvs[i]));
-          break;
+          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
+        } break;
         case CVAL_TYPE_VOID_PTR:
           if (!mjs_is_foreign(arg)) {
             mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
