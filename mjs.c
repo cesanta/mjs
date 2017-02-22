@@ -2676,7 +2676,7 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
 void ffi_set_int32(struct ffi_arg *arg, uint32_t v);
 void ffi_set_int64(struct ffi_arg *arg, uint64_t v);
 void ffi_set_ptr(struct ffi_arg *arg, void *v);
-void ffi_set_double(struct ffi_arg *arg, uint64_t v);
+void ffi_set_double(struct ffi_arg *arg, double v);
 
 #endif /* MJS_FFI_FFI_H_ */
 #ifdef MG_MODULE_LINES
@@ -11805,7 +11805,7 @@ void ffi_set_ptr(struct ffi_arg *arg, void *v) {
   }
 }
 
-void ffi_set_double(struct ffi_arg *arg, uint64_t v) {
+void ffi_set_double(struct ffi_arg *arg, double v) {
   arg->size = 8;
   arg->is_float = 1;
   arg->v.d = v;
@@ -12699,13 +12699,13 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 /* Amalgamated: #include "common/str_util.h" */
-/* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/core.h" */
 /* Amalgamated: #include "mjs/exec.h" */
 /* Amalgamated: #include "mjs/ffi.h" */
 /* Amalgamated: #include "mjs/ffi/ffi.h" */
-/* Amalgamated: #include "mjs/string.h" */
+/* Amalgamated: #include "mjs/internal.h" */
 /* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/string.h" */
 
 /*
  * on linux this is enabled only if __USE_GNU is defined, but we cannot set it
@@ -12928,7 +12928,7 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
       ret.p = mjs_get_ptr(cbargs->mjs, res);
       break;
     case CVAL_TYPE_DOUBLE:
-      ret.d = mjs_get_int(cbargs->mjs, res);
+      ret.d = mjs_get_double(cbargs->mjs, res);
       break;
     default:
       /* should never be here */
@@ -13053,8 +13053,8 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
     goto clean;
   }
 
-  res.size = 4;
-  res.is_float = 0;
+  res.size = rtype == CVAL_TYPE_DOUBLE ? 8 : 4;
+  res.is_float = rtype == CVAL_TYPE_DOUBLE;
   res.v.i = 0;
 
   nargs = mjs_get_int(mjs, mjs_pop(mjs));
@@ -13258,6 +13258,9 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
       break;
     case CVAL_TYPE_INT:
       resv = mjs_mk_number(mjs, res.v.i);
+      break;
+    case CVAL_TYPE_DOUBLE:
+      resv = mjs_mk_number(mjs, res.v.d);
       break;
     default:
       resv = mjs_mk_undefined();
