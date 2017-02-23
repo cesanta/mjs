@@ -16878,11 +16878,11 @@ int pnext(struct pstate *p) {
  * All rights reserved
  */
 
-/* Amalgamated: #include "mjs/object.h" */
-/* Amalgamated: #include "mjs/string.h" */
 /* Amalgamated: #include "mjs/util.h" */
 /* Amalgamated: #include "mjs/core.h" */
+/* Amalgamated: #include "mjs/object.h" */
 /* Amalgamated: #include "mjs/primitive.h" */
+/* Amalgamated: #include "mjs/string.h" */
 
 void mjs_print(struct mjs *mjs, mjs_val_t v) {
   mjs_fprint(stdout, mjs, v);
@@ -16899,6 +16899,10 @@ void mjs_fprint(FILE *f, struct mjs *mjs, mjs_val_t v) {
     printf("%.*s", (int) size, s);
   } else if (mjs_is_object(v)) {
     fprintf(f, "[object Object]");
+  } else if (mjs_is_null(v)) {
+    fprintf(f, "null");
+  } else if (mjs_is_undefined(v)) {
+    fprintf(f, "undefined");
   }
 }
 
