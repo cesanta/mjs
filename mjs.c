@@ -13259,7 +13259,7 @@ MJS_PRIVATE int mjs_ffi_call(struct mjs *mjs, mjs_val_t sig) {
       resv = mjs_mk_foreign(mjs, (void *) (uintptr_t) res.v.i);
       break;
     case CVAL_TYPE_INT:
-      resv = mjs_mk_number(mjs, res.v.i);
+      resv = mjs_mk_number(mjs, (int) res.v.i);
       break;
     case CVAL_TYPE_DOUBLE:
       resv = mjs_mk_number(mjs, res.v.d);
