@@ -5257,6 +5257,7 @@ int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap) {
 #include <stdarg.h>
 #include <string.h>
 /* Amalgamated: #include "common/platform.h" */
+/* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "common/utf.h" */
 
 #ifndef CS_ENABLE_UTF8
