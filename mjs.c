@@ -4249,6 +4249,7 @@ MJS_PRIVATE int calc_llen(size_t len);
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 
 /* Amalgamated: #include "common/cs_time.h" */
 
