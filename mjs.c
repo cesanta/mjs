@@ -12217,6 +12217,12 @@ void bf_print_cell(struct bf_vm *vm, bf_cell_t cell) {
     printf("undefined");
   } else if (mjs_is_null(v)) {
     printf("null");
+  } else if (mjs_is_boolean(v)) {
+    if (mjs_get_bool(mjs, v)) {
+      printf("true");
+    } else {
+      printf("false");
+    }
   } else if (mjs_is_object(v)) {
     printf("[object Object]");
   } else {
