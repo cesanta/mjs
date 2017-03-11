@@ -92,7 +92,7 @@ struct mjs *mjs_create();
 
 struct mjs_create_opts {
   /* use non-default bytecode definition file, testing-only */
-  struct bf_code *code;
+  const struct bf_code *code;
 };
 
 /*
@@ -352,7 +352,7 @@ struct mjs *mjs_create();
 
 struct mjs_create_opts {
   /* use non-default bytecode definition file, testing-only */
-  struct bf_code *code;
+  const struct bf_code *code;
 };
 
 /*

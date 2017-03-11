@@ -1882,15 +1882,15 @@ struct bf_vm;
 typedef void (*bf_native_t)(struct bf_vm *vm);
 
 struct bf_code {
-  bf_opcode_t *opcodes;      /* all word bodies */
-  size_t opcodes_len;        /* max 32768 */
-  bf_word_ptr_t *table;      /* points to opcodes */
-  size_t table_len;          /* max 127 */
-  bf_native_t *native_words; /* native words */
+  const bf_opcode_t *opcodes;      /* all word bodies */
+  size_t opcodes_len;              /* max 32768 */
+  const bf_word_ptr_t *table;      /* points to opcodes */
+  size_t table_len;                /* max 127 */
+  const bf_native_t *native_words; /* native words */
   size_t native_words_len;
 
-  const char **word_names; /* table_len number of entries, for tracing */
-  const char **pos_names;  /* opcodes_len number of entries, for tracing */
+  const char *const *word_names; /* table_len number of entries, for tracing */
+  const char *const *pos_names; /* opcodes_len number of entries, for tracing */
 };
 
 /*
@@ -1903,7 +1903,7 @@ struct bf_callbacks {
 };
 
 struct bf_vm {
-  struct bf_code *code;
+  const struct bf_code *code;
   struct bf_mem *iram;
 
   bf_word_ptr_t ip;
@@ -1921,7 +1921,7 @@ struct bf_vm {
  * `cb` might be `NULL`. If it's not NULL, the pointer is not retained by the
  * bf, so the caller may free it right after `bf_init_vm()` returned.
  */
-void bf_init_vm(struct bf_vm *vm, struct bf_code *code,
+void bf_init_vm(struct bf_vm *vm, const struct bf_code *code,
                 struct bf_callbacks *cb);
 void bf_destroy_vm(struct bf_vm *vm);
 void bf_run(struct bf_vm *vm, bf_word_ptr_t word);
@@ -2162,7 +2162,7 @@ bf_word_ptr_t mjs_emit_uint64(struct mjs_parse_ctx *ctx, uint64_t v);
 
 /* Amalgamated: #include "mjs/bf/bf.h" */
 
-extern struct bf_code MJS_code;
+extern const struct bf_code MJS_code;
 
 #define MJS_WORD_PTR_quote (0)
 #define MJS_WORD_PTR_exit (0)
@@ -2750,7 +2750,7 @@ struct mjs *mjs_create();
 
 struct mjs_create_opts {
   /* use non-default bytecode definition file, testing-only */
-  struct bf_code *code;
+  const struct bf_code *code;
 };
 
 /*
@@ -6638,7 +6638,7 @@ void bf_destroy_vm(struct bf_vm *vm) {
   mbuf_free(&vm->rstack);
 }
 
-void bf_init_vm(struct bf_vm *vm, struct bf_code *code,
+void bf_init_vm(struct bf_vm *vm, const struct bf_code *code,
                 struct bf_callbacks *cb) {
   memset(vm, 0, sizeof(*vm));
   vm->code = code;
@@ -6658,7 +6658,7 @@ void bf_init_vm(struct bf_vm *vm, struct bf_code *code,
 
   vm->iram = bf_create_mem();
   if (code != NULL && code->opcodes != NULL) {
-    bf_mmap(&vm->iram, code->opcodes, code->opcodes_len,
+    bf_mmap(&vm->iram, (void *) code->opcodes, code->opcodes_len,
             FR_MEM_RO | FR_MEM_FOREIGN);
   }
 }
@@ -9685,7 +9685,7 @@ void mjsParser(
 #line 1 "bazel-out/local-dbg-asan/genfiles/mjs/vm.gen.c"
 #endif
 /* Amalgamated: #include "mjs/vm.gen.h" */
-bf_opcode_t MJS_opcodes[] = {
+const bf_opcode_t MJS_opcodes[] = {
   /* 0000 -> : quote ... ; */
   /*           <bf_op_quote> */ 
   /* 0000 -> : exit ... ; */
@@ -9962,7 +9962,7 @@ bf_opcode_t MJS_opcodes[] = {
   /*           <mjs_op_load> */ 
 }; /* 406 * sizeof(bf_opcode_t) */
 
-bf_word_ptr_t MJS_word_ptrs[] = {
+const bf_word_ptr_t MJS_word_ptrs[] = {
   /* -001 */ -1, 
   /* 0000 */ -2, 
   /* 0001 */ -3, 
@@ -10161,7 +10161,7 @@ void mjs_op_neg(struct bf_vm *vm);
 void mjs_op_pos(struct bf_vm *vm);
 void mjs_op_load(struct bf_vm *vm);
 
-bf_native_t MJS_native_words[] = {
+const bf_native_t MJS_native_words[] = {
   /* -001 */ bf_op_quote,
   /* -002 */ bf_op_exit,
   /* -003 */ bf_op_drop,
@@ -10245,7 +10245,7 @@ bf_native_t MJS_native_words[] = {
   /* -081 */ mjs_op_load,
 };
 
-const char *MJS_word_names[] = {
+const char * const MJS_word_names[] = {
   /* -001 */ "quote", 
   /* 0000 */ "exit", 
   /* 0001 */ "drop", 
@@ -10362,7 +10362,7 @@ const char *MJS_word_names[] = {
   /* 0112 */ "load", 
 };
 
-const char *MJS_pos_names[] = {
+const char * const MJS_pos_names[] = {
   "rot", 
   "rot+1", 
   "rot+2", 
@@ -10771,7 +10771,7 @@ const char *MJS_pos_names[] = {
   "swapinc+2", 
 };
 
-struct bf_code MJS_code = {
+const struct bf_code MJS_code = {
   MJS_opcodes, sizeof(MJS_opcodes)/sizeof(MJS_opcodes[0]),
   MJS_word_ptrs, sizeof(MJS_word_ptrs)/sizeof(MJS_word_ptrs[0]),
   MJS_native_words, sizeof(MJS_native_words)/sizeof(MJS_native_words),
