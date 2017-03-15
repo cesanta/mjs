@@ -12673,6 +12673,10 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   mjs_val_t r;
   int i;
 
+  free(mjs->error_msg);
+  mjs->error_msg = NULL;
+  mjs->error_msg_err = MJS_OK;
+
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", mjs_get_int(mjs, func)));
   for (i = nargs - 1; i >= 0; i--) {
     bf_push(&mjs->vm.dstack, args[i]);
