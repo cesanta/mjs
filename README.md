@@ -53,8 +53,8 @@ Currently mJS provides a simple implementation of the FFI trampoline
 that supports up to 6 32-bit arguments, or up to 2 64-bit arguments:
 
 ```javascript
-let printf = ffi('int printf(char *, int, char *)');
-printf('Hi %d %s\n', 123, 'foo');
+let floor = ffi('double floor(double)');
+print(floor(1.23456));
 ```
 
 Function arguments should be simple: only `int`, `double`, `char *`, `void *`
