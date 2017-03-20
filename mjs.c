@@ -12212,7 +12212,12 @@ void bf_print_cell(struct bf_vm *vm, bf_cell_t cell) {
   struct mjs *mjs = (struct mjs *) vm->user_data;
   mjs_val_t v = (mjs_val_t) cell;
   if (mjs_is_number(v)) {
-    printf("%d", mjs_get_int(mjs, v));
+    /*
+     * TODO(dfrank): there is some bug which is exposed on cc3200 if we just
+     * do printf here: the output gets corrupted. As a temporary workaround, we
+     * use fprintf for now, but the actual bug must be fixed.
+     */
+    fprintf(stdout, "%f", mjs_get_double(mjs, v));
   } else if (mjs_is_string(v)) {
     size_t size;
     const char *s = mjs_get_string(mjs, &v, &size);
