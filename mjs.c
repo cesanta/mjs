@@ -12758,7 +12758,11 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
  * because dlfcn could have been included already.
  */
 #ifndef RTLD_DEFAULT
+#if defined(__APPLE__)
+#define RTLD_DEFAULT ((void *) -2)
+#else
 #define RTLD_DEFAULT NULL
+#endif
 #endif
 
 typedef void(cb_fn_t)(void);
