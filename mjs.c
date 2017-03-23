@@ -4861,6 +4861,7 @@ int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n) {
 
 #ifndef EXCLUDE_COMMON
 
+/* Amalgamated: #include "common/mg_mem.h" */
 /* Amalgamated: #include "common/platform.h" */
 /* Amalgamated: #include "common/str_util.h" */
 
