@@ -1607,6 +1607,34 @@ void mbuf_trim(struct mbuf *);
 
 #endif /* CS_COMMON_MBUF_H_ */
 #ifdef MG_MODULE_LINES
+#line 1 "common/mg_mem.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_MG_MEM_H_
+#define CS_COMMON_MG_MEM_H_
+
+#ifndef MG_MALLOC
+#define MG_MALLOC malloc
+#endif
+
+#ifndef MG_CALLOC
+#define MG_CALLOC calloc
+#endif
+
+#ifndef MG_REALLOC
+#define MG_REALLOC realloc
+#endif
+
+#ifndef MG_FREE
+#define MG_FREE free
+#endif
+
+#endif /* CS_COMMON_MG_MEM_H_ */
+#ifdef MG_MODULE_LINES
 #line 1 "common/mg_str.h"
 #endif
 /*
@@ -4743,6 +4771,7 @@ void mbuf_remove(struct mbuf *mb, size_t n) {
  * All rights reserved
  */
 
+/* Amalgamated: #include "common/mg_mem.h" */
 /* Amalgamated: #include "common/mg_str.h" */
 
 #include <stdlib.h>
@@ -4787,7 +4816,7 @@ struct mg_str mg_strdup(const struct mg_str s) WEAK;
 struct mg_str mg_strdup(const struct mg_str s) {
   struct mg_str r = {NULL, 0};
   if (s.len > 0 && s.p != NULL) {
-    r.p = (char *) malloc(s.len);
+    r.p = (char *) MG_MALLOC(s.len);
     if (r.p != NULL) {
       memcpy((char *) r.p, s.p, s.len);
       r.len = s.len;
@@ -4839,13 +4868,7 @@ int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n) {
 #define C_DISABLE_BUILTIN_SNPRINTF 0
 #endif
 
-#ifndef MG_MALLOC
-#define MG_MALLOC malloc
-#endif
-
-#ifndef MG_FREE
-#define MG_FREE free
-#endif
+/* Amalgamated: #include "common/mg_mem.h" */
 
 size_t c_strnlen(const char *s, size_t maxlen) WEAK;
 size_t c_strnlen(const char *s, size_t maxlen) {
@@ -5111,7 +5134,7 @@ const char *c_strnstr(const char *s, const char *find, size_t slen) {
 char *strdup(const char *src) WEAK;
 char *strdup(const char *src) {
   size_t len = strlen(src) + 1;
-  char *ret = malloc(len);
+  char *ret = MG_MALLOC(len);
   if (ret != NULL) {
     strcpy(ret, src);
   }
