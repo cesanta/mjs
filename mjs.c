@@ -2982,7 +2982,7 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 
 struct bf_vm;
 
-#define MJS_CB_ARGS_MAX_CNT 4
+#define MJS_CB_ARGS_MAX_CNT 6
 #define MJS_CB_SIGNATURE_MAX_SIZE (MJS_CB_ARGS_MAX_CNT + 1 /* return type */)
 
 enum cval_type {
@@ -12999,40 +12999,57 @@ clean:
 }
 
 static void ffi_init_cb_data_wwww(struct ffi_cb_data *data, uintptr_t w0,
-                                  uintptr_t w1, uintptr_t w2, uintptr_t w3) {
+                                  uintptr_t w1, uintptr_t w2, uintptr_t w3,
+                                  uintptr_t w4, uintptr_t w5) {
   memset(data, 0, sizeof(*data));
   data->args[0].w = w0;
   data->args[1].w = w1;
   data->args[2].w = w2;
   data->args[3].w = w3;
+  data->args[4].w = w4;
+  data->args[5].w = w5;
 }
 
-static uintptr_t ffi_cb_impl_wpwww(uintptr_t w0, uintptr_t w1, uintptr_t w2,
-                                   uintptr_t w3) {
+static uintptr_t ffi_cb_impl_wpwwwww(uintptr_t w0, uintptr_t w1, uintptr_t w2,
+                                     uintptr_t w3, uintptr_t w4, uintptr_t w5) {
   struct ffi_cb_data data;
-  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
   return ffi_cb_impl_generic((void *) w0, &data).w;
 }
 
-static uintptr_t ffi_cb_impl_wwpww(uintptr_t w0, uintptr_t w1, uintptr_t w2,
-                                   uintptr_t w3) {
+static uintptr_t ffi_cb_impl_wwpwwww(uintptr_t w0, uintptr_t w1, uintptr_t w2,
+                                     uintptr_t w3, uintptr_t w4, uintptr_t w5) {
   struct ffi_cb_data data;
-  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
   return ffi_cb_impl_generic((void *) w1, &data).w;
 }
 
-static uintptr_t ffi_cb_impl_wwwpw(uintptr_t w0, uintptr_t w1, uintptr_t w2,
-                                   uintptr_t w3) {
+static uintptr_t ffi_cb_impl_wwwpwww(uintptr_t w0, uintptr_t w1, uintptr_t w2,
+                                     uintptr_t w3, uintptr_t w4, uintptr_t w5) {
   struct ffi_cb_data data;
-  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
   return ffi_cb_impl_generic((void *) w2, &data).w;
 }
 
-static uintptr_t ffi_cb_impl_wwwwp(uintptr_t w0, uintptr_t w1, uintptr_t w2,
-                                   uintptr_t w3) {
+static uintptr_t ffi_cb_impl_wwwwpww(uintptr_t w0, uintptr_t w1, uintptr_t w2,
+                                     uintptr_t w3, uintptr_t w4, uintptr_t w5) {
   struct ffi_cb_data data;
-  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3);
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
   return ffi_cb_impl_generic((void *) w3, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wwwwwpw(uintptr_t w0, uintptr_t w1, uintptr_t w2,
+                                     uintptr_t w3, uintptr_t w4, uintptr_t w5) {
+  struct ffi_cb_data data;
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
+  return ffi_cb_impl_generic((void *) w4, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wwwwwwp(uintptr_t w0, uintptr_t w1, uintptr_t w2,
+                                     uintptr_t w3, uintptr_t w4, uintptr_t w5) {
+  struct ffi_cb_data data;
+  ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
+  return ffi_cb_impl_generic((void *) w5, &data).w;
 }
 /* }}} */
 
@@ -13049,20 +13066,24 @@ static struct ffi_cb_args **ffi_get_matching(struct ffi_cb_args **plist,
 
 static cb_fn_t *get_cb_impl_by_signature(const ffi_sig_t *sig) {
   if (sig->stat.is_valid) {
-    if (sig->stat.args_cnt <= 4) {
+    if (sig->stat.args_cnt <= MJS_CB_ARGS_MAX_CNT) {
       if (mjs_ffi_is_regular_word_or_void(sig->val_types[0])) {
         /* Return type is a word or void */
         if (sig->stat.args_double_cnt == 0) {
           /* No double arguments */
           switch (sig->stat.userdata_idx) {
             case 1:
-              return (cb_fn_t *) ffi_cb_impl_wpwww;
+              return (cb_fn_t *) ffi_cb_impl_wpwwwww;
             case 2:
-              return (cb_fn_t *) ffi_cb_impl_wwpww;
+              return (cb_fn_t *) ffi_cb_impl_wwpwwww;
             case 3:
-              return (cb_fn_t *) ffi_cb_impl_wwwpw;
+              return (cb_fn_t *) ffi_cb_impl_wwwpwww;
             case 4:
-              return (cb_fn_t *) ffi_cb_impl_wwwwp;
+              return (cb_fn_t *) ffi_cb_impl_wwwwpww;
+            case 5:
+              return (cb_fn_t *) ffi_cb_impl_wwwwwpw;
+            case 6:
+              return (cb_fn_t *) ffi_cb_impl_wwwwwwp;
             default:
               /* should never be here */
               abort();
