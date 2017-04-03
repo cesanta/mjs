@@ -15,11 +15,16 @@ implements a strict subset of ES6 (JavaScript version 6).
 On 32-bit ARM mJS engine takes about 25k of flash memory, and less than 1k
 of RAM. See [intro article](http://goo.gl/zJYyWF) for more details.
 
+mJS is part of [MongooseOS](https://mongoose-os.com) - an open
+source operating system for low-power connected microcontrollers. It
+implements scripting for fast prototyping.
 
 # Restrictions
 
 - No standard library. No String, Number, RegExp, Date, Function, etc.
-- No nested functions, no closures. All functions are top-level only.
+  The only standard methods available are `JSON.parse()` and `JSON.stringify()`.
+- No closures, only lexical scoping. That means that nested functions are
+  allowed, but returning a nested function is prohibited.
 - No exceptions.
 - Strict mode only.
 - No `var`, only `let`.
@@ -27,8 +32,9 @@ of RAM. See [intro article](http://goo.gl/zJYyWF) for more details.
 - No getters, setters, `valueOf`, prototypes, classes, template strings.
 - No destructors, generators, proxies, promises.
 - No `==` or `!=`, only `===` and `!==`.
-- mJS strings are byte strings. NOT Unicode strings. `'ы'.length === 2`,
-  `'ы'[0] === '\xd1'`, `'ы'[1] === '\x8b'`.
+- mJS strings are byte strings, not Unicode strings. `'ы'.length === 2`,
+  `'ы'[0] === '\xd1'`, `'ы'[1] === '\x8b'`. That means that mJS string
+  can represent any binary data chunk.
 
 # Built-in API
 
@@ -40,8 +46,10 @@ of RAM. See [intro article](http://goo.gl/zJYyWF) for more details.
   the current namespace.
 - `let value = JSON.parse(str);` - parse JSON string and return parsed value.
 - `let str = JSON.stringify(value);` - stringify mJS value.
-- `"abcdef".slice(1,3) === "bc"` - the `slice(start, end)` string method returns a substring between two indices.
-- `"abcdef".charCodeAt(0) === 0x61` - the `charCodeAt(index)` string method returns an ASCII code of the char at the given index. NOT UTF-16 code.
+- `"abcdef".slice(1,3) === "bc"` - the `slice(start, end)`
+  string method returns a substring between two indices.
+- `"abcdef".charCodeAt(0) === 0x61` - the `charCodeAt(index)`
+  string method returns an byte value at the given index.
 - `let foo = ffi('void *foo(void)'); let ptr = foo(); ptr[0] === 17;` - mJS can access memory using C `void *` pointer subscripts `ptrVar[index]`. Return byte value at that location.
 - `let foo = ffi('void *foo(void)'); let ptr = foo(); let s = fstr(ptr, 3, 10);` - create a string backed by a C memory chunk, `fstr(ptrVar, offset, length)`. A string `s` starts at memory location `ptrVar + offset`, and is `length` bytes long. Short form is also available: `fstr(ptrVar, length)`.
 
@@ -99,28 +107,21 @@ In order to make FFI work, mJS must be able to get the address of a C
 function by its name. On POSIX systems, `dlsym()` API can do that. On
 Windows, `GetProcAddress()`. On embedded systems, a system resolver should
 be either manually written, or be implemented with some aid from a firmware
-linker script. mJS resolver uses `dlsym`-compatible signature:
+linker script. mJS resolver uses `dlsym`-compatible signature. 
 
-```C
-typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
-void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
+On UNIX/Mac systems, a standard `dlsym()` symbol resolver is used.
+You can run this example that loads and calls stdlib's `system()` function:
+
 ```
-
-Here is an example of manually implemented symbol resolver:
-
-```C
-void *my_dlsym(void *handle, const char *name) {
-  if (strcmp(name, "func1") == 0) return func1;
-  if (strcmp(name, "func2") == 0) return func2;
-  return NULL;
-  (void) handle;
-}
-
-...
-  struct mjs *mjs = mjs_create();
-  mjs_set_ffi_resolver(mjs, my_dlsym);
-...
-
+$ cc mjs.c -DMJS_MAIN -D_DARWIN_C_SOURCE -o /tmp/mjs
+$ /tmp/mjs -e "let f=ffi('int system(char *)'); f('ls -l')"
+total 1312
+-rw-r--r--  1 lsm  staff     693 15 Jan 19:09 LICENSE
+-rw-r--r--  1 lsm  staff    5151 15 Jan 19:09 README.md
+-rwxr-xr-x  1 lsm  staff  156192 15 Jan 20:12 a.out
+-rw-r--r--  1 lsm  staff  471212 15 Jan 20:11 mjs.c
+-rw-r--r--  1 lsm  staff   22274 15 Jan 19:09 mjs.h
+0.000000
 ```
 
 # Complete embedding example
@@ -155,42 +156,43 @@ $ cc main.c mjs.c -o /tmp/x && /tmp/x
 Hello 1234!
 ```
 
-# Real life application
-
-mJS is used in [Mongoose OS](https://github.com/cesanta/mongoose-os) - an open
-source embedded operating system for low-power connected microcontrollers.
-It provides scripting abilities - example of exporting
-[GPIO API](https://github.com/cesanta/mongoose-os/blob/master/fw/examples/mjs_hello/fs/api_gpio.js)
-and [LED blink example](https://github.com/cesanta/mongoose-os/blob/master/fw/examples/mjs_hello/fs/init.js).
-Note that all that made with zero amount of glue code. JS API is just an FFI-ed C API.
-
-On UNIX or Mac system, a standard `dlsym()` symbol resolver is used.
-You can run this example that loads and calls stdlib's `system()` function:
+# Build stand-alone mJS binary
 
 ```
-$ cc mjs.c -DMJS_MAIN -D_DARWIN_C_SOURCE -o /tmp/mjs
-$ /tmp/mjs -e "let f=ffi('int system(char *)'); f('ls -l')"
-total 1312
--rw-r--r--  1 lsm  staff     693 15 Jan 19:09 LICENSE
--rw-r--r--  1 lsm  staff    5151 15 Jan 19:09 README.md
--rwxr-xr-x  1 lsm  staff  156192 15 Jan 20:12 a.out
--rw-r--r--  1 lsm  staff  471212 15 Jan 20:11 mjs.c
--rw-r--r--  1 lsm  staff   22274 15 Jan 19:09 mjs.h
-0.000000
+$ make                              # Build
+$ ./build/mjs -e '1 + 2 * 3'        # Use as a simple calculator
+7
+$ ./build/mjs -e 'ffi("double sin(double)")(1.23)'
+0.942489
+$ ./build/mjs -d -e '2 + 2'         # Dump bytecode
+------- MJS VM DUMP BEGIN
+    DATA_STACK (0 elems):
+    CALL_STACK (0 elems):
+        SCOPES (1 elems):  [<object>]
+  LOOP_OFFSETS (0 elems):
+  CODE:
+  0   BCODE_HDR [<stdin>] size:28
+  21  PUSH_INT  2
+  23  PUSH_INT  2
+  25  EXPR      +
+  27  EXIT
+  28  NOP
+------- MJS VM DUMP END
+4
 ```
-
 
 # Licensing
 
-mJS is released under commercial and [GNU GPL v.2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
+mJS is released under commercial and
+[GNU GPL v.2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.html)
 open source licenses.
 
-Commercial Projects: Once your project becomes commercialised GPLv2 licensing
+Commercial Projects: once your project becomes commercialised, GPLv2 licensing
 dictates that you need to either open your source fully or purchase a
 commercial license. Cesanta offer full, royalty-free commercial licenses
 without any GPL restrictions. If your needs require a custom license, we’d be
-happy to work on a solution with you. [Contact us for pricing.]
-(https://www.cesanta.com/contact)
+happy to work on a solution with you.
+[Contact us for pricing](https://mongoose-os.com/contact.html)
 
 Prototyping: While your project is still in prototyping stage and not for sale,
 you can use MJS’s open source code without license restrictions.

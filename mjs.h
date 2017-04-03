@@ -1,8 +1,8 @@
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/license.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_license.h"
 #endif
 /*
- * Copyright (c) 2013-2016 Cesanta Software Limited
+ * Copyright (c) 2017 Cesanta Software Limited
  * All rights reserved
  *
  * This software is dual-licensed: you can redistribute it and/or modify
@@ -17,12 +17,25 @@
  *
  * Alternatively, you can license this software under a commercial
  * license, as set out in <https://www.cesanta.com/license>.
- *
- * THIS FILE IS AMALGAMATED, please run the unamalgam script before making edits
- * if you want to contribute them back.
  */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/core_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_features.h"
+#endif
+/*
+ * Copyright (c) 2017 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FEATURES_H_
+#define MJS_FEATURES_H_
+
+#if !defined(MJS_AGGRESSIVE_GC)
+#define MJS_AGGRESSIVE_GC 0
+#endif
+
+#endif /* MJS_FEATURES_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_core_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -34,7 +47,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
-/* Amalgamated: #include "mjs/license.h" */
+/* Amalgamated: #include "mjs/src/mjs_license.h" */
+/* Amalgamated: #include "mjs/src/mjs_features.h" */
+
+#define MJS_ENABLE_DEBUG 1
 
 /*
  *  Double-precision floating-point number, IEEE 754
@@ -76,16 +92,18 @@ struct mjs {
 
 struct mjs;
 
-enum mjs_err {
+typedef enum mjs_err {
   MJS_OK,
   MJS_SYNTAX_ERROR,
   MJS_REFERENCE_ERROR,
   MJS_TYPE_ERROR,
   MJS_OUT_OF_MEMORY,
   MJS_INTERNAL_ERROR,
-};
-
-typedef enum mjs_err mjs_err_t;
+  MJS_NOT_IMPLEMENTED_ERROR,
+  MJS_FILE_READ_ERROR,
+  MJS_BAD_ARGS_ERROR,
+} mjs_err_t;
+struct mjs;
 
 /* Create MJS instance */
 struct mjs *mjs_create();
@@ -105,10 +123,6 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts);
 void mjs_destroy(struct mjs *mjs);
 
 mjs_val_t mjs_get_global(struct mjs *mjs);
-
-void mjs_push(struct mjs *mjs, mjs_val_t val);
-mjs_val_t mjs_pop(struct mjs *mjs);
-mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
 
 /*
  * Tells the GC about an MJS value variable/field owned by C code.
@@ -202,37 +216,15 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
-const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
+const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
 #endif /* MJS_CORE_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/license.h"
+#ifndef MJS_EXPORT_INTERNAL_HEADERS
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_array_public.h"
 #endif
 /*
- * Copyright (c) 2013-2016 Cesanta Software Limited
- * All rights reserved
- *
- * This software is dual-licensed: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation. For the terms of this
- * license, see <http://www.gnu.org/licenses/>.
- *
- * You are free to use this software under the terms of the GNU General
- * Public License, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- * Alternatively, you can license this software under a commercial
- * license, as set out in <https://www.cesanta.com/license>.
- *
- * THIS FILE IS AMALGAMATED, please run the unamalgam script before making edits
- * if you want to contribute them back.
- */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/array_public.h"
-#endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
+ * Copyright (c) 2017 Cesanta Software Limited
  * All rights reserved
  */
 
@@ -243,7 +235,7 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 #ifndef MJS_ARRAY_PUBLIC_H_
 #define MJS_ARRAY_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -281,8 +273,8 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #endif /* __cplusplus */
 
 #endif /* MJS_ARRAY_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/core_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_core_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -294,7 +286,10 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 
 #include <stdint.h>
 #include <stddef.h>
-/* Amalgamated: #include "mjs/license.h" */
+/* Amalgamated: #include "mjs/src/mjs_license.h" */
+/* Amalgamated: #include "mjs/src/mjs_features.h" */
+
+#define MJS_ENABLE_DEBUG 1
 
 /*
  *  Double-precision floating-point number, IEEE 754
@@ -336,16 +331,18 @@ struct mjs {
 
 struct mjs;
 
-enum mjs_err {
+typedef enum mjs_err {
   MJS_OK,
   MJS_SYNTAX_ERROR,
   MJS_REFERENCE_ERROR,
   MJS_TYPE_ERROR,
   MJS_OUT_OF_MEMORY,
   MJS_INTERNAL_ERROR,
-};
-
-typedef enum mjs_err mjs_err_t;
+  MJS_NOT_IMPLEMENTED_ERROR,
+  MJS_FILE_READ_ERROR,
+  MJS_BAD_ARGS_ERROR,
+} mjs_err_t;
+struct mjs;
 
 /* Create MJS instance */
 struct mjs *mjs_create();
@@ -365,10 +362,6 @@ struct mjs *mjs_create_opt(struct mjs_create_opts opts);
 void mjs_destroy(struct mjs *mjs);
 
 mjs_val_t mjs_get_global(struct mjs *mjs);
-
-void mjs_push(struct mjs *mjs, mjs_val_t val);
-mjs_val_t mjs_pop(struct mjs *mjs);
-mjs_val_t mjs_pop_arg(struct mjs *mjs, mjs_val_t *nargs);
 
 /*
  * Tells the GC about an MJS value variable/field owned by C code.
@@ -462,11 +455,11 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
-const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
+const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
 #endif /* MJS_CORE_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/exec_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_exec_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -476,21 +469,21 @@ const char *mjs_strerror(struct mjs *mjs, mjs_err_t err);
 #ifndef MJS_EXEC_PUBLIC_H_
 #define MJS_EXEC_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+#include <stdio.h>
 
-mjs_err_t mjs_exec_buf(struct mjs *mjs, const char *src, size_t len,
-                       mjs_val_t *res);
-mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res);
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *filename, mjs_val_t *res);
-
-mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
-                   mjs_val_t this_val, int nargs, ...);
+mjs_err_t mjs_exec(struct mjs *, const char *src, mjs_val_t *res);
+mjs_err_t mjs_exec_buf(struct mjs *, const char *src, size_t, mjs_val_t *res);
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res);
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args);
+mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
+                   mjs_val_t this_val, int nargs, ...);
+mjs_val_t mjs_get_this(struct mjs *mjs);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/ffi_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_ffi_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -500,15 +493,15 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 
 typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
 
 void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 
 #endif /* MJS_FFI_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/object_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_object_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -518,7 +511,7 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stddef.h>
 
 /*
@@ -545,6 +538,11 @@ mjs_val_t mjs_get(struct mjs *mjs, mjs_val_t obj, const char *name,
 mjs_val_t mjs_get_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name);
 
 /*
+ * Like mjs_get_v but lookup the prototype chain.
+ */
+mjs_val_t mjs_get_v_proto(struct mjs *mjs, mjs_val_t obj, mjs_val_t key);
+
+/*
  * Set object property. Behaves just like JavaScript assignment.
  */
 mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len,
@@ -556,9 +554,23 @@ mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len,
 mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
                     mjs_val_t val);
 
+/*
+ * Iterate over `obj` properties.
+ * First call should set `iterator` to MJS_UNDEFINED.
+ * Return object's key (a string), or MJS_UNDEFINED when no more keys left.
+ * Do not mutate the object during iteration.
+ *
+ * Example:
+ *   mjs_val_t key, iter = MJS_UNDEFINED;
+ *   while ((key = mjs_next(mjs, obj, &iter)) != MJS_UNDEFINED) {
+ *     // Do something with the obj/key ...
+ *   }
+ */
+mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
+
 #endif /* MJS_OBJECT_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/primitive_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_primitive_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -568,13 +580,13 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
 #ifndef MJS_PRIMITIVE_PUBLIC_H_
 #define MJS_PRIMITIVE_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 
 /* JavaScript `null` value */
-#define MJS_NULL ((uint64_t) 0xfffe << 48)
+#define MJS_NULL MJS_TAG_NULL
 
 /* JavaScript `undefined` value */
-#define MJS_UNDEFINED ((uint64_t) 0xfffd << 48)
+#define MJS_UNDEFINED MJS_TAG_UNDEFINED
 
 /*
  * Make `null` primitive value.
@@ -660,9 +672,12 @@ mjs_val_t mjs_mk_boolean(struct mjs *mjs, int v);
 int mjs_get_bool(struct mjs *mjs, mjs_val_t v);
 int mjs_is_boolean(mjs_val_t v);
 
+mjs_val_t mjs_mk_function(struct mjs *mjs, size_t off);
+int mjs_is_function(mjs_val_t v);
+
 #endif /* MJS_PRIMITIVE_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/string_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_string_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -672,7 +687,7 @@ int mjs_is_boolean(mjs_val_t v);
 #ifndef MJS_STRING_PUBLIC_H_
 #define MJS_STRING_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 
 #define MJS_STRING_LITERAL_MAX_LEN 128
 
@@ -734,8 +749,8 @@ const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
 int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 #endif /* MJS_STRING_PUBLIC_H_ */
-#ifdef MG_MODULE_LINES
-#line 1 "mjs/util_public.h"
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_util_public.h"
 #endif
 /*
  * Copyright (c) 2016 Cesanta Software Limited
@@ -745,19 +760,19 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 #ifndef MJS_UTIL_PUBLIC_H_
 #define MJS_UTIL_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stdio.h>
 
-/* Output a string representation of the value to stdout. */
-void mjs_print(struct mjs *mjs, mjs_val_t v);
+const char *mjs_typeof(mjs_val_t v);
 
-/* Output a string representation of the value to stdout followed by nl. */
-void mjs_println(struct mjs *mjs, mjs_val_t v);
+void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp);
 
-/* Output a string representation of the value to a file. */
-void mjs_fprint(FILE *f, struct mjs *mjs, mjs_val_t v);
+#if MJS_ENABLE_DEBUG
 
-/* Output a string representation of the value to a file followed by nl */
-void mjs_fprintln(FILE *f, struct mjs *mjs, mjs_val_t v);
+void mjs_disasm(const uint8_t *code, size_t len, FILE *fp);
+void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
+
+#endif
 
 #endif /* MJS_UTIL_PUBLIC_H_ */
+#endif /* MJS_EXPORT_INTERNAL_HEADERS */
