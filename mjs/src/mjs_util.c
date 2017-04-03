@@ -88,10 +88,17 @@ MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
 }
 
 void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
-  size_t i;
+  size_t i, start = 0;
+  mjs_header_item_t map_offset = 0, total_size = 0;
 
   for (i = 0; i < len; i++) {
     fprintf(fp, "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
+
+    if (map_offset > 0 && i == start + map_offset) {
+      i = start + total_size - 1;
+      fputc('\n', fp);
+      continue;
+    }
 
     switch (code[i]) {
       case OP_PUSH_FUNC: {
@@ -194,10 +201,15 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
         break;
       }
       case OP_BCODE_HEADER: {
-        mjs_header_item_t total_size;
+        start = i;
         memcpy(&total_size, &code[i + 1], sizeof(total_size));
+        memcpy(&map_offset,
+               &code[i + 1 + MJS_HDR_ITEM_MAP_OFFSET * sizeof(total_size)],
+               sizeof(map_offset));
         i += sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
-        fprintf(fp, "\t[%s] size:%u", &code[i + 1], total_size);
+        fprintf(fp, "\t[%s] end:%lu map_offset: %lu", &code[i + 1],
+                (unsigned long) start + total_size,
+                (unsigned long) start + map_offset);
         i += strlen((char *) (code + i + 1)) + 1;
         break;
       }

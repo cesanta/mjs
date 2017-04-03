@@ -563,6 +563,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   size_t off = mjs->bcode.len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
+  if (cs_log_level >= LL_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
   } else {
     mjs_execute(mjs, off);

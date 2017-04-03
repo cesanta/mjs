@@ -6710,6 +6710,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   size_t off = mjs->bcode.len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
+  if (cs_log_level >= LL_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
   } else {
     mjs_execute(mjs, off);
@@ -8540,15 +8541,18 @@ int main(int argc, char *argv[]) {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
   mjs_err_t err = MJS_OK;
-  int i, dump = 0;
+  int i;
 
   for (i = 1; i < argc && argv[i][0] == '-'; i++) {
     if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
       cs_log_set_level(atoi(argv[++i]));
     } else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
       err = mjs_exec(mjs, argv[++i], &res);
-    } else if (strcmp(argv[i], "-d") == 0) {
-      dump++;
+    } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+      printf("mJS (c) Cesanta, built: " __DATE__ "\n");
+      printf("Usage:\n  ");
+      printf("%s [-l debug_level] [-e expression] js_file ...\n", argv[0]);
+      return EXIT_SUCCESS;
     } else {
       fprintf(stderr, "Unknown flag: [%s]\n", argv[i]);
       return EXIT_FAILURE;
@@ -8557,8 +8561,6 @@ int main(int argc, char *argv[]) {
   for (; i < argc; i++) {
     mjs_exec_file(mjs, argv[i], &res);
   }
-
-  if (dump) mjs_dump(mjs, 1, stdout);
 
   if (err == MJS_OK) {
     mjs_fprintf(res, mjs, stdout);
@@ -10633,10 +10635,17 @@ MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
 }
 
 void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
-  size_t i;
+  size_t i, start = 0;
+  mjs_header_item_t map_offset = 0, total_size = 0;
 
   for (i = 0; i < len; i++) {
     fprintf(fp, "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
+
+    if (map_offset > 0 && i == start + map_offset) {
+      i = start + total_size - 1;
+      fputc('\n', fp);
+      continue;
+    }
 
     switch (code[i]) {
       case OP_PUSH_FUNC: {
@@ -10739,10 +10748,15 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
         break;
       }
       case OP_BCODE_HEADER: {
-        mjs_header_item_t total_size;
+        start = i;
         memcpy(&total_size, &code[i + 1], sizeof(total_size));
+        memcpy(&map_offset,
+               &code[i + 1 + MJS_HDR_ITEM_MAP_OFFSET * sizeof(total_size)],
+               sizeof(map_offset));
         i += sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
-        fprintf(fp, "\t[%s] size:%u", &code[i + 1], total_size);
+        fprintf(fp, "\t[%s] end:%lu map_offset: %lu", &code[i + 1],
+                (unsigned long) start + total_size,
+                (unsigned long) start + map_offset);
         i += strlen((char *) (code + i + 1)) + 1;
         break;
       }
