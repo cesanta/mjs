@@ -6610,7 +6610,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           push_mjs_val(&mjs->call_stack, retpos);
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
-          // LOG(LL_DEBUG, ("CALLING  %d", i + 1));
+          // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
         } else if (mjs_is_string(*func)) {
           mjs_ffi_call2(mjs);
           /* Pop the value pushed by OP_ARGS */
@@ -6682,7 +6682,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       case OP_BREAK:
         mjs_pop_val(&mjs->loop_addresses);
         i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
-        LOG(LL_DEBUG, ("BREAKING TO %d", (int) i + 1));
+        LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
         break;
       case OP_NOP:
         break;
@@ -6710,7 +6710,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   size_t off = mjs->bcode.len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
-  if (cs_log_level >= LL_DEBUG) mjs_dump(mjs, 1, stderr);
+  if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
   } else {
     mjs_execute(mjs, off);
@@ -8808,17 +8808,18 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator) {
 #define MAX_TOKS_IN_EXPR 40
 #endif
 
-#define FAIL_ERR(p, code)                                                  \
-  do {                                                                     \
-    p->mjs->error = code;                                                  \
-    LOG(LL_DEBUG, ("ERROR line %d, [%.*s...]", __LINE__, 10, p->tok.ptr)); \
-    return code;                                                           \
+#define FAIL_ERR(p, code)                                        \
+  do {                                                           \
+    p->mjs->error = code;                                        \
+    LOG(LL_VERBOSE_DEBUG,                                        \
+        ("ERROR line %d, [%.*s...]", __LINE__, 10, p->tok.ptr)); \
+    return code;                                                 \
   } while (0)
 
-#define pnext1(p)                            \
-  do {                                       \
-    LOG(LL_DEBUG, ("  PNEXT %d", __LINE__)); \
-    pnext(p);                                \
+#define pnext1(p)                                    \
+  do {                                               \
+    LOG(LL_VERBOSE_DEBUG, ("  PNEXT %d", __LINE__)); \
+    pnext(p);                                        \
   } while (0)
 
 #define SYNTAX_ERROR(p) FAIL_ERR(p, MJS_SYNTAX_ERROR)
@@ -8906,7 +8907,7 @@ static mjs_err_t parse_statement_list(struct pstate *p, int et) {
 
 static mjs_err_t parse_block(struct pstate *p, int mkscope) {
   mjs_err_t res = MJS_OK;
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   if (mkscope) emit_byte(p, OP_NEW_SCOPE);
   res = parse_statement_list(p, TOK_CLOSE_CURLY);
   EXPECT(p, TOK_CLOSE_CURLY);
@@ -9006,7 +9007,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
   struct mbuf *bcode = &p->mjs->bcode;
   enum mjs_err res = MJS_OK;
   int tok = t->tok;
-  LOG(LL_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
   switch (t->tok) {
     case TOK_KEYWORD_FALSE:
       emit_byte(p, OP_PUSH_FALSE);
@@ -9223,7 +9224,7 @@ static mjs_err_t parse_expr(struct pstate *p) {
 
 static mjs_err_t parse_let(struct pstate *p) {
   mjs_err_t res = MJS_OK;
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_LET);
   for (;;) {
     struct tok tmp = p->tok;
@@ -9339,7 +9340,7 @@ static mjs_err_t parse_for(struct pstate *p) {
   struct mbuf *bcode = &p->mjs->bcode;
   mjs_err_t res = MJS_OK;
 
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_FOR);
   EXPECT(p, TOK_OPEN_PAREN);
 
@@ -9450,7 +9451,7 @@ static mjs_err_t parse_while(struct pstate *p) {
 static mjs_err_t parse_if(struct pstate *p) {
   size_t off_if, off_endif;
   mjs_err_t res = MJS_OK;
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_IF);
   EXPECT(p, TOK_OPEN_PAREN);
   if ((res = parse_expr(p)) != MJS_OK) return res;
@@ -9503,7 +9504,7 @@ static mjs_err_t parse_return(struct pstate *p) {
 }
 
 static mjs_err_t parse_statement(struct pstate *p) {
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   switch (p->tok.tok) {
     case TOK_KEYWORD_LET:
       return parse_let(p);
@@ -10537,7 +10538,7 @@ MJS_PRIVATE int pnext(struct pstate *p) {
     tok = tmp;
   }
   if (p->pos[0] != '\0') p->pos++;
-  LOG(LL_DEBUG, ("  --> [%.*s]", p->tok.len, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("  --> [%.*s]", p->tok.len, p->tok.ptr));
   p->prev_tok = p->tok.tok;
   p->tok.tok = ptranslate(tok);
   return p->tok.tok;

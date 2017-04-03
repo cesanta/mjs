@@ -15,17 +15,18 @@
 #define MAX_TOKS_IN_EXPR 40
 #endif
 
-#define FAIL_ERR(p, code)                                                  \
-  do {                                                                     \
-    p->mjs->error = code;                                                  \
-    LOG(LL_DEBUG, ("ERROR line %d, [%.*s...]", __LINE__, 10, p->tok.ptr)); \
-    return code;                                                           \
+#define FAIL_ERR(p, code)                                        \
+  do {                                                           \
+    p->mjs->error = code;                                        \
+    LOG(LL_VERBOSE_DEBUG,                                        \
+        ("ERROR line %d, [%.*s...]", __LINE__, 10, p->tok.ptr)); \
+    return code;                                                 \
   } while (0)
 
-#define pnext1(p)                            \
-  do {                                       \
-    LOG(LL_DEBUG, ("  PNEXT %d", __LINE__)); \
-    pnext(p);                                \
+#define pnext1(p)                                    \
+  do {                                               \
+    LOG(LL_VERBOSE_DEBUG, ("  PNEXT %d", __LINE__)); \
+    pnext(p);                                        \
   } while (0)
 
 #define SYNTAX_ERROR(p) FAIL_ERR(p, MJS_SYNTAX_ERROR)
@@ -113,7 +114,7 @@ static mjs_err_t parse_statement_list(struct pstate *p, int et) {
 
 static mjs_err_t parse_block(struct pstate *p, int mkscope) {
   mjs_err_t res = MJS_OK;
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   if (mkscope) emit_byte(p, OP_NEW_SCOPE);
   res = parse_statement_list(p, TOK_CLOSE_CURLY);
   EXPECT(p, TOK_CLOSE_CURLY);
@@ -213,7 +214,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
   struct mbuf *bcode = &p->mjs->bcode;
   enum mjs_err res = MJS_OK;
   int tok = t->tok;
-  LOG(LL_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
   switch (t->tok) {
     case TOK_KEYWORD_FALSE:
       emit_byte(p, OP_PUSH_FALSE);
@@ -430,7 +431,7 @@ static mjs_err_t parse_expr(struct pstate *p) {
 
 static mjs_err_t parse_let(struct pstate *p) {
   mjs_err_t res = MJS_OK;
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_LET);
   for (;;) {
     struct tok tmp = p->tok;
@@ -546,7 +547,7 @@ static mjs_err_t parse_for(struct pstate *p) {
   struct mbuf *bcode = &p->mjs->bcode;
   mjs_err_t res = MJS_OK;
 
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_FOR);
   EXPECT(p, TOK_OPEN_PAREN);
 
@@ -657,7 +658,7 @@ static mjs_err_t parse_while(struct pstate *p) {
 static mjs_err_t parse_if(struct pstate *p) {
   size_t off_if, off_endif;
   mjs_err_t res = MJS_OK;
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_IF);
   EXPECT(p, TOK_OPEN_PAREN);
   if ((res = parse_expr(p)) != MJS_OK) return res;
@@ -710,7 +711,7 @@ static mjs_err_t parse_return(struct pstate *p) {
 }
 
 static mjs_err_t parse_statement(struct pstate *p) {
-  LOG(LL_DEBUG, ("[%.*s]", 10, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   switch (p->tok.tok) {
     case TOK_KEYWORD_LET:
       return parse_let(p);

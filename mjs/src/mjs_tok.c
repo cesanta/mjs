@@ -245,7 +245,7 @@ MJS_PRIVATE int pnext(struct pstate *p) {
     tok = tmp;
   }
   if (p->pos[0] != '\0') p->pos++;
-  LOG(LL_DEBUG, ("  --> [%.*s]", p->tok.len, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("  --> [%.*s]", p->tok.len, p->tok.ptr));
   p->prev_tok = p->tok.tok;
   p->tok.tok = ptranslate(tok);
   return p->tok.tok;

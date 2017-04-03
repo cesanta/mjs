@@ -463,7 +463,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           push_mjs_val(&mjs->call_stack, retpos);
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
-          // LOG(LL_DEBUG, ("CALLING  %d", i + 1));
+          // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
         } else if (mjs_is_string(*func)) {
           mjs_ffi_call2(mjs);
           /* Pop the value pushed by OP_ARGS */
@@ -535,7 +535,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       case OP_BREAK:
         mjs_pop_val(&mjs->loop_addresses);
         i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
-        LOG(LL_DEBUG, ("BREAKING TO %d", (int) i + 1));
+        LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
         break;
       case OP_NOP:
         break;
@@ -563,7 +563,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   size_t off = mjs->bcode.len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
-  if (cs_log_level >= LL_DEBUG) mjs_dump(mjs, 1, stderr);
+  if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
   } else {
     mjs_execute(mjs, off);
