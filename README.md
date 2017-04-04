@@ -57,7 +57,7 @@ where it enables scripting for IoT devices.
 
   <dt><tt>let s = fstr(ptrVar, offset, length);</tt></dt>
   <dd>Create a string backed by a C memory chunk. A string <tt>s</tt> starts
-  at memory location <tt>ptrVar + offset</tt>, and is <tt>length<tt> bytes long.
+  at memory location <tt>ptrVar + offset</tt>, and is <tt>length</tt> bytes long.
   Short form is also available: <tt>fstr(ptrVar, length)</tt>.</dd>
 
   <dt><tt>let f = ffi('int foo(int)');</tt></dt>
