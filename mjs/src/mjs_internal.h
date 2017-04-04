@@ -78,4 +78,14 @@ typedef unsigned long uintptr_t;
 #endif
 #endif
 
+/*
+ * Number of bytes reserved for the jump offset initially. The most practical
+ * value is 1, but for testing it's useful to set it to 0 and to some large
+ * value as well (like, 4), to make sure that the code behaves correctly under
+ * all circumstances.
+ */
+#ifndef MJS_INIT_OFFSET_SIZE
+#define MJS_INIT_OFFSET_SIZE 1
+#endif
+
 #endif /* MJS_INTERNAL_H_ */

@@ -10,7 +10,7 @@
 
 static void add_lineno_map_item(struct pstate *pstate) {
   if (pstate->last_emitted_line_no < pstate->line_no) {
-    int offset = pstate->mjs->bcode.len - pstate->start_bcode_idx;
+    int offset = pstate->cur_idx - pstate->start_bcode_idx;
     size_t offset_llen = varint_llen(offset);
     size_t lineno_llen = varint_llen(pstate->line_no);
     mbuf_resize(&pstate->offset_lineno_map,
@@ -32,39 +32,53 @@ static void add_lineno_map_item(struct pstate *pstate) {
 
 MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte) {
   add_lineno_map_item(pstate);
-  mbuf_append(&pstate->mjs->bcode, &byte, sizeof(byte));
+  mbuf_insert(&pstate->mjs->bcode, pstate->cur_idx, &byte, sizeof(byte));
+  pstate->cur_idx += sizeof(byte);
 }
 
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
   add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode;
   size_t llen = varint_llen(n);
-  mbuf_resize(b, b->size + llen);
-  varint_encode(n, (uint8_t *) b->buf + b->len);
-  b->len += llen;
+  mbuf_insert(b, pstate->cur_idx, NULL, llen);
+  varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
+  pstate->cur_idx += llen;
 }
 
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
   add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode;
   size_t llen = varint_llen(len);
-  mbuf_resize(b, b->size + llen + len);
-  varint_encode(len, (uint8_t *) b->buf + b->len);
-  memcpy(b->buf + b->len + llen, ptr, len);
-  b->len += llen + len;
+  mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
+  varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
+  memcpy(b->buf + pstate->cur_idx + llen, ptr, len);
+  pstate->cur_idx += llen + len;
 }
 
-MJS_PRIVATE size_t mjs_bcode_size(const struct mbuf *bcode) {
-  return bcode->len;
-}
-
-MJS_PRIVATE void mjs_bcode_mutate_byte(struct mjs *mjs, size_t offset,
-                                       size_t v) {
-  if (v > 0xff) {
-    mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "loop/cond body too long");
-  } else if (offset >= mjs->bcode.len) {
-    mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "oob offset");
-  } else if (offset < mjs->bcode.len) {
-    mjs->bcode.buf[offset] = v;
+MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
+                                        size_t offset, size_t v) {
+  assert(offset < mjs->bcode.len);
+  int llen = varint_llen(v);
+  int diff = llen - MJS_INIT_OFFSET_SIZE;
+  if (diff > 0) {
+    mbuf_resize(&mjs->bcode, mjs->bcode.size + diff);
   }
+  /*
+   * Offset is going to take more than one was reserved, so, move the data
+   * forward
+   */
+  memmove(mjs->bcode.buf + offset + llen,
+          mjs->bcode.buf + offset + MJS_INIT_OFFSET_SIZE,
+          mjs->bcode.len - offset - MJS_INIT_OFFSET_SIZE);
+  mjs->bcode.len += diff;
+  varint_encode(v, (uint8_t *) mjs->bcode.buf + offset);
+
+  /*
+   * If current parsing index is after the offset at which we've inserted new
+   * varint, the index might need to be adjusted
+   */
+  if (p->cur_idx >= (int) offset) {
+    p->cur_idx += diff;
+  }
+  return diff;
 }

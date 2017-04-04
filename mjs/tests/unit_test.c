@@ -1059,6 +1059,352 @@ const char *test_this() {
   return NULL;
 }
 
+const char *test_while() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EQ(mjs_exec(mjs, "let i=0; while(i<10) {i+=1;} i;", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 10);
+
+  ASSERT_EQ(mjs_exec(mjs, "let i=50; let j=100; while(i<10) {i+=1;j+=1;} j;", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  /* while loop inside of a function */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          let f = function(x, y) {
+            while (x < y) {
+              x += 1;
+              s += ".";
+            }
+            return x;
+          };
+          f(10, 20);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "..........");
+
+  /* break before side effect */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          let f = function(x, y) {
+            while (x < y) {
+              x += 1;
+              if (x === 15) {
+                break;
+              }
+              s += ".";
+            }
+            return x;
+          };
+          f(10, 20);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "....");
+
+  /* break after side effect */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          let f = function(x, y) {
+            while (x < y) {
+              x += 1;
+              s += ".";
+              if (x === 15) {
+                break;
+              }
+            }
+            return x;
+          };
+          f(10, 20);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), ".....");
+
+  /* continue */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          let f = function(x, y) {
+            while (x < y) {
+              x += 1;
+              if (x === 15) {
+                continue;
+              }
+              s += ".";
+            }
+            return x;
+          };
+          f(10, 20);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), ".........");
+
+  /* Nested while loops */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          let ch = "foo";
+          let f = function(x, y) {
+            while (x < y) {
+            let ch = ".";
+              x += 1;
+              if (x === 15) {
+
+                let a = 0;
+                while (a < 10) {
+                let ch = "-";
+                  a++;
+                  if (a === 2) {
+                    continue;
+                  }
+                  if (a === 5) {
+                    break;
+                  }
+                  s += ch;
+                }
+
+                continue;
+              }
+              s += ch;
+            }
+            return x;
+          };
+          f(10, 20);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "....---.....");
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
+const char *test_for_loop() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i = 123; let s="";
+          for (i = 0; i < 10; i++) {
+            s += "_" + JSON.stringify(i);
+          }
+          s += "_" + JSON.stringify(i);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_0_1_2_3_4_5_6_7_8_9_10");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i = 123; let s="";
+          for (let i = 0; i < 10; i++) {
+            s += "_" + JSON.stringify(i);
+          }
+          s += "_" + JSON.stringify(i);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_0_1_2_3_4_5_6_7_8_9_123");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i = 123; let s="";
+          for (let i = 1, j = 11; i < j; i++) {
+            s += "_" + JSON.stringify(i);
+          }
+          s += "_" + JSON.stringify(i);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_1_2_3_4_5_6_7_8_9_10_123");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i; let s="";
+          for (i = 2; i < 11; i++) s += "_" + JSON.stringify(i);
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_2_3_4_5_6_7_8_9_10");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i; let s="";
+          for (i = 3; i < 100; i++) {
+            if (i === 7) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i);
+            if (i === 10) {
+              break;
+            }
+            s += "|" + JSON.stringify(i * 2);
+          };
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_3|6_4|8_5|10_6|12_8|16_9|18_10");
+
+  /* TODO(dfrank) implement */
+#if 0
+  /* Try to omit various parts of for loop decl {{{ */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i = 3; let s="";
+          for (;;) {
+            i++;
+            if (i === 7) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i);
+            if (i === 10) {
+              break;
+            }
+            s += "|" + JSON.stringify(i * 2);
+          };
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_4|8_5|10_6|12_8|16_9|18_10");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i = 3; let s="";
+          for (;; i++) {
+            if (i === 7) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i);
+            if (i === 10) {
+              break;
+            }
+            s += "|" + JSON.stringify(i * 2);
+          };
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_3|6_4|8_5|10_6|12_8|16_9|18_10");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i = 3; let s="";
+          for (; true;) {
+            i++;
+            if (i === 7) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i);
+            if (i === 10) {
+              break;
+            }
+            s += "|" + JSON.stringify(i * 2);
+          };
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_4|8_5|10_6|12_8|16_9|18_10");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i; let s="";
+          for (i = 3; ;) {
+            i++;
+            if (i === 7) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i);
+            if (i === 10) {
+              break;
+            }
+            s += "|" + JSON.stringify(i * 2);
+          };
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_4|8_5|10_6|12_8|16_9|18_10");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i; let s="";
+          for (i = 3; ;i++) {
+            if (i === 7) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i);
+            if (i === 10) {
+              break;
+            }
+            s += "|" + JSON.stringify(i * 2);
+          };
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_3|6_4|8_5|10_6|12_8|16_9|18_10");
+  /* }}} */
+#endif
+
+  /* Mix functions, for loops, while loops, break, continue */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let i; let s="";
+          let f1 = function(a) {
+            let b = a-5;
+            let s="";
+            while(b < a+10) {
+              b++;
+              if (b === a-2) {
+                continue;
+              }
+              if (b === a-1) {
+                let i;
+                for (i = 0; i < 50; i++) {
+                  s += ".";
+                  if (i === 4) {
+                    break;
+                  }
+                }
+              }
+              s += "|" + JSON.stringify(b);
+              if (b === a) {
+                break;
+              }
+            }
+            return s;
+          };
+          for (i = 0; i < 10; i++) {
+            if (i === 2) {
+              continue;
+            }
+            s += "_" + JSON.stringify(i) + ":" + f1(i);
+          };
+          s;
+        ), &res));
+        ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_0:|-4|-3.....|-1|0_1:|-3|-2.....|0|1_3:|-1|0.....|2|3_4:|0|1.....|3|4_5:|1|2.....|4|5_6:|2|3.....|5|6_7:|3|4.....|6|7_8:|4|5.....|7|8_9:|5|6.....|8|9");
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
+const char *test_for_in_loop() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let o = ({foo: 1, bar: 2}); let s="";
+          for (let k in o) {
+            s += "_" + k + ":" + JSON.stringify(o[k]);
+          }
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_bar:2_foo:1");
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 const char *test_call_api() {
   struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
   mjs_val_t func = MJS_UNDEFINED;
@@ -1116,6 +1462,45 @@ const char *test_call_api() {
   return NULL;
 }
 
+const char *test_long_jump() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  CHECK_NUMERIC( STRINGIFY(
+        let a = 0;
+        let i;
+        for (i = 0; i < 10; i++) {
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+          a += 1; a += 1; a += 1; a += 1; a += 1;
+        }
+        a;
+        ), 1000);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 const char *test_dataview(void) {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
@@ -1165,7 +1550,11 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_comparison);
   RUN_TEST(test_errors);
   RUN_TEST(test_this);
+  RUN_TEST(test_while);
+  RUN_TEST(test_for_loop);
+  RUN_TEST(test_for_in_loop);
   RUN_TEST(test_call_api);
+  RUN_TEST(test_long_jump);
 
   /* FFI */
   RUN_TEST(test_func1);

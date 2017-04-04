@@ -1849,6 +1849,16 @@ typedef unsigned long uintptr_t;
 #endif
 #endif
 
+/*
+ * Number of bytes reserved for the jump offset initially. The most practical
+ * value is 1, but for testing it's useful to set it to 0 and to some large
+ * value as well (like, 4), to make sure that the code behaves correctly under
+ * all circumstances.
+ */
+#ifndef MJS_INIT_OFFSET_SIZE
+#define MJS_INIT_OFFSET_SIZE 1
+#endif
+
 #endif /* MJS_INTERNAL_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_license.h"
@@ -2938,6 +2948,16 @@ typedef unsigned long uintptr_t;
 #endif
 #endif
 
+/*
+ * Number of bytes reserved for the jump offset initially. The most practical
+ * value is 1, but for testing it's useful to set it to 0 and to some large
+ * value as well (like, 4), to make sure that the code behaves correctly under
+ * all circumstances.
+ */
+#ifndef MJS_INIT_OFFSET_SIZE
+#define MJS_INIT_OFFSET_SIZE 1
+#endif
+
 #endif /* MJS_INTERNAL_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_tok.h"
@@ -2969,6 +2989,8 @@ struct pstate {
   struct tok tok; /* Parsed token */
   struct mjs *mjs;
   int start_bcode_idx; /* Index in mjs->bcode at which parsing was started */
+  int cur_idx; /* Index in mjs->bcode at which newly generated code is inserted
+                  */
 };
 
 enum {
@@ -3251,7 +3273,6 @@ enum mjs_opcode {
   OP_DUP,          /* ( a -- a a ) */
   OP_SWAP,         /* ( a b -- b a ) */
   OP_JMP,          /* ( -- ) */
-  OP_JMP_BACK,     /* ( -- ) */
   OP_JMP_TRUE,     /* ( -- ) */
   OP_JMP_FALSE,    /* ( -- ) */
   OP_FIND_SCOPE,   /* ( a -- a b ) */
@@ -3294,9 +3315,15 @@ struct mjs;
 MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte);
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n);
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len);
-MJS_PRIVATE size_t mjs_bcode_size(const struct mbuf *mbuf);
-MJS_PRIVATE void mjs_bcode_mutate_byte(struct mjs *mbuf, size_t offset,
-                                       size_t byte);
+
+/*
+ * Inserts provided offset `v` at the offset `offset`.
+ *
+ * Returns delta at which the code was moved; the delta can be any: 0 or
+ * positive or negative.
+ */
+MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
+                                        size_t offset, size_t v);
 
 #endif /* MJS_BCODE_H_ */
 #ifdef MJS_MODULE_LINES
@@ -5518,7 +5545,7 @@ mjs_err_t mjs_array_push(struct mjs *mjs, mjs_val_t arr, mjs_val_t v) {
 
 static void add_lineno_map_item(struct pstate *pstate) {
   if (pstate->last_emitted_line_no < pstate->line_no) {
-    int offset = pstate->mjs->bcode.len - pstate->start_bcode_idx;
+    int offset = pstate->cur_idx - pstate->start_bcode_idx;
     size_t offset_llen = varint_llen(offset);
     size_t lineno_llen = varint_llen(pstate->line_no);
     mbuf_resize(&pstate->offset_lineno_map,
@@ -5540,41 +5567,55 @@ static void add_lineno_map_item(struct pstate *pstate) {
 
 MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte) {
   add_lineno_map_item(pstate);
-  mbuf_append(&pstate->mjs->bcode, &byte, sizeof(byte));
+  mbuf_insert(&pstate->mjs->bcode, pstate->cur_idx, &byte, sizeof(byte));
+  pstate->cur_idx += sizeof(byte);
 }
 
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
   add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode;
   size_t llen = varint_llen(n);
-  mbuf_resize(b, b->size + llen);
-  varint_encode(n, (uint8_t *) b->buf + b->len);
-  b->len += llen;
+  mbuf_insert(b, pstate->cur_idx, NULL, llen);
+  varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
+  pstate->cur_idx += llen;
 }
 
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
   add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode;
   size_t llen = varint_llen(len);
-  mbuf_resize(b, b->size + llen + len);
-  varint_encode(len, (uint8_t *) b->buf + b->len);
-  memcpy(b->buf + b->len + llen, ptr, len);
-  b->len += llen + len;
+  mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
+  varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
+  memcpy(b->buf + pstate->cur_idx + llen, ptr, len);
+  pstate->cur_idx += llen + len;
 }
 
-MJS_PRIVATE size_t mjs_bcode_size(const struct mbuf *bcode) {
-  return bcode->len;
-}
-
-MJS_PRIVATE void mjs_bcode_mutate_byte(struct mjs *mjs, size_t offset,
-                                       size_t v) {
-  if (v > 0xff) {
-    mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "loop/cond body too long");
-  } else if (offset >= mjs->bcode.len) {
-    mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "oob offset");
-  } else if (offset < mjs->bcode.len) {
-    mjs->bcode.buf[offset] = v;
+MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
+                                        size_t offset, size_t v) {
+  assert(offset < mjs->bcode.len);
+  int llen = varint_llen(v);
+  int diff = llen - MJS_INIT_OFFSET_SIZE;
+  if (diff > 0) {
+    mbuf_resize(&mjs->bcode, mjs->bcode.size + diff);
   }
+  /*
+   * Offset is going to take more than one was reserved, so, move the data
+   * forward
+   */
+  memmove(mjs->bcode.buf + offset + llen,
+          mjs->bcode.buf + offset + MJS_INIT_OFFSET_SIZE,
+          mjs->bcode.len - offset - MJS_INIT_OFFSET_SIZE);
+  mjs->bcode.len += diff;
+  varint_encode(v, (uint8_t *) mjs->bcode.buf + offset);
+
+  /*
+   * If current parsing index is after the offset at which we've inserted new
+   * varint, the index might need to be adjusted
+   */
+  if (p->cur_idx >= (int) offset) {
+    p->cur_idx += diff;
+  }
+  return diff;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_builtin.c"
@@ -6212,10 +6253,18 @@ static void op_assign(struct mjs *mjs, int op) {
   mjs_val_t key = mjs_pop(mjs);
   if (mjs_is_object(obj) && mjs_is_string(key)) {
     mjs_val_t v = mjs_get_v(mjs, obj, key);
-    double da = mjs_get_double(mjs, v);
-    double db = mjs_get_double(mjs, val);
-    double result = do_arith_op(da, db, op);
-    mjs_set_v(mjs, obj, key, mjs_mk_number(mjs, result));
+    if (mjs_is_number(v) && mjs_is_number(val)) {
+      double da = mjs_get_double(mjs, v);
+      double db = mjs_get_double(mjs, val);
+      double result = do_arith_op(da, db, op);
+      mjs_set_v(mjs, obj, key, mjs_mk_number(mjs, result));
+    } else if (mjs_is_string(v) && mjs_is_string(val) && (op == TOK_PLUS)) {
+      mjs_val_t result = s_concat(mjs, v, val);
+      mjs_set_v(mjs, obj, key, result);
+    } else {
+      mjs_set_v(mjs, obj, key, MJS_UNDEFINED);
+      mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
+    }
     mjs_push(mjs, v);
   } else {
     mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
@@ -6425,6 +6474,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     maybe_gc(mjs);
 #endif
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
+    /* mjs_dump(mjs, 0, stdout); */
     LOG(LL_VERBOSE_DEBUG, ("%d %s", (int) i, opcodetostr(code[i])));
     switch (code[i]) {
       case OP_BCODE_HEADER: {
@@ -6455,25 +6505,24 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       case OP_PUSH_FUNC: {
         int llen, n = varint_decode(&code[i + 1], &llen);
-        mjs_push(mjs, mjs_mk_function(mjs, n));
+        mjs_push(mjs, mjs_mk_function(mjs, i - n));
         i += llen;
         break;
       }
       case OP_PUSH_THIS:
         mjs_push(mjs, mjs_get_this_for_js_call(mjs));
         break;
-      case OP_JMP:
-        i += code[i + 1] - 1;
+      case OP_JMP: {
+        int llen, n = varint_decode(&code[i + 1], &llen);
+        i += n + llen;
         break;
-      case OP_JMP_BACK:
-        i -= code[i + 1] + 1;
-        break;
+      }
       case OP_JMP_FALSE: {
-        if (mjs_is_truthy(mjs, mjs_pop(mjs))) {
-          i++;
-        } else {
+        int llen, n = varint_decode(&code[i + 1], &llen);
+        i += llen;
+        if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
-          i += code[i + 1] - 1;
+          i += n;
         }
         break;
       }
@@ -6670,9 +6719,11 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_LOOP: {
         int l1, l2, off = varint_decode(&code[i + 1], &l1);
-        push_mjs_val(&mjs->loop_addresses, mjs_mk_number(mjs, i + off));
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
         off = varint_decode(&code[i + 1 + l1], &l2);
-        push_mjs_val(&mjs->loop_addresses, mjs_mk_number(mjs, i + off));
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
         i += l1 + l2;
         break;
       }
@@ -8892,6 +8943,19 @@ static void emit_op(struct pstate *pstate, int tok) {
     return res;                                         \
   } while (0)
 
+#if MJS_INIT_OFFSET_SIZE > 0
+static void emit_init_offset(struct pstate *p) {
+  size_t i;
+  for (i = 0; i < MJS_INIT_OFFSET_SIZE; i++) {
+    emit_byte(p, 0);
+  }
+}
+#else
+static void emit_init_offset(struct pstate *p) {
+  (void) p;
+}
+#endif
+
 static mjs_err_t parse_statement_list(struct pstate *p, int et) {
   mjs_err_t res = MJS_OK;
   int drop = 0;
@@ -8916,7 +8980,6 @@ static mjs_err_t parse_block(struct pstate *p, int mkscope) {
 }
 
 static mjs_err_t parse_function(struct pstate *p) {
-  struct mbuf *bcode = &p->mjs->bcode;
   size_t prologue, off;
   int arg_no = 0;
   int name_provided = 0;
@@ -8938,12 +9001,11 @@ static mjs_err_t parse_function(struct pstate *p) {
     pnext1(p);
   }
 
-  off = mjs_bcode_size(bcode);
-
   emit_byte(p, OP_JMP);
-  emit_byte(p, 0);
+  off = p->cur_idx;
+  emit_init_offset(p);
 
-  prologue = mjs_bcode_size(bcode);
+  prologue = p->cur_idx;
 
   EXPECT(p, TOK_OPEN_PAREN);
   emit_byte(p, OP_NEW_SCOPE);
@@ -8960,9 +9022,10 @@ static mjs_err_t parse_function(struct pstate *p) {
   EXPECT(p, TOK_CLOSE_PAREN);
   if ((res = parse_block(p, 0)) != MJS_OK) return res;
   emit_byte(p, OP_RETURN);
-  mjs_bcode_mutate_byte(p->mjs, off + 1, mjs_bcode_size(bcode) - off);
+  prologue += mjs_bcode_insert_offset(p, p->mjs, off,
+                                      p->cur_idx - off - MJS_INIT_OFFSET_SIZE);
   emit_byte(p, OP_PUSH_FUNC);
-  emit_int(p, prologue);
+  emit_int(p, p->cur_idx - 1 /* OP_PUSH_FUNC */ - prologue);
   if (name_provided) {
     emit_op(p, TOK_ASSIGN);
   }
@@ -9048,10 +9111,12 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
       }
       break;
     }
-    case TOK_STR:
+    case TOK_STR: {
       emit_byte(p, OP_PUSH_STR);
-      embed_string(bcode, bcode->len, t->ptr, t->len, EMBSTR_UNESCAPE);
-      break;
+      size_t oldlen = bcode->len;
+      embed_string(bcode, p->cur_idx, t->ptr, t->len, EMBSTR_UNESCAPE);
+      p->cur_idx += bcode->len - oldlen;
+    } break;
     case TOK_OPEN_BRACKET:
       res = parse_array_literal(p);
       break;
@@ -9181,36 +9246,41 @@ static mjs_err_t parse_logical_or(struct pstate *p, int prev_op) {
 }
 
 static mjs_err_t parse_ternary(struct pstate *p, int prev_op) {
-  struct mbuf *bcode = &p->mjs->bcode;
   mjs_err_t res = MJS_OK;
   if ((res = parse_logical_or(p, TOK_EOF)) != MJS_OK) return res;
   if (prev_op != TOK_EOF) emit_op(p, prev_op);
+
   if (p->tok.tok == TOK_QUESTION) {
-    size_t off1, off2, off3;
+    size_t off_if, off_endif, off_else;
     EXPECT(p, TOK_QUESTION);
 
-    off1 = mjs_bcode_size(bcode);
     emit_byte(p, OP_JMP_FALSE);
-    emit_byte(p, 0);
+    off_if = p->cur_idx;
+    emit_init_offset(p);
 
     if ((res = parse_ternary(p, TOK_EOF)) != MJS_OK) return res;
 
     emit_byte(p, OP_JMP);
-    emit_byte(p, 0);
-    off2 = mjs_bcode_size(bcode);
+    off_else = p->cur_idx;
+    emit_init_offset(p);
+    off_endif = p->cur_idx;
 
     emit_byte(p, OP_DROP);
-    if (off2 - off1 >= 255) FAIL_ERR(p, MJS_INTERNAL_ERROR);
-    mjs_bcode_mutate_byte(p->mjs, off1 + 1, off2 - off1);
 
     EXPECT(p, TOK_COLON);
     if ((res = parse_ternary(p, TOK_EOF)) != MJS_OK) return res;
 
-    off3 = mjs_bcode_size(bcode);
-    if (off3 - off2 >= 255) FAIL_ERR(p, MJS_INTERNAL_ERROR);
-    mjs_bcode_mutate_byte(p->mjs, off2 - 1,
-                          off3 - off2 + JUMP_INSTRUCTION_SIZE);
+    /*
+     * NOTE: if inserting offset causes the code to move, off_endif needs to be
+     * adjusted
+     */
+    off_endif += mjs_bcode_insert_offset(
+        p, p->mjs, off_else, p->cur_idx - off_else - MJS_INIT_OFFSET_SIZE);
+
+    mjs_bcode_insert_offset(p, p->mjs, off_if,
+                            off_endif - off_if - MJS_INIT_OFFSET_SIZE);
   }
+
   return res;
 }
 
@@ -9264,8 +9334,7 @@ static mjs_err_t parse_block_or_stmt(struct pstate *p, int cs) {
 
 static mjs_err_t parse_for_in(struct pstate *p) {
   mjs_err_t res = MJS_OK;
-  size_t off_iter, off_done;
-  struct mbuf *bcode = &p->mjs->bcode;
+  size_t off_b, off_check_end;
 
   emit_byte(p, OP_NEW_SCOPE);
 
@@ -9288,17 +9357,17 @@ static mjs_err_t parse_for_in(struct pstate *p) {
 
   emit_byte(p, OP_PUSH_UNDEF); /* Push iterator */
 
-  off_iter = mjs_bcode_size(bcode);
-
   /* Before parsing condition statement, push break/continue offsets  */
   emit_byte(p, OP_LOOP);
-  emit_byte(p, 0); /* Fill out OP_BREAK address later  */
-  emit_byte(p, 3); /* Point OP_CONTINUE to the next instruction */
+  off_b = p->cur_idx;
+  emit_init_offset(p);
+  emit_byte(p, 0); /* Point OP_CONTINUE to the next instruction */
 
   emit_byte(p, OP_FOR_IN_NEXT);
   emit_byte(p, OP_DUP);
   emit_byte(p, OP_JMP_FALSE);
-  emit_byte(p, 0);
+  off_check_end = p->cur_idx;
+  emit_init_offset(p);
 
   // Parse loop body
   if (p->tok.tok == TOK_OPEN_CURLY) {
@@ -9310,11 +9379,18 @@ static mjs_err_t parse_for_in(struct pstate *p) {
   emit_byte(p, OP_DROP);
   emit_byte(p, OP_CONTINUE);
 
-  off_done = mjs_bcode_size(bcode);
+  /* jump cond -> break */
+  mjs_bcode_insert_offset(p, p->mjs, off_check_end,
+                          p->cur_idx - off_check_end - MJS_INIT_OFFSET_SIZE);
 
-  mjs_bcode_mutate_byte(p->mjs, off_iter + 1, off_done - off_iter + 1);
-  mjs_bcode_mutate_byte(p->mjs, off_iter + 6, off_done - off_iter - 5);
+  /* NOTE: jump C -> cond link is already established, it's constant: zero */
+
   emit_byte(p, OP_BREAK);
+
+  /* jump B -> cond */
+  mjs_bcode_insert_offset(p, p->mjs, off_b,
+                          p->cur_idx - off_b - MJS_INIT_OFFSET_SIZE);
+
   emit_byte(p, OP_DROP);
   emit_byte(p, OP_DROP);
   emit_byte(p, OP_DROP);
@@ -9336,8 +9412,6 @@ static int check_for_in(struct pstate *p) {
 }
 
 static mjs_err_t parse_for(struct pstate *p) {
-  size_t off_cond, off_post, off_body, off_done;
-  struct mbuf *bcode = &p->mjs->bcode;
   mjs_err_t res = MJS_OK;
 
   LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
@@ -9347,7 +9421,31 @@ static mjs_err_t parse_for(struct pstate *p) {
   /* Look forward - is it for..in ? */
   if (check_for_in(p)) return parse_for_in(p);
 
-  /* Parse pre-condition */
+  /*
+   * BC is a break+continue offsets (a part of OP_LOOP opcode)
+   *
+   *  BC init  incr  cond  body  break  del_scope
+   *  ||    |  ^     ^  |        ^      ^
+   *  ||    +--|-----+  |        |      |
+   *  |+-------+        +--------+      |
+   *  +---------------------------------+
+   *
+   * The order to setup links:
+   *
+   *   cond -> break
+   *   init -> cond
+   *   C -> incr
+   *   B -> del_scope
+   */
+
+  /* Before parsing condition statement, push break/continue offsets  */
+  emit_byte(p, OP_LOOP);
+  size_t off_b = p->cur_idx;
+  emit_init_offset(p);
+  size_t off_c = p->cur_idx;
+  emit_init_offset(p);
+
+  /* Parse init statement */
   emit_byte(p, OP_NEW_SCOPE);
   if (p->tok.tok == TOK_KEYWORD_LET) {
     if ((res = parse_let(p)) != MJS_OK) return res;
@@ -9355,37 +9453,45 @@ static mjs_err_t parse_for(struct pstate *p) {
     if ((res = parse_expr(p)) != MJS_OK) return res;
   }
   EXPECT(p, TOK_SEMICOLON);
+  emit_byte(p, OP_DROP);
 
-  /* Before parsing condition statement, push break/continue offsets  */
-  emit_byte(p, OP_LOOP);
-  emit_byte(p, 0);
-  emit_byte(p, 0);
+  emit_byte(p, OP_JMP);
+  size_t off_init_end = p->cur_idx;
+  emit_init_offset(p);
 
-  // parse condition statement
-  off_cond = mjs_bcode_size(bcode);
+  size_t off_incr_begin = p->cur_idx;
+  size_t off_cond_begin = p->cur_idx;
+
+  /* Parse cond statement */
   if ((res = parse_expr(p)) != MJS_OK) return res;
   EXPECT(p, TOK_SEMICOLON);
 
-  // Exit the loop if false
-  off_post = mjs_bcode_size(bcode);
-  emit_byte(p, OP_JMP_FALSE);
-  emit_byte(p, 0);
+  /* Parse incr statement */
+  /* Incr statement should be placed before cond, so, adjust cur_idx */
+  int buf_cur_idx = p->cur_idx;
+  p->cur_idx = off_incr_begin;
 
-  // Jump to the loop body
-  emit_byte(p, OP_JMP);
-  emit_byte(p, 0);
-
-  // Parse post-condition statement
   if ((res = parse_expr(p)) != MJS_OK) return res;
   EXPECT(p, TOK_CLOSE_PAREN);
   emit_byte(p, OP_DROP);
 
-  // Post-condition statement done. Jump to the condition statement.
-  off_body = mjs_bcode_size(bcode);
-  emit_byte(p, OP_JMP_BACK);
-  emit_byte(p, off_body - off_cond);
+  /*
+   * Now incr is inserted before cond, so we adjust cur_idx back, and set
+   * off_cond_begin to the correct value
+   */
+  {
+    int incr_size = p->cur_idx - off_incr_begin;
+    off_cond_begin += incr_size;
+    p->cur_idx = buf_cur_idx + incr_size;
+  }
 
-  // Parse loop body
+  /* p->cur_idx is now at the end of "cond" */
+  /* Exit the loop if false */
+  emit_byte(p, OP_JMP_FALSE);
+  size_t off_cond_end = p->cur_idx;
+  emit_init_offset(p);
+
+  /* Parse loop body */
   if (p->tok.tok == TOK_OPEN_CURLY) {
     if ((res = parse_statement_list(p, TOK_CLOSE_CURLY)) != MJS_OK) return res;
     pnext1(p);
@@ -9395,40 +9501,70 @@ static mjs_err_t parse_for(struct pstate *p) {
   emit_byte(p, OP_DROP);
   emit_byte(p, OP_CONTINUE);
 
-  off_done = mjs_bcode_size(bcode);
-  mjs_bcode_mutate_byte(p->mjs, off_cond - 2, off_done - off_cond + 5);
-  mjs_bcode_mutate_byte(p->mjs, off_cond - 1, off_post + 7 - off_cond);
-  mjs_bcode_mutate_byte(p->mjs, off_post + 1, off_done - off_post);
-  mjs_bcode_mutate_byte(p->mjs, off_post + 3, off_body - off_post);
+  /* p->cur_idx is at the "break" item now */
 
-  emit_byte(p, OP_DROP); /* remove JMP_FALSE value left by cond stmt */
+  /* jump cond -> break */
+  mjs_bcode_insert_offset(p, p->mjs, off_cond_end,
+                          p->cur_idx - off_cond_end - MJS_INIT_OFFSET_SIZE);
+
+  /* jump init -> cond (and adjust off_incr_begin which may move) */
+  off_incr_begin += mjs_bcode_insert_offset(
+      p, p->mjs, off_init_end,
+      off_cond_begin - off_init_end - MJS_INIT_OFFSET_SIZE);
+
+  /* jump C -> incr */
+  mjs_bcode_insert_offset(p, p->mjs, off_c,
+                          off_incr_begin - off_c - MJS_INIT_OFFSET_SIZE);
+
   emit_byte(p, OP_BREAK);
+
+  /* jump B -> del_scope */
+  mjs_bcode_insert_offset(p, p->mjs, off_b,
+                          p->cur_idx - off_b - MJS_INIT_OFFSET_SIZE);
+
   emit_byte(p, OP_DEL_SCOPE);
 
   return res;
 }
 
 static mjs_err_t parse_while(struct pstate *p) {
-  size_t off_cond, off_body, off_done;
+  size_t off_cond_end, off_b;
   mjs_err_t res = MJS_OK;
 
   EXPECT(p, TOK_KEYWORD_WHILE);
   EXPECT(p, TOK_OPEN_PAREN);
 
   emit_byte(p, OP_NEW_SCOPE);
+
+  /*
+   * BC is a break+continue offsets (a part of OP_LOOP opcode)
+   *
+   *   BC cond body break del_scope
+   *   || ^  |      ^     ^
+   *   || |  |      |     |
+   *   |+-+  +------+     |
+   *   +------------------+
+   *
+   * The order to setup links:
+   *
+   *    cond -> break
+   *    C -> cond
+   *    B -> del_scope
+   */
+
   emit_byte(p, OP_LOOP);
-  emit_byte(p, 0); /* Fill out OP_BREAK address later  */
-  emit_byte(p, 3); /* Point OP_CONTINUE to the next instruction */
+  off_b = p->cur_idx;
+  emit_init_offset(p);
+  emit_byte(p, 0); /* Point OP_CONTINUE to the next instruction */
 
   // parse condition statement
-  off_cond = mjs_bcode_size(&p->mjs->bcode);
   if ((res = parse_expr(p)) != MJS_OK) return res;
   EXPECT(p, TOK_CLOSE_PAREN);
 
   // Exit the loop if false
-  off_body = mjs_bcode_size(&p->mjs->bcode);
   emit_byte(p, OP_JMP_FALSE);
-  emit_byte(p, 0);
+  off_cond_end = p->cur_idx;
+  emit_init_offset(p);
 
   // Parse loop body
   if (p->tok.tok == TOK_OPEN_CURLY) {
@@ -9440,10 +9576,18 @@ static mjs_err_t parse_while(struct pstate *p) {
   emit_byte(p, OP_DROP);
   emit_byte(p, OP_CONTINUE);
 
-  off_done = mjs_bcode_size(&p->mjs->bcode);
-  mjs_bcode_mutate_byte(p->mjs, off_cond - 2, off_done - off_cond + 4);
-  mjs_bcode_mutate_byte(p->mjs, off_body + 1, off_done - off_body);
+  /* jump cond -> break */
+  mjs_bcode_insert_offset(p, p->mjs, off_cond_end,
+                          p->cur_idx - off_cond_end - MJS_INIT_OFFSET_SIZE);
+
+  /* NOTE: jump C -> cond link is already established, it's constant: zero */
+
   emit_byte(p, OP_BREAK);
+
+  /* jump B -> cond */
+  mjs_bcode_insert_offset(p, p->mjs, off_b,
+                          p->cur_idx - off_b - MJS_INIT_OFFSET_SIZE);
+
   emit_byte(p, OP_DEL_SCOPE);
   return res;
 }
@@ -9456,9 +9600,9 @@ static mjs_err_t parse_if(struct pstate *p) {
   EXPECT(p, TOK_OPEN_PAREN);
   if ((res = parse_expr(p)) != MJS_OK) return res;
 
-  off_if = mjs_bcode_size(&p->mjs->bcode);
   emit_byte(p, OP_JMP_FALSE);
-  emit_byte(p, 0);
+  off_if = p->cur_idx;
+  emit_init_offset(p);
 
   EXPECT(p, TOK_CLOSE_PAREN);
   if ((res = parse_block_or_stmt(p, 1)) != MJS_OK) return res;
@@ -9471,26 +9615,29 @@ static mjs_err_t parse_if(struct pstate *p) {
      */
     size_t off_else, off_endelse;
     pnext1(p);
-    off_else = mjs_bcode_size(&p->mjs->bcode);
     emit_byte(p, OP_JMP);
-    emit_byte(p, 0);
-    off_endif = mjs_bcode_size(&p->mjs->bcode);
+    off_else = p->cur_idx;
+    emit_init_offset(p);
+    off_endif = p->cur_idx;
 
     emit_byte(p, OP_DROP);
     if ((res = parse_block_or_stmt(p, 1)) != MJS_OK) return res;
-    off_endelse = mjs_bcode_size(&p->mjs->bcode);
-    if (off_endelse - off_else >= 255) FAIL_ERR(p, MJS_INTERNAL_ERROR);
-    mjs_bcode_mutate_byte(p->mjs, off_else + 1 /*OP_JMP*/,
-                          off_endelse - off_else);
+    off_endelse = p->cur_idx;
+
+    /*
+     * NOTE: if inserting offset causes the code to move, off_endif needs to be
+     * adjusted
+     */
+    off_endif += mjs_bcode_insert_offset(
+        p, p->mjs, off_else, off_endelse - off_else - MJS_INIT_OFFSET_SIZE);
   } else {
     /* Else clause is not present, so, current offset is a jump target
      * (off_endif) */
-    off_endif = mjs_bcode_size(&p->mjs->bcode);
+    off_endif = p->cur_idx;
   }
 
-  if (off_endif - off_if >= 255) FAIL_ERR(p, MJS_INTERNAL_ERROR);
-  mjs_bcode_mutate_byte(p->mjs, off_if + 1 /*OP_JMP_FALSE*/,
-                        off_endif - off_if);
+  mjs_bcode_insert_offset(p, p->mjs, off_if,
+                          off_endif - off_if - MJS_INIT_OFFSET_SIZE);
 
   return res;
 }
@@ -9553,7 +9700,13 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   struct pstate p;
   pinit(path, buf, &p);
   p.mjs = mjs;
+  p.cur_idx = p.mjs->bcode.len;
   emit_byte(&p, OP_BCODE_HEADER);
+
+  /*
+   * TODO(dfrank): don't access mjs->bcode directly, use emit_... API which
+   * takes care of p->cur_idx
+   */
 
   /* Remember starting bcode position, and reserve the room for bcode header */
   size_t start_idx = p.mjs->bcode.len;
@@ -9569,6 +9722,7 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
          &bcode_offset, sizeof(mjs_header_item_t));
 
   p.start_bcode_idx = p.mjs->bcode.len;
+  p.cur_idx = p.mjs->bcode.len;
 
   res = parse_statement_list(&p, TOK_EOF);
   emit_byte(&p, OP_EXIT);
@@ -10620,14 +10774,14 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
   static const char *names[] = {
-      "NOP",       "DROP",       "DUP",        "SWAP",        "JMP",
-      "JMP_BACK",  "JMP_TRUE",   "JMP_FALSE",  "FIND_SCOPE",  "PUSH_SCOPE",
-      "PUSH_STR",  "PUSH_TRUE",  "PUSH_FALSE", "PUSH_INT",    "PUSH_DBL",
-      "PUSH_NULL", "PUSH_UNDEF", "PUSH_OBJ",   "PUSH_ARRAY",  "PUSH_FUNC",
-      "PUSH_THIS", "GET",        "CREATE",     "EXPR",        "APPEND",
-      "SET_ARG",   "NEW_SCOPE",  "DEL_SCOPE",  "CALL",        "RETURN",
-      "LOOP_ADDR", "BREAK",      "CONTINUE",   "SETRETVAL",   "EXIT",
-      "BCODE_HDR", "SET_THIS",   "ARGS",       "FOR_IN_NEXT",
+      "NOP",        "DROP",       "DUP",         "SWAP",       "JMP",
+      "JMP_TRUE",   "JMP_FALSE",  "FIND_SCOPE",  "PUSH_SCOPE", "PUSH_STR",
+      "PUSH_TRUE",  "PUSH_FALSE", "PUSH_INT",    "PUSH_DBL",   "PUSH_NULL",
+      "PUSH_UNDEF", "PUSH_OBJ",   "PUSH_ARRAY",  "PUSH_FUNC",  "PUSH_THIS",
+      "GET",        "CREATE",     "EXPR",        "APPEND",     "SET_ARG",
+      "NEW_SCOPE",  "DEL_SCOPE",  "CALL",        "RETURN",     "LOOP",
+      "BREAK",      "CONTINUE",   "SETRETVAL",   "EXIT",       "BCODE_HDR",
+      "SET_THIS",   "ARGS",       "FOR_IN_NEXT",
   };
   const char *name = "UNKNOWN OPCODE";
   assert(ARRAY_SIZE(names) == OP_MAX);
@@ -10651,7 +10805,7 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
     switch (code[i]) {
       case OP_PUSH_FUNC: {
         int llen, n = varint_decode(&code[i + 1], &llen);
-        fprintf(fp, " %04u", (unsigned) n);
+        fprintf(fp, " %04u", (unsigned) (i - n));
         i += llen;
         break;
       }
@@ -10676,22 +10830,22 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
         i += llen + n;
         break;
       }
-      case OP_JMP_BACK:
-        fprintf(fp, "\t%04u", (unsigned) i - code[i + 1]);
-        i++;
-        break;
       case OP_JMP:
       case OP_JMP_TRUE:
       case OP_JMP_FALSE: {
-        fprintf(fp, "\t%u", (unsigned) i + code[i + 1]);
-        i++;
+        int llen, n = varint_decode(&code[i + 1], &llen);
+        fprintf(fp, "\t%u",
+                (unsigned) i + n + llen +
+                    1 /* becaue i will be incremented on the usual terms */);
+        i += llen;
         break;
       }
       case OP_LOOP: {
         int l1, l2, n2, n1 = varint_decode(&code[i + 1], &l1);
         n2 = varint_decode(&code[i + l1 + 1], &l2);
-        fprintf(fp, "\t%lu %lu", (unsigned long) i + n1,
-                (unsigned long) i + n2);
+        fprintf(fp, "\tB:%lu C:%lu (%d)",
+                (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
+                (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i);
         i += l1 + l2;
         break;
       }

@@ -25,6 +25,8 @@ struct pstate {
   struct tok tok; /* Parsed token */
   struct mjs *mjs;
   int start_bcode_idx; /* Index in mjs->bcode at which parsing was started */
+  int cur_idx; /* Index in mjs->bcode at which newly generated code is inserted
+                  */
 };
 
 enum {

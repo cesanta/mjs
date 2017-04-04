@@ -65,10 +65,18 @@ static void op_assign(struct mjs *mjs, int op) {
   mjs_val_t key = mjs_pop(mjs);
   if (mjs_is_object(obj) && mjs_is_string(key)) {
     mjs_val_t v = mjs_get_v(mjs, obj, key);
-    double da = mjs_get_double(mjs, v);
-    double db = mjs_get_double(mjs, val);
-    double result = do_arith_op(da, db, op);
-    mjs_set_v(mjs, obj, key, mjs_mk_number(mjs, result));
+    if (mjs_is_number(v) && mjs_is_number(val)) {
+      double da = mjs_get_double(mjs, v);
+      double db = mjs_get_double(mjs, val);
+      double result = do_arith_op(da, db, op);
+      mjs_set_v(mjs, obj, key, mjs_mk_number(mjs, result));
+    } else if (mjs_is_string(v) && mjs_is_string(val) && (op == TOK_PLUS)) {
+      mjs_val_t result = s_concat(mjs, v, val);
+      mjs_set_v(mjs, obj, key, result);
+    } else {
+      mjs_set_v(mjs, obj, key, MJS_UNDEFINED);
+      mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
+    }
     mjs_push(mjs, v);
   } else {
     mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
@@ -278,6 +286,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     maybe_gc(mjs);
 #endif
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
+    /* mjs_dump(mjs, 0, stdout); */
     LOG(LL_VERBOSE_DEBUG, ("%d %s", (int) i, opcodetostr(code[i])));
     switch (code[i]) {
       case OP_BCODE_HEADER: {
@@ -308,25 +317,24 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       case OP_PUSH_FUNC: {
         int llen, n = varint_decode(&code[i + 1], &llen);
-        mjs_push(mjs, mjs_mk_function(mjs, n));
+        mjs_push(mjs, mjs_mk_function(mjs, i - n));
         i += llen;
         break;
       }
       case OP_PUSH_THIS:
         mjs_push(mjs, mjs_get_this_for_js_call(mjs));
         break;
-      case OP_JMP:
-        i += code[i + 1] - 1;
+      case OP_JMP: {
+        int llen, n = varint_decode(&code[i + 1], &llen);
+        i += n + llen;
         break;
-      case OP_JMP_BACK:
-        i -= code[i + 1] + 1;
-        break;
+      }
       case OP_JMP_FALSE: {
-        if (mjs_is_truthy(mjs, mjs_pop(mjs))) {
-          i++;
-        } else {
+        int llen, n = varint_decode(&code[i + 1], &llen);
+        i += llen;
+        if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
-          i += code[i + 1] - 1;
+          i += n;
         }
         break;
       }
@@ -523,9 +531,11 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_LOOP: {
         int l1, l2, off = varint_decode(&code[i + 1], &l1);
-        push_mjs_val(&mjs->loop_addresses, mjs_mk_number(mjs, i + off));
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
         off = varint_decode(&code[i + 1 + l1], &l2);
-        push_mjs_val(&mjs->loop_addresses, mjs_mk_number(mjs, i + off));
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
         i += l1 + l2;
         break;
       }

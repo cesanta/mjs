@@ -75,11 +75,29 @@ $(BUILD_DIR):
 $(BUILD_DIR)/%.o: %.c $(TOP_HEADERS)
 	$(CLANG) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-$(BUILD_DIR)/unit_test: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	$(CLANG) -W -Wall -I. -I$(REPO_ROOT_PATH) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES) -o $@
+COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT_PATH) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES)
 
 test: $(BUILD_DIR)/unit_test $(PROG)
 	$(BUILD_DIR)/unit_test
+
+# test_full TODO(dfrank): refactor {{{
+$(BUILD_DIR)/unit_test: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
+	$(CLANG) $(COMMON_TEST_FLAGS) -o $@
+
+$(BUILD_DIR)/unit_test_init0: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
+	$(CLANG) $(COMMON_TEST_FLAGS) -DMJS_INIT_OFFSET_SIZE=0 -o $@
+
+$(BUILD_DIR)/unit_test_init4: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
+	$(CLANG) $(COMMON_TEST_FLAGS) -DMJS_INIT_OFFSET_SIZE=4 -o $@
+
+test_full: $(PROG) \
+    $(BUILD_DIR)/unit_test \
+    $(BUILD_DIR)/unit_test_init0 \
+    $(BUILD_DIR)/unit_test_init4
+	$(BUILD_DIR)/unit_test
+	$(BUILD_DIR)/unit_test_init0
+	$(BUILD_DIR)/unit_test_init4
+# }}}
 
 clean:
 	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h

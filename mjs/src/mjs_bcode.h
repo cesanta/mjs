@@ -14,7 +14,6 @@ enum mjs_opcode {
   OP_DUP,          /* ( a -- a a ) */
   OP_SWAP,         /* ( a b -- b a ) */
   OP_JMP,          /* ( -- ) */
-  OP_JMP_BACK,     /* ( -- ) */
   OP_JMP_TRUE,     /* ( -- ) */
   OP_JMP_FALSE,    /* ( -- ) */
   OP_FIND_SCOPE,   /* ( a -- a b ) */
@@ -57,8 +56,14 @@ struct mjs;
 MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte);
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n);
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len);
-MJS_PRIVATE size_t mjs_bcode_size(const struct mbuf *mbuf);
-MJS_PRIVATE void mjs_bcode_mutate_byte(struct mjs *mbuf, size_t offset,
-                                       size_t byte);
+
+/*
+ * Inserts provided offset `v` at the offset `offset`.
+ *
+ * Returns delta at which the code was moved; the delta can be any: 0 or
+ * positive or negative.
+ */
+MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
+                                        size_t offset, size_t v);
 
 #endif /* MJS_BCODE_H_ */

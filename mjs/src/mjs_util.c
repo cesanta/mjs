@@ -72,14 +72,14 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
   static const char *names[] = {
-      "NOP",       "DROP",       "DUP",        "SWAP",        "JMP",
-      "JMP_BACK",  "JMP_TRUE",   "JMP_FALSE",  "FIND_SCOPE",  "PUSH_SCOPE",
-      "PUSH_STR",  "PUSH_TRUE",  "PUSH_FALSE", "PUSH_INT",    "PUSH_DBL",
-      "PUSH_NULL", "PUSH_UNDEF", "PUSH_OBJ",   "PUSH_ARRAY",  "PUSH_FUNC",
-      "PUSH_THIS", "GET",        "CREATE",     "EXPR",        "APPEND",
-      "SET_ARG",   "NEW_SCOPE",  "DEL_SCOPE",  "CALL",        "RETURN",
-      "LOOP_ADDR", "BREAK",      "CONTINUE",   "SETRETVAL",   "EXIT",
-      "BCODE_HDR", "SET_THIS",   "ARGS",       "FOR_IN_NEXT",
+      "NOP",        "DROP",       "DUP",         "SWAP",       "JMP",
+      "JMP_TRUE",   "JMP_FALSE",  "FIND_SCOPE",  "PUSH_SCOPE", "PUSH_STR",
+      "PUSH_TRUE",  "PUSH_FALSE", "PUSH_INT",    "PUSH_DBL",   "PUSH_NULL",
+      "PUSH_UNDEF", "PUSH_OBJ",   "PUSH_ARRAY",  "PUSH_FUNC",  "PUSH_THIS",
+      "GET",        "CREATE",     "EXPR",        "APPEND",     "SET_ARG",
+      "NEW_SCOPE",  "DEL_SCOPE",  "CALL",        "RETURN",     "LOOP",
+      "BREAK",      "CONTINUE",   "SETRETVAL",   "EXIT",       "BCODE_HDR",
+      "SET_THIS",   "ARGS",       "FOR_IN_NEXT",
   };
   const char *name = "UNKNOWN OPCODE";
   assert(ARRAY_SIZE(names) == OP_MAX);
@@ -103,7 +103,7 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
     switch (code[i]) {
       case OP_PUSH_FUNC: {
         int llen, n = varint_decode(&code[i + 1], &llen);
-        fprintf(fp, " %04u", (unsigned) n);
+        fprintf(fp, " %04u", (unsigned) (i - n));
         i += llen;
         break;
       }
@@ -128,22 +128,22 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
         i += llen + n;
         break;
       }
-      case OP_JMP_BACK:
-        fprintf(fp, "\t%04u", (unsigned) i - code[i + 1]);
-        i++;
-        break;
       case OP_JMP:
       case OP_JMP_TRUE:
       case OP_JMP_FALSE: {
-        fprintf(fp, "\t%u", (unsigned) i + code[i + 1]);
-        i++;
+        int llen, n = varint_decode(&code[i + 1], &llen);
+        fprintf(fp, "\t%u",
+                (unsigned) i + n + llen +
+                    1 /* becaue i will be incremented on the usual terms */);
+        i += llen;
         break;
       }
       case OP_LOOP: {
         int l1, l2, n2, n1 = varint_decode(&code[i + 1], &l1);
         n2 = varint_decode(&code[i + l1 + 1], &l2);
-        fprintf(fp, "\t%lu %lu", (unsigned long) i + n1,
-                (unsigned long) i + n2);
+        fprintf(fp, "\tB:%lu C:%lu (%d)",
+                (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
+                (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i);
         i += l1 + l2;
         break;
       }
