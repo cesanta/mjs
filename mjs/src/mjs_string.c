@@ -5,6 +5,7 @@
 
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_internal.h"
+#include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_varint.h"
 
@@ -129,39 +130,33 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
     char *s = mjs->owned_strings.buf + offset;
     size = varint_decode((uint8_t *) s, &llen);
     p = s + llen;
-    // } else if (tag == MJS_TAG_STRING_F) {
-    //   /*
-    //    * short foreign strings on <=32-bit machines can be encoded in a
-    //    compact
-    //    * form:
-    //    *
-    //    *     7         6        5        4        3        2        1 0
-    //    *
-    //    11111111|1111tttt|llllllll|llllllll|ssssssss|ssssssss|ssssssss|ssssssss
-    //    *
-    //    * Strings longer than 2^26 will be indireceted through the
-    //    foreign_strings
-    //    * mbuf.
-    //    *
-    //    * We don't use a different tag to represent those two cases. Instead,
-    //    all
-    //    * foreign strings represented with the help of the foreign_strings
-    //    mbuf
-    //    * will have the upper 16-bits of the payload set to zero. This allows
-    //    us to
-    //    * represent up to 477 million foreign strings longer than 64k.
-    //    */
-    //   uint16_t len = (*v >> 32) & 0xFFFF;
-    //   if (sizeof(void *) <= 4 && len != 0) {
-    //     size = (size_t) len;
-    //     p = (const char *) (uintptr_t) *v;
-    //   } else {
-    //     size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
-    //     char *s = mjs->foreign_strings.buf + offset;
-    //
-    //     size = decode_varint((uint8_t *) s, &llen);
-    //     memcpy(&p, s + llen, sizeof(p));
-    //   }
+  } else if (tag == MJS_TAG_STRING_F) {
+    /*
+     * short foreign strings on <=32-bit machines can be encoded in a compact
+     * form:
+     *
+     *     7         6        5        4        3        2        1        0
+     *  11111111|1111tttt|llllllll|llllllll|ssssssss|ssssssss|ssssssss|ssssssss
+     *
+     * Strings longer than 2^26 will be indireceted through the foreign_strings
+     * mbuf.
+     *
+     * We don't use a different tag to represent those two cases. Instead, all
+     * foreign strings represented with the help of the foreign_strings mbuf
+     * will have the upper 16-bits of the payload set to zero. This allows us to
+     * represent up to 477 million foreign strings longer than 64k.
+     */
+    uint16_t len = (*v >> 32) & 0xFFFF;
+    if (sizeof(void *) <= 4 && len != 0) {
+      size = (size_t) len;
+      p = (const char *) (uintptr_t) *v;
+    } else {
+      size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
+      char *s = mjs->foreign_strings.buf + offset;
+
+      size = varint_decode((uint8_t *) s, &llen);
+      memcpy(&p, s + llen, sizeof(p));
+    }
   } else {
     assert(0);
   }
@@ -368,62 +363,60 @@ MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
 //   mjs_push(mjs, ret);
 // }
 
-// MJS_PRIVATE void mjs_fstr(struct bf_vm *vm) {
-//   struct mjs *mjs = (struct mjs *) vm->user_data;
-//   int nargs = mjs_get_int(mjs, mjs_pop(mjs));
-//   mjs_val_t ret = MJS_UNDEFINED;
-//
-//   char *ptr = NULL;
-//   int offset = 0;
-//   int len = 0;
-//
-//   mjs_val_t ptr_v = MJS_UNDEFINED;
-//   mjs_val_t offset_v = MJS_UNDEFINED;
-//   mjs_val_t len_v = MJS_UNDEFINED;
-//
-//   if (nargs == 2) {
-//     ptr_v = mjs_pop(mjs);
-//     len_v = mjs_pop(mjs);
-//   } else if (nargs == 3) {
-//     ptr_v = mjs_pop(mjs);
-//     offset_v = mjs_pop(mjs);
-//     len_v = mjs_pop(mjs);
-//   } else {
-//     mjs_prepend_errorf(
-//         mjs, MJS_TYPE_ERROR,
-//         "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
-//     goto clean;
-//   }
-//
-//   if (!mjs_is_foreign(ptr_v)) {
-//     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "ptr should be a foreign
-//     pointer");
-//     goto clean;
-//   }
-//
-//   if (offset_v != MJS_UNDEFINED && !mjs_is_number(offset_v)) {
-//     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "offset should be a number");
-//     goto clean;
-//   }
-//
-//   if (!mjs_is_number(len_v)) {
-//     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "len should be a number");
-//     goto clean;
-//   }
-//
-//   /* all arguments are fine */
-//
-//   ptr = (char *) mjs_get_ptr(mjs, ptr_v);
-//   if (offset_v != MJS_UNDEFINED) {
-//     offset = mjs_get_int(mjs, offset_v);
-//   }
-//   len = mjs_get_int(mjs, len_v);
-//
-//   ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
-//
-// clean:
-//   mjs_push(mjs, ret);
-// }
+MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
+  int nargs = mjs_nargs(mjs);
+  mjs_val_t ret = MJS_UNDEFINED;
+
+  char *ptr = NULL;
+  int offset = 0;
+  int len = 0;
+
+  mjs_val_t ptr_v = MJS_UNDEFINED;
+  mjs_val_t offset_v = MJS_UNDEFINED;
+  mjs_val_t len_v = MJS_UNDEFINED;
+
+  if (nargs == 2) {
+    ptr_v = mjs_arg(mjs, 0);
+    len_v = mjs_arg(mjs, 1);
+  } else if (nargs == 3) {
+    ptr_v = mjs_arg(mjs, 0);
+    offset_v = mjs_arg(mjs, 1);
+    len_v = mjs_arg(mjs, 2);
+  } else {
+    mjs_prepend_errorf(
+        mjs, MJS_TYPE_ERROR,
+        "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
+    goto clean;
+  }
+
+  if (!mjs_is_foreign(ptr_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "ptr should be a foreign pointer");
+    goto clean;
+  }
+
+  if (offset_v != MJS_UNDEFINED && !mjs_is_number(offset_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "offset should be a number");
+    goto clean;
+  }
+
+  if (!mjs_is_number(len_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "len should be a number");
+    goto clean;
+  }
+
+  /* all arguments are fine */
+
+  ptr = (char *) mjs_get_ptr(mjs, ptr_v);
+  if (offset_v != MJS_UNDEFINED) {
+    offset = mjs_get_int(mjs, offset_v);
+  }
+  len = mjs_get_int(mjs, len_v);
+
+  ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
+
+clean:
+  mjs_return(mjs, ret);
+}
 
 enum unescape_error {
   SLRE_INVALID_HEX_DIGIT,

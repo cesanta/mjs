@@ -1675,6 +1675,51 @@ const char *test_long_jump() {
   return NULL;
 }
 
+const char *test_foreign_str() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  uint8_t *ptr = NULL;
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let calloc = ffi('void *calloc(int, int)');
+          let ptr = calloc(100, 1);
+          let str = fstr(ptr, 3);
+          ptr
+          ), &res));
+  ptr = (uint8_t *)mjs_get_ptr(mjs, res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "str.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 3);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "str[0] === '\\x00'", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "str === '\\x00\\x00\\x00'", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ptr[0] = 'a';
+  ptr[2] = 'b';
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "str === 'a\\x00b'", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let str2 = fstr(ptr, 2, 10); str2", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "str2 === 'b\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  /* TODO(dfrank): make foreign strings mutable? */
+
+  free(ptr);
+  ptr = NULL;
+
+  return NULL;
+}
+
 const char *test_dataview(void) {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
@@ -1730,6 +1775,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_for_in_loop);
   RUN_TEST(test_call_api);
   RUN_TEST(test_long_jump);
+  RUN_TEST(test_foreign_str);
 
   /* FFI */
   RUN_TEST(test_func1);

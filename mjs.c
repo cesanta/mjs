@@ -2863,9 +2863,10 @@ MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
                               size_t len, uint8_t /*enum embstr_flags*/ flags);
 
+MJS_PRIVATE void mjs_fstr(struct mjs *mjs);
+
 // MJS_PRIVATE void mjs_string_slice(struct mjs *);
 // MJS_PRIVATE void mjs_string_char_code_at(struct mjs *);
-// MJS_PRIVATE void mjs_fstr(struct mjs *);
 
 #define EMBSTR_ZERO_TERM 1
 #define EMBSTR_UNESCAPE 2
@@ -5677,6 +5678,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "print", ~0, mjs_mk_foreign(mjs, mjs_print));
   mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
+  mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
 
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
@@ -6469,6 +6471,97 @@ static void exec_expr(struct mjs *mjs, int op) {
   }
 }
 
+static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
+                                  const char *name, size_t name_len,
+                                  mjs_val_t *res) {
+  int isnum = 0;
+  int idx = cstr_to_ulong(name, name_len, &isnum);
+
+  if (strcmp(name, "length") == 0) {
+    size_t val_len;
+    mjs_get_string(mjs, &val, &val_len);
+    *res = mjs_mk_number(mjs, val_len);
+    return 1;
+
+/* TODO(dfrank): implement */
+#if 0
+  } else if (strcmp(name, "slice") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_string_slice);
+    return 1;
+  } else if (strcmp(name, "charCodeAt") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
+    return 1;
+#endif
+  } else if (isnum) {
+    /*
+     * string subscript: return a new one-byte string if the index
+     * is not out of bounds
+     */
+    size_t val_len;
+    const char *str = mjs_get_string(mjs, &val, &val_len);
+    if (idx >= 0 && idx < (int) val_len) {
+      *res = mjs_mk_string(mjs, str + idx, 1, 1);
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
+                                 const char *name, size_t name_len,
+                                 mjs_val_t *res) {
+  if (strcmp(name, "length") == 0) {
+    *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
+    return 1;
+  }
+
+  (void) name_len;
+  return 0;
+}
+
+static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
+                                   const char *name, size_t name_len,
+                                   mjs_val_t *res) {
+  int isnum = 0;
+  int idx = cstr_to_ulong(name, name_len, &isnum);
+
+  if (!isnum) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+  } else {
+    uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, val);
+    *res = mjs_mk_number(mjs, *(ptr + idx));
+    return 1;
+  }
+  return 0;
+}
+
+static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
+                           mjs_val_t *res) {
+  size_t n;
+  char *s = NULL;
+  int need_free = 0;
+  int handled = 0;
+
+  mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
+
+  if (err == MJS_OK) {
+    if (mjs_is_string(val)) {
+      handled = getprop_builtin_string(mjs, val, s, n, res);
+    } else if (mjs_is_array(val)) {
+      handled = getprop_builtin_array(mjs, val, s, n, res);
+    } else if (mjs_is_foreign(val)) {
+      handled = getprop_builtin_foreign(mjs, val, s, n, res);
+    }
+  }
+
+  if (need_free) {
+    free(s);
+    s = NULL;
+  }
+
+  return handled;
+}
+
 static void mjs_execute(struct mjs *mjs, size_t off) {
   size_t i;
   mjs_set_errorf(mjs, MJS_OK, NULL);
@@ -6567,11 +6660,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_val_t obj = mjs_pop(mjs);
         mjs_val_t key = mjs_pop(mjs);
         mjs_val_t val = MJS_UNDEFINED;
-        if (!mjs_is_object(obj)) {
-          mjs_set_errorf(mjs, MJS_TYPE_ERROR, "type error");
-        } else {
-          val = mjs_get_v_proto(mjs, obj, key);
+
+        if (!getprop_builtin(mjs, obj, key, &val)) {
+          if (mjs_is_object(obj)) {
+            val = mjs_get_v_proto(mjs, obj, key);
+          } else {
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "type error");
+          }
         }
+
         mjs_push(mjs, val);
         if (prev_opcode != OP_FIND_SCOPE) {
           /*
@@ -9926,6 +10023,7 @@ int mjs_is_function(mjs_val_t v) {
 
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "mjs/src/mjs_varint.h" */
 
@@ -10050,39 +10148,33 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
     char *s = mjs->owned_strings.buf + offset;
     size = varint_decode((uint8_t *) s, &llen);
     p = s + llen;
-    // } else if (tag == MJS_TAG_STRING_F) {
-    //   /*
-    //    * short foreign strings on <=32-bit machines can be encoded in a
-    //    compact
-    //    * form:
-    //    *
-    //    *     7         6        5        4        3        2        1 0
-    //    *
-    //    11111111|1111tttt|llllllll|llllllll|ssssssss|ssssssss|ssssssss|ssssssss
-    //    *
-    //    * Strings longer than 2^26 will be indireceted through the
-    //    foreign_strings
-    //    * mbuf.
-    //    *
-    //    * We don't use a different tag to represent those two cases. Instead,
-    //    all
-    //    * foreign strings represented with the help of the foreign_strings
-    //    mbuf
-    //    * will have the upper 16-bits of the payload set to zero. This allows
-    //    us to
-    //    * represent up to 477 million foreign strings longer than 64k.
-    //    */
-    //   uint16_t len = (*v >> 32) & 0xFFFF;
-    //   if (sizeof(void *) <= 4 && len != 0) {
-    //     size = (size_t) len;
-    //     p = (const char *) (uintptr_t) *v;
-    //   } else {
-    //     size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
-    //     char *s = mjs->foreign_strings.buf + offset;
-    //
-    //     size = decode_varint((uint8_t *) s, &llen);
-    //     memcpy(&p, s + llen, sizeof(p));
-    //   }
+  } else if (tag == MJS_TAG_STRING_F) {
+    /*
+     * short foreign strings on <=32-bit machines can be encoded in a compact
+     * form:
+     *
+     *     7         6        5        4        3        2        1        0
+     *  11111111|1111tttt|llllllll|llllllll|ssssssss|ssssssss|ssssssss|ssssssss
+     *
+     * Strings longer than 2^26 will be indireceted through the foreign_strings
+     * mbuf.
+     *
+     * We don't use a different tag to represent those two cases. Instead, all
+     * foreign strings represented with the help of the foreign_strings mbuf
+     * will have the upper 16-bits of the payload set to zero. This allows us to
+     * represent up to 477 million foreign strings longer than 64k.
+     */
+    uint16_t len = (*v >> 32) & 0xFFFF;
+    if (sizeof(void *) <= 4 && len != 0) {
+      size = (size_t) len;
+      p = (const char *) (uintptr_t) *v;
+    } else {
+      size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
+      char *s = mjs->foreign_strings.buf + offset;
+
+      size = varint_decode((uint8_t *) s, &llen);
+      memcpy(&p, s + llen, sizeof(p));
+    }
   } else {
     assert(0);
   }
@@ -10289,62 +10381,60 @@ MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
 //   mjs_push(mjs, ret);
 // }
 
-// MJS_PRIVATE void mjs_fstr(struct bf_vm *vm) {
-//   struct mjs *mjs = (struct mjs *) vm->user_data;
-//   int nargs = mjs_get_int(mjs, mjs_pop(mjs));
-//   mjs_val_t ret = MJS_UNDEFINED;
-//
-//   char *ptr = NULL;
-//   int offset = 0;
-//   int len = 0;
-//
-//   mjs_val_t ptr_v = MJS_UNDEFINED;
-//   mjs_val_t offset_v = MJS_UNDEFINED;
-//   mjs_val_t len_v = MJS_UNDEFINED;
-//
-//   if (nargs == 2) {
-//     ptr_v = mjs_pop(mjs);
-//     len_v = mjs_pop(mjs);
-//   } else if (nargs == 3) {
-//     ptr_v = mjs_pop(mjs);
-//     offset_v = mjs_pop(mjs);
-//     len_v = mjs_pop(mjs);
-//   } else {
-//     mjs_prepend_errorf(
-//         mjs, MJS_TYPE_ERROR,
-//         "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
-//     goto clean;
-//   }
-//
-//   if (!mjs_is_foreign(ptr_v)) {
-//     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "ptr should be a foreign
-//     pointer");
-//     goto clean;
-//   }
-//
-//   if (offset_v != MJS_UNDEFINED && !mjs_is_number(offset_v)) {
-//     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "offset should be a number");
-//     goto clean;
-//   }
-//
-//   if (!mjs_is_number(len_v)) {
-//     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "len should be a number");
-//     goto clean;
-//   }
-//
-//   /* all arguments are fine */
-//
-//   ptr = (char *) mjs_get_ptr(mjs, ptr_v);
-//   if (offset_v != MJS_UNDEFINED) {
-//     offset = mjs_get_int(mjs, offset_v);
-//   }
-//   len = mjs_get_int(mjs, len_v);
-//
-//   ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
-//
-// clean:
-//   mjs_push(mjs, ret);
-// }
+MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
+  int nargs = mjs_nargs(mjs);
+  mjs_val_t ret = MJS_UNDEFINED;
+
+  char *ptr = NULL;
+  int offset = 0;
+  int len = 0;
+
+  mjs_val_t ptr_v = MJS_UNDEFINED;
+  mjs_val_t offset_v = MJS_UNDEFINED;
+  mjs_val_t len_v = MJS_UNDEFINED;
+
+  if (nargs == 2) {
+    ptr_v = mjs_arg(mjs, 0);
+    len_v = mjs_arg(mjs, 1);
+  } else if (nargs == 3) {
+    ptr_v = mjs_arg(mjs, 0);
+    offset_v = mjs_arg(mjs, 1);
+    len_v = mjs_arg(mjs, 2);
+  } else {
+    mjs_prepend_errorf(
+        mjs, MJS_TYPE_ERROR,
+        "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
+    goto clean;
+  }
+
+  if (!mjs_is_foreign(ptr_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "ptr should be a foreign pointer");
+    goto clean;
+  }
+
+  if (offset_v != MJS_UNDEFINED && !mjs_is_number(offset_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "offset should be a number");
+    goto clean;
+  }
+
+  if (!mjs_is_number(len_v)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "len should be a number");
+    goto clean;
+  }
+
+  /* all arguments are fine */
+
+  ptr = (char *) mjs_get_ptr(mjs, ptr_v);
+  if (offset_v != MJS_UNDEFINED) {
+    offset = mjs_get_int(mjs, offset_v);
+  }
+  len = mjs_get_int(mjs, len_v);
+
+  ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
+
+clean:
+  mjs_return(mjs, ret);
+}
 
 enum unescape_error {
   SLRE_INVALID_HEX_DIGIT,
