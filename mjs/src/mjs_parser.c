@@ -249,7 +249,6 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
       if (!findtok(s_assign_ops, next_tok) &&
           !findtok(s_postfix_ops, next_tok) &&
           !findtok(s_postfix_ops, prev_tok)) {
-        if (prev_tok == TOK_DOT) emit_byte(p, OP_SET_THIS);
         emit_byte(p, OP_GET);
       }
       break;
@@ -305,7 +304,6 @@ static mjs_err_t parse_call_dot_mem(struct pstate *p, int prev_op) {
       EXPECT(p, TOK_OPEN_BRACKET);
       if ((res = parse_expr(p)) != MJS_OK) return res;
       emit_byte(p, OP_SWAP);
-      emit_byte(p, OP_SET_THIS);
       emit_byte(p, OP_GET);
       EXPECT(p, TOK_CLOSE_BRACKET);
     } else if (p->tok.tok == TOK_OPEN_PAREN) {

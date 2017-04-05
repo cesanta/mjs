@@ -44,7 +44,6 @@ enum mjs_opcode {
   OP_SETRETVAL,    /* ( a -- ) */
   OP_EXIT,         /* ( -- ) */
   OP_BCODE_HEADER, /* ( -- ) */
-  OP_SET_THIS,     /* ( -- ) */
   OP_ARGS,         /* ( -- ) Mark the beginning of function call arguments */
   OP_FOR_IN_NEXT,  /* ( name obj iter_ptr -- name obj iter_ptr_next ) */
   OP_MAX

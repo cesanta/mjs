@@ -1175,6 +1175,25 @@ const char *test_this() {
           ), &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 600);
 
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a;
+          function f(foo) {
+            a = foo;
+          }
+          let o = ({
+            s: 123,
+            x: function(str) {
+              this.s = str;
+              f(this.s);
+            },
+          });
+          o.x(456);
+          a;
+          ), &res));
+
+  ASSERT_EQ(mjs_get_int(mjs, res), 456);
+
   /* Test that `this` is handled by the GC correctly */
   /* TODO(dfrank): uncomment when f2().f() is not a syntax error */
 #if 0

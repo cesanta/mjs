@@ -33,13 +33,6 @@ mjs_val_t mjs_get_this(struct mjs *mjs) {
   return mjs->vals.this_obj;
 }
 
-static mjs_val_t mjs_get_this_for_js_call(struct mjs *mjs) {
-  int top = mjs_stack_size(&mjs->call_stack);
-  if (top == 0) return MJS_UNDEFINED;
-  assert(top >= 4 && (top % 4) == 0);
-  return *vptr(&mjs->call_stack, top - 4);
-}
-
 static double do_arith_op(double da, double db, int op) {
   /* clang-format off */
   switch (op) {
@@ -285,6 +278,8 @@ static void exec_expr(struct mjs *mjs, int op) {
 static void mjs_execute(struct mjs *mjs, size_t off) {
   size_t i;
   mjs_set_errorf(mjs, MJS_OK, NULL);
+  uint8_t prev_opcode = OP_MAX;
+  uint8_t opcode = OP_MAX;
   for (i = off; i < mjs->bcode.len; i++) {
     if (mjs->need_gc) {
       if (maybe_gc(mjs)) {
@@ -300,7 +295,9 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       printf("executing: ");
       mjs_disasm_single(code, i, stdout);
     }
-    switch (code[i]) {
+    prev_opcode = opcode;
+    opcode = code[i];
+    switch (opcode) {
       case OP_BCODE_HEADER: {
         mjs_header_item_t bcode_offset;
         memcpy(&bcode_offset,
@@ -334,7 +331,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_PUSH_THIS:
-        mjs_push(mjs, mjs_get_this_for_js_call(mjs));
+        mjs_push(mjs, mjs->vals.this_obj);
         break;
       case OP_JMP: {
         int llen, n = varint_decode(&code[i + 1], &llen);
@@ -372,9 +369,6 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         }
         break;
       }
-      case OP_SET_THIS:
-        mjs->vals.this_obj = vtop(&mjs->stack);
-        break;
       case OP_GET: {
         mjs_val_t obj = mjs_pop(mjs);
         mjs_val_t key = mjs_pop(mjs);
@@ -385,6 +379,19 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           val = mjs_get_v_proto(mjs, obj, key);
         }
         mjs_push(mjs, val);
+        if (prev_opcode != OP_FIND_SCOPE) {
+          /*
+           * Previous opcode was not OP_FIND_SCOPE, so it's some "custom"
+           * object which might be used as `this`, so, save it
+           */
+          mjs->vals.last_getprop_obj = obj;
+        } else {
+          /*
+           * Previous opcode was OP_FIND_SCOPE, so we're getting value from
+           * the scope, and it should *not* be used as `this`
+           */
+          mjs->vals.last_getprop_obj = MJS_UNDEFINED;
+        }
         break;
       }
       case OP_DEL_SCOPE:
@@ -446,8 +453,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
         scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
         return_address = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
-        mjs_pop_val(&mjs->call_stack);  //  Remove `this` value
-        mjs->vals.this_obj = MJS_UNDEFINED;
+        mjs->vals.this_obj = mjs_pop_val(&mjs->call_stack);
 
         // Remove created scopes
         while (mjs_stack_size(&mjs->scopes) > scope_index) {
@@ -464,6 +470,14 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_ARGS: {
+        /*
+         * If OP_ARGS follows OP_GET, then last_getprop_obj is set to `this`
+         * value; otherwise, last_getprop_obj is irrelevant and we have to
+         * reset it to `undefined`
+         */
+        if (prev_opcode != OP_GET) {
+          mjs->vals.last_getprop_obj = MJS_UNDEFINED;
+        }
         push_mjs_val(&mjs->call_stack,
                      mjs_mk_number(mjs, mjs_stack_size(&mjs->stack)));
         break;
@@ -481,6 +495,8 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           push_mjs_val(&mjs->call_stack,
                        mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
           push_mjs_val(&mjs->call_stack, retpos);
+
+          mjs->vals.this_obj = mjs->vals.last_getprop_obj;
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
           // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
@@ -569,7 +585,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_dump(mjs, 1, stdout);
 #endif
         mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "Unknown opcode: %d, off %d",
-                       (int) code[i], (int) i);
+                       (int) opcode, (int) i);
         i = mjs->bcode.len;
         break;
     }
@@ -642,7 +658,10 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", mjs_get_func_addr(func)));
 
-  push_mjs_val(&mjs->call_stack, this_val);
+  mjs_val_t prev_this_val = mjs->vals.this_obj;
+
+  push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
+  mjs->vals.this_obj = this_val;
 
   // Push return address: returning to the end of bcode causes execution
   // to stop
@@ -665,5 +684,6 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   r = mjs_pop(mjs);
 
   if (res != NULL) *res = r;
+  mjs->vals.this_obj = prev_this_val;
   return mjs->error;
 }

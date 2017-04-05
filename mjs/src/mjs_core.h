@@ -61,6 +61,12 @@ struct mjs_vals {
   /* Current `this` value  */
   mjs_val_t this_obj;
   mjs_val_t dataview_proto;
+
+  /*
+   * The object against which the last `OP_GET` was invoked. Needed for
+   * "method invocation pattern".
+   */
+  mjs_val_t last_getprop_obj;
 };
 
 struct mjs {
