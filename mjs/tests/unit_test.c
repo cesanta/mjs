@@ -227,6 +227,70 @@ const char *test_comparison(void) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
 
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 > 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 > 1", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 > 0", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 >= 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 >= 1", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 >= 0", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 < 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 > 1", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 < 0", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 <= 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 <= 1", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 <= 0", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 === 1", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 === 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 !== 1", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 !== 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
   ASSERT_EXEC_OK(mjs_exec(mjs, "0 === 0", &res));
   ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
 

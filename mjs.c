@@ -6358,6 +6358,18 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_push(mjs, mjs_mk_boolean(mjs, a > b));
       break;
     }
+    case TOK_LE: {
+      double b = mjs_get_double(mjs, mjs_pop(mjs));
+      double a = mjs_get_double(mjs, mjs_pop(mjs));
+      mjs_push(mjs, mjs_mk_boolean(mjs, a <= b));
+      break;
+    }
+    case TOK_GE: {
+      double b = mjs_get_double(mjs, mjs_pop(mjs));
+      double a = mjs_get_double(mjs, mjs_pop(mjs));
+      mjs_push(mjs, mjs_mk_boolean(mjs, a >= b));
+      break;
+    }
     case TOK_ASSIGN: {
       mjs_val_t val = mjs_pop(mjs);
       mjs_val_t obj = mjs_pop(mjs);
