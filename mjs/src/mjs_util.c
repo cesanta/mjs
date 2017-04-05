@@ -166,6 +166,7 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
           case TOK_URSHIFT:   name = ">>>"; break;
           case TOK_UNARY_MINUS:   name = "- (unary)"; break;
           case TOK_UNARY_PLUS:    name = "+ (unary)"; break;
+          case TOK_NOT:       name = "!"; break;
           case TOK_TILDA:     name = "~"; break;
           case TOK_EQ:        name = "=="; break;
           case TOK_NE:        name = "!="; break;

@@ -117,6 +117,11 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_push(mjs, mjs_mk_number(mjs, -a));
       break;
     }
+    case TOK_NOT: {
+      mjs_val_t val = mjs_pop(mjs);
+      mjs_push(mjs, mjs_mk_boolean(mjs, !mjs_is_truthy(mjs, val)));
+      break;
+    }
     case TOK_TILDA: {
       double a = mjs_get_double(mjs, mjs_pop(mjs));
       mjs_push(mjs, mjs_mk_number(mjs, ~(int64_t) a));
@@ -243,23 +248,15 @@ static void exec_expr(struct mjs *mjs, int op) {
       break;
     }
     case TOK_LOGICAL_AND: {
-      mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
-      if (mjs_is_boolean(a) && mjs_is_boolean(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, (a & 1) && (b & 1)));
-      } else {
-        mjs_set_errorf(mjs, MJS_TYPE_ERROR, NULL);
-      }
+      mjs_val_t a = mjs_pop(mjs);
+      mjs_push(mjs, mjs_is_truthy(mjs, a) ? b : a);
       break;
     }
     case TOK_LOGICAL_OR: {
-      mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
-      if (mjs_is_boolean(a) && mjs_is_boolean(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, (a & 1) || (b & 1)));
-      } else {
-        mjs_set_errorf(mjs, MJS_TYPE_ERROR, NULL);
-      }
+      mjs_val_t a = mjs_pop(mjs);
+      mjs_push(mjs, mjs_is_truthy(mjs, a) ? a : b);
       break;
     }
     /* clang-format off */

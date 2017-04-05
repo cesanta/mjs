@@ -339,6 +339,81 @@ const char *test_comparison(void) {
   return NULL;
 }
 
+const char *test_logic() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "!true", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "!false", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "true || false", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "true || true", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "true && false", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "false && false", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "!(false && true) || (true || false)", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 1);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 || 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "0 || 2", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 || 2 || 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 || 0 || 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 && 2 && 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 3);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 && 0 && 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 && 2 || 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 && 0 || 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 3);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "1 || 0 && 3", &res));
+  ASSERT_EQ(mjs_is_boolean(res), 0);
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 int testfunc1(int a, int b, int c, int d) {
   // printf("called testfunc1 with a=%d, b=%d, c=%d, d=%d\n", a, b, c, d);
   return a + b + c + d;
@@ -1628,6 +1703,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_exec);
   RUN_TEST(test_if);
   RUN_TEST(test_comparison);
+  RUN_TEST(test_logic);
   RUN_TEST(test_errors);
   RUN_TEST(test_this);
   RUN_TEST(test_while);
