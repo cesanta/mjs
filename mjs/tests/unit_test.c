@@ -1579,6 +1579,424 @@ const char *test_for_in_loop() {
   return NULL;
 }
 
+const char *test_objects() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o.b", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100}; o.b", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a + o.b;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 102);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.b = 123; o.a + o.b;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 223);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.c = 123; o.a + o.b + o.c;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 225);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a += 5; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 107);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a -= 5; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 97);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a *= 5; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 502);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a /= 5; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 22);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a %= 21; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 18);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a <<= 2; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 402);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a >>= 1; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 52);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 0-14, b: 2}; o.a >>= 2; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), -4 + 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 0-14, b: 2}; o.a >>>= 2; o.a + o.b", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1073741820 + 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 6, b: 2}; o.a &= 3; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 6, b: 2}; o.a |= 3; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 7);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 6, b: 2}; o.a ^= 3; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 5);
+
+  /* test calling obj properties */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, f: function(a){return a+1;}}; o.a + o.f(123);", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 224);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100}; o.f = function(a){return a+2;}; o.a + o.f(123);", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 225);
+
+  /* test subscript syntax */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['b']", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100}; o['b']", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] + o['b'];", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 102);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['b'] = 123; o['a'] + o['b'];", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 223);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['c'] = 123; o['a'] + o['b'] + o['c'];", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 225);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] += 5; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 107);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] -= 5; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 97);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] *= 5; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 502);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let pname = 'a'; let o = {a: 100, b: 2}; o[pname] /= 5; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 22);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] %= 21; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 18);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] <<= 2; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 402);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] >>= 1; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 52);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 0-14, b: 2}; o['a'] >>= 2; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), -4 + 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 0-14, b: 2}; o['a'] >>>= 2; o['a'] + o['b']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1073741820 + 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 6, b: 2}; o['a'] &= 3; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 6, b: 2}; o['a'] |= 3; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 7);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 6, b: 2}; o['a'] ^= 3; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 5);
+
+  /* test subscript syntax which ix not a string */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['123'] = 1234; o[123]", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1234);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['true'] = 100; o[1 === 1]", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['false'] = 200; o[1 === 0]", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 200);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['null'] = 300; o[null]", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 300);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o[null] = 300; o['null']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 300);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['undefined'] = 400; o[undefined]", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 400);
+
+  /* Converting from an object to string results in an error */
+  ASSERT_EQ(
+      mjs_exec(mjs, "let o = {}; o[{}]", &res),
+      MJS_TYPE_ERROR
+      );
+
+  /* test pre- and post-increments */
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o.a; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o.a;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o.a + 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 22);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o.a + o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 42);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a++; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a++;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a++ + 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a++ + o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 41);
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o.a; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o.a;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o.a - 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 18);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o.a - o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 0);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a--; o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a--;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a-- - 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o.a-- - o.a", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1);
+
+  /* test pre- and post-increments for subscript syntax */
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o['a']; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o['a'];", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o['a'] + 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 22);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; ++o['a'] + o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 42);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']++; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']++;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']++ + 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 21);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']++ + o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 41);
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o['a']; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o['a'];", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o['a'] - 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 18);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; --o['a'] - o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 0);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']--; o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']--;", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']-- - 1", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 19);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 20}; o['a']-- - o['a']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1);
+
+  /* Nested object variations */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar['baz']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo['bar']['baz']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo['bar'].baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o['foo']['bar'].baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o['foo'].bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o['foo']['bar']['baz']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar.baz++ + o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 201);
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; ++o.foo.bar.baz + o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 202);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar['baz']++ + o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 201);
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; ++o.foo.bar['baz'] + o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 202);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo['bar']['baz']++ + o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 201);
+
+  /* TODO(dfrank): fix preincrement */
+#if 0
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; ++o.foo['bar']['baz'] + o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 202);
+#endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar.baz += 20; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 120);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar['baz'] += 20; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 120);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo['bar']['baz'] += 20; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 120);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar.baz = 20; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo.bar['baz'] = 20; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {foo: {bar: {baz: 100}}}; o.foo['bar']['baz'] = 20; o.foo.bar.baz", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20);
+
+  /* Object returned from the function */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function f(){ return {foo: 123} }; f().foo", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 123);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function f(){ return {foo: 123} }; f()['foo']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 123);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
+const char *test_arrays() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = []; a.b", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a[0] - a[1]", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 60);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a['0'] - a['1']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 60);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a.foo = 200; a['foo']", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 200);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [];", &res));
+  ASSERT_EQ(mjs_is_object(res), 1);
+  ASSERT_EQ(mjs_is_array(res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = {};", &res));
+  ASSERT_EQ(mjs_is_object(res), 1);
+  ASSERT_EQ(mjs_is_array(res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a[10] = undefined; a.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 11);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
+const char *test_json() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        "let o = {foo: 1, bar: 'hey', arr: [1, 2, {foo: 100,}], 'null': null, 'undefined': undefined}; "
+        "JSON.stringify(o)",
+        &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "{\"null\":null,\"arr\":[1,2,{\"foo\":100}],\"bar\":\"hey\",\"foo\":1}");
+
+  /* Test circular links and sparse arrays */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        "o.arr[10] = o;"
+        "JSON.stringify(o)",
+        &res));
+  ASSERT_STREQ(
+      mjs_get_cstring(mjs, &res),
+      "{\"null\":null,\"arr\":[1,2,{\"foo\":100},null,null,null,null,null,null,null,[Circular]],\"bar\":\"hey\",\"foo\":1}"
+      );
+
+  /* Test parse */
+  const char *json_val = "{\"null\":null,\"arr\":[1,2,{\"foo\":100}],\"bar\":\"hey\",\"foo\":1}";
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        "let o = {foo: 1, bar: 'hey', arr: [1, 2, {foo: 100}], 'null': null, 'undefined': undefined}; "
+        "let s = JSON.stringify(o);"
+        "s",
+        &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), json_val);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        /*
+         * NOTE: each stringification reverses the order of keys, so in order
+         * to get the same value, we need to do parse/stringify twice.
+         */
+        "JSON.stringify(JSON.parse(JSON.stringify(JSON.parse(s))))",
+        &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), json_val);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 const char *test_call_api() {
   struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
   mjs_val_t func = MJS_UNDEFINED;
@@ -1773,6 +2191,9 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_while);
   RUN_TEST(test_for_loop);
   RUN_TEST(test_for_in_loop);
+  RUN_TEST(test_objects);
+  RUN_TEST(test_arrays);
+  RUN_TEST(test_json);
   RUN_TEST(test_call_api);
   RUN_TEST(test_long_jump);
   RUN_TEST(test_foreign_str);
