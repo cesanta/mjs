@@ -1399,6 +1399,22 @@ const char *test_for_in_loop() {
         ), &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_bar:2_foo:1");
 
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let o = ({foo: 1, bar: 2, baz: 3, four: 4, five: 5}); let s="";
+          for (let k in o) {
+            if (k === "four") {
+              continue;
+            }
+            s += "_" + k + ":" + JSON.stringify(o[k]);
+            if (k === "bar") {
+              break;
+            }
+          }
+          s;
+        ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_five:5_baz:3_bar:2");
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
 
