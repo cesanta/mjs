@@ -3252,6 +3252,7 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
 /* Amalgamated: #include "mjs/src/mjs_util_public.h" */
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
 
 #endif /* MJS_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
@@ -6483,8 +6484,11 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     maybe_gc(mjs);
 #endif
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
-    /* mjs_dump(mjs, 0, stdout); */
-    LOG(LL_VERBOSE_DEBUG, ("%d %s", (int) i, opcodetostr(code[i])));
+    if (cs_log_level >= LL_VERBOSE_DEBUG) {
+      /* mjs_dump(mjs, 0, stdout); */
+      printf("executing: ");
+      mjs_disasm_single(code, i, stdout);
+    }
     switch (code[i]) {
       case OP_BCODE_HEADER: {
         mjs_header_item_t bcode_offset;
@@ -10798,135 +10802,152 @@ MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
   return name;
 }
 
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
+  size_t start_i = i;
+  fprintf(fp, "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
+
+  switch (code[i]) {
+    case OP_PUSH_FUNC: {
+      int llen, n = varint_decode(&code[i + 1], &llen);
+      fprintf(fp, " %04u", (unsigned) (i - n));
+      i += llen;
+      break;
+    }
+    case OP_PUSH_INT: {
+      int llen;
+      unsigned long n = varint_decode(&code[i + 1], &llen);
+      fprintf(fp, "\t%lu", n);
+      i += llen;
+      break;
+    }
+    case OP_SET_ARG: {
+      int llen1, llen2, n, arg_no = varint_decode(&code[i + 1], &llen1);
+      n = varint_decode(&code[i + llen1 + 1], &llen2);
+      fprintf(fp, "\t[%.*s] %d", n, code + i + 1 + llen1 + llen2, arg_no);
+      i += llen1 + llen2 + n;
+      break;
+    }
+    case OP_PUSH_STR:
+    case OP_PUSH_DBL: {
+      int llen, n = varint_decode(&code[i + 1], &llen);
+      fprintf(fp, "\t[%.*s]", n, code + i + 1 + llen);
+      i += llen + n;
+      break;
+    }
+    case OP_JMP:
+    case OP_JMP_TRUE:
+    case OP_JMP_FALSE: {
+      int llen, n = varint_decode(&code[i + 1], &llen);
+      fprintf(fp, "\t%u",
+              (unsigned) i + n + llen +
+                  1 /* becaue i will be incremented on the usual terms */);
+      i += llen;
+      break;
+    }
+    case OP_LOOP: {
+      int l1, l2, n2, n1 = varint_decode(&code[i + 1], &l1);
+      n2 = varint_decode(&code[i + l1 + 1], &l2);
+      fprintf(fp, "\tB:%lu C:%lu (%d)",
+              (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
+              (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i);
+      i += l1 + l2;
+      break;
+    }
+    case OP_EXPR: {
+      int op = code[i + 1];
+      const char *name = "???";
+      /* clang-format off */
+      switch (op) {
+        case TOK_DOT:       name = "."; break;
+        case TOK_MINUS:     name = "-"; break;
+        case TOK_PLUS:      name = "+"; break;
+        case TOK_MUL:       name = "*"; break;
+        case TOK_DIV:       name = "/"; break;
+        case TOK_REM:       name = "%"; break;
+        case TOK_XOR:       name = "^"; break;
+        case TOK_AND:       name = "&"; break;
+        case TOK_OR:        name = "|"; break;
+        case TOK_LSHIFT:    name = "<<"; break;
+        case TOK_RSHIFT:    name = ">>"; break;
+        case TOK_URSHIFT:   name = ">>>"; break;
+        case TOK_UNARY_MINUS:   name = "- (unary)"; break;
+        case TOK_UNARY_PLUS:    name = "+ (unary)"; break;
+        case TOK_NOT:       name = "!"; break;
+        case TOK_TILDA:     name = "~"; break;
+        case TOK_EQ:        name = "=="; break;
+        case TOK_NE:        name = "!="; break;
+        case TOK_EQ_EQ:     name = "==="; break;
+        case TOK_NE_NE:     name = "!=="; break;
+        case TOK_LT:        name = "<"; break;
+        case TOK_GT:        name = ">"; break;
+        case TOK_LE:        name = "<="; break;
+        case TOK_GE:        name = ">="; break;
+        case TOK_ASSIGN:    name = "="; break;
+        case TOK_POSTFIX_PLUS:  name = "++ (postfix)"; break;
+        case TOK_POSTFIX_MINUS: name = "-- (postfix)"; break;
+        case TOK_MINUS_MINUS:   name = "--"; break;
+        case TOK_PLUS_PLUS:     name = "++"; break;
+        case TOK_LOGICAL_AND:   name = "&&"; break;
+        case TOK_LOGICAL_OR:    name = "||"; break;
+        case TOK_KEYWORD_TYPEOF:  name = "typeof"; break;
+        case TOK_PLUS_ASSIGN:     name = "+="; break;
+        case TOK_MINUS_ASSIGN:    name = "-="; break;
+        case TOK_MUL_ASSIGN:      name = "*="; break;
+        case TOK_DIV_ASSIGN:      name = "/="; break;
+        case TOK_REM_ASSIGN:      name = "%="; break;
+        case TOK_XOR_ASSIGN:      name = "^="; break;
+        case TOK_AND_ASSIGN:      name = "&="; break;
+        case TOK_OR_ASSIGN:       name = "|="; break;
+        case TOK_LSHIFT_ASSIGN:   name = "<<="; break;
+        case TOK_RSHIFT_ASSIGN:   name = ">>="; break;
+        case TOK_URSHIFT_ASSIGN:  name = ">>>="; break;
+      }
+      /* clang-format on */
+      fprintf(fp, "\t%s", name);
+      i++;
+      break;
+    }
+    case OP_BCODE_HEADER: {
+      size_t start = 0;
+      mjs_header_item_t map_offset = 0, total_size = 0;
+      start = i;
+      memcpy(&total_size, &code[i + 1], sizeof(total_size));
+      memcpy(&map_offset,
+             &code[i + 1 + MJS_HDR_ITEM_MAP_OFFSET * sizeof(total_size)],
+             sizeof(map_offset));
+      i += sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
+      fprintf(fp, "\t[%s] end:%lu map_offset: %lu", &code[i + 1],
+              (unsigned long) start + total_size,
+              (unsigned long) start + map_offset);
+      i += strlen((char *) (code + i + 1)) + 1;
+      break;
+    }
+  }
+
+  fputc('\n', fp);
+  return i - start_i;
+}
+
 void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
   size_t i, start = 0;
   mjs_header_item_t map_offset = 0, total_size = 0;
 
   for (i = 0; i < len; i++) {
-    fprintf(fp, "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
+    size_t delta = mjs_disasm_single(code, i, fp);
+    if (code[i] == OP_BCODE_HEADER) {
+      start = i;
+      memcpy(&total_size, &code[i + 1], sizeof(total_size));
+      memcpy(&map_offset,
+             &code[i + 1 + MJS_HDR_ITEM_MAP_OFFSET * sizeof(total_size)],
+             sizeof(map_offset));
+    }
+
+    i += delta;
 
     if (map_offset > 0 && i == start + map_offset) {
       i = start + total_size - 1;
-      fputc('\n', fp);
       continue;
     }
-
-    switch (code[i]) {
-      case OP_PUSH_FUNC: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
-        fprintf(fp, " %04u", (unsigned) (i - n));
-        i += llen;
-        break;
-      }
-      case OP_PUSH_INT: {
-        int llen;
-        unsigned long n = varint_decode(&code[i + 1], &llen);
-        fprintf(fp, "\t%lu", n);
-        i += llen;
-        break;
-      }
-      case OP_SET_ARG: {
-        int llen1, llen2, n, arg_no = varint_decode(&code[i + 1], &llen1);
-        n = varint_decode(&code[i + llen1 + 1], &llen2);
-        fprintf(fp, "\t[%.*s] %d", n, code + i + 1 + llen1 + llen2, arg_no);
-        i += llen1 + llen2 + n;
-        break;
-      }
-      case OP_PUSH_STR:
-      case OP_PUSH_DBL: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
-        fprintf(fp, "\t[%.*s]", n, code + i + 1 + llen);
-        i += llen + n;
-        break;
-      }
-      case OP_JMP:
-      case OP_JMP_TRUE:
-      case OP_JMP_FALSE: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
-        fprintf(fp, "\t%u",
-                (unsigned) i + n + llen +
-                    1 /* becaue i will be incremented on the usual terms */);
-        i += llen;
-        break;
-      }
-      case OP_LOOP: {
-        int l1, l2, n2, n1 = varint_decode(&code[i + 1], &l1);
-        n2 = varint_decode(&code[i + l1 + 1], &l2);
-        fprintf(fp, "\tB:%lu C:%lu (%d)",
-                (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
-                (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i);
-        i += l1 + l2;
-        break;
-      }
-      case OP_EXPR: {
-        int op = code[i + 1];
-        const char *name = "???";
-        /* clang-format off */
-        switch (op) {
-          case TOK_DOT:       name = "."; break;
-          case TOK_MINUS:     name = "-"; break;
-          case TOK_PLUS:      name = "+"; break;
-          case TOK_MUL:       name = "*"; break;
-          case TOK_DIV:       name = "/"; break;
-          case TOK_REM:       name = "%"; break;
-          case TOK_XOR:       name = "^"; break;
-          case TOK_AND:       name = "&"; break;
-          case TOK_OR:        name = "|"; break;
-          case TOK_LSHIFT:    name = "<<"; break;
-          case TOK_RSHIFT:    name = ">>"; break;
-          case TOK_URSHIFT:   name = ">>>"; break;
-          case TOK_UNARY_MINUS:   name = "- (unary)"; break;
-          case TOK_UNARY_PLUS:    name = "+ (unary)"; break;
-          case TOK_NOT:       name = "!"; break;
-          case TOK_TILDA:     name = "~"; break;
-          case TOK_EQ:        name = "=="; break;
-          case TOK_NE:        name = "!="; break;
-          case TOK_EQ_EQ:     name = "==="; break;
-          case TOK_NE_NE:     name = "!=="; break;
-          case TOK_LT:        name = "<"; break;
-          case TOK_GT:        name = ">"; break;
-          case TOK_LE:        name = "<="; break;
-          case TOK_GE:        name = ">="; break;
-          case TOK_ASSIGN:    name = "="; break;
-          case TOK_POSTFIX_PLUS:  name = "++ (postfix)"; break;
-          case TOK_POSTFIX_MINUS: name = "-- (postfix)"; break;
-          case TOK_MINUS_MINUS:   name = "--"; break;
-          case TOK_PLUS_PLUS:     name = "++"; break;
-          case TOK_LOGICAL_AND:   name = "&&"; break;
-          case TOK_LOGICAL_OR:    name = "||"; break;
-          case TOK_KEYWORD_TYPEOF:  name = "typeof"; break;
-          case TOK_PLUS_ASSIGN:     name = "+="; break;
-          case TOK_MINUS_ASSIGN:    name = "-="; break;
-          case TOK_MUL_ASSIGN:      name = "*="; break;
-          case TOK_DIV_ASSIGN:      name = "/="; break;
-          case TOK_REM_ASSIGN:      name = "%="; break;
-          case TOK_XOR_ASSIGN:      name = "^="; break;
-          case TOK_AND_ASSIGN:      name = "&="; break;
-          case TOK_OR_ASSIGN:       name = "|="; break;
-          case TOK_LSHIFT_ASSIGN:   name = "<<="; break;
-          case TOK_RSHIFT_ASSIGN:   name = ">>="; break;
-          case TOK_URSHIFT_ASSIGN:  name = ">>>="; break;
-        }
-        /* clang-format on */
-        fprintf(fp, "\t%s", name);
-        i++;
-        break;
-      }
-      case OP_BCODE_HEADER: {
-        start = i;
-        memcpy(&total_size, &code[i + 1], sizeof(total_size));
-        memcpy(&map_offset,
-               &code[i + 1 + MJS_HDR_ITEM_MAP_OFFSET * sizeof(total_size)],
-               sizeof(map_offset));
-        i += sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
-        fprintf(fp, "\t[%s] end:%lu map_offset: %lu", &code[i + 1],
-                (unsigned long) start + total_size,
-                (unsigned long) start + map_offset);
-        i += strlen((char *) (code + i + 1)) + 1;
-        break;
-      }
-    }
-    fputc('\n', fp);
   }
 }
 

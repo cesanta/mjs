@@ -295,8 +295,11 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     maybe_gc(mjs);
 #endif
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
-    /* mjs_dump(mjs, 0, stdout); */
-    LOG(LL_VERBOSE_DEBUG, ("%d %s", (int) i, opcodetostr(code[i])));
+    if (cs_log_level >= LL_VERBOSE_DEBUG) {
+      /* mjs_dump(mjs, 0, stdout); */
+      printf("executing: ");
+      mjs_disasm_single(code, i, stdout);
+    }
     switch (code[i]) {
       case OP_BCODE_HEADER: {
         mjs_header_item_t bcode_offset;
