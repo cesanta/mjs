@@ -288,15 +288,12 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
     *res = mjs_mk_number(mjs, val_len);
     return 1;
 
-/* TODO(dfrank): implement */
-#if 0
   } else if (strcmp(name, "slice") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_string_slice);
     return 1;
   } else if (strcmp(name, "charCodeAt") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
     return 1;
-#endif
   } else if (isnum) {
     /*
      * string subscript: return a new one-byte string if the index
@@ -306,8 +303,10 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
     const char *str = mjs_get_string(mjs, &val, &val_len);
     if (idx >= 0 && idx < (int) val_len) {
       *res = mjs_mk_string(mjs, str + idx, 1, 1);
-      return 1;
+    } else {
+      *res = MJS_UNDEFINED;
     }
+    return 1;
   }
   return 0;
 }

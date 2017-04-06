@@ -26,8 +26,8 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
 
 MJS_PRIVATE void mjs_fstr(struct mjs *mjs);
 
-// MJS_PRIVATE void mjs_string_slice(struct mjs *);
-// MJS_PRIVATE void mjs_string_char_code_at(struct mjs *);
+MJS_PRIVATE void mjs_string_slice(struct mjs *mjs);
+MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
 
 #define EMBSTR_ZERO_TERM 1
 #define EMBSTR_UNESCAPE 2

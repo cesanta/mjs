@@ -2047,6 +2047,121 @@ const char *test_json() {
   return NULL;
 }
 
+const char *test_string() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "''.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'f'.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'fo'.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo'.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 3);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'ы'.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\x00' === '\\x00'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\x00'.length", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\x12' === '\\x12'", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  /* subscripts */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abc'[0] === 'a'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abc'[1] === 'b'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abc'[2] === 'c'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abc'[3] === undefined", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abc'[-1] === undefined", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'ы'[0] === '\xd1'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'ы'[1] === '\x8b'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+
+  /* slice */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(0)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "abcdef");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(1)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "bcdef");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(5)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "f");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(6)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(999)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(-2)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "ef");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(-999)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "abcdef");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(1, 3)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "bc");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(2, 2)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(2, 1)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(2, -2)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "cd");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.slice(2, -999)", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
+
+  ASSERT_EQ(mjs_exec( mjs, "'abcdef'.slice()", &res), MJS_TYPE_ERROR);
+  ASSERT_EQ(mjs_exec( mjs, "'abcdef'.slice('foo')", &res), MJS_TYPE_ERROR);
+  ASSERT_EQ(mjs_exec( mjs, "'abcdef'.slice(0, 'foo')", &res), MJS_TYPE_ERROR);
+
+  /* charCodeAt */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.charCodeAt(0)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 'a');
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.charCodeAt(-1)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 'f');
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(0)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 255);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(1)", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  /* concatenation */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' + 'bar' === 'foobar'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo1234567890' + 'asdfghjkl' === 'foo1234567890asdfghjkl'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' + '' === 'foo'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'' + 'foo' === 'foo'", &res));
+  ASSERT(mjs_is_truthy(mjs, res));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a = 'x'; a += 'y'; a", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "xy");
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 'x'}; o.a += 'z'; o.a", &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "xz");
+
+  /* no autoconversion */
+  ASSERT_EQ(mjs_exec( mjs, "'foo' + 123", &res), MJS_TYPE_ERROR);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 const char *test_call_api() {
   struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
   mjs_val_t func = MJS_UNDEFINED;
@@ -2245,6 +2360,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_objects);
   RUN_TEST(test_arrays);
   RUN_TEST(test_json);
+  RUN_TEST(test_string);
   RUN_TEST(test_call_api);
   RUN_TEST(test_long_jump);
   RUN_TEST(test_foreign_str);
