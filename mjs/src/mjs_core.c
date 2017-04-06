@@ -3,15 +3,16 @@
  * All rights reserved
  */
 
-#include "mjs/src/mjs_core.h"
+#include "common/cs_varint.h"
 #include "common/str_util.h"
+
+#include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_builtin.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_license.h"
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
-#include "mjs/src/mjs_varint.h"
 
 #ifndef MJS_DEFAULT_OBJECT_ARENA_SIZE
 #define MJS_DEFAULT_OBJECT_ARENA_SIZE 20
@@ -207,16 +208,16 @@ MJS_PRIVATE int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
     /* get pointer to the length of the map followed by the map itself */
     uint8_t *p = (uint8_t *) mjs->bcode.buf + header_idx + map_offset;
 
-    int llen, map_len = varint_decode(p, &llen);
+    int llen, map_len = cs_varint_decode(p, &llen);
     p += llen;
     uint8_t *pe = p + map_len;
 
     int prev_line_no = 1;
     while (p < pe) {
       int llen;
-      int cur_offset = varint_decode(p, &llen);
+      int cur_offset = cs_varint_decode(p, &llen);
       p += llen;
-      int line_no = varint_decode(p, &llen);
+      int line_no = cs_varint_decode(p, &llen);
       p += llen;
 
       if (cur_offset >= offset) {

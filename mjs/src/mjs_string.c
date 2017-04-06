@@ -3,11 +3,11 @@
  * All rights reserved
  */
 
+#include "common/cs_varint.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
-#include "mjs/src/mjs_varint.h"
 
 // No UTF
 typedef unsigned short Rune;
@@ -89,12 +89,12 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
     } else {
       /* bigger strings need indirection that uses ram */
       size_t pos = m->len;
-      int llen = varint_llen(len);
+      int llen = cs_varint_llen(len);
 
       /* allocate space for len and ptr */
       mbuf_insert(m, pos, NULL, llen + sizeof(p));
 
-      varint_encode(len, (uint8_t *) (m->buf + pos));
+      cs_varint_encode(len, (uint8_t *) (m->buf + pos));
       memcpy(m->buf + pos + llen, &p, sizeof(p));
     }
     tag = MJS_TAG_STRING_F;
@@ -128,7 +128,7 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
   } else if (tag == MJS_TAG_STRING_O) {
     size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
     char *s = mjs->owned_strings.buf + offset;
-    size = varint_decode((uint8_t *) s, &llen);
+    size = cs_varint_decode((uint8_t *) s, &llen);
     p = s + llen;
   } else if (tag == MJS_TAG_STRING_F) {
     /*
@@ -154,7 +154,7 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
       size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
       char *s = mjs->foreign_strings.buf + offset;
 
-      size = varint_decode((uint8_t *) s, &llen);
+      size = cs_varint_decode((uint8_t *) s, &llen);
       memcpy(&p, s + llen, sizeof(p));
     }
   } else {
@@ -520,7 +520,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   size_t n = (flags & EMBSTR_UNESCAPE) ? unescape(p, len, NULL) : len;
 
   /* Calculate how many bytes length takes */
-  int k = varint_llen(n);
+  int k = cs_varint_llen(n);
 
   /* total length: varing length + string len + zero-term */
   size_t tot_len = k + n + !!(flags & EMBSTR_ZERO_TERM);
@@ -534,7 +534,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   }
 
   /* Write length */
-  varint_encode(n, (unsigned char *) m->buf + offset);
+  cs_varint_encode(n, (unsigned char *) m->buf + offset);
 
   /* Write string */
   if (p != 0) {

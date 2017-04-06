@@ -4,15 +4,17 @@
  */
 
 #include <stdio.h>
+
+#include "common/cs_varint.h"
 #include "common/mbuf.h"
+
 #include "mjs/src/mjs_core.h"
+#include "mjs/src/mjs_ffi.h"
 #include "mjs/src/mjs_gc.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
-#include "mjs/src/mjs_varint.h"
-#include "mjs/src/mjs_ffi.h"
 
 /*
  * Macros for marking reachable things: use bit 0.
@@ -366,7 +368,7 @@ void gc_compact_strings(struct mjs *mjs) {
        * the tail contains the first 6 bytes we stole from
        * the actual string.
        */
-      len = varint_decode((unsigned char *) &h, &llen);
+      len = cs_varint_decode((unsigned char *) &h, &llen);
       len += llen + 1;
 
       /*
@@ -383,7 +385,7 @@ void gc_compact_strings(struct mjs *mjs) {
       p += len;
       head += len;
     } else {
-      len = varint_decode((unsigned char *) p, &llen);
+      len = cs_varint_decode((unsigned char *) p, &llen);
       len += llen + 1;
 
       p += len;

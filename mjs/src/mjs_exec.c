@@ -3,6 +3,8 @@
  * All rights reserved
  */
 
+#include "common/cs_varint.h"
+
 #include "mjs/src/mjs_array.h"
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_conversion.h"
@@ -15,7 +17,6 @@
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_tok.h"
 #include "mjs/src/mjs_util.h"
-#include "mjs/src/mjs_varint.h"
 
 static mjs_val_t mjs_find_scope(struct mjs *mjs, mjs_val_t key) {
   size_t num_scopes = mjs_stack_size(&mjs->scopes);
@@ -416,7 +417,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_push(mjs, mjs_mk_array(mjs));
         break;
       case OP_PUSH_FUNC: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_function(mjs, i - n));
         i += llen;
         break;
@@ -425,12 +426,12 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_push(mjs, mjs->vals.this_obj);
         break;
       case OP_JMP: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
         i += n + llen;
         break;
       }
       case OP_JMP_FALSE: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
         i += llen;
         if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
@@ -504,20 +505,20 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_push(mjs, vtop(&mjs->scopes));
         break;
       case OP_PUSH_STR: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_string(mjs, (char *) code + i + 1 + llen, n, 1));
         i += llen + n;
         break;
       }
       case OP_PUSH_INT: {
         int llen;
-        int64_t n = varint_decode(&code[i + 1], &llen);
+        int64_t n = cs_varint_decode(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_number(mjs, n));
         i += llen;
         break;
       }
       case OP_PUSH_DBL: {
-        int llen, n = varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_number(
                           mjs, strtod((char *) code + i + 1 + llen, NULL)));
         i += llen + n;
@@ -626,8 +627,8 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_SET_ARG: {
-        int llen1, llen2, n, arg_no = varint_decode(&code[i + 1], &llen1);
-        n = varint_decode(&code[i + llen1 + 1], &llen2);
+        int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
+        n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
         mjs_val_t key =
             mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
         mjs_val_t obj = vtop(&mjs->scopes);
@@ -669,10 +670,10 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_LOOP: {
-        int l1, l2, off = varint_decode(&code[i + 1], &l1);
+        int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
-        off = varint_decode(&code[i + 1 + l1], &l2);
+        off = cs_varint_decode(&code[i + 1 + l1], &l2);
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
         i += l1 + l2;

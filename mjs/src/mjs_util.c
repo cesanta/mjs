@@ -3,6 +3,8 @@
  * All rights reserved
  */
 
+#include "common/cs_varint.h"
+
 #include "mjs/src/mjs_array.h"
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_core.h"
@@ -11,7 +13,6 @@
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_tok.h"
-#include "mjs/src/mjs_varint.h"
 
 const char *mjs_typeof(mjs_val_t v) {
   if (mjs_is_number(v)) {
@@ -93,28 +94,28 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
 
   switch (code[i]) {
     case OP_PUSH_FUNC: {
-      int llen, n = varint_decode(&code[i + 1], &llen);
+      int llen, n = cs_varint_decode(&code[i + 1], &llen);
       fprintf(fp, " %04u", (unsigned) (i - n));
       i += llen;
       break;
     }
     case OP_PUSH_INT: {
       int llen;
-      unsigned long n = varint_decode(&code[i + 1], &llen);
+      unsigned long n = cs_varint_decode(&code[i + 1], &llen);
       fprintf(fp, "\t%lu", n);
       i += llen;
       break;
     }
     case OP_SET_ARG: {
-      int llen1, llen2, n, arg_no = varint_decode(&code[i + 1], &llen1);
-      n = varint_decode(&code[i + llen1 + 1], &llen2);
+      int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
+      n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
       fprintf(fp, "\t[%.*s] %d", n, code + i + 1 + llen1 + llen2, arg_no);
       i += llen1 + llen2 + n;
       break;
     }
     case OP_PUSH_STR:
     case OP_PUSH_DBL: {
-      int llen, n = varint_decode(&code[i + 1], &llen);
+      int llen, n = cs_varint_decode(&code[i + 1], &llen);
       fprintf(fp, "\t[%.*s]", n, code + i + 1 + llen);
       i += llen + n;
       break;
@@ -122,7 +123,7 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
     case OP_JMP:
     case OP_JMP_TRUE:
     case OP_JMP_FALSE: {
-      int llen, n = varint_decode(&code[i + 1], &llen);
+      int llen, n = cs_varint_decode(&code[i + 1], &llen);
       fprintf(fp, "\t%u",
               (unsigned) i + n + llen +
                   1 /* becaue i will be incremented on the usual terms */);
@@ -130,8 +131,8 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
       break;
     }
     case OP_LOOP: {
-      int l1, l2, n2, n1 = varint_decode(&code[i + 1], &l1);
-      n2 = varint_decode(&code[i + l1 + 1], &l2);
+      int l1, l2, n2, n1 = cs_varint_decode(&code[i + 1], &l1);
+      n2 = cs_varint_decode(&code[i + l1 + 1], &l2);
       fprintf(fp, "\tB:%lu C:%lu (%d)",
               (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
               (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i);

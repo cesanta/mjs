@@ -3,13 +3,14 @@
  * All rights reserved
  */
 
+#include "common/cs_varint.h"
+
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_parser.h"
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_tok.h"
-#include "mjs/src/mjs_varint.h"
 
 #ifndef MAX_TOKS_IN_EXPR
 #define MAX_TOKS_IN_EXPR 40
@@ -895,9 +896,9 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
 
   /* put map length varint */
   int map_len = p.offset_lineno_map.len;
-  size_t llen = varint_llen(map_len);
+  size_t llen = cs_varint_llen(map_len);
   mbuf_resize(&p.mjs->bcode, p.mjs->bcode.size + llen);
-  varint_encode(map_len, (uint8_t *) p.mjs->bcode.buf + p.mjs->bcode.len);
+  cs_varint_encode(map_len, (uint8_t *) p.mjs->bcode.buf + p.mjs->bcode.len);
   p.mjs->bcode.len += llen;
 
   /* put the map itself */

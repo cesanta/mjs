@@ -1120,8 +1120,8 @@ const char *test_varint(void) {
   do {                                                         \
     uint8_t buf[100];                                          \
     int llen;                                                  \
-    ASSERT_EQ(varint_encode((number), buf), (encoded_length)); \
-    ASSERT_EQ(varint_decode(buf, &llen), (number));            \
+    ASSERT_EQ(cs_varint_encode((number), buf), (encoded_length)); \
+    ASSERT_EQ(cs_varint_decode(buf, &llen), (number));            \
     ASSERT_EQ(llen, (encoded_length));                         \
   } while (0)
 

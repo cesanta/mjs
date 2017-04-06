@@ -3,6 +3,7 @@ FROZEN = ../../frozen
 
 SOURCES = $(COMMON)/cs_dbg.c \
           $(COMMON)/cs_file.c \
+          $(COMMON)/cs_varint.c \
           $(COMMON)/mbuf.c \
           $(COMMON)/str_util.c \
           $(FROZEN)/frozen.c \
@@ -23,13 +24,13 @@ SOURCES = $(COMMON)/cs_dbg.c \
           mjs_primitive.c \
           mjs_string.c \
           mjs_tok.c \
-          mjs_util.c \
-          mjs_varint.c
+          mjs_util.c
 
 HEADERS = $(COMMON)/mbuf.h \
           $(COMMON)/cs_dbg.h \
           $(COMMON)/cs_file.h \
           $(COMMON)/cs_time.h \
+          $(COMMON)/cs_varint.h \
           $(COMMON)/str_util.h \
           $(COMMON)/mg_mem.h \
           $(COMMON)/platform.h \
@@ -62,5 +63,4 @@ HEADERS = $(COMMON)/mbuf.h \
           mjs_string_public.h \
           mjs_tok.h \
           mjs_util.h \
-          mjs_util_public.h \
-          mjs_varint.h
+          mjs_util_public.h
