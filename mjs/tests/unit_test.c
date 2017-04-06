@@ -41,6 +41,20 @@ static void cleanup_dir(DIR **d) {
   *d = NULL;
 }
 
+static void test_this_plus_arg(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_val_t arg0 = mjs_arg(mjs, 0);
+  mjs_val_t arg1 = mjs_arg(mjs, 1);
+  mjs_val_t this_obj = mjs_get_this(mjs);
+  mjs_val_t num = mjs_get(mjs, this_obj, "foo", ~0);
+
+  res = mjs_mk_number(mjs,
+      mjs_get_double(mjs, num) + mjs_get_double(mjs, arg0) - mjs_get_double(mjs, arg1)
+      );
+
+  mjs_return(mjs, res);
+}
+
 const char *test_arithmetic() {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
@@ -128,6 +142,21 @@ const char *test_function(void) {
   CHECK_NUMERIC("let f = function(a){return a.b;}; f({b: {c: 7}}).c;", 7);
   CHECK_NUMERIC("function f(){}; f ? 1 : 2", 1);
   CHECK_NUMERIC("function f(x){return x ? {x:x} : 0}; f(f).x(0);", 0);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+  cleanup_mjs(&mjs);
+  return NULL;
+}
+
+const char *test_cfunction(void) {
+  struct mjs *mjs = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  mjs_set(mjs, mjs_get_global(mjs), "test_this_plus_arg", ~0, mjs_mk_foreign(mjs, test_this_plus_arg));
+
+  CHECK_NUMERIC("let o = {foo: 100, f:test_this_plus_arg}; o.f(20, 5);", 100+20-5);
 
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
@@ -2203,6 +2232,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_arithmetic);
   RUN_TEST(test_block);
   RUN_TEST(test_function);
+  RUN_TEST(test_cfunction);
   RUN_TEST(test_exec);
   RUN_TEST(test_if);
   RUN_TEST(test_comparison);

@@ -6865,13 +6865,34 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           *func = MJS_UNDEFINED;  // Return value
           // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
         } else if (mjs_is_string(*func)) {
+          /* Call ffi-ed function */
+
+          /* Apply `this` value for the call */
+          mjs_val_t this_obj = mjs->vals.this_obj;
+          mjs->vals.this_obj = *vptr(&mjs->call_stack, -2);
+
+          /* Perform the ffi-ed function call */
           mjs_ffi_call2(mjs);
+
+          /* Restore `this` */
+          mjs->vals.this_obj = this_obj;
+
           /* Drop the values pushed by OP_ARGS (data stack size and `this`) */
           mjs_pop_val(&mjs->call_stack);
           mjs_pop_val(&mjs->call_stack);
         } else if (mjs_is_foreign(*func)) {
           /* Call cfunction */
+
+          /* Apply `this` value for the call */
+          mjs_val_t this_obj = mjs->vals.this_obj;
+          mjs->vals.this_obj = *vptr(&mjs->call_stack, -2);
+
+          /* Perform the cfunction call */
           ((void (*) (struct mjs *)) mjs_get_ptr(mjs, *func))(mjs);
+
+          /* Restore `this` */
+          mjs->vals.this_obj = this_obj;
+
           /* Drop the values pushed by OP_ARGS (data stack size and `this`) */
           mjs_pop_val(&mjs->call_stack);
           mjs_pop_val(&mjs->call_stack);
