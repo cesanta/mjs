@@ -6894,6 +6894,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   mjs->error = mjs_parse(path, src, mjs);
   if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
+    fprintf(stderr, "  at %s: %s\n", path, mjs->error_msg);
   } else {
     mjs_execute(mjs, off);
     r = mjs_pop(mjs);
@@ -8745,14 +8746,14 @@ int main(int argc, char *argv[]) {
     }
   }
   for (; i < argc; i++) {
-    mjs_exec_file(mjs, argv[i], &res);
+    err = mjs_exec_file(mjs, argv[i], &res);
   }
 
   if (err == MJS_OK) {
     mjs_fprintf(res, mjs, stdout);
     putchar('\n');
   } else {
-    printf("Error: %d: %s\n", err, mjs_strerror(mjs, mjs->error));
+    printf("Error: %s\n", mjs_strerror(mjs, mjs->error));
   }
   mjs_destroy(mjs);
 
@@ -8994,12 +8995,11 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator) {
 #define MAX_TOKS_IN_EXPR 40
 #endif
 
-#define FAIL_ERR(p, code)                                        \
-  do {                                                           \
-    p->mjs->error = code;                                        \
-    LOG(LL_VERBOSE_DEBUG,                                        \
-        ("ERROR line %d, [%.*s...]", __LINE__, 10, p->tok.ptr)); \
-    return code;                                                 \
+#define FAIL_ERR(p, code)                                                      \
+  do {                                                                         \
+    mjs_set_errorf(p->mjs, code, "parse error at line %d: [%.*s]", p->line_no, \
+                   10, p->tok.ptr);                                            \
+    return code;                                                               \
   } while (0)
 
 #define pnext1(p)                                    \
@@ -10710,7 +10710,6 @@ static void skip_spaces_and_comments(struct pstate *p) {
     }
     if (p->pos[0] == '/' && p->pos[1] == '/') {
       while (p->pos[0] != '\0' && p->pos[0] != '\n') p->pos++;
-      if (p->pos[0] == '\n') p->line_no++;
     }
     if (p->pos[0] == '/' && p->pos[1] == '*') {
       p->pos += 2;

@@ -130,7 +130,6 @@ static void skip_spaces_and_comments(struct pstate *p) {
     }
     if (p->pos[0] == '/' && p->pos[1] == '/') {
       while (p->pos[0] != '\0' && p->pos[0] != '\n') p->pos++;
-      if (p->pos[0] == '\n') p->line_no++;
     }
     if (p->pos[0] == '/' && p->pos[1] == '*') {
       p->pos += 2;

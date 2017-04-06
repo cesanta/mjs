@@ -698,6 +698,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   mjs->error = mjs_parse(path, src, mjs);
   if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
+    fprintf(stderr, "  at %s: %s\n", path, mjs->error_msg);
   } else {
     mjs_execute(mjs, off);
     r = mjs_pop(mjs);

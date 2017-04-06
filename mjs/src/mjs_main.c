@@ -35,14 +35,14 @@ int main(int argc, char *argv[]) {
     }
   }
   for (; i < argc; i++) {
-    mjs_exec_file(mjs, argv[i], &res);
+    err = mjs_exec_file(mjs, argv[i], &res);
   }
 
   if (err == MJS_OK) {
     mjs_fprintf(res, mjs, stdout);
     putchar('\n');
   } else {
-    printf("Error: %d: %s\n", err, mjs_strerror(mjs, mjs->error));
+    printf("Error: %s\n", mjs_strerror(mjs, mjs->error));
   }
   mjs_destroy(mjs);
 

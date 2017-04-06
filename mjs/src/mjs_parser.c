@@ -15,12 +15,11 @@
 #define MAX_TOKS_IN_EXPR 40
 #endif
 
-#define FAIL_ERR(p, code)                                        \
-  do {                                                           \
-    p->mjs->error = code;                                        \
-    LOG(LL_VERBOSE_DEBUG,                                        \
-        ("ERROR line %d, [%.*s...]", __LINE__, 10, p->tok.ptr)); \
-    return code;                                                 \
+#define FAIL_ERR(p, code)                                                      \
+  do {                                                                         \
+    mjs_set_errorf(p->mjs, code, "parse error at line %d: [%.*s]", p->line_no, \
+                   10, p->tok.ptr);                                            \
+    return code;                                                               \
   } while (0)
 
 #define pnext1(p)                                    \

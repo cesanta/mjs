@@ -1104,6 +1104,9 @@ const char *test_errors(void) {
   ASSERT_EQ(mjs_exec(mjs, "void 2;", &res), MJS_SYNTAX_ERROR);
   ASSERT_STREQ(mjs->error_msg, "[void] is not implemented");
 
+  ASSERT_EQ(mjs_exec(mjs, "//\n/* */\n// \n...", &res), MJS_SYNTAX_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "parse error at line 4: [...]");
+
   ASSERT_EQ(mjs_exec(mjs, "for (k in {a:1}) 1;", &res), MJS_REFERENCE_ERROR);
 
   mjs_disown(mjs, &res);
