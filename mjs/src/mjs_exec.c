@@ -573,6 +573,16 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         if (prev_opcode != OP_GET) {
           mjs->vals.last_getprop_obj = MJS_UNDEFINED;
         }
+
+        /*
+         * Push last_getprop_obj, which is going to be used as `this`, see
+         * OP_CALL
+         */
+        push_mjs_val(&mjs->call_stack, mjs->vals.last_getprop_obj);
+        /*
+         * Push current size of data stack, it's needed to place arguments
+         * properly
+         */
         push_mjs_val(&mjs->call_stack,
                      mjs_mk_number(mjs, mjs_stack_size(&mjs->stack)));
         break;
@@ -584,25 +594,31 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         int func_pos = mjs_get_int(mjs, retpos) - 1;
         mjs_val_t *func = vptr(&mjs->stack, func_pos);
         if (mjs_is_function(*func)) {
+          /* Drop data stack size (pushed by OP_ARGS) */
           mjs_pop_val(&mjs->call_stack);
+          /* Pop `this` value, and apply it */
+          mjs_val_t this_obj = mjs_pop_val(&mjs->call_stack);
           push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
+          mjs->vals.this_obj = this_obj;
+
           push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, i + 1));
           push_mjs_val(&mjs->call_stack,
                        mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
           push_mjs_val(&mjs->call_stack, retpos);
 
-          mjs->vals.this_obj = mjs->vals.last_getprop_obj;
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
           // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
         } else if (mjs_is_string(*func)) {
           mjs_ffi_call2(mjs);
-          /* Pop the value pushed by OP_ARGS */
+          /* Drop the values pushed by OP_ARGS (data stack size and `this`) */
+          mjs_pop_val(&mjs->call_stack);
           mjs_pop_val(&mjs->call_stack);
         } else if (mjs_is_foreign(*func)) {
           /* Call cfunction */
           ((void (*) (struct mjs *)) mjs_get_ptr(mjs, *func))(mjs);
-          /* Pop the value pushed by OP_ARGS */
+          /* Drop the values pushed by OP_ARGS (data stack size and `this`) */
+          mjs_pop_val(&mjs->call_stack);
           mjs_pop_val(&mjs->call_stack);
         } else {
           mjs_set_errorf(mjs, MJS_TYPE_ERROR, "calling non-callable");
