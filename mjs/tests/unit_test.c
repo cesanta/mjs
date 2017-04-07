@@ -8,6 +8,8 @@
 #include "common/test_util.h"
 #include "mjs.c"
 
+#include <stdbool.h>
+
 #define ASSERT_EXEC_OK(_exec_)                                              \
   do {                                                                      \
     mjs_err_t err = _exec_;                                                 \
@@ -575,6 +577,14 @@ int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
 
+int ffi_test_iib(int a0, bool b) {
+  return a0 - (b ? 10 : 20);
+}
+
+bool ffi_test_bi(int a0) {
+  return a0 > 50;
+}
+
 int ffi_test_i5i(int a0, int a1, int a2, int a3, int a4) {
   return (a0 - a1) / ((a2 - a3) * a4);
 }
@@ -669,6 +679,8 @@ void ffi_test_cb_viiiiiu(cb_viiiiiu *cb, void *userdata) {
 void *stub_dlsym(void *handle, const char *name) {
   (void) handle;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
+  if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
+  if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
   if (strcmp(name, "ffi_test_i6i") == 0) return ffi_test_i6i;
   if (strcmp(name, "ffi_test_d2d") == 0) return ffi_test_d2d;
@@ -706,6 +718,24 @@ const char *test_call_ffi() {
 
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i2i(44, true)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), 43);
+
+  /* function which takes bool */
+  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_iib", ~0,
+      mjs_mk_string(mjs, "int ffi_test_iib(int, bool)", ~0, 1));
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iib(40, true)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 40-10);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iib(40, false)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 40-20);
+
+  /* function which returns bool */
+  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_bi", ~0,
+      mjs_mk_string(mjs, "bool ffi_test_bi(int)", ~0, 1));
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_bi(50)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), false);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_bi(51)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), true);
 
   mjs_set(
       mjs, mjs_get_global(mjs), "ffi_test_i5i", ~0,

@@ -2227,6 +2227,7 @@ enum cval_type {
   CVAL_TYPE_NONE,
   CVAL_TYPE_USERDATA,
   CVAL_TYPE_INT,
+  CVAL_TYPE_BOOL,
   CVAL_TYPE_DOUBLE,
   CVAL_TYPE_CHAR_PTR,
   CVAL_TYPE_VOID_PTR,
@@ -7136,6 +7137,8 @@ static cval_type_t parse_cval_type(struct mjs *mjs, const char *s,
     return CVAL_TYPE_USERDATA;
   } else if (strncmp(s, "int", e - s) == 0) {
     return CVAL_TYPE_INT;
+  } else if (strncmp(s, "bool", e - s) == 0) {
+    return CVAL_TYPE_BOOL;
   } else if (strncmp(s, "double", e - s) == 0) {
     return CVAL_TYPE_DOUBLE;
   } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
@@ -7266,6 +7269,9 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
       case CVAL_TYPE_INT:
         args[i] = mjs_mk_number(cbargs->mjs, data->args[i].w);
         break;
+      case CVAL_TYPE_BOOL:
+        args[i] = mjs_mk_boolean(cbargs->mjs, !!data->args[i].w);
+        break;
       case CVAL_TYPE_CHAR_PTR: {
         const char *s = (char *) data->args[i].w;
         if (s == NULL) s = "";
@@ -7306,6 +7312,9 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
       break;
     case CVAL_TYPE_INT:
       ret.w = mjs_get_int(cbargs->mjs, res);
+      break;
+    case CVAL_TYPE_BOOL:
+      ret.w = mjs_get_bool(cbargs->mjs, res);
       break;
     case CVAL_TYPE_VOID_PTR:
       ret.p = mjs_get_ptr(cbargs->mjs, res);
@@ -7561,6 +7570,19 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           }
           ffi_set_int32(&args[i], intval);
         } break;
+        case CVAL_TYPE_BOOL: {
+          int intval = 0;
+          if (mjs_is_number(arg)) {
+            intval = !!mjs_get_int(mjs, arg);
+          } else if (mjs_is_boolean(arg)) {
+            intval = mjs_get_bool(mjs, arg);
+          } else {
+            mjs_prepend_errorf(
+                mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)",
+                i, mjs_typeof(arg));
+          }
+          ffi_set_int32(&args[i], intval);
+        } break;
         case CVAL_TYPE_DOUBLE:
           ffi_set_double(&args[i], mjs_get_double(mjs, arg));
           break;
@@ -7686,6 +7708,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     case CVAL_TYPE_INT:
       resv = mjs_mk_number(mjs, (int) res.v.i);
       break;
+    case CVAL_TYPE_BOOL:
+      resv = mjs_mk_boolean(mjs, !!res.v.i);
+      break;
     case CVAL_TYPE_DOUBLE:
       resv = mjs_mk_number(mjs, res.v.d);
       break;
@@ -7767,6 +7792,7 @@ MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(struct mjs *mjs,
   /* Make sure return type is fine */
   if (sig->val_types[0] != CVAL_TYPE_NONE &&
       sig->val_types[0] != CVAL_TYPE_INT &&
+      sig->val_types[0] != CVAL_TYPE_BOOL &&
       sig->val_types[0] != CVAL_TYPE_DOUBLE) {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
     ret.is_valid = 0;
@@ -7789,6 +7815,7 @@ MJS_PRIVATE struct ffi_sig_stat mjs_ffi_sig_stat_get(struct mjs *mjs,
         ret.userdata_idx = i;
         break;
       case CVAL_TYPE_INT:
+      case CVAL_TYPE_BOOL:
       case CVAL_TYPE_VOID_PTR:
       case CVAL_TYPE_CHAR_PTR:
         /* Do nothing */
@@ -7822,6 +7849,7 @@ clean:
 MJS_PRIVATE int mjs_ffi_is_regular_word(cval_type_t type) {
   switch (type) {
     case CVAL_TYPE_INT:
+    case CVAL_TYPE_BOOL:
       return 1;
     default:
       return 0;
