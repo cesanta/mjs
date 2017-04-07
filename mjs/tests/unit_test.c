@@ -700,6 +700,13 @@ const char *test_call_ffi() {
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i2i(2, 3)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), -1);
 
+  /* booleans should be converted to ints properly */
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_i2i(44, false)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 44);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_i2i(44, true)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 43);
+
   mjs_set(
       mjs, mjs_get_global(mjs), "ffi_test_i5i", ~0,
       mjs_mk_string(mjs, "int ffi_test_i5i(int, int, int, int, int)", ~0, 1));

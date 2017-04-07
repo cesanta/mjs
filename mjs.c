@@ -7548,9 +7548,19 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           cbdata.userdata = arg;
           cbdata.userdata_idx = i;
           break;
-        case CVAL_TYPE_INT:
-          ffi_set_int32(&args[i], mjs_get_int(mjs, arg));
-          break;
+        case CVAL_TYPE_INT: {
+          int intval = 0;
+          if (mjs_is_number(arg)) {
+            intval = mjs_get_int(mjs, arg);
+          } else if (mjs_is_boolean(arg)) {
+            intval = mjs_get_bool(mjs, arg);
+          } else {
+            mjs_prepend_errorf(
+                mjs, ret, "actual arg #%d is not an int (the type idx is: %s)",
+                i, mjs_typeof(arg));
+          }
+          ffi_set_int32(&args[i], intval);
+        } break;
         case CVAL_TYPE_DOUBLE:
           ffi_set_double(&args[i], mjs_get_double(mjs, arg));
           break;
