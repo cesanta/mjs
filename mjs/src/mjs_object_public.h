@@ -50,6 +50,17 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
                     mjs_val_t val);
 
 /*
+ * Delete own property `name` of the object `obj`. Does not follow the
+ * prototype chain.
+ *
+ * If `name_len` is ~0, `name` is assumed to be NUL-terminated and
+ * `strlen(name)` is used.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len);
+
+/*
  * Iterate over `obj` properties.
  * First call should set `iterator` to MJS_UNDEFINED.
  * Return object's key (a string), or MJS_UNDEFINED when no more keys left.

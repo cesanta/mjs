@@ -2150,10 +2150,8 @@ mjs_err_t mjs_array_set(struct mjs *mjs, mjs_val_t arr, unsigned long index,
 /* Returns true if the given value is an array */
 int mjs_is_array(mjs_val_t v);
 
-#if 0
 /* Delete value in array `arr` at index `index`, if it exists. */
 void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
-#endif
 
 #if defined(__cplusplus)
 }
@@ -2180,6 +2178,8 @@ extern "C" {
 
 MJS_PRIVATE mjs_val_t
 mjs_array_get2(struct mjs *mjs, mjs_val_t arr, unsigned long index, int *has);
+
+MJS_PRIVATE void mjs_array_splice(struct mjs *mjs);
 
 #if defined(__cplusplus)
 }
@@ -2611,6 +2611,17 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
                     mjs_val_t val);
 
 /*
+ * Delete own property `name` of the object `obj`. Does not follow the
+ * prototype chain.
+ *
+ * If `name_len` is ~0, `name` is assumed to be NUL-terminated and
+ * `strlen(name)` is used.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len);
+
+/*
  * Iterate over `obj` properties.
  * First call should set `iterator` to MJS_UNDEFINED.
  * Return object's key (a string), or MJS_UNDEFINED when no more keys left.
@@ -2900,6 +2911,70 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
 #define EMBSTR_UNESCAPE 2
 
 #endif /* MJS_STRING_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_util_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_UTIL_PUBLIC_H_
+#define MJS_UTIL_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+#include <stdio.h>
+
+const char *mjs_typeof(mjs_val_t v);
+
+void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp);
+
+#if MJS_ENABLE_DEBUG
+
+void mjs_disasm(const uint8_t *code, size_t len, FILE *fp);
+void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
+
+#endif
+
+#endif /* MJS_UTIL_PUBLIC_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_util.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_UTIL_H_
+#define MJS_UTIL_H_
+
+/* Amalgamated: #include "mjs/src/mjs_core.h" */
+/* Amalgamated: #include "mjs/src/mjs_util_public.h" */
+
+MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
+MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
+
+/*
+ * Checks that the given argument is provided, and checks its type. If check
+ * fails, sets error in the mjs context, and returns 0; otherwise returns 1.
+ *
+ * If `arg_num` >= 0, checks argument; otherwise (`arg_num` is negative) checks
+ * `this`. `arg_name` is used for the error message only. If `parg` is not
+ * NULL, writes resulting value at this location in case of success.
+ */
+MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
+                              const char *arg_name, enum mjs_type expected_type,
+                              mjs_val_t *parg);
+
+/*
+ * mjs_normalize_idx takes and index in the string and the string size, and
+ * returns the index which is >= 0 and <= size. Negative index is interpreted
+ * as size + index.
+ */
+MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
+
+#endif /* MJS_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_internal.h"
 #endif
@@ -3221,63 +3296,6 @@ MJS_PRIVATE mjs_err_t
 mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res);
 
 #endif /* MJS_JSON_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_util_public.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_UTIL_PUBLIC_H_
-#define MJS_UTIL_PUBLIC_H_
-
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
-#include <stdio.h>
-
-const char *mjs_typeof(mjs_val_t v);
-
-void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp);
-
-#if MJS_ENABLE_DEBUG
-
-void mjs_disasm(const uint8_t *code, size_t len, FILE *fp);
-void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
-
-#endif
-
-#endif /* MJS_UTIL_PUBLIC_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_util.h"
-#endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef MJS_UTIL_H_
-#define MJS_UTIL_H_
-
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_util_public.h" */
-
-MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
-MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
-MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
-
-/*
- * Checks that the given argument is provided, and checks its type. If check
- * fails, sets error in the mjs context, and returns 0; otherwise returns 1.
- *
- * If `arg_num` >= 0, checks argument; otherwise (`arg_num` is negative) checks
- * `this`. `arg_name` is used for the error message only. If `parg` is not
- * NULL, writes resulting value at this location in case of success.
- */
-MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
-                              const char *arg_name, enum mjs_type expected_type,
-                              mjs_val_t *parg);
-
-#endif /* MJS_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_bcode.h"
 #endif
@@ -5507,6 +5525,9 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs/src/mjs_util.h" */
+
+#define SPLICE_NEW_ITEM_IDX 2
 
 /* like c_snprintf but returns `size` if write is truncated */
 static int v_sprintf_s(char *buf, size_t size, const char *fmt, ...) {
@@ -5597,16 +5618,108 @@ mjs_err_t mjs_array_set(struct mjs *mjs, mjs_val_t arr, unsigned long index,
   return ret;
 }
 
-#if 0
 void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index) {
   char buf[20];
   int n = v_sprintf_s(buf, sizeof(buf), "%lu", index);
   mjs_del(mjs, arr, buf, n);
 }
-#endif
 
 mjs_err_t mjs_array_push(struct mjs *mjs, mjs_val_t arr, mjs_val_t v) {
   return mjs_array_set(mjs, arr, mjs_array_length(mjs, arr), v);
+}
+
+static void move_item(struct mjs *mjs, mjs_val_t arr, unsigned long from,
+                      unsigned long to) {
+  mjs_val_t cur = mjs_array_get(mjs, arr, from);
+  mjs_array_set(mjs, arr, to, cur);
+  mjs_array_del(mjs, arr, from);
+}
+
+MJS_PRIVATE void mjs_array_splice(struct mjs *mjs) {
+  int nargs = mjs_nargs(mjs);
+  mjs_err_t rcode = MJS_OK;
+  mjs_val_t ret = mjs_mk_array(mjs);
+  mjs_val_t start_v = MJS_UNDEFINED;
+  mjs_val_t deleteCount_v = MJS_UNDEFINED;
+  int start = 0;
+  int arr_len;
+  int delete_cnt = 0;
+  int new_items_cnt = 0;
+  int delta = 0;
+  int i;
+
+  /* Make sure that `this` is an array */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_OBJECT_ARRAY, NULL)) {
+    goto clean;
+  }
+
+  /* Get array length */
+  arr_len = mjs_array_length(mjs, mjs->vals.this_obj);
+
+  /* get start from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "start", MJS_TYPE_NUMBER, &start_v)) {
+    goto clean;
+  }
+  start = mjs_normalize_idx(mjs_get_int(mjs, start_v), arr_len);
+
+  /* Handle deleteCount */
+  if (nargs >= SPLICE_NEW_ITEM_IDX) {
+    /* deleteCount is given; use it */
+    if (!mjs_check_arg(mjs, 1, "deleteCount", MJS_TYPE_NUMBER,
+                       &deleteCount_v)) {
+      goto clean;
+    }
+    delete_cnt = mjs_get_int(mjs, deleteCount_v);
+    new_items_cnt = nargs - SPLICE_NEW_ITEM_IDX;
+  } else {
+    /* deleteCount is not given; assume the end of the array */
+    delete_cnt = arr_len - start;
+  }
+  if (delete_cnt > arr_len - start) {
+    delete_cnt = arr_len - start;
+  } else if (delete_cnt < 0) {
+    delete_cnt = 0;
+  }
+
+  /* delta at which subsequent array items should be moved */
+  delta = new_items_cnt - delete_cnt;
+
+  /*
+   * copy items which are going to be deleted to the separate array (will be
+   * returned)
+   */
+  for (i = 0; i < delete_cnt; i++) {
+    mjs_val_t cur = mjs_array_get(mjs, mjs->vals.this_obj, start + i);
+    rcode = mjs_array_push(mjs, ret, cur);
+    if (rcode != MJS_OK) {
+      mjs_prepend_errorf(mjs, rcode, "");
+      goto clean;
+    }
+  }
+
+  /* If needed, move subsequent items */
+  if (delta < 0) {
+    for (i = start; i < arr_len; i++) {
+      if (i >= start - delta) {
+        move_item(mjs, mjs->vals.this_obj, i, i + delta);
+      } else {
+        mjs_array_del(mjs, mjs->vals.this_obj, i);
+      }
+    }
+  } else if (delta > 0) {
+    for (i = arr_len - 1; i >= start + delta; i--) {
+      move_item(mjs, mjs->vals.this_obj, i, i + delta);
+    }
+  }
+
+  /* Set new items to the array */
+  for (i = 0; i < nargs - SPLICE_NEW_ITEM_IDX; i++) {
+    mjs_array_set(mjs, mjs->vals.this_obj, start + i,
+                  mjs_arg(mjs, SPLICE_NEW_ITEM_IDX + i));
+  }
+
+clean:
+  mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_bcode.c"
@@ -6585,7 +6698,10 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
 static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
                                  const char *name, size_t name_len,
                                  mjs_val_t *res) {
-  if (strcmp(name, "length") == 0) {
+  if (strcmp(name, "splice") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_array_splice);
+    return 1;
+  } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
     return 1;
   }
@@ -9107,6 +9223,39 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
   return err;
 }
 
+MJS_PRIVATE void mjs_destroy_property(struct mjs_property **p) {
+  *p = NULL;
+}
+
+/*
+ * See comments in `object_public.h`
+ */
+int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len) {
+  struct mjs_property *prop, *prev;
+
+  if (!mjs_is_object(obj)) {
+    return -1;
+  }
+  if (len == (size_t) ~0) {
+    len = strlen(name);
+  }
+  for (prev = NULL, prop = get_object_struct(obj)->properties; prop != NULL;
+       prev = prop, prop = prop->next) {
+    size_t n;
+    const char *s = mjs_get_string(mjs, &prop->name, &n);
+    if (n == len && strncmp(s, name, len) == 0) {
+      if (prev) {
+        prev->next = prop->next;
+      } else {
+        get_object_struct(obj)->properties = prop->next;
+      }
+      mjs_destroy_property(&prop);
+      return 0;
+    }
+  }
+  return -1;
+}
+
 mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator) {
   struct mjs_property *p = NULL;
   mjs_val_t key = MJS_UNDEFINED;
@@ -10428,24 +10577,6 @@ MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
   return res;
 }
 
-/*
- * string_idx takes and index in the string and the string size, and returns
- * the index which is >= 0 and <= size. Negative index is interpreted as
- * size + index.
- */
-static int string_idx(int idx, int size) {
-  if (idx < 0) {
-    idx = size + idx;
-    if (idx < 0) {
-      idx = 0;
-    }
-  }
-  if (idx > size) {
-    idx = size;
-  }
-  return idx;
-}
-
 MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   int nargs = mjs_nargs(mjs);
   mjs_val_t ret = mjs_mk_number(mjs, 0);
@@ -10466,7 +10597,7 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   if (!mjs_check_arg(mjs, 0, "beginSlice", MJS_TYPE_NUMBER, &beginSlice_v)) {
     goto clean;
   }
-  beginSlice = string_idx(mjs_get_int(mjs, beginSlice_v), size);
+  beginSlice = mjs_normalize_idx(mjs_get_int(mjs, beginSlice_v), size);
 
   if (nargs >= 2) {
     /* endSlice is given; use it */
@@ -10474,7 +10605,7 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
     if (!mjs_check_arg(mjs, 1, "endSlice", MJS_TYPE_NUMBER, &endSlice_v)) {
       goto clean;
     }
-    endSlice = string_idx(mjs_get_int(mjs, endSlice_v), size);
+    endSlice = mjs_normalize_idx(mjs_get_int(mjs, endSlice_v), size);
   } else {
     /* endSlice is not given; assume the end of the string */
     endSlice = size;
@@ -10507,7 +10638,7 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs) {
   if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_NUMBER, &idx_v)) {
     goto clean;
   }
-  idx = string_idx(mjs_get_int(mjs, idx_v), size);
+  idx = mjs_normalize_idx(mjs_get_int(mjs, idx_v), size);
   if (idx >= 0 && idx < (int) size) {
     ret = mjs_mk_number(mjs, ((unsigned char *) s)[idx]);
   }
@@ -11262,6 +11393,19 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
   }
 
   return 1;
+}
+
+MJS_PRIVATE int mjs_normalize_idx(int idx, int size) {
+  if (idx < 0) {
+    idx = size + idx;
+    if (idx < 0) {
+      idx = 0;
+    }
+  }
+  if (idx > size) {
+    idx = size;
+  }
+  return idx;
 }
 
 #endif

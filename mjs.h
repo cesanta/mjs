@@ -263,10 +263,8 @@ mjs_err_t mjs_array_set(struct mjs *mjs, mjs_val_t arr, unsigned long index,
 /* Returns true if the given value is an array */
 int mjs_is_array(mjs_val_t v);
 
-#if 0
 /* Delete value in array `arr` at index `index`, if it exists. */
 void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
-#endif
 
 #if defined(__cplusplus)
 }
@@ -553,6 +551,17 @@ mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len,
  */
 mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
                     mjs_val_t val);
+
+/*
+ * Delete own property `name` of the object `obj`. Does not follow the
+ * prototype chain.
+ *
+ * If `name_len` is ~0, `name` is assumed to be NUL-terminated and
+ * `strlen(name)` is used.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len);
 
 /*
  * Iterate over `obj` properties.

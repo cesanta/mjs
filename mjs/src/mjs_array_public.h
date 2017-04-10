@@ -38,10 +38,8 @@ mjs_err_t mjs_array_set(struct mjs *mjs, mjs_val_t arr, unsigned long index,
 /* Returns true if the given value is an array */
 int mjs_is_array(mjs_val_t v);
 
-#if 0
 /* Delete value in array `arr` at index `index`, if it exists. */
 void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
-#endif
 
 #if defined(__cplusplus)
 }

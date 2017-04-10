@@ -2033,6 +2033,86 @@ const char *test_arrays() {
   ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a[10] = undefined; a.length", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 11);
 
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(1, 1, 100);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[2]___[1,100,3,4,5]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(1, 2, 100);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[2,3]___[1,100,4,5]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(1, 2, 100, 101, 102, 103);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[2,3]___[1,100,101,102,103,4,5]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+          let ret=a.splice(1, 5, 100, 101);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[2,3,4,5,6]___[1,100,101,7,8,9]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(1, 3);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[2,3,4]___[1,5]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(0, 3);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[1,2,3]___[4,5]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(2);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[3,4,5]___[1,2]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(2,1000);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[3,4,5]___[1,2]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(2,1000,100,101);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[3,4,5]___[1,2,100,101]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3, 4, 5]);
+          let ret=a.splice(0,3,100,101);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[1,2,3]___[100,101,4,5]");
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
 

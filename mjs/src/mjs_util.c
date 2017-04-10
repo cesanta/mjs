@@ -302,4 +302,17 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
   return 1;
 }
 
+MJS_PRIVATE int mjs_normalize_idx(int idx, int size) {
+  if (idx < 0) {
+    idx = size + idx;
+    if (idx < 0) {
+      idx = 0;
+    }
+  }
+  if (idx > size) {
+    idx = size;
+  }
+  return idx;
+}
+
 #endif

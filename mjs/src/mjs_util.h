@@ -25,4 +25,11 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
                               const char *arg_name, enum mjs_type expected_type,
                               mjs_val_t *parg);
 
+/*
+ * mjs_normalize_idx takes and index in the string and the string size, and
+ * returns the index which is >= 0 and <= size. Negative index is interpreted
+ * as size + index.
+ */
+MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
+
 #endif /* MJS_UTIL_H_ */

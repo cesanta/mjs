@@ -250,24 +250,6 @@ MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
   return res;
 }
 
-/*
- * string_idx takes and index in the string and the string size, and returns
- * the index which is >= 0 and <= size. Negative index is interpreted as
- * size + index.
- */
-static int string_idx(int idx, int size) {
-  if (idx < 0) {
-    idx = size + idx;
-    if (idx < 0) {
-      idx = 0;
-    }
-  }
-  if (idx > size) {
-    idx = size;
-  }
-  return idx;
-}
-
 MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   int nargs = mjs_nargs(mjs);
   mjs_val_t ret = mjs_mk_number(mjs, 0);
@@ -288,7 +270,7 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   if (!mjs_check_arg(mjs, 0, "beginSlice", MJS_TYPE_NUMBER, &beginSlice_v)) {
     goto clean;
   }
-  beginSlice = string_idx(mjs_get_int(mjs, beginSlice_v), size);
+  beginSlice = mjs_normalize_idx(mjs_get_int(mjs, beginSlice_v), size);
 
   if (nargs >= 2) {
     /* endSlice is given; use it */
@@ -296,7 +278,7 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
     if (!mjs_check_arg(mjs, 1, "endSlice", MJS_TYPE_NUMBER, &endSlice_v)) {
       goto clean;
     }
-    endSlice = string_idx(mjs_get_int(mjs, endSlice_v), size);
+    endSlice = mjs_normalize_idx(mjs_get_int(mjs, endSlice_v), size);
   } else {
     /* endSlice is not given; assume the end of the string */
     endSlice = size;
@@ -329,7 +311,7 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs) {
   if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_NUMBER, &idx_v)) {
     goto clean;
   }
-  idx = string_idx(mjs_get_int(mjs, idx_v), size);
+  idx = mjs_normalize_idx(mjs_get_int(mjs, idx_v), size);
   if (idx >= 0 && idx < (int) size) {
     ret = mjs_mk_number(mjs, ((unsigned char *) s)[idx]);
   }

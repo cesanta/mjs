@@ -190,6 +190,39 @@ mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
   return err;
 }
 
+MJS_PRIVATE void mjs_destroy_property(struct mjs_property **p) {
+  *p = NULL;
+}
+
+/*
+ * See comments in `object_public.h`
+ */
+int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len) {
+  struct mjs_property *prop, *prev;
+
+  if (!mjs_is_object(obj)) {
+    return -1;
+  }
+  if (len == (size_t) ~0) {
+    len = strlen(name);
+  }
+  for (prev = NULL, prop = get_object_struct(obj)->properties; prop != NULL;
+       prev = prop, prop = prop->next) {
+    size_t n;
+    const char *s = mjs_get_string(mjs, &prop->name, &n);
+    if (n == len && strncmp(s, name, len) == 0) {
+      if (prev) {
+        prev->next = prop->next;
+      } else {
+        get_object_struct(obj)->properties = prop->next;
+      }
+      mjs_destroy_property(&prop);
+      return 0;
+    }
+  }
+  return -1;
+}
+
 mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator) {
   struct mjs_property *p = NULL;
   mjs_val_t key = MJS_UNDEFINED;
