@@ -2397,6 +2397,7 @@ enum mjs_type {
   /* Different classes of Object type */
   MJS_TYPE_OBJECT_GENERIC,
   MJS_TYPE_OBJECT_ARRAY,
+  MJS_TYPE_OBJECT_FUNCTION,
   /*
    * TODO(dfrank): if we support prototypes, need to add items for them here
    */
@@ -2487,7 +2488,7 @@ MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index);
 MJS_PRIVATE int mjs_nargs(struct mjs *mjs);
 MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t);
 
-MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v);
+MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
 
 /*
  * Returns offset of the bcode header (see enum mjs_header_items) which
@@ -3257,10 +3258,24 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
 #ifndef MJS_UTIL_H_
 #define MJS_UTIL_H_
 
+/* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_util_public.h" */
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
+MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
+
+/*
+ * Checks that the given argument is provided, and checks its type. If check
+ * fails, sets error in the mjs context, and returns 0; otherwise returns 1.
+ *
+ * If `arg_num` >= 0, checks argument; otherwise (`arg_num` is negative) checks
+ * `this`. `arg_name` is used for the error message only. If `parg` is not
+ * NULL, writes resulting value at this location in case of success.
+ */
+MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
+                              const char *arg_name, enum mjs_type expected_type,
+                              mjs_val_t *parg);
 
 #endif /* MJS_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
@@ -5955,9 +5970,8 @@ MJS_PRIVATE size_t mjs_get_func_addr(mjs_val_t v) {
   return v & ~MJS_TAG_MASK;
 }
 
-MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v) {
+MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v) {
   int tag;
-  (void) mjs;
   if (mjs_is_number(v)) {
     return MJS_TYPE_NUMBER;
   }
@@ -5971,6 +5985,8 @@ MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v) {
       return MJS_TYPE_OBJECT_GENERIC;
     case MJS_TAG_ARRAY >> 48:
       return MJS_TYPE_OBJECT_ARRAY;
+    case MJS_TAG_FUNCTION >> 48:
+      return MJS_TYPE_OBJECT_FUNCTION;
     case MJS_TAG_STRING_I >> 48:
     case MJS_TAG_STRING_O >> 48:
     case MJS_TAG_STRING_F >> 48:
@@ -8489,7 +8505,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
 
   if (size > 0) *buf = '\0';
 
-  if (!is_debug && should_skip_for_json(mjs_get_type(mjs, v))) {
+  if (!is_debug && should_skip_for_json(mjs_get_type(v))) {
     goto clean;
   }
 
@@ -8503,7 +8519,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
     }
   }
 
-  switch (mjs_get_type(mjs, v)) {
+  switch (mjs_get_type(v)) {
     case MJS_TYPE_NULL:
     case MJS_TYPE_BOOLEAN:
     case MJS_TYPE_NUMBER:
@@ -8533,6 +8549,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
       goto clean;
     }
 
+    case MJS_TYPE_OBJECT_FUNCTION:
     case MJS_TYPE_OBJECT_GENERIC: {
       char *b = buf;
       struct mjs_property *prop = NULL;
@@ -8544,7 +8561,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
       for (prop = o->properties; prop != NULL; prop = prop->next) {
         size_t n;
         const char *s;
-        if (!is_debug && should_skip_for_json(mjs_get_type(mjs, prop->value))) {
+        if (!is_debug && should_skip_for_json(mjs_get_type(prop->value))) {
           continue;
         }
         if (b - buf != 1) { /* Not the first property to be printed */
@@ -8580,7 +8597,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
         el = mjs_array_get2(mjs, v, i, &has);
         if (has) {
           size_t tmp = 0;
-          if (!is_debug && should_skip_for_json(mjs_get_type(mjs, el))) {
+          if (!is_debug && should_skip_for_json(mjs_get_type(el))) {
             b += c_snprintf(b, BUF_LEFT(size, b - buf), "null");
           } else {
             rcode = to_json_or_debug(mjs, el, b, BUF_LEFT(size, b - buf), &tmp,
@@ -10169,6 +10186,7 @@ int mjs_is_function(mjs_val_t v) {
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 // No UTF
 typedef unsigned short Rune;
@@ -10438,35 +10456,24 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   size_t size;
   const char *s = NULL;
 
-  if (!mjs_is_string(mjs->vals.this_obj)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "this should be a string");
+  /* get string from `this` */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
     goto clean;
   }
-
   s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
 
-  if (nargs < 1) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'beginSlice'");
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "beginSlice", MJS_TYPE_NUMBER, &beginSlice_v)) {
     goto clean;
   }
-
-  beginSlice_v = mjs_arg(mjs, 0);
-
-  if (!mjs_is_number(beginSlice_v)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "beginSlice should be a number");
-    goto clean;
-  }
-
   beginSlice = string_idx(mjs_get_int(mjs, beginSlice_v), size);
 
   if (nargs >= 2) {
     /* endSlice is given; use it */
-    endSlice_v = mjs_arg(mjs, 1);
-    if (!mjs_is_number(endSlice_v)) {
-      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "endSlice should be a number");
+    /* get idx from arg 0 */
+    if (!mjs_check_arg(mjs, 1, "endSlice", MJS_TYPE_NUMBER, &endSlice_v)) {
       goto clean;
     }
-
     endSlice = string_idx(mjs_get_int(mjs, endSlice_v), size);
   } else {
     /* endSlice is not given; assume the end of the string */
@@ -10484,32 +10491,22 @@ clean:
 }
 
 MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs) {
-  int nargs = mjs_nargs(mjs);
   mjs_val_t ret = MJS_UNDEFINED;
   mjs_val_t idx_v = MJS_UNDEFINED;
   int idx = 0;
   size_t size;
   const char *s = NULL;
 
-  if (!mjs_is_string(mjs->vals.this_obj)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "this should be a string");
+  /* get string from `this` */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
     goto clean;
   }
-
   s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
 
-  if (nargs < 1) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'index'");
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_NUMBER, &idx_v)) {
     goto clean;
   }
-
-  idx_v = mjs_arg(mjs, 0);
-
-  if (!mjs_is_number(idx_v)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index should be a number");
-    goto clean;
-  }
-
   idx = string_idx(mjs_get_int(mjs, idx_v), size);
   if (idx >= 0 && idx < (int) size) {
     ret = mjs_mk_number(mjs, ((unsigned char *) s)[idx]);
@@ -10977,29 +10974,35 @@ MJS_PRIVATE int pnext(struct pstate *p) {
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs/src/mjs_util.h" */
 /* Amalgamated: #include "mjs/src/mjs_tok.h" */
 
 const char *mjs_typeof(mjs_val_t v) {
-  if (mjs_is_number(v)) {
-    return "number";
-  } else if (mjs_is_boolean(v)) {
-    return "boolean";
-  } else if (mjs_is_string(v)) {
-    return "string";
-  } else if (mjs_is_array(v)) {
-    return "array";
-  } else if (mjs_is_object(v)) {
-    return "object";
-  } else if (mjs_is_foreign(v)) {
-    return "foreign_ptr";
-  } else if (mjs_is_function(v)) {
-    return "function";
-  } else if (mjs_is_null(v)) {
-    return "null";
-  } else if (mjs_is_undefined(v)) {
-    return "undefined";
-  } else {
-    return "???";
+  return mjs_stringify_type(mjs_get_type(v));
+}
+
+MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t) {
+  switch (t) {
+    case MJS_TYPE_NUMBER:
+      return "number";
+    case MJS_TYPE_BOOLEAN:
+      return "boolean";
+    case MJS_TYPE_STRING:
+      return "string";
+    case MJS_TYPE_OBJECT_ARRAY:
+      return "array";
+    case MJS_TYPE_OBJECT_GENERIC:
+      return "object";
+    case MJS_TYPE_FOREIGN:
+      return "foreign_ptr";
+    case MJS_TYPE_OBJECT_FUNCTION:
+      return "function";
+    case MJS_TYPE_NULL:
+      return "null";
+    case MJS_TYPE_UNDEFINED:
+      return "undefined";
+    default:
+      return "???";
   }
 }
 
@@ -11227,5 +11230,39 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp) {
   }
   fprintf(fp, "------- MJS VM DUMP END\n");
 }
+
+MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
+                              const char *arg_name, enum mjs_type expected_type,
+                              mjs_val_t *parg) {
+  mjs_val_t arg = MJS_UNDEFINED;
+
+  if (arg_num >= 0) {
+    int nargs = mjs_nargs(mjs);
+    if (nargs < arg_num + 1) {
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument %s", arg_name);
+      return 0;
+    }
+
+    arg = mjs_arg(mjs, arg_num);
+  } else {
+    /* use `this` */
+    arg = mjs->vals.this_obj;
+  }
+
+  enum mjs_type actual_type = mjs_get_type(arg);
+  if (actual_type != expected_type) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "%s should be a %s, %s given",
+                       arg_name, mjs_stringify_type(expected_type),
+                       mjs_stringify_type(actual_type));
+    return 0;
+  }
+
+  if (parg != NULL) {
+    *parg = arg;
+  }
+
+  return 1;
+}
+
 #endif
 #endif /* MJS_EXPORT_INTERNAL_HEADERS */

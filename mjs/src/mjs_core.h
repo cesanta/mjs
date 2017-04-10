@@ -24,6 +24,7 @@ enum mjs_type {
   /* Different classes of Object type */
   MJS_TYPE_OBJECT_GENERIC,
   MJS_TYPE_OBJECT_ARRAY,
+  MJS_TYPE_OBJECT_FUNCTION,
   /*
    * TODO(dfrank): if we support prototypes, need to add items for them here
    */
@@ -114,7 +115,7 @@ MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index);
 MJS_PRIVATE int mjs_nargs(struct mjs *mjs);
 MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t);
 
-MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v);
+MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
 
 /*
  * Returns offset of the bcode header (see enum mjs_header_items) which

@@ -118,7 +118,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
 
   if (size > 0) *buf = '\0';
 
-  if (!is_debug && should_skip_for_json(mjs_get_type(mjs, v))) {
+  if (!is_debug && should_skip_for_json(mjs_get_type(v))) {
     goto clean;
   }
 
@@ -132,7 +132,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
     }
   }
 
-  switch (mjs_get_type(mjs, v)) {
+  switch (mjs_get_type(v)) {
     case MJS_TYPE_NULL:
     case MJS_TYPE_BOOLEAN:
     case MJS_TYPE_NUMBER:
@@ -162,6 +162,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
       goto clean;
     }
 
+    case MJS_TYPE_OBJECT_FUNCTION:
     case MJS_TYPE_OBJECT_GENERIC: {
       char *b = buf;
       struct mjs_property *prop = NULL;
@@ -173,7 +174,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
       for (prop = o->properties; prop != NULL; prop = prop->next) {
         size_t n;
         const char *s;
-        if (!is_debug && should_skip_for_json(mjs_get_type(mjs, prop->value))) {
+        if (!is_debug && should_skip_for_json(mjs_get_type(prop->value))) {
           continue;
         }
         if (b - buf != 1) { /* Not the first property to be printed */
@@ -209,7 +210,7 @@ MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
         el = mjs_array_get2(mjs, v, i, &has);
         if (has) {
           size_t tmp = 0;
-          if (!is_debug && should_skip_for_json(mjs_get_type(mjs, el))) {
+          if (!is_debug && should_skip_for_json(mjs_get_type(el))) {
             b += c_snprintf(b, BUF_LEFT(size, b - buf), "null");
           } else {
             rcode = to_json_or_debug(mjs, el, b, BUF_LEFT(size, b - buf), &tmp,

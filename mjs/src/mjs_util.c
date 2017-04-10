@@ -12,29 +12,35 @@
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
+#include "mjs/src/mjs_util.h"
 #include "mjs/src/mjs_tok.h"
 
 const char *mjs_typeof(mjs_val_t v) {
-  if (mjs_is_number(v)) {
-    return "number";
-  } else if (mjs_is_boolean(v)) {
-    return "boolean";
-  } else if (mjs_is_string(v)) {
-    return "string";
-  } else if (mjs_is_array(v)) {
-    return "array";
-  } else if (mjs_is_object(v)) {
-    return "object";
-  } else if (mjs_is_foreign(v)) {
-    return "foreign_ptr";
-  } else if (mjs_is_function(v)) {
-    return "function";
-  } else if (mjs_is_null(v)) {
-    return "null";
-  } else if (mjs_is_undefined(v)) {
-    return "undefined";
-  } else {
-    return "???";
+  return mjs_stringify_type(mjs_get_type(v));
+}
+
+MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t) {
+  switch (t) {
+    case MJS_TYPE_NUMBER:
+      return "number";
+    case MJS_TYPE_BOOLEAN:
+      return "boolean";
+    case MJS_TYPE_STRING:
+      return "string";
+    case MJS_TYPE_OBJECT_ARRAY:
+      return "array";
+    case MJS_TYPE_OBJECT_GENERIC:
+      return "object";
+    case MJS_TYPE_FOREIGN:
+      return "foreign_ptr";
+    case MJS_TYPE_OBJECT_FUNCTION:
+      return "function";
+    case MJS_TYPE_NULL:
+      return "null";
+    case MJS_TYPE_UNDEFINED:
+      return "undefined";
+    default:
+      return "???";
   }
 }
 
@@ -262,4 +268,38 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp) {
   }
   fprintf(fp, "------- MJS VM DUMP END\n");
 }
+
+MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
+                              const char *arg_name, enum mjs_type expected_type,
+                              mjs_val_t *parg) {
+  mjs_val_t arg = MJS_UNDEFINED;
+
+  if (arg_num >= 0) {
+    int nargs = mjs_nargs(mjs);
+    if (nargs < arg_num + 1) {
+      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument %s", arg_name);
+      return 0;
+    }
+
+    arg = mjs_arg(mjs, arg_num);
+  } else {
+    /* use `this` */
+    arg = mjs->vals.this_obj;
+  }
+
+  enum mjs_type actual_type = mjs_get_type(arg);
+  if (actual_type != expected_type) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "%s should be a %s, %s given",
+                       arg_name, mjs_stringify_type(expected_type),
+                       mjs_stringify_type(actual_type));
+    return 0;
+  }
+
+  if (parg != NULL) {
+    *parg = arg;
+  }
+
+  return 1;
+}
+
 #endif

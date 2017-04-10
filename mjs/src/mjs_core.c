@@ -124,9 +124,8 @@ MJS_PRIVATE size_t mjs_get_func_addr(mjs_val_t v) {
   return v & ~MJS_TAG_MASK;
 }
 
-MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v) {
+MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v) {
   int tag;
-  (void) mjs;
   if (mjs_is_number(v)) {
     return MJS_TYPE_NUMBER;
   }
@@ -140,6 +139,8 @@ MJS_PRIVATE enum mjs_type mjs_get_type(struct mjs *mjs, mjs_val_t v) {
       return MJS_TYPE_OBJECT_GENERIC;
     case MJS_TAG_ARRAY >> 48:
       return MJS_TYPE_OBJECT_ARRAY;
+    case MJS_TAG_FUNCTION >> 48:
+      return MJS_TYPE_OBJECT_FUNCTION;
     case MJS_TAG_STRING_I >> 48:
     case MJS_TAG_STRING_O >> 48:
     case MJS_TAG_STRING_F >> 48:

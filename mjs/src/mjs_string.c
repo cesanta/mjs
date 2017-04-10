@@ -8,6 +8,7 @@
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
+#include "mjs/src/mjs_util.h"
 
 // No UTF
 typedef unsigned short Rune;
@@ -277,35 +278,24 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   size_t size;
   const char *s = NULL;
 
-  if (!mjs_is_string(mjs->vals.this_obj)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "this should be a string");
+  /* get string from `this` */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
     goto clean;
   }
-
   s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
 
-  if (nargs < 1) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'beginSlice'");
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "beginSlice", MJS_TYPE_NUMBER, &beginSlice_v)) {
     goto clean;
   }
-
-  beginSlice_v = mjs_arg(mjs, 0);
-
-  if (!mjs_is_number(beginSlice_v)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "beginSlice should be a number");
-    goto clean;
-  }
-
   beginSlice = string_idx(mjs_get_int(mjs, beginSlice_v), size);
 
   if (nargs >= 2) {
     /* endSlice is given; use it */
-    endSlice_v = mjs_arg(mjs, 1);
-    if (!mjs_is_number(endSlice_v)) {
-      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "endSlice should be a number");
+    /* get idx from arg 0 */
+    if (!mjs_check_arg(mjs, 1, "endSlice", MJS_TYPE_NUMBER, &endSlice_v)) {
       goto clean;
     }
-
     endSlice = string_idx(mjs_get_int(mjs, endSlice_v), size);
   } else {
     /* endSlice is not given; assume the end of the string */
@@ -323,32 +313,22 @@ clean:
 }
 
 MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs) {
-  int nargs = mjs_nargs(mjs);
   mjs_val_t ret = MJS_UNDEFINED;
   mjs_val_t idx_v = MJS_UNDEFINED;
   int idx = 0;
   size_t size;
   const char *s = NULL;
 
-  if (!mjs_is_string(mjs->vals.this_obj)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "this should be a string");
+  /* get string from `this` */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
     goto clean;
   }
-
   s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
 
-  if (nargs < 1) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "missing argument 'index'");
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_NUMBER, &idx_v)) {
     goto clean;
   }
-
-  idx_v = mjs_arg(mjs, 0);
-
-  if (!mjs_is_number(idx_v)) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index should be a number");
-    goto clean;
-  }
-
   idx = string_idx(mjs_get_int(mjs, idx_v), size);
   if (idx >= 0 && idx < (int) size) {
     ret = mjs_mk_number(mjs, ((unsigned char *) s)[idx]);
