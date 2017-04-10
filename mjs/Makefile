@@ -1,12 +1,7 @@
-REPO_ROOT_PATH = ..
+REPO_ROOT = ..
 SRCPATH = src
-VPATH = $(REPO_ROOT_PATH)/common $(REPO_ROOT_PATH)/frozen src
+VPATH = $(REPO_ROOT)/common $(REPO_ROOT)/frozen src
 BUILD_DIR = build
-
-CLANG = clang
-ifneq ("$(wildcard /usr/bin/clang-3.6)","")
-	CLANG:=/usr/bin/clang-3.6
-endif
 
 include $(SRCPATH)/mjs_sources.mk
 
@@ -15,7 +10,7 @@ TOP_HEADERS = $(addprefix $(SRCPATH)/, $(HEADERS))
 TOP_SOURCES_DIRS = $(sort $(dir $(TOP_SOURCES)))
 TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 
-MFLAGS += -I. -I$(REPO_ROOT_PATH) -Isrc
+MFLAGS += -I. -I$(REPO_ROOT) -Isrc
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
 CFLAGS += -W -Wall -g -O0
 CFLAGS += $(MFLAGS) $(CFLAGS_EXTRA)
@@ -44,9 +39,9 @@ PROG = $(BUILD_DIR)/mjs
 
 all: $(PROG)
 
-TESTUTIL_FILES = $(REPO_ROOT_PATH)/common/cs_dirent.c \
-                 $(REPO_ROOT_PATH)/common/cs_time.c \
-                 $(REPO_ROOT_PATH)/common/test_util.c
+TESTUTIL_FILES = $(REPO_ROOT)/common/cs_dirent.c \
+                 $(REPO_ROOT)/common/cs_time.c \
+                 $(REPO_ROOT)/common/test_util.c
 
 mjs.c: $(TOP_SOURCES) mjs.h Makefile
 	@printf "AMALGAMATING\tmjs.c\n"
@@ -87,7 +82,7 @@ DOCKER_USER_ARG = --user $$(id -u):$$(id -u)
 endif
 endif
 
-COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT_PATH) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES)
+COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES)
 
 test: $(BUILD_DIR)/unit_test $(PROG)
 	$(BUILD_DIR)/unit_test
@@ -114,14 +109,6 @@ test_full: $(PROG) \
 clean:
 	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h
 
-REPO_ABS_PATH := $(shell cd $(REPO_ROOT_PATH) && pwd)
-CLANG_FORMAT := docker run --workdir $(REPO_ABS_PATH) \
-                           --rm -v $(REPO_ABS_PATH):$(REPO_ABS_PATH) \
-                           $(DOCKER_USER_ARG) \
-                           docker.cesanta.com/bob /usr/bin/clang-format-3.6 -i
-format:
-	@git --git-dir $(REPO_ABS_PATH)/.git --work-tree .. ls-files --full-name '*.[ch]' | xargs -t $(CLANG_FORMAT)
-
 print_sources:
 	@echo $(TOP_SOURCES) $(TOP_HEADERS)
 
@@ -134,7 +121,9 @@ $(PROG).exe: $(BUILD_DIR) $(TOP_HEADERS) mjs.c
 	wine cl $(MFLAGS) mjs.c -O1 -MD /Fe$@
 
 $(BUILD_DIR)/unit_test.exe: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	wine cl -I. -I$(REPO_ROOT_PATH) $< $(TESTUTIL_FILES) -o $@
+	wine cl -I. -I$(REPO_ROOT) $< $(TESTUTIL_FILES) -o $@
 
 wtest: $(BUILD_DIR)/unit_test.exe
 	wine $(BUILD_DIR)/unit_test.exe
+
+include $(REPO_ROOT)/common.mk
