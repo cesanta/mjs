@@ -75,6 +75,18 @@ $(BUILD_DIR):
 $(BUILD_DIR)/%.o: %.c $(TOP_HEADERS)
 	$(CLANG) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
+# On Windows and Mac, run container as root since volume sharing on those OSes
+# doesn't play nice with unprivileged user.
+#
+# On other OSes, run it as the current user.
+DOCKER_USER_ARG =
+ifneq ($(OS),Windows_NT)
+UNAME_S := $(shell uname -s)
+ifneq ($(UNAME_S),Darwin)
+DOCKER_USER_ARG = --user $$(id -u):$$(id -u)
+endif
+endif
+
 COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT_PATH) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES)
 
 test: $(BUILD_DIR)/unit_test $(PROG)
@@ -103,7 +115,10 @@ clean:
 	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h
 
 REPO_ABS_PATH := $(shell cd $(REPO_ROOT_PATH) && pwd)
-CLANG_FORMAT := docker run --workdir $(REPO_ABS_PATH) --rm -v $(REPO_ABS_PATH):$(REPO_ABS_PATH) docker.cesanta.com/bob /usr/bin/clang-format-3.6 -i
+CLANG_FORMAT := docker run --workdir $(REPO_ABS_PATH) \
+                           --rm -v $(REPO_ABS_PATH):$(REPO_ABS_PATH) \
+                           $(DOCKER_USER_ARG) \
+                           docker.cesanta.com/bob /usr/bin/clang-format-3.6 -i
 format:
 	@git --git-dir $(REPO_ABS_PATH)/.git --work-tree .. ls-files --full-name '*.[ch]' | xargs -t $(CLANG_FORMAT)
 
