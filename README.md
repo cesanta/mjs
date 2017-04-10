@@ -55,6 +55,11 @@ where it enables scripting for IoT devices.
   <dd>Return a substring between two indices. Example:
   		<tt>'abcdef'.slice(1,3) === 'bc';</tt></dd>
 
+  <dt><tt>let a = [1,2,3,4,5]; a.splice(start, deleteCount, ...);</tt></dt>
+  <dd>Change the contents of an array by removing existing elements and/or
+    adding new elements. Example:
+  <tt>let a = [1,2,3,4,5]; a.splice(1, 2, 100, 101, 102); a === [1,100,101,102,4,5];</tt></dd>
+
   <dt><tt>let s = fstr(ptrVar, offset, length);</tt></dt>
   <dd>Create a string backed by a C memory chunk. A string <tt>s</tt> starts
   at memory location <tt>ptrVar + offset</tt>, and is <tt>length</tt> bytes long.
