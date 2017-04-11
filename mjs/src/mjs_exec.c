@@ -138,6 +138,10 @@ static void exec_expr(struct mjs *mjs, int op) {
         mjs_push(mjs, mjs_mk_boolean(mjs, 0));
       } else if (mjs_is_string(a) && mjs_is_string(b)) {
         mjs_push(mjs, mjs_mk_boolean(mjs, s_cmp(mjs, a, b) == 0));
+      } else if (mjs_is_foreign(a) && b == MJS_NULL) {
+        mjs_push(mjs, mjs_mk_boolean(mjs, mjs_get_ptr(mjs, a) == NULL));
+      } else if (a == MJS_NULL && mjs_is_foreign(b)) {
+        mjs_push(mjs, mjs_mk_boolean(mjs, mjs_get_ptr(mjs, b) == NULL));
       } else {
         mjs_push(mjs, mjs_mk_boolean(mjs, 0));
       }

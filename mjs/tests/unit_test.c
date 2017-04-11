@@ -573,6 +573,10 @@ static const char *test_func6() {
   return NULL;
 }
 
+const void *ffi_get_null(void) {
+  return NULL;
+}
+
 int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
@@ -678,6 +682,7 @@ void ffi_test_cb_viiiiiu(cb_viiiiiu *cb, void *userdata) {
 
 void *stub_dlsym(void *handle, const char *name) {
   (void) handle;
+  if (strcmp(name, "ffi_get_null") == 0) return ffi_get_null;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
@@ -694,6 +699,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_cb_viiiiiu") == 0) return ffi_test_cb_viiiiiu;
   if (strcmp(name, "malloc") == 0) return malloc;
   if (strcmp(name, "calloc") == 0) return calloc;
+  if (strcmp(name, "free") == 0) return free;
   return NULL;
 }
 
@@ -2420,6 +2426,34 @@ const char *test_foreign_str() {
   return NULL;
 }
 
+const char *test_foreign_ptr() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let get_null = ffi('void *ffi_get_null()');
+          let ptr = get_null();
+          ptr === null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let calloc = ffi('void *calloc(int, int)');
+          let free = ffi('void free(void *)');
+          let ptr = calloc(100, 1);
+          free(ptr);
+          ptr === null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  return NULL;
+}
+
 const char *test_dataview(void) {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
@@ -2481,6 +2515,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_call_api);
   RUN_TEST(test_long_jump);
   RUN_TEST(test_foreign_str);
+  RUN_TEST(test_foreign_ptr);
 
   /* FFI */
   RUN_TEST(test_func1);
