@@ -6437,6 +6437,11 @@ static double do_arith_op(double da, double db, int op) {
   return (int64_t) MJS_TAG_NAN;
 }
 
+static void set_no_autoconversion_error(struct mjs *mjs) {
+  mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                     "implicit type conversion is prohibited");
+}
+
 static void op_assign(struct mjs *mjs, int op) {
   mjs_val_t val = mjs_pop(mjs);
   mjs_val_t obj = mjs_pop(mjs);
@@ -6453,7 +6458,7 @@ static void op_assign(struct mjs *mjs, int op) {
       mjs_set_v(mjs, obj, key, result);
     } else {
       mjs_set_v(mjs, obj, key, MJS_UNDEFINED);
-      mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
+      set_no_autoconversion_error(mjs);
     }
     mjs_push(mjs, v);
   } else {
@@ -6486,7 +6491,7 @@ static void exec_expr(struct mjs *mjs, int op) {
         mjs_push(mjs, s_concat(mjs, b, a));
       } else {
         mjs_push(mjs, MJS_UNDEFINED);
-        mjs_set_errorf(mjs, MJS_TYPE_ERROR, NULL);
+        set_no_autoconversion_error(mjs);
       }
       break;
     }
