@@ -25,6 +25,7 @@ void mjs_destroy(struct mjs *mjs) {
   mbuf_free(&mjs->bcode);
   mbuf_free(&mjs->stack);
   mbuf_free(&mjs->call_stack);
+  mbuf_free(&mjs->arg_stack);
   mbuf_free(&mjs->owned_strings);
   mbuf_free(&mjs->foreign_strings);
   mbuf_free(&mjs->owned_values);
@@ -42,6 +43,7 @@ struct mjs *mjs_create(void) {
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   mbuf_init(&mjs->stack, 0);
   mbuf_init(&mjs->call_stack, 0);
+  mbuf_init(&mjs->arg_stack, 0);
   mbuf_init(&mjs->owned_strings, 0);
   mbuf_init(&mjs->foreign_strings, 0);
   mbuf_init(&mjs->bcode, 0);

@@ -74,6 +74,7 @@ struct mjs {
   struct mbuf bcode;
   struct mbuf stack;
   struct mbuf call_stack;
+  struct mbuf arg_stack;
   struct mbuf scopes;          /* Scope objects */
   struct mbuf loop_addresses;  /* Addresses for breaks & continues */
   struct mbuf owned_strings;   /* Sequence of (varint len, char data[]) */

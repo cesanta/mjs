@@ -590,26 +590,26 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
          * Push last_getprop_obj, which is going to be used as `this`, see
          * OP_CALL
          */
-        push_mjs_val(&mjs->call_stack, mjs->vals.last_getprop_obj);
+        push_mjs_val(&mjs->arg_stack, mjs->vals.last_getprop_obj);
         /*
          * Push current size of data stack, it's needed to place arguments
          * properly
          */
-        push_mjs_val(&mjs->call_stack,
+        push_mjs_val(&mjs->arg_stack,
                      mjs_mk_number(mjs, mjs_stack_size(&mjs->stack)));
         break;
       }
       case OP_CALL: {
         // LOG(LL_INFO, ("BEFORE CALL"));
         // mjs_dump(mjs, 0, stdout);
-        mjs_val_t retpos = vtop(&mjs->call_stack);
+        mjs_val_t retpos = vtop(&mjs->arg_stack);
         int func_pos = mjs_get_int(mjs, retpos) - 1;
         mjs_val_t *func = vptr(&mjs->stack, func_pos);
         if (mjs_is_function(*func)) {
           /* Drop data stack size (pushed by OP_ARGS) */
-          mjs_pop_val(&mjs->call_stack);
+          mjs_pop_val(&mjs->arg_stack);
           /* Pop `this` value, and apply it */
-          mjs_val_t this_obj = mjs_pop_val(&mjs->call_stack);
+          mjs_val_t this_obj = mjs_pop_val(&mjs->arg_stack);
           push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
           mjs->vals.this_obj = this_obj;
 
@@ -624,9 +624,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         } else if (mjs_is_string(*func)) {
           /* Call ffi-ed function */
 
+          /*
+           * Runtime expects data stack size at the top of call_stack, so,
+           * pop it from arg_stack and push to call_stack
+           */
+          push_mjs_val(&mjs->call_stack, mjs_pop_val(&mjs->arg_stack));
+
           /* Apply `this` value for the call */
           mjs_val_t this_obj = mjs->vals.this_obj;
-          mjs->vals.this_obj = *vptr(&mjs->call_stack, -2);
+          mjs->vals.this_obj = mjs_pop_val(&mjs->arg_stack);
 
           /* Perform the ffi-ed function call */
           mjs_ffi_call2(mjs);
@@ -634,15 +640,20 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           /* Restore `this` */
           mjs->vals.this_obj = this_obj;
 
-          /* Drop the values pushed by OP_ARGS (data stack size and `this`) */
-          mjs_pop_val(&mjs->call_stack);
+          /* Drop the data stack size pushed above */
           mjs_pop_val(&mjs->call_stack);
         } else if (mjs_is_foreign(*func)) {
           /* Call cfunction */
 
+          /*
+           * Runtime expects data stack size at the top of call_stack, so,
+           * pop it from arg_stack and push to call_stack
+           */
+          push_mjs_val(&mjs->call_stack, mjs_pop_val(&mjs->arg_stack));
+
           /* Apply `this` value for the call */
           mjs_val_t this_obj = mjs->vals.this_obj;
-          mjs->vals.this_obj = *vptr(&mjs->call_stack, -2);
+          mjs->vals.this_obj = mjs_pop_val(&mjs->arg_stack);
 
           /* Perform the cfunction call */
           ((void (*) (struct mjs *)) mjs_get_ptr(mjs, *func))(mjs);
@@ -650,8 +661,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           /* Restore `this` */
           mjs->vals.this_obj = this_obj;
 
-          /* Drop the values pushed by OP_ARGS (data stack size and `this`) */
-          mjs_pop_val(&mjs->call_stack);
+          /* Drop the data stack size pushed above */
           mjs_pop_val(&mjs->call_stack);
         } else {
           mjs_set_errorf(mjs, MJS_TYPE_ERROR, "calling non-callable");
