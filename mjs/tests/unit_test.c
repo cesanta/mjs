@@ -2142,6 +2142,11 @@ const char *test_json() {
         &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "{\"null\":null,\"arr\":[1,2,{\"foo\":100}],\"bar\":\"hey\",\"foo\":1}");
 
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        "JSON.stringify(\"foo\")",
+        &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "\"foo\"");
+
   /* Test circular links and sparse arrays */
   ASSERT_EXEC_OK(mjs_exec(mjs,
         "o.arr[10] = o;"
