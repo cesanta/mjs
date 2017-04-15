@@ -6,6 +6,7 @@
 #ifndef MJS_FFI_FFI_H_
 #define MJS_FFI_FFI_H_
 
+#include <stdbool.h>
 #include "common/platform.h"
 
 /*
@@ -16,9 +17,16 @@
 
 typedef void (*ffi_fn_t)(void);
 
+typedef intptr_t ffi_word_t;
+
+enum ffi_ctype {
+  FFI_CTYPE_WORD,
+  FFI_CTYPE_BOOL,
+  FFI_CTYPE_DOUBLE,
+};
+
 struct ffi_arg {
-  int size;
-  int is_float;
+  enum ffi_ctype ctype;
   union {
     uint64_t i;
     double d;
@@ -28,8 +36,8 @@ struct ffi_arg {
 int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
              struct ffi_arg *args);
 
-void ffi_set_int32(struct ffi_arg *arg, uint32_t v);
-void ffi_set_int64(struct ffi_arg *arg, uint64_t v);
+void ffi_set_word(struct ffi_arg *arg, ffi_word_t v);
+void ffi_set_bool(struct ffi_arg *arg, bool v);
 void ffi_set_ptr(struct ffi_arg *arg, void *v);
 void ffi_set_double(struct ffi_arg *arg, double v);
 

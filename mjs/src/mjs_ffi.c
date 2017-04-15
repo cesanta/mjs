@@ -387,14 +387,27 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   if (*e == '(') a = e + 1;
 
   rtype = parse_cval_type(mjs, s, n);
-  if (rtype == CVAL_TYPE_INVALID) {
-    ret = MJS_TYPE_ERROR;
-    mjs_prepend_errorf(mjs, ret, "wrong ffi return type");
-    goto clean;
-  }
 
-  res.size = rtype == CVAL_TYPE_DOUBLE ? 8 : 4;
-  res.is_float = rtype == CVAL_TYPE_DOUBLE;
+  switch (rtype) {
+    case CVAL_TYPE_DOUBLE:
+      res.ctype = FFI_CTYPE_DOUBLE;
+      break;
+    case CVAL_TYPE_BOOL:
+      res.ctype = FFI_CTYPE_BOOL;
+      break;
+    case CVAL_TYPE_USERDATA:
+    case CVAL_TYPE_INT:
+    case CVAL_TYPE_CHAR_PTR:
+    case CVAL_TYPE_VOID_PTR:
+    case CVAL_TYPE_NONE:
+      res.ctype = FFI_CTYPE_WORD;
+      break;
+
+    case CVAL_TYPE_INVALID:
+      ret = MJS_TYPE_ERROR;
+      mjs_prepend_errorf(mjs, ret, "wrong ffi return type");
+      goto clean;
+  }
   res.v.i = 0;
 
   nargs =
@@ -488,7 +501,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
                 mjs, ret, "actual arg #%d is not an int (the type idx is: %s)",
                 i, mjs_typeof(arg));
           }
-          ffi_set_int32(&args[i], intval);
+          ffi_set_word(&args[i], intval);
         } break;
         case CVAL_TYPE_BOOL: {
           int intval = 0;
@@ -501,7 +514,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
                 mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)",
                 i, mjs_typeof(arg));
           }
-          ffi_set_int32(&args[i], intval);
+          ffi_set_word(&args[i], intval);
         } break;
         case CVAL_TYPE_DOUBLE:
           ffi_set_double(&args[i], mjs_get_double(mjs, arg));

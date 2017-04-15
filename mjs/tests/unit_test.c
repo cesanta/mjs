@@ -454,13 +454,12 @@ static const char *test_func1() {
   struct ffi_arg res;
   struct ffi_arg args[4];
 
-  res.size = 4;
-  res.is_float = 0;
+  res.ctype = FFI_CTYPE_WORD;
   res.v.i = 0;
-  ffi_set_int32(&args[0], 1);
-  ffi_set_int32(&args[1], 2);
-  ffi_set_int32(&args[2], 3);
-  ffi_set_int32(&args[3], 4);
+  ffi_set_word(&args[0], 1);
+  ffi_set_word(&args[1], 2);
+  ffi_set_word(&args[2], 3);
+  ffi_set_word(&args[3], 4);
 
   ffi_call((ffi_fn_t) testfunc1, 4, &res, args);
 
@@ -477,9 +476,8 @@ int testfunc2(int a, double b) {
 static const char *test_func2() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 4;
-  res.is_float = 0;
-  ffi_set_int32(&args[0], 1);
+  res.ctype = FFI_CTYPE_WORD;
+  ffi_set_word(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
   ffi_call((ffi_fn_t) testfunc2, 2, &res, args);
@@ -497,8 +495,7 @@ int testfunc3(double a, double b) {
 static const char *test_func3() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 4;
-  res.is_float = 0;
+  res.ctype = FFI_CTYPE_WORD;
   ffi_set_double(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
@@ -518,13 +515,12 @@ static const char *test_func4() {
   struct ffi_arg res;
   struct ffi_arg args[4];
 
-  res.size = 8;
-  res.is_float = 1;
+  res.ctype = FFI_CTYPE_DOUBLE;
   res.v.d = 0;
-  ffi_set_int32(&args[0], 1);
-  ffi_set_int32(&args[1], 2);
-  ffi_set_int32(&args[2], 3);
-  ffi_set_int32(&args[3], 4);
+  ffi_set_word(&args[0], 1);
+  ffi_set_word(&args[1], 2);
+  ffi_set_word(&args[2], 3);
+  ffi_set_word(&args[3], 4);
 
   ffi_call((ffi_fn_t) testfunc4, 4, &res, args);
 
@@ -541,9 +537,8 @@ double testfunc5(int a, double b) {
 static const char *test_func5() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 8;
-  res.is_float = 1;
-  ffi_set_int32(&args[0], 1);
+  res.ctype = FFI_CTYPE_DOUBLE;
+  ffi_set_word(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
   ffi_call((ffi_fn_t) testfunc5, 2, &res, args);
@@ -561,8 +556,7 @@ double testfunc6(double a, double b) {
 static const char *test_func6() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 8;
-  res.is_float = 1;
+  res.ctype = FFI_CTYPE_DOUBLE;
   ffi_set_double(&args[0], 1);
   ffi_set_double(&args[1], 2);
 

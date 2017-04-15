@@ -5,31 +5,22 @@
 
 #include "mjs/src/ffi/ffi.h"
 
-typedef uintptr_t word_t;
-
-void ffi_set_int32(struct ffi_arg *arg, uint32_t v) {
-  arg->size = 4;
-  arg->is_float = 0;
+void ffi_set_word(struct ffi_arg *arg, ffi_word_t v) {
+  arg->ctype = FFI_CTYPE_WORD;
   arg->v.i = v;
 }
 
-void ffi_set_int64(struct ffi_arg *arg, uint64_t v) {
-  arg->size = 8;
-  arg->is_float = 0;
+void ffi_set_bool(struct ffi_arg *arg, bool v) {
+  arg->ctype = FFI_CTYPE_BOOL;
   arg->v.i = v;
 }
 
 void ffi_set_ptr(struct ffi_arg *arg, void *v) {
-  if (sizeof(v) == 8) {
-    ffi_set_int64(arg, (uint64_t)(uintptr_t) v);
-  } else {
-    ffi_set_int32(arg, (uint32_t)(uintptr_t) v);
-  }
+  ffi_set_word(arg, (ffi_word_t) v);
 }
 
 void ffi_set_double(struct ffi_arg *arg, double v) {
-  arg->size = 8;
-  arg->is_float = 1;
+  arg->ctype = FFI_CTYPE_DOUBLE;
   arg->v.d = v;
 }
 
@@ -68,16 +59,28 @@ void ffi_set_double(struct ffi_arg *arg, double v) {
  *
  */
 
-typedef word_t (*w4w_t)(word_t, word_t, word_t, word_t);
-typedef word_t (*w5w_t)(word_t, word_t, word_t, word_t, word_t);
-typedef word_t (*w6w_t)(word_t, word_t, word_t, word_t, word_t, word_t);
-typedef word_t (*wdw_t)(double, word_t);
-typedef word_t (*wdd_t)(double, double);
+typedef ffi_word_t (*w4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
+typedef ffi_word_t (*w5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                            ffi_word_t);
+typedef ffi_word_t (*w6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                            ffi_word_t, ffi_word_t);
+typedef ffi_word_t (*wdw_t)(double, ffi_word_t);
+typedef ffi_word_t (*wdd_t)(double, double);
 
-typedef double (*d4w_t)(word_t, word_t, word_t, word_t);
-typedef double (*d5w_t)(word_t, word_t, word_t, word_t, word_t);
-typedef double (*d6w_t)(word_t, word_t, word_t, word_t, word_t, word_t);
-typedef double (*ddw_t)(double, word_t);
+typedef bool (*b4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
+typedef bool (*b5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                      ffi_word_t);
+typedef bool (*b6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                      ffi_word_t, ffi_word_t);
+typedef bool (*bdw_t)(double, ffi_word_t);
+typedef bool (*bdd_t)(double, double);
+
+typedef double (*d4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
+typedef double (*d5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                        ffi_word_t);
+typedef double (*d6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                        ffi_word_t, ffi_word_t);
+typedef double (*ddw_t)(double, ffi_word_t);
 typedef double (*ddd_t)(double, double);
 
 int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
@@ -86,92 +89,140 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
 
   if (nargs > 6) return -1;
   for (i = 0; i < nargs; i++) {
-    doubles += !!args[i].is_float;
+    doubles += (args[i].ctype == FFI_CTYPE_DOUBLE);
   }
   if (doubles > 0 && nargs > 2) return -1;
 
-  if (!res->is_float) {
-    word_t r;
-    switch (doubles) {
-      case 0: {
-        /* No double args: we currently support up to 6 word-sized arguments */
-        if (nargs <= 4) {
-          w4w_t f = (w4w_t) func;
-          r = f((word_t) args[0].v.i, (word_t) args[1].v.i,
-                (word_t) args[2].v.i, (word_t) args[3].v.i);
-        } else if (nargs == 5) {
-          w5w_t f = (w5w_t) func;
-          r = f((word_t) args[0].v.i, (word_t) args[1].v.i,
-                (word_t) args[2].v.i, (word_t) args[3].v.i,
-                (word_t) args[4].v.i);
-        } else if (nargs == 6) {
-          w6w_t f = (w6w_t) func;
-          r = f((word_t) args[0].v.i, (word_t) args[1].v.i,
-                (word_t) args[2].v.i, (word_t) args[3].v.i,
-                (word_t) args[4].v.i, (word_t) args[5].v.i);
-        } else {
-          abort();
+  switch (res->ctype) {
+    case FFI_CTYPE_WORD: {
+      ffi_word_t r;
+      switch (doubles) {
+        case 0: {
+          /* No double args: we currently support up to 6 word-sized arguments
+           */
+          if (nargs <= 4) {
+            w4w_t f = (w4w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i);
+          } else if (nargs == 5) {
+            w5w_t f = (w5w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i,
+                  (ffi_word_t) args[4].v.i);
+          } else if (nargs == 6) {
+            w6w_t f = (w6w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i,
+                  (ffi_word_t) args[4].v.i, (ffi_word_t) args[5].v.i);
+          } else {
+            abort();
+          }
+          break;
         }
-        break;
-      }
-      case 1: {
-        wdw_t f = (wdw_t) func;
-        if (args[0].is_float) {
-          r = f(args[0].v.d, (word_t) args[1].v.i);
-        } else {
-          r = f(args[1].v.d, (word_t) args[0].v.i);
+        case 1: {
+          wdw_t f = (wdw_t) func;
+          if (args[0].ctype == FFI_CTYPE_DOUBLE) {
+            r = f(args[0].v.d, (ffi_word_t) args[1].v.i);
+          } else {
+            r = f(args[1].v.d, (ffi_word_t) args[0].v.i);
+          }
+          break;
         }
-        break;
+        case 2: {
+          wdd_t f = (wdd_t) func;
+          r = f(args[0].v.d, args[1].v.d);
+        } break;
+        default:
+          return -1;
       }
-      case 2: {
-        wdd_t f = (wdd_t) func;
-        r = f(args[0].v.d, args[1].v.d);
-      } break;
-      default:
-        return -1;
-    }
-    res->v.i = (uint64_t) r;
-  } else {
-    double r;
-    switch (doubles) {
-      case 0: {
-        /* No double args: we currently support up to 6 word-sized arguments */
-        if (nargs <= 4) {
-          d4w_t f = (d4w_t) func;
-          r = f((word_t) args[0].v.i, (word_t) args[1].v.i,
-                (word_t) args[2].v.i, (word_t) args[3].v.i);
-        } else if (nargs == 5) {
-          d5w_t f = (d5w_t) func;
-          r = f((word_t) args[0].v.i, (word_t) args[1].v.i,
-                (word_t) args[2].v.i, (word_t) args[3].v.i,
-                (word_t) args[4].v.i);
-        } else if (nargs == 6) {
-          d6w_t f = (d6w_t) func;
-          r = f((word_t) args[0].v.i, (word_t) args[1].v.i,
-                (word_t) args[2].v.i, (word_t) args[3].v.i,
-                (word_t) args[4].v.i, (word_t) args[5].v.i);
-        } else {
-          abort();
+      res->v.i = (uint64_t) r;
+    } break;
+    case FFI_CTYPE_BOOL: {
+      ffi_word_t r;
+      switch (doubles) {
+        case 0: {
+          /* No double args: we currently support up to 6 word-sized arguments
+           */
+          if (nargs <= 4) {
+            b4w_t f = (b4w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i);
+          } else if (nargs == 5) {
+            b5w_t f = (b5w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i,
+                  (ffi_word_t) args[4].v.i);
+          } else if (nargs == 6) {
+            b6w_t f = (b6w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i,
+                  (ffi_word_t) args[4].v.i, (ffi_word_t) args[5].v.i);
+          } else {
+            abort();
+          }
+          break;
         }
-        break;
-      }
-      case 1: {
-        ddw_t f = (ddw_t) func;
-        if (args[0].is_float) {
-          r = f(args[0].v.d, (word_t) args[1].v.i);
-        } else {
-          r = f(args[1].v.d, (word_t) args[0].v.i);
+        case 1: {
+          bdw_t f = (bdw_t) func;
+          if (args[0].ctype == FFI_CTYPE_DOUBLE) {
+            r = f(args[0].v.d, (ffi_word_t) args[1].v.i);
+          } else {
+            r = f(args[1].v.d, (ffi_word_t) args[0].v.i);
+          }
+          break;
         }
-        break;
+        case 2: {
+          bdd_t f = (bdd_t) func;
+          r = f(args[0].v.d, args[1].v.d);
+        } break;
+        default:
+          return -1;
       }
-      case 2: {
-        ddd_t f = (ddd_t) func;
-        r = f(args[0].v.d, args[1].v.d);
-      } break;
-      default:
-        return -1;
-    }
-    res->v.d = r;
+      res->v.i = (uint64_t) r;
+    } break;
+    case FFI_CTYPE_DOUBLE: {
+      double r;
+      switch (doubles) {
+        case 0: {
+          /* No double args: we currently support up to 6 word-sized arguments
+           */
+          if (nargs <= 4) {
+            d4w_t f = (d4w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i);
+          } else if (nargs == 5) {
+            d5w_t f = (d5w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i,
+                  (ffi_word_t) args[4].v.i);
+          } else if (nargs == 6) {
+            d6w_t f = (d6w_t) func;
+            r = f((ffi_word_t) args[0].v.i, (ffi_word_t) args[1].v.i,
+                  (ffi_word_t) args[2].v.i, (ffi_word_t) args[3].v.i,
+                  (ffi_word_t) args[4].v.i, (ffi_word_t) args[5].v.i);
+          } else {
+            abort();
+          }
+          break;
+        }
+        case 1: {
+          ddw_t f = (ddw_t) func;
+          if (args[0].ctype == FFI_CTYPE_DOUBLE) {
+            r = f(args[0].v.d, (ffi_word_t) args[1].v.i);
+          } else {
+            r = f(args[1].v.d, (ffi_word_t) args[0].v.i);
+          }
+          break;
+        }
+        case 2: {
+          ddd_t f = (ddd_t) func;
+          r = f(args[0].v.d, args[1].v.d);
+        } break;
+        default:
+          return -1;
+      }
+      res->v.d = r;
+    } break;
   }
 
   return 0;
