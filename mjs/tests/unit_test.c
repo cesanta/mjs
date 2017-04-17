@@ -694,6 +694,9 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "malloc") == 0) return malloc;
   if (strcmp(name, "calloc") == 0) return calloc;
   if (strcmp(name, "free") == 0) return free;
+  if (strcmp(name, "mjs_mem_get_ptr") == 0) return mjs_mem_get_ptr;
+  if (strcmp(name, "mjs_mem_get_uint") == 0) return mjs_mem_get_uint;
+  if (strcmp(name, "mjs_mem_set_uint") == 0) return mjs_mem_set_uint;
   return NULL;
 }
 
@@ -2465,6 +2468,8 @@ const char *test_dataview(void) {
   uint8_t buf[20] = "abcd1234 :-)\xff\xff\xff\xff";
   mjs_own(mjs, &res);
 
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
   ASSERT_EQ(mjs_mem_get_uint(buf + 12, 4, 1), 0xffffffff);
   ASSERT_EQ(mjs_mem_get_uint(buf + 12, 2, 1), 0xffff);
   ASSERT_EQ(mjs_mem_get_uint(buf + 12, 1, 1), 0xff);
@@ -2476,11 +2481,11 @@ const char *test_dataview(void) {
   ASSERT_EQ(mjs_mem_get_uint(buf + 8, 2, 0), 0xffff);
 
   mjs_set(mjs, mjs_get_global(mjs), "buf", ~0, mjs_mk_foreign(mjs, buf));
-  ASSERT_EQ(mjs_exec(mjs, "let peek = ffi('void *mjs_mem_get_ptr(void*,int)')", &res), MJS_OK);
-  ASSERT_EQ(mjs_exec(mjs, "let peeku = ffi('int mjs_mem_get_uint(void*,int,int)')", &res), MJS_OK);
-  ASSERT_EQ(mjs_exec(mjs, "let pokeu = ffi('int mjs_mem_set_uint(void*,int,int,int)')", &res), MJS_OK);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let peek = ffi('void *mjs_mem_get_ptr(void*,int)')", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let peeku = ffi('int mjs_mem_get_uint(void*,int,int)')", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let pokeu = ffi('int mjs_mem_set_uint(void*,int,int,int)')", &res));
 
-  ASSERT_EQ(mjs_exec(mjs, "let b2 = peek('booo', 0);", &res), MJS_OK);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let b2 = peek('booo', 0);", &res));
 
   CHECK_NUMERIC("peeku(buf, 1, 1)", 'a');
   CHECK_NUMERIC("peeku(peek(buf,1), 1, 1)", 'b');
