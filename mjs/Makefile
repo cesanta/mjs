@@ -15,7 +15,7 @@ MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
 CFLAGS += -W -Wall -g -O0
 CFLAGS += $(MFLAGS) $(CFLAGS_EXTRA)
 COMMON_CFLAGS =
-TEST_CFLAGS = -fsanitize=address
+ASAN_CFLAGS = -fsanitize=address
 
 VERBOSE ?=
 ifeq ($(VERBOSE),1)
@@ -32,7 +32,7 @@ endif
 
 ifeq ($(UNAME_S),Linux)
   COMMON_CFLAGS += -Wl,--no-as-needed -ldl
-  TEST_CFLAGS += -fsanitize=leak
+  ASAN_CFLAGS += -fsanitize=leak
 endif
 
 PROG = $(BUILD_DIR)/mjs
@@ -82,7 +82,7 @@ DOCKER_USER_ARG = --user $$(id -u):$$(id -u)
 endif
 endif
 
-COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES)
+COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES)
 
 include $(REPO_ROOT)/common.mk
 
@@ -151,8 +151,9 @@ endef
 # 2: binary name component, like "O0" or whatever
 # 3: additional compiler flags
 define compile_test_with_opt
-$(eval $(call compile_test_with_compiler,$(CLANG),clang_$2,$1 $3))
-$(eval $(call compile_test_with_compiler,gcc,gcc_$2,-static-libasan $1 $3))
+$(eval $(call compile_test_with_compiler,$(CLANG),clang_$2,$(ASAN_CFLAGS) $1 $3))
+$(eval $(call compile_test_with_compiler,$(CLANG),clang_32bit_$2,-m32 $1 $3))
+$(eval $(call compile_test_with_compiler,gcc,gcc_$2,$1 $3))
 endef
 
 # params:
@@ -167,7 +168,7 @@ endef
 
 
 # params:
-# 1: flag to use, like "-DMJS_INIT_OFFSET_SIZE=0", or just an empty string
+# 1: flag to use, like "-DMJS_AGGRESSIVE_GC", or just an empty string
 # 2: binary name component, like "offset_something"
 # 3: additional compiler flags
 define compile_test_with_aggressive_gc
@@ -178,8 +179,8 @@ endef
 
 # compile ALL tests
 define compile_test_all
-$(eval $(call compile_test_with_aggressive_gc,-DMJS_AGGRESSIVE_GC,aggressive_gc,))
-$(eval $(call compile_test_with_aggressive_gc,,nonaggressive_gc,))
+$(eval $(call compile_test_with_aggressive_gc,-DMJS_AGGRESSIVE_GC,aggressive_gc_$2,$1 $3))
+$(eval $(call compile_test_with_aggressive_gc,,nonaggressive_gc_$2,$1 $3))
 endef
 
 $(eval $(call compile_test_all))
