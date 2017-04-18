@@ -6059,11 +6059,18 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 
-#ifndef MJS_DEFAULT_OBJECT_ARENA_SIZE
-#define MJS_DEFAULT_OBJECT_ARENA_SIZE 20
+#ifndef MJS_OBJECT_ARENA_SIZE
+#define MJS_OBJECT_ARENA_SIZE 20
 #endif
-#ifndef MJS_DEFAULT_PROPERTY_ARENA_SIZE
-#define MJS_DEFAULT_PROPERTY_ARENA_SIZE 20
+#ifndef MJS_PROPERTY_ARENA_SIZE
+#define MJS_PROPERTY_ARENA_SIZE 20
+#endif
+
+#ifndef MJS_OBJECT_ARENA_INC_SIZE
+#define MJS_OBJECT_ARENA_INC_SIZE 10
+#endif
+#ifndef MJS_PROPERTY_ARENA_INC_SIZE
+#define MJS_PROPERTY_ARENA_INC_SIZE 10
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
@@ -6107,9 +6114,9 @@ struct mjs *mjs_create(void) {
   }
 
   gc_arena_init(&mjs->object_arena, sizeof(struct mjs_object),
-                MJS_DEFAULT_OBJECT_ARENA_SIZE, 10);
+                MJS_OBJECT_ARENA_SIZE, MJS_OBJECT_ARENA_INC_SIZE);
   gc_arena_init(&mjs->property_arena, sizeof(struct mjs_property),
-                MJS_DEFAULT_PROPERTY_ARENA_SIZE, 10);
+                MJS_PROPERTY_ARENA_SIZE, MJS_PROPERTY_ARENA_INC_SIZE);
 
   mjs_val_t global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);
@@ -10493,7 +10500,9 @@ static int runetochar(char *str, Rune *rune) {
   return 1;
 }
 
-#define _MJS_STRING_BUF_RESERVE 100
+#ifndef MJS_STRING_BUF_RESERVE
+#define MJS_STRING_BUF_RESERVE 100
+#endif
 
 MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);
 
@@ -10546,10 +10555,10 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
        * Before embedding new string, check if the reallocation is needed.  If
        * so, perform the reallocation by calling `mbuf_resize` manually, since
        * we
-       * need to preallocate some extra space (`_MJS_STRING_BUF_RESERVE`)
+       * need to preallocate some extra space (`MJS_STRING_BUF_RESERVE`)
        */
       if ((m->len + len) > m->size) {
-        mbuf_resize(m, m->len + len + _MJS_STRING_BUF_RESERVE);
+        mbuf_resize(m, m->len + len + MJS_STRING_BUF_RESERVE);
       }
       embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
       tag = MJS_TAG_STRING_O;
