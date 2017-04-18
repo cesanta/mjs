@@ -595,6 +595,10 @@ double ffi_test_d2d(double a, double b) {
   return 12.34 + a + b;
 }
 
+int ffi_test_iid(int a, double b) {
+  return 1234 + a + b * 100;
+}
+
 const char *ffi_test_s1s(const char *str) {
   return str;
 }
@@ -683,6 +687,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
   if (strcmp(name, "ffi_test_i6i") == 0) return ffi_test_i6i;
   if (strcmp(name, "ffi_test_d2d") == 0) return ffi_test_d2d;
+  if (strcmp(name, "ffi_test_iid") == 0) return ffi_test_iid;
   if (strcmp(name, "ffi_test_s1s") == 0) return ffi_test_s1s;
   if (strcmp(name, "ffi_dummy") == 0) return ffi_dummy;
   if (strcmp(name, "ffi_test_cb_vu") == 0) return ffi_test_cb_vu;
@@ -771,6 +776,12 @@ const char *test_call_ffi() {
                &res),
       MJS_OK);
   ASSERT_LT(fabs(mjs_get_double(mjs, res) - 17.33), 0.0001);
+
+  ASSERT_EQ(
+      mjs_exec(mjs, "ffi('int ffi_test_iid(int,double)')(300, 1.28)",
+        &res),
+      MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), (1234 + 300 + 128));
 
   /* Test calling ffi-ed function from JS function */
   ASSERT_EXEC_OK(mjs_exec(mjs,
