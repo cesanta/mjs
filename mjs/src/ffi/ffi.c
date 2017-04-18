@@ -65,6 +65,7 @@ typedef ffi_word_t (*w5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
 typedef ffi_word_t (*w6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
                             ffi_word_t, ffi_word_t);
 typedef ffi_word_t (*wdw_t)(double, ffi_word_t);
+typedef ffi_word_t (*wwd_t)(ffi_word_t, double);
 typedef ffi_word_t (*wdd_t)(double, double);
 
 typedef bool (*b4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
@@ -73,6 +74,7 @@ typedef bool (*b5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
 typedef bool (*b6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
                       ffi_word_t, ffi_word_t);
 typedef bool (*bdw_t)(double, ffi_word_t);
+typedef bool (*bwd_t)(ffi_word_t, double);
 typedef bool (*bdd_t)(double, double);
 
 typedef double (*d4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
@@ -81,6 +83,7 @@ typedef double (*d5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
 typedef double (*d6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
                         ffi_word_t, ffi_word_t);
 typedef double (*ddw_t)(double, ffi_word_t);
+typedef double (*dwd_t)(ffi_word_t, double);
 typedef double (*ddd_t)(double, double);
 
 int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
@@ -119,15 +122,15 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
           }
           break;
         }
-        case 1: {
-          wdw_t f = (wdw_t) func;
+        case 1:
           if (args[0].ctype == FFI_CTYPE_DOUBLE) {
+            wdw_t f = (wdw_t) func;
             r = f(args[0].v.d, (ffi_word_t) args[1].v.i);
           } else {
-            r = f(args[1].v.d, (ffi_word_t) args[0].v.i);
+            wwd_t f = (wwd_t) func;
+            r = f((ffi_word_t) args[0].v.i, args[1].v.d);
           }
           break;
-        }
         case 2: {
           wdd_t f = (wdd_t) func;
           r = f(args[0].v.d, args[1].v.d);
@@ -163,11 +166,12 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
           break;
         }
         case 1: {
-          bdw_t f = (bdw_t) func;
           if (args[0].ctype == FFI_CTYPE_DOUBLE) {
+            bdw_t f = (bdw_t) func;
             r = f(args[0].v.d, (ffi_word_t) args[1].v.i);
           } else {
-            r = f(args[1].v.d, (ffi_word_t) args[0].v.i);
+            bwd_t f = (bwd_t) func;
+            r = f((ffi_word_t) args[0].v.i, args[1].v.d);
           }
           break;
         }
@@ -206,11 +210,12 @@ int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
           break;
         }
         case 1: {
-          ddw_t f = (ddw_t) func;
           if (args[0].ctype == FFI_CTYPE_DOUBLE) {
+            ddw_t f = (ddw_t) func;
             r = f(args[0].v.d, (ffi_word_t) args[1].v.i);
           } else {
-            r = f(args[1].v.d, (ffi_word_t) args[0].v.i);
+            dwd_t f = (dwd_t) func;
+            r = f((ffi_word_t) args[0].v.i, args[1].v.d);
           }
           break;
         }
