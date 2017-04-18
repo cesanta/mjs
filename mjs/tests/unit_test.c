@@ -828,7 +828,7 @@ const char *test_call_ffi_cb_vu() {
   saved_cb_vu(saved_cb_vu_arg);
   ASSERT_EQ(mjs_get_int(mjs, mjs_get(mjs, mjs_get_global(mjs), "glob_var", ~0)), (123 + 457));
 
-  /* Also, perfor some tests of callback data memory management */
+  /* Also, perform some tests of callback data memory management */
 
   /* Make sure ffi arguments are properly allocated */
   ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->next, (uintptr_t)NULL);
@@ -849,7 +849,7 @@ const char *test_call_ffi_cb_vu() {
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 1);", &res));
   ASSERT_EQ(res, mjs_mk_number(mjs, 1));
   ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->next, (uintptr_t)NULL);
-  ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->userdata, mjs_mk_number(mjs, 2));
+  ASSERT_EQ(mjs_get_int(mjs, mjs->ffi_cb_args->userdata), 2);
 
   /* Try to free it again */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 1);", &res));
