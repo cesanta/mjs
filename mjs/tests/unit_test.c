@@ -2125,6 +2125,15 @@ const char *test_arrays() {
           ), &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[1,2,3]___[100,101,4,5]");
 
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3]);
+          let ret=a.splice(1,0,7);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[]___[1,7,2,3]");
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
 

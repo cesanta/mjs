@@ -5793,7 +5793,7 @@ MJS_PRIVATE void mjs_array_splice(struct mjs *mjs) {
       }
     }
   } else if (delta > 0) {
-    for (i = arr_len - 1; i >= start + delta; i--) {
+    for (i = arr_len - 1; i >= start; i--) {
       move_item(mjs, mjs->vals.this_obj, i, i + delta);
     }
   }
