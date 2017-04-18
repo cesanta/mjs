@@ -282,6 +282,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
     case TOK_OPEN_PAREN:
       pnext1(p);
       res = parse_expr(p);
+      if (p->tok.tok != TOK_CLOSE_PAREN) SYNTAX_ERROR(p);
       break;
     case TOK_KEYWORD_FUNCTION:
       res = parse_function(p);

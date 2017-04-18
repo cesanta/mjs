@@ -1176,6 +1176,9 @@ const char *test_errors(void) {
   ASSERT_EQ(mjs_exec(mjs, "//\n/* */\n// \n...", &res), MJS_SYNTAX_ERROR);
   ASSERT_STREQ(mjs->error_msg, "parse error at line 4: [...]");
 
+  ASSERT_EQ(mjs_exec(mjs, "(1+2}+3", &res), MJS_SYNTAX_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "parse error at line 1: [}+3]");
+
   ASSERT_EQ(mjs_exec(mjs, "for (k in {a:1}) 1;", &res), MJS_REFERENCE_ERROR);
 
   ASSERT_EQ(mjs_exec(mjs, "'foo' + 2", &res), MJS_TYPE_ERROR);
