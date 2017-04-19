@@ -1198,6 +1198,9 @@ const char *test_errors(void) {
   ASSERT_EQ(mjs_exec(mjs, "let s = 'foo'; s += 12", &res), MJS_TYPE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "implicit type conversion is prohibited");
 
+  ASSERT_EQ(mjs_exec(mjs, "load('foo/bar/bazzz')", &res), MJS_FILE_READ_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "failed to read file \"foo/bar/bazzz\"");
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
   cleanup_mjs(&mjs);

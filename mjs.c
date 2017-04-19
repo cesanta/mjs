@@ -5969,8 +5969,14 @@ static void mjs_load(struct mjs *mjs) {
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
     if (mjs_is_object(arg1)) *bottom = arg1;
-    mjs_exec_file(mjs, path, &res);
+    mjs_err_t ret = mjs_exec_file(mjs, path, &res);
+    if (ret != MJS_OK) {
+      mjs_set_errorf(mjs, ret, "failed to read file \"%s\"", path);
+      goto clean;
+    }
     if (mjs_is_object(arg1)) *bottom = global;
+
+  clean:
     mjs_disown(mjs, &global);
   }
   mjs_return(mjs, res);
