@@ -424,6 +424,8 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
   for (i = off; i < mjs->bcode.len; i++) {
+    mjs->cur_bcode_offset = i;
+
     if (mjs->need_gc) {
       if (maybe_gc(mjs)) {
         mjs->need_gc = 0;
@@ -432,6 +434,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
 #if MJS_AGGRESSIVE_GC
     maybe_gc(mjs);
 #endif
+
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
     if (cs_log_level >= LL_VERBOSE_DEBUG) {
       /* mjs_dump(mjs, 0, stdout); */

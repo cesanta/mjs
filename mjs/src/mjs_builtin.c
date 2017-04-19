@@ -40,6 +40,10 @@ static void mjs_load(struct mjs *mjs) {
   mjs_return(mjs, res);
 }
 
+static void mjs_get_mjs(struct mjs *mjs) {
+  mjs_return(mjs, mjs_mk_foreign(mjs, mjs));
+}
+
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_val_t v;
 
@@ -50,6 +54,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
+  mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
 
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));

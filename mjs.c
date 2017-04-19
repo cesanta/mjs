@@ -2484,6 +2484,7 @@ struct mjs {
   enum mjs_err error;
   mjs_ffi_resolver_t *dlsym;  /* Symbol resolver function for FFI */
   ffi_cb_args_t *ffi_cb_args; /* List of FFI args descriptors */
+  size_t cur_bcode_offset;
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
@@ -2521,17 +2522,6 @@ MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
  * contains given bcode offset, or -1 in case the offset is too large.
  */
 MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset);
-
-/*
- * Returns the filename of the bcode by the bcode offset.
- */
-MJS_PRIVATE const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs,
-                                                         int offset);
-
-/*
- * Returns the line
- */
-MJS_PRIVATE int mjs_get_lineno_by_offset(struct mjs *mjs, int offset);
 
 /*
  * Prints stack trace starting from the given bcode offset; other offsets
@@ -2970,6 +2960,24 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp);
 void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
 
 #endif
+
+/*
+ * Returns the filename corresponding to the given bcode offset.
+ */
+const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset);
+
+/*
+ * Returns the line number corresponding to the given bcode offset.
+ */
+int mjs_get_lineno_by_offset(struct mjs *mjs, int offset);
+
+/*
+ * Returns bcode offset of the corresponding call frame cf_num, where 0 means
+ * the currently executing function, 1 means the first return address, etc.
+ *
+ * If given cf_num is too large, -1 is returned.
+ */
+int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
 
 #endif /* MJS_UTIL_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
@@ -5963,6 +5971,10 @@ static void mjs_load(struct mjs *mjs) {
   mjs_return(mjs, res);
 }
 
+static void mjs_get_mjs(struct mjs *mjs) {
+  mjs_return(mjs, mjs_mk_foreign(mjs, mjs));
+}
+
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_val_t v;
 
@@ -5973,6 +5985,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
+  mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
 
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
@@ -6080,6 +6093,7 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
+/* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 #ifndef MJS_OBJECT_ARENA_SIZE
 #define MJS_OBJECT_ARENA_SIZE 20
@@ -6251,59 +6265,6 @@ MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset) {
     cur_idx += total_size;
   }
 
-  return ret;
-}
-
-MJS_PRIVATE const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs,
-                                                         int offset) {
-  const char *ret = NULL;
-  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
-  if (header_idx >= 0) {
-    ret = mjs->bcode.buf + header_idx +
-          sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
-  }
-  return ret;
-}
-
-MJS_PRIVATE int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
-  int ret = 1;
-  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
-  if (header_idx >= 0) {
-    mjs_header_item_t map_offset;
-    memcpy(&map_offset, mjs->bcode.buf + header_idx +
-                            sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
-           sizeof(map_offset));
-
-    mjs_header_item_t bcode_offset;
-    memcpy(&bcode_offset,
-           mjs->bcode.buf + header_idx +
-               sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
-           sizeof(bcode_offset));
-
-    offset -= (header_idx + bcode_offset);
-
-    /* get pointer to the length of the map followed by the map itself */
-    uint8_t *p = (uint8_t *) mjs->bcode.buf + header_idx + map_offset;
-
-    int llen, map_len = cs_varint_decode(p, &llen);
-    p += llen;
-    uint8_t *pe = p + map_len;
-
-    int prev_line_no = 1;
-    while (p < pe) {
-      int llen;
-      int cur_offset = cs_varint_decode(p, &llen);
-      p += llen;
-      int line_no = cs_varint_decode(p, &llen);
-      p += llen;
-
-      if (cur_offset >= offset) {
-        ret = prev_line_no;
-        break;
-      }
-      prev_line_no = line_no;
-    }
-  }
   return ret;
 }
 
@@ -6928,6 +6889,8 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
   for (i = off; i < mjs->bcode.len; i++) {
+    mjs->cur_bcode_offset = i;
+
     if (mjs->need_gc) {
       if (maybe_gc(mjs)) {
         mjs->need_gc = 0;
@@ -6936,6 +6899,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
 #if MJS_AGGRESSIVE_GC
     maybe_gc(mjs);
 #endif
+
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
     if (cs_log_level >= LL_VERBOSE_DEBUG) {
       /* mjs_dump(mjs, 0, stdout); */
@@ -11578,6 +11542,75 @@ MJS_PRIVATE int mjs_normalize_idx(int idx, int size) {
     idx = size;
   }
   return idx;
+}
+
+const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
+  const char *ret = NULL;
+  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
+  if (header_idx >= 0) {
+    ret = mjs->bcode.buf + header_idx +
+          sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
+  }
+  return ret;
+}
+
+int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
+  int ret = 1;
+  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
+  if (header_idx >= 0) {
+    mjs_header_item_t map_offset;
+    memcpy(&map_offset, mjs->bcode.buf + header_idx +
+                            sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
+           sizeof(map_offset));
+
+    mjs_header_item_t bcode_offset;
+    memcpy(&bcode_offset,
+           mjs->bcode.buf + header_idx +
+               sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
+           sizeof(bcode_offset));
+
+    offset -= (header_idx + bcode_offset);
+
+    /* get pointer to the length of the map followed by the map itself */
+    uint8_t *p = (uint8_t *) mjs->bcode.buf + header_idx + map_offset;
+
+    int llen, map_len = cs_varint_decode(p, &llen);
+    p += llen;
+    uint8_t *pe = p + map_len;
+
+    int prev_line_no = 1;
+    while (p < pe) {
+      int llen;
+      int cur_offset = cs_varint_decode(p, &llen);
+      p += llen;
+      int line_no = cs_varint_decode(p, &llen);
+      p += llen;
+
+      if (cur_offset >= offset) {
+        ret = prev_line_no;
+        break;
+      }
+      prev_line_no = line_no;
+    }
+  }
+  return ret;
+}
+
+int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num) {
+  int ret = -1;
+  if (cf_num == 0) {
+    /* Return current bcode offset */
+    ret = mjs->cur_bcode_offset;
+  } else if (cf_num > 0 &&
+             mjs->call_stack.len >=
+                 sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT * cf_num) {
+    /* Get offset from the call_stack */
+    int pos = CALL_STACK_FRAME_ITEM_RETURN_ADDR +
+              CALL_STACK_FRAME_ITEMS_CNT * (cf_num - 1);
+    mjs_val_t val = *vptr(&mjs->call_stack, -1 - pos);
+    ret = mjs_get_int(mjs, val);
+  }
+  return ret;
 }
 
 #endif
