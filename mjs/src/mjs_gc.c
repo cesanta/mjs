@@ -121,7 +121,11 @@ static int gc_arena_is_gc_needed(struct gc_arena *a) {
 
 MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs) {
   struct mbuf *m = &mjs->owned_strings;
-  return (double) m->len / (double) m->size > 0.9;
+  if ((double)(m->size - m->len) / (double)_MJS_STRING_BUF_RESERVE < 0.1) {
+      mbuf_resize(m, m->size + _MJS_STRING_BUF_RESERVE);
+      return 1;
+  }
+  return 0;
 }
 
 MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
