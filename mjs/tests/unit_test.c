@@ -454,13 +454,12 @@ static const char *test_func1() {
   struct ffi_arg res;
   struct ffi_arg args[4];
 
-  res.size = 4;
-  res.is_float = 0;
+  res.ctype = FFI_CTYPE_WORD;
   res.v.i = 0;
-  ffi_set_int32(&args[0], 1);
-  ffi_set_int32(&args[1], 2);
-  ffi_set_int32(&args[2], 3);
-  ffi_set_int32(&args[3], 4);
+  ffi_set_word(&args[0], 1);
+  ffi_set_word(&args[1], 2);
+  ffi_set_word(&args[2], 3);
+  ffi_set_word(&args[3], 4);
 
   ffi_call((ffi_fn_t) testfunc1, 4, &res, args);
 
@@ -477,9 +476,8 @@ int testfunc2(int a, double b) {
 static const char *test_func2() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 4;
-  res.is_float = 0;
-  ffi_set_int32(&args[0], 1);
+  res.ctype = FFI_CTYPE_WORD;
+  ffi_set_word(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
   ffi_call((ffi_fn_t) testfunc2, 2, &res, args);
@@ -497,8 +495,7 @@ int testfunc3(double a, double b) {
 static const char *test_func3() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 4;
-  res.is_float = 0;
+  res.ctype = FFI_CTYPE_WORD;
   ffi_set_double(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
@@ -518,13 +515,12 @@ static const char *test_func4() {
   struct ffi_arg res;
   struct ffi_arg args[4];
 
-  res.size = 8;
-  res.is_float = 1;
+  res.ctype = FFI_CTYPE_DOUBLE;
   res.v.d = 0;
-  ffi_set_int32(&args[0], 1);
-  ffi_set_int32(&args[1], 2);
-  ffi_set_int32(&args[2], 3);
-  ffi_set_int32(&args[3], 4);
+  ffi_set_word(&args[0], 1);
+  ffi_set_word(&args[1], 2);
+  ffi_set_word(&args[2], 3);
+  ffi_set_word(&args[3], 4);
 
   ffi_call((ffi_fn_t) testfunc4, 4, &res, args);
 
@@ -541,9 +537,8 @@ double testfunc5(int a, double b) {
 static const char *test_func5() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 8;
-  res.is_float = 1;
-  ffi_set_int32(&args[0], 1);
+  res.ctype = FFI_CTYPE_DOUBLE;
+  ffi_set_word(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
   ffi_call((ffi_fn_t) testfunc5, 2, &res, args);
@@ -561,8 +556,7 @@ double testfunc6(double a, double b) {
 static const char *test_func6() {
   struct ffi_arg res;
   struct ffi_arg args[2];
-  res.size = 8;
-  res.is_float = 1;
+  res.ctype = FFI_CTYPE_DOUBLE;
   ffi_set_double(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
@@ -599,6 +593,10 @@ int ffi_test_i6i(int a0, int a1, int a2, int a3, int a4, int a5) {
 
 double ffi_test_d2d(double a, double b) {
   return 12.34 + a + b;
+}
+
+int ffi_test_iid(int a, double b) {
+  return 1234 + a + b * 100;
 }
 
 const char *ffi_test_s1s(const char *str) {
@@ -689,6 +687,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
   if (strcmp(name, "ffi_test_i6i") == 0) return ffi_test_i6i;
   if (strcmp(name, "ffi_test_d2d") == 0) return ffi_test_d2d;
+  if (strcmp(name, "ffi_test_iid") == 0) return ffi_test_iid;
   if (strcmp(name, "ffi_test_s1s") == 0) return ffi_test_s1s;
   if (strcmp(name, "ffi_dummy") == 0) return ffi_dummy;
   if (strcmp(name, "ffi_test_cb_vu") == 0) return ffi_test_cb_vu;
@@ -700,6 +699,9 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "malloc") == 0) return malloc;
   if (strcmp(name, "calloc") == 0) return calloc;
   if (strcmp(name, "free") == 0) return free;
+  if (strcmp(name, "mjs_mem_get_ptr") == 0) return mjs_mem_get_ptr;
+  if (strcmp(name, "mjs_mem_get_uint") == 0) return mjs_mem_get_uint;
+  if (strcmp(name, "mjs_mem_set_uint") == 0) return mjs_mem_set_uint;
   return NULL;
 }
 
@@ -775,6 +777,12 @@ const char *test_call_ffi() {
       MJS_OK);
   ASSERT_LT(fabs(mjs_get_double(mjs, res) - 17.33), 0.0001);
 
+  ASSERT_EQ(
+      mjs_exec(mjs, "ffi('int ffi_test_iid(int,double)')(300, 1.28)",
+        &res),
+      MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), (1234 + 300 + 128));
+
   /* Test calling ffi-ed function from JS function */
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(
@@ -820,7 +828,7 @@ const char *test_call_ffi_cb_vu() {
   saved_cb_vu(saved_cb_vu_arg);
   ASSERT_EQ(mjs_get_int(mjs, mjs_get(mjs, mjs_get_global(mjs), "glob_var", ~0)), (123 + 457));
 
-  /* Also, perfor some tests of callback data memory management */
+  /* Also, perform some tests of callback data memory management */
 
   /* Make sure ffi arguments are properly allocated */
   ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->next, (uintptr_t)NULL);
@@ -841,7 +849,7 @@ const char *test_call_ffi_cb_vu() {
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 1);", &res));
   ASSERT_EQ(res, mjs_mk_number(mjs, 1));
   ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->next, (uintptr_t)NULL);
-  ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->userdata, mjs_mk_number(mjs, 2));
+  ASSERT_EQ(mjs_get_int(mjs, mjs->ffi_cb_args->userdata), 2);
 
   /* Try to free it again */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 1);", &res));
@@ -1178,6 +1186,9 @@ const char *test_errors(void) {
 
   ASSERT_EQ(mjs_exec(mjs, "//\n/* */\n// \n...", &res), MJS_SYNTAX_ERROR);
   ASSERT_STREQ(mjs->error_msg, "parse error at line 4: [...]");
+
+  ASSERT_EQ(mjs_exec(mjs, "(1+2}+3", &res), MJS_SYNTAX_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "parse error at line 1: [}+3]");
 
   ASSERT_EQ(mjs_exec(mjs, "for (k in {a:1}) 1;", &res), MJS_REFERENCE_ERROR);
 
@@ -2125,6 +2136,15 @@ const char *test_arrays() {
           ), &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[1,2,3]___[100,101,4,5]");
 
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3]);
+          let ret=a.splice(1,0,7);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[]___[1,7,2,3]");
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
 
@@ -2141,6 +2161,11 @@ const char *test_json() {
         "JSON.stringify(o)",
         &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "{\"null\":null,\"arr\":[1,2,{\"foo\":100}],\"bar\":\"hey\",\"foo\":1}");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        "JSON.stringify(\"foo\")",
+        &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "\"foo\"");
 
   /* Test circular links and sparse arrays */
   ASSERT_EXEC_OK(mjs_exec(mjs,
@@ -2466,6 +2491,8 @@ const char *test_dataview(void) {
   uint8_t buf[20] = "abcd1234 :-)\xff\xff\xff\xff";
   mjs_own(mjs, &res);
 
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
   ASSERT_EQ(mjs_mem_get_uint(buf + 12, 4, 1), 0xffffffff);
   ASSERT_EQ(mjs_mem_get_uint(buf + 12, 2, 1), 0xffff);
   ASSERT_EQ(mjs_mem_get_uint(buf + 12, 1, 1), 0xff);
@@ -2477,11 +2504,11 @@ const char *test_dataview(void) {
   ASSERT_EQ(mjs_mem_get_uint(buf + 8, 2, 0), 0xffff);
 
   mjs_set(mjs, mjs_get_global(mjs), "buf", ~0, mjs_mk_foreign(mjs, buf));
-  ASSERT_EQ(mjs_exec(mjs, "let peek = ffi('void *mjs_mem_get_ptr(void*,int)')", &res), MJS_OK);
-  ASSERT_EQ(mjs_exec(mjs, "let peeku = ffi('int mjs_mem_get_uint(void*,int,int)')", &res), MJS_OK);
-  ASSERT_EQ(mjs_exec(mjs, "let pokeu = ffi('int mjs_mem_set_uint(void*,int,int,int)')", &res), MJS_OK);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let peek = ffi('void *mjs_mem_get_ptr(void*,int)')", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let peeku = ffi('int mjs_mem_get_uint(void*,int,int)')", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let pokeu = ffi('int mjs_mem_set_uint(void*,int,int,int)')", &res));
 
-  ASSERT_EQ(mjs_exec(mjs, "let b2 = peek('booo', 0);", &res), MJS_OK);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let b2 = peek('booo', 0);", &res));
 
   CHECK_NUMERIC("peeku(buf, 1, 1)", 'a');
   CHECK_NUMERIC("peeku(peek(buf,1), 1, 1)", 'b');

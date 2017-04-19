@@ -21,7 +21,9 @@ static int runetochar(char *str, Rune *rune) {
   return 1;
 }
 
-#define _MJS_STRING_BUF_RESERVE 100
+#ifndef MJS_STRING_BUF_RESERVE
+#define MJS_STRING_BUF_RESERVE 100
+#endif
 
 MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);
 
@@ -74,10 +76,10 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
        * Before embedding new string, check if the reallocation is needed.  If
        * so, perform the reallocation by calling `mbuf_resize` manually, since
        * we
-       * need to preallocate some extra space (`_MJS_STRING_BUF_RESERVE`)
+       * need to preallocate some extra space (`MJS_STRING_BUF_RESERVE`)
        */
       if ((m->len + len) > m->size) {
-        mbuf_resize(m, m->len + len + _MJS_STRING_BUF_RESERVE);
+        mbuf_resize(m, m->len + len + MJS_STRING_BUF_RESERVE);
       }
       embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
       tag = MJS_TAG_STRING_O;

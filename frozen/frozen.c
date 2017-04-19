@@ -244,7 +244,7 @@ static int parse_string(struct frozen *f) {
       ch = *(unsigned char *) f->cur;
       len = get_utf8_char_len((unsigned char) ch);
       EXPECT(ch >= 32 && len > 0, JSON_STRING_INVALID); /* No control chars */
-      EXPECT(len < left(f), JSON_STRING_INCOMPLETE);
+      EXPECT(len <= left(f), JSON_STRING_INCOMPLETE);
       if (ch == '\\') {
         EXPECT((n = get_escape_len(f->cur + 1, left(f))) > 0, n);
         len += n;
@@ -879,7 +879,17 @@ static void json_scanf_cb(void *callback_data, const char *name,
   switch (info->type) {
     case 'B':
       info->num_conversions++;
-      *(int *) info->target = (token->type == JSON_TYPE_TRUE ? 1 : 0);
+      switch (sizeof(bool)){
+        case sizeof(char):
+          *(char *) info->target = (token->type == JSON_TYPE_TRUE ? 1 : 0);
+          break;
+        case sizeof(int):
+          *(int *) info->target = (token->type == JSON_TYPE_TRUE ? 1 : 0);
+          break;
+        default:
+          /* should never be here */
+          abort();
+      }
       break;
     case 'M': {
       union {

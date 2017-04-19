@@ -143,22 +143,55 @@ mjs_val_t mjs_get_v_proto(struct mjs *mjs, mjs_val_t obj, mjs_val_t key) {
 
 mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name,
                   size_t name_len, mjs_val_t val) {
+  return mjs_set_internal(mjs, obj, MJS_UNDEFINED, (char *) name, name_len,
+                          val);
+}
+
+mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
+                    mjs_val_t val) {
+  return mjs_set_internal(mjs, obj, name, NULL, 0, val);
+}
+
+MJS_PRIVATE mjs_err_t mjs_set_internal(struct mjs *mjs, mjs_val_t obj,
+                                       mjs_val_t name_v, char *name,
+                                       size_t name_len, mjs_val_t val) {
+  mjs_err_t rcode = MJS_OK;
+
   struct mjs_property *p;
 
-  if (name_len == (size_t) ~0) {
-    name_len = strlen(name);
+  int need_free = 0;
+
+  if (name == NULL) {
+    /* Pointer was not provided, so obtain one from the name_v. */
+    rcode = mjs_to_string(mjs, &name_v, &name, &name_len, &need_free);
+    if (rcode != MJS_OK) {
+      goto clean;
+    }
+  } else {
+    /*
+     * Pointer was provided, so we ignore name_v. Here we set it to undefined,
+     * and the actual value will be calculated later if needed.
+     */
+    name_v = MJS_UNDEFINED;
   }
 
   p = mjs_get_own_property(mjs, obj, name, name_len);
+
   if (p == NULL) {
-    mjs_val_t namestr;
     struct mjs_object *o;
     if (!mjs_is_object(obj)) {
       return MJS_REFERENCE_ERROR;
     }
 
-    namestr = mjs_mk_string(mjs, name, name_len, 1);
-    p = mjs_mk_property(mjs, namestr, val);
+    /*
+     * name_v might be not a string here. In this case, we need to create a new
+     * `name_v`, which will be a string.
+     */
+    if (!mjs_is_string(name_v)) {
+      name_v = mjs_mk_string(mjs, name, name_len, 1);
+    }
+
+    p = mjs_mk_property(mjs, name_v, val);
 
     o = get_object_struct(obj);
     p->next = o->properties;
@@ -166,28 +199,13 @@ mjs_err_t mjs_set(struct mjs *mjs, mjs_val_t obj, const char *name,
   }
 
   p->value = val;
-  return MJS_OK;
-}
 
-mjs_err_t mjs_set_v(struct mjs *mjs, mjs_val_t obj, mjs_val_t name,
-                    mjs_val_t val) {
-  size_t n;
-  char *s = NULL;
-  int need_free = 0;
-
-  mjs_err_t err = mjs_to_string(mjs, &name, &s, &n, &need_free);
-
-  if (err == MJS_OK) {
-    /* Successfully converted name value to string: set the property */
-    err = mjs_set(mjs, obj, s, n, val);
-  }
-
+clean:
   if (need_free) {
-    free(s);
-    s = NULL;
+    free(name);
+    name = NULL;
   }
-
-  return err;
+  return rcode;
 }
 
 MJS_PRIVATE void mjs_destroy_property(struct mjs_property **p) {

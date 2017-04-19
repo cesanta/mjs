@@ -14,11 +14,18 @@
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
 
-#ifndef MJS_DEFAULT_OBJECT_ARENA_SIZE
-#define MJS_DEFAULT_OBJECT_ARENA_SIZE 20
+#ifndef MJS_OBJECT_ARENA_SIZE
+#define MJS_OBJECT_ARENA_SIZE 20
 #endif
-#ifndef MJS_DEFAULT_PROPERTY_ARENA_SIZE
-#define MJS_DEFAULT_PROPERTY_ARENA_SIZE 20
+#ifndef MJS_PROPERTY_ARENA_SIZE
+#define MJS_PROPERTY_ARENA_SIZE 20
+#endif
+
+#ifndef MJS_OBJECT_ARENA_INC_SIZE
+#define MJS_OBJECT_ARENA_INC_SIZE 10
+#endif
+#ifndef MJS_PROPERTY_ARENA_INC_SIZE
+#define MJS_PROPERTY_ARENA_INC_SIZE 10
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
@@ -62,9 +69,9 @@ struct mjs *mjs_create(void) {
   }
 
   gc_arena_init(&mjs->object_arena, sizeof(struct mjs_object),
-                MJS_DEFAULT_OBJECT_ARENA_SIZE, 10);
+                MJS_OBJECT_ARENA_SIZE, MJS_OBJECT_ARENA_INC_SIZE);
   gc_arena_init(&mjs->property_arena, sizeof(struct mjs_property),
-                MJS_DEFAULT_PROPERTY_ARENA_SIZE, 10);
+                MJS_PROPERTY_ARENA_SIZE, MJS_PROPERTY_ARENA_INC_SIZE);
 
   mjs_val_t global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);
@@ -245,13 +252,16 @@ static void mjs_print_stack_trace_line(struct mjs *mjs, size_t offset) {
 
 MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset) {
   mjs_print_stack_trace_line(mjs, offset);
-  while (mjs->call_stack.len >= sizeof(mjs_val_t) * 3) {
+  while (mjs->call_stack.len >=
+         sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT) {
     /* pop retval_stack_idx */
     mjs_pop_val(&mjs->call_stack);
     /* pop scope_index */
     mjs_pop_val(&mjs->call_stack);
     /* pop return_address and set current offset to it */
     offset = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+    /* pop this object */
+    mjs_pop_val(&mjs->call_stack);
     mjs_print_stack_trace_line(mjs, offset);
   }
 }

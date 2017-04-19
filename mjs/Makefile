@@ -15,7 +15,7 @@ MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
 CFLAGS += -W -Wall -g -O0
 CFLAGS += $(MFLAGS) $(CFLAGS_EXTRA)
 COMMON_CFLAGS =
-TEST_CFLAGS = -DMJS_AGGRESSIVE_GC -fsanitize=address
+ASAN_CFLAGS = -fsanitize=address
 
 VERBOSE ?=
 ifeq ($(VERBOSE),1)
@@ -32,7 +32,7 @@ endif
 
 ifeq ($(UNAME_S),Linux)
   COMMON_CFLAGS += -Wl,--no-as-needed -ldl
-  TEST_CFLAGS += -fsanitize=leak
+  ASAN_CFLAGS += -fsanitize=leak
 endif
 
 PROG = $(BUILD_DIR)/mjs
@@ -82,29 +82,119 @@ DOCKER_USER_ARG = --user $$(id -u):$$(id -u)
 endif
 endif
 
-COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $(TEST_CFLAGS) $< $(TESTUTIL_FILES)
+COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES)
 
-test: $(BUILD_DIR)/unit_test $(PROG)
-	$(BUILD_DIR)/unit_test
+include $(REPO_ROOT)/common.mk
 
-# test_full TODO(dfrank): refactor {{{
-$(BUILD_DIR)/unit_test: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	$(CLANG) $(COMMON_TEST_FLAGS) -o $@
+# ==== Test Variants ====
+#
+# We want to build tests with various combinations of different compilers and
+# different options. In order to do that, there is some simple makefile magic:
+#
+# There is a function compile_test_with_compiler which takes compiler name, any
+# compile flags, name for the binary, and declares a rule for building that
+# binary.
+#
+# Now, there is a higher level function: compile_test_with_opt, which takes the
+# optimization flag to use, binary name component, and it declares a rule for
+# both clang and for gcc with given optimization flags (by means of the
+# aforementioned compile_test_with_compiler). And there are more higher level
+# function which add more flags, etc etc.
+#
+# ========================================
+# Suppose you want to add more build variants, say with flags -DFOO=1 and
+# -DFOO=2. Here's what you need to do:
+#
+# - Rename compile_test_all to compile_test_with_foo
+# - Inside of your new fancy compile_test_with_foo function, adjust a bit each
+#   invocation of the lower-level function, whatever it is:
+#   to the arg 2, add "_$2", and replace empty arg 3 with this: "$1 $3".
+# - Write new compile_test_all, which should call your new
+#   compile_test_with_foo, like this:
+#
+#       define compile_test_all
+#       $(eval $(call compile_test_with_foo,-DFOO=1,foo_1,))
+#       $(eval $(call compile_test_with_foo,-DFOO=2,foo_2,))
+#       endef
+#
+# - Done!
+#
+# ========================================
 
-$(BUILD_DIR)/unit_test_init0: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	$(CLANG) $(COMMON_TEST_FLAGS) -DMJS_INIT_OFFSET_SIZE=0 -o $@
+# test variants, will be populated by compile_test, called by
+# compile_test_with_compiler, called by compile_test_with_opt, .... etc
+TEST_VARIANTS =
 
-$(BUILD_DIR)/unit_test_init4: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	$(CLANG) $(COMMON_TEST_FLAGS) -DMJS_INIT_OFFSET_SIZE=4 -o $@
+# params:
+#
+# 1: binary name component, e.g. "clang_O1_offset_4_whatever_else"
+# 2: compiler, like "clang" or "gcc"
+# 3: compiler flags
+define compile_test
+$(BUILD_DIR)/unit_test_$1: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
+	@echo BUILDING $$@ with $2, flags: "'$3'"
+	$2 $$(COMMON_TEST_FLAGS) $3 -o $$@
 
-test_full: $(PROG) \
-    $(BUILD_DIR)/unit_test \
-    $(BUILD_DIR)/unit_test_init0 \
-    $(BUILD_DIR)/unit_test_init4
-	$(BUILD_DIR)/unit_test
-	$(BUILD_DIR)/unit_test_init0
-	$(BUILD_DIR)/unit_test_init4
-# }}}
+TEST_VARIANTS += $(BUILD_DIR)/unit_test_$1
+endef
+
+# params:
+# 1: compiler to use, like "clang" or "gcc"
+# 2: binary name component, typically the same as compiler: "clang" or "gcc"
+# 3: additional compiler flags
+define compile_test_with_compiler
+$(eval $(call compile_test,$2,$1,$3))
+endef
+
+# params:
+# 1: optimization flag to use, like "-O0"
+# 2: binary name component, like "O0" or whatever
+# 3: additional compiler flags
+define compile_test_with_opt
+$(eval $(call compile_test_with_compiler,$(CLANG),clang_$2,$(ASAN_CFLAGS) $1 $3))
+$(eval $(call compile_test_with_compiler,$(CLANG),clang_32bit_$2,-m32 $1 $3))
+$(eval $(call compile_test_with_compiler,gcc,gcc_$2,$1 $3))
+endef
+
+# params:
+# 1: flag to use, like "-DMJS_INIT_OFFSET_SIZE=0", or just an empty string
+# 2: binary name component, like "offset_something"
+# 3: additional compiler flags
+define compile_test_with_offset
+$(eval $(call compile_test_with_opt,-O0,O0_$2,$1 $3))
+$(eval $(call compile_test_with_opt,-O1,O1_$2,$1 $3))
+$(eval $(call compile_test_with_opt,-O3,O3_$2,$1 $3))
+endef
+
+
+# params:
+# 1: flag to use, like "-DMJS_AGGRESSIVE_GC", or just an empty string
+# 2: binary name component, like "offset_something"
+# 3: additional compiler flags
+define compile_test_with_aggressive_gc
+$(eval $(call compile_test_with_offset,,offset_def_$2,$1 $3))
+$(eval $(call compile_test_with_offset,-DMJS_INIT_OFFSET_SIZE=0,offset_0_$2,$1 $3))
+$(eval $(call compile_test_with_offset,-DMJS_INIT_OFFSET_SIZE=4,offset_4_$2,$1 $3))
+endef
+
+# compile ALL tests
+define compile_test_all
+$(eval $(call compile_test_with_aggressive_gc,-DMJS_AGGRESSIVE_GC,aggressive_gc_$2,$1 $3))
+$(eval $(call compile_test_with_aggressive_gc,,nonaggressive_gc_$2,$1 $3))
+endef
+
+$(eval $(call compile_test_all))
+
+# Run all tests from $(TEST_VARIANTS)
+test_full: $(TEST_VARIANTS) $(PROG)
+	for f in $(TEST_VARIANTS); do \
+    echo ; echo running $$f; \
+    $$f; \
+  done
+
+# Run just a single test (a first one from $(TEST_VARIANTS))
+test: $(firstword $(TEST_VARIANTS)) $(PROG)
+	$<
 
 clean:
 	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h
@@ -126,4 +216,3 @@ $(BUILD_DIR)/unit_test.exe: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DI
 wtest: $(BUILD_DIR)/unit_test.exe
 	wine $(BUILD_DIR)/unit_test.exe
 
-include $(REPO_ROOT)/common.mk

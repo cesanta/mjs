@@ -31,6 +31,15 @@ MJS_PRIVATE struct mjs_property *mjs_get_own_property_v(struct mjs *mjs,
                                                         mjs_val_t obj,
                                                         mjs_val_t key);
 
+/*
+ * A worker function for `mjs_set()` and `mjs_set_v()`: it takes name as both
+ * ptr+len and mjs_val_t. If `name` pointer is not NULL, it takes precedence
+ * over `name_v`.
+ */
+MJS_PRIVATE mjs_err_t mjs_set_internal(struct mjs *mjs, mjs_val_t obj,
+                                       mjs_val_t name_v, char *name,
+                                       size_t name_len, mjs_val_t val);
+
 #define MJS_PROTO_PROP_NAME "__p" /* Make it < 5 chars */
 
 #endif /* MJS_OBJECT_H_ */

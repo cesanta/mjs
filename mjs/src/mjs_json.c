@@ -58,7 +58,7 @@ static char *append_hex(char *buf, char *limit, uint8_t c) {
  * If size is zero it doesn't output anything but keeps counting.
  */
 static int snquote(char *buf, size_t size, const char *s, size_t len) {
-  char *limit = buf + size - 1;
+  char *limit = buf + size;
   const char *end;
   /*
    * String single character escape sequence:
@@ -99,8 +99,14 @@ static int snquote(char *buf, size_t size, const char *s, size_t len) {
   i++;
   if (buf < limit) *buf++ = '"';
 
-  if (size != 0) {
+  if (buf < limit) {
     *buf = '\0';
+  } else if (size != 0) {
+    /*
+     * There is no room for the NULL char, but the size wasn't zero, so we can
+     * safely put NULL in the previous byte
+     */
+    *(buf - 1) = '\0';
   }
   return i;
 }
