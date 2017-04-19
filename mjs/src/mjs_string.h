@@ -28,6 +28,7 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs);
 
 MJS_PRIVATE void mjs_string_slice(struct mjs *mjs);
 MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
+MJS_PRIVATE void mjs_string_indexof(struct mjs *mjs);
 
 #define EMBSTR_ZERO_TERM 1
 #define EMBSTR_UNESCAPE 2

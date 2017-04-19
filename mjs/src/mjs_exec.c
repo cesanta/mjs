@@ -145,6 +145,17 @@ static void exec_expr(struct mjs *mjs, int op) {
         mjs_push(mjs, mjs_mk_number(mjs, do_arith_op(db, da, op)));
       } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
         mjs_push(mjs, s_concat(mjs, b, a));
+      } else if (op == TOK_PLUS) {
+        char tok[32];
+        mjs_val_t result = MJS_UNDEFINED;
+        if (mjs_is_number(a)) {
+            snprintf(tok, sizeof(tok), "%lf", mjs_get_double(mjs, a));
+            result = s_concat(mjs, b, mjs_mk_string(mjs, tok, ~0, 0));
+        } else {
+            snprintf(tok, sizeof(tok), "%lf", mjs_get_double(mjs, b));
+            result = s_concat(mjs, mjs_mk_string(mjs, tok, ~0, 0), a);
+        }
+        mjs_push(mjs, result);
       } else {
         mjs_push(mjs, MJS_UNDEFINED);
         set_no_autoconversion_error(mjs);
@@ -183,6 +194,18 @@ static void exec_expr(struct mjs *mjs, int op) {
         mjs_push(mjs, mjs_mk_boolean(mjs, 0));
       } else if (mjs_is_string(a) && mjs_is_string(b)) {
         mjs_push(mjs, mjs_mk_boolean(mjs, s_cmp(mjs, a, b) == 0));
+      } else if (mjs_is_number(a) && mjs_is_string(b)) {
+        const char *nums = mjs_get_string(mjs, &b, NULL);
+        int64_t num = 0;
+        if (nums) num = to64(nums);
+        if (num == mjs_get_double(mjs, a)) mjs_push(mjs, mjs_mk_boolean(mjs, 1));
+        else mjs_push(mjs, mjs_mk_boolean(mjs, 0));
+      } else if (mjs_is_number(b) && mjs_is_string(a)) {
+        const char *nums = mjs_get_string(mjs, &a, NULL);
+        int64_t num = 0;
+        if (nums) num = to64(nums);
+        if (num == mjs_get_double(mjs, b)) mjs_push(mjs, mjs_mk_boolean(mjs, 1));
+        else mjs_push(mjs, mjs_mk_boolean(mjs, 0));
       } else if (mjs_is_foreign(a) && b == MJS_NULL) {
         mjs_push(mjs, mjs_mk_boolean(mjs, mjs_get_ptr(mjs, a) == NULL));
       } else if (a == MJS_NULL && mjs_is_foreign(b)) {
@@ -201,6 +224,18 @@ static void exec_expr(struct mjs *mjs, int op) {
         mjs_push(mjs, mjs_mk_boolean(mjs, 1));
       } else if (mjs_is_string(a) && mjs_is_string(b)) {
         mjs_push(mjs, mjs_mk_boolean(mjs, s_cmp(mjs, a, b) != 0));
+      } else if (mjs_is_number(a) && mjs_is_string(b)) {
+        const char *nums = mjs_get_string(mjs, &b, NULL);
+        int64_t num = 0;
+        if (nums) num = to64(nums);
+        if (num == mjs_get_double(mjs, a)) mjs_push(mjs, mjs_mk_boolean(mjs, 0));
+        else mjs_push(mjs, mjs_mk_boolean(mjs, 1));
+      } else if (mjs_is_number(b) && mjs_is_string(a)) {
+        const char *nums = mjs_get_string(mjs, &a, NULL);
+        int64_t num = 0;
+        if (nums) num = to64(nums);
+        if (num == mjs_get_double(mjs, b)) mjs_push(mjs, mjs_mk_boolean(mjs, 0));
+        else mjs_push(mjs, mjs_mk_boolean(mjs, 1));
       } else {
         mjs_push(mjs, mjs_mk_boolean(mjs, 1));
       }
@@ -342,6 +377,9 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
     return 1;
   } else if (strcmp(name, "charCodeAt") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
+    return 1;
+  } else if (strcmp(name, "indexOf") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_string_indexof);
     return 1;
   } else if (isnum) {
     /*
