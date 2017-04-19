@@ -19,6 +19,8 @@ int main(int argc, char *argv[]) {
   mjs_err_t err = MJS_OK;
   int i;
 
+    mjs_init_local(mjs, mjs_get_global(mjs));
+
   for (i = 1; i < argc && argv[i][0] == '-'; i++) {
     if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
       cs_log_set_level(atoi(argv[++i]));

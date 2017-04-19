@@ -24,7 +24,8 @@ SOURCES = $(COMMON)/cs_dbg.c \
           mjs_primitive.c \
           mjs_string.c \
           mjs_tok.c \
-          mjs_util.c
+          mjs_util.c \
+          mjs_extension.c
 
 HEADERS = $(COMMON)/mbuf.h \
           $(COMMON)/cs_dbg.h \

@@ -7,6 +7,7 @@ include $(SRCPATH)/mjs_sources.mk
 
 TOP_SOURCES = $(addprefix $(SRCPATH)/, $(SOURCES))
 TOP_HEADERS = $(addprefix $(SRCPATH)/, $(HEADERS))
+TOP_OBJECTS = $(patsubst %.c, %.o, $(TOP_SOURCES))
 TOP_SOURCES_DIRS = $(sort $(dir $(TOP_SOURCES)))
 TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 
@@ -36,8 +37,9 @@ ifeq ($(UNAME_S),Linux)
 endif
 
 PROG = $(BUILD_DIR)/mjs
+LIBS = $(BUILD_DIR)/libmjs.a
 
-all: $(PROG)
+all: $(LIBS)
 
 TESTUTIL_FILES = $(REPO_ROOT)/common/cs_dirent.c \
                  $(REPO_ROOT)/common/cs_time.c \
@@ -63,6 +65,10 @@ CFLAGS += $(COMMON_CFLAGS)
 # in order to make sure that all sources include the right headers
 $(PROG): $(TOP_SOURCES) $(TOP_HEADERS) $(BUILD_DIR)
 	$(CLANG) $(CFLAGS) $(CPPFLAGS) $(TOP_SOURCES) -o $(PROG)
+
+$(LIBS): $(TOP_OBJECTS) $(BUILD_DIR)
+	@rm -rf $@
+	ar rcs $@ $(TOP_OBJECTS)
 
 $(BUILD_DIR):
 	mkdir -p $@
@@ -197,7 +203,7 @@ test: $(firstword $(TEST_VARIANTS)) $(PROG)
 	$<
 
 clean:
-	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h
+	rm -rf $(BUILD_DIR) *.obj $(TOP_OBJECTS) mjs.c mjs.h
 
 print_sources:
 	@echo $(TOP_SOURCES) $(TOP_HEADERS)
