@@ -56,8 +56,18 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
 
+  /*
+   * Populate JSON.parse() and JSON.stringify()
+   */
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
   mjs_set(mjs, v, "parse", ~0, mjs_mk_foreign(mjs, mjs_op_json_parse));
   mjs_set(mjs, obj, "JSON", ~0, v);
+
+  /*
+   * Populate Object.create()
+   */
+  v = mjs_mk_object(mjs);
+  mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
+  mjs_set(mjs, obj, "Object", ~0, v);
 }

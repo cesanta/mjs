@@ -2697,6 +2697,11 @@ MJS_PRIVATE mjs_err_t mjs_set_internal(struct mjs *mjs, mjs_val_t obj,
                                        mjs_val_t name_v, char *name,
                                        size_t name_len, mjs_val_t val);
 
+/*
+ * Implementation of `Object.create(proto)`
+ */
+MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
+
 #define MJS_PROTO_PROP_NAME "__p" /* Make it < 5 chars */
 
 #endif /* MJS_OBJECT_H_ */
@@ -5987,10 +5992,20 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
 
+  /*
+   * Populate JSON.parse() and JSON.stringify()
+   */
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
   mjs_set(mjs, v, "parse", ~0, mjs_mk_foreign(mjs, mjs_op_json_parse));
   mjs_set(mjs, obj, "JSON", ~0, v);
+
+  /*
+   * Populate Object.create()
+   */
+  v = mjs_mk_object(mjs);
+  mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
+  mjs_set(mjs, obj, "Object", ~0, v);
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.c"
@@ -9157,6 +9172,7 @@ int main(int argc, char *argv[]) {
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
@@ -9408,6 +9424,21 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator) {
   }
 
   return key;
+}
+
+MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t proto_v = mjs_arg(mjs, 0);
+
+  if (!mjs_check_arg(mjs, 0, "proto", MJS_TYPE_OBJECT_GENERIC, &proto_v)) {
+    goto clean;
+  }
+
+  ret = mjs_mk_object(mjs);
+  mjs_set(mjs, ret, MJS_PROTO_PROP_NAME, ~0, proto_v);
+
+clean:
+  mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_parser.c"

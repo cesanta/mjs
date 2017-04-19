@@ -2019,6 +2019,39 @@ const char *test_objects() {
   ASSERT_EXEC_OK(mjs_exec(mjs, "function f(){ return {foo: 123} }; f()['foo']", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 123);
 
+  /* Prototypes with Object.create() */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let ret = "";
+          let p = {foo: 1};
+          let o1 = Object.create(p);
+          let o2 = Object.create(p);
+
+          ret += "p_foo:"  + JSON.stringify(p.foo) + "_";
+          ret += "o1_foo:" + JSON.stringify(o1.foo) + "_";
+          ret += "o2_foo:" + JSON.stringify(o2.foo) + "_";
+
+          o1.foo = 2;
+
+          ret += "p_foo:"  + JSON.stringify(p.foo) + "_";
+          ret += "o1_foo:" + JSON.stringify(o1.foo) + "_";
+          ret += "o2_foo:" + JSON.stringify(o2.foo) + "_";
+
+          p.foo = 3;
+
+          ret += "p_foo:"  + JSON.stringify(p.foo) + "_";
+          ret += "o1_foo:" + JSON.stringify(o1.foo) + "_";
+          ret += "o2_foo:" + JSON.stringify(o2.foo) + "_";
+
+          ret;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "p_foo:1_o1_foo:1_o2_foo:1_"
+      "p_foo:1_o1_foo:2_o2_foo:1_"
+      "p_foo:3_o1_foo:2_o2_foo:3_"
+      );
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
 
