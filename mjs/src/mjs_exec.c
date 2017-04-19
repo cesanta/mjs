@@ -555,7 +555,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_RETURN: {
         size_t retval_stack_idx, return_address, scope_index;
-        assert(mjs_stack_size(&mjs->call_stack) >= 4);
+        assert(mjs_stack_size(&mjs->call_stack) >= CALL_STACK_FRAME_ITEMS_CNT);
 
         retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
         scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
@@ -680,7 +680,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_SETRETVAL: {
-        if (mjs_stack_size(&mjs->call_stack) < 4) {
+        if (mjs_stack_size(&mjs->call_stack) < CALL_STACK_FRAME_ITEMS_CNT) {
           mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "cannot return");
         } else {
           size_t retval_pos = mjs_get_int(mjs, *vptr(&mjs->call_stack, -1));

@@ -2421,6 +2421,15 @@ enum mjs_type {
   MJS_TYPES_CNT
 };
 
+enum mjs_call_stack_frame_item {
+  CALL_STACK_FRAME_ITEM_RETVAL_STACK_IDX, /* TOS */
+  CALL_STACK_FRAME_ITEM_SCOPE_IDX,
+  CALL_STACK_FRAME_ITEM_RETURN_ADDR,
+  CALL_STACK_FRAME_ITEM_THIS,
+
+  CALL_STACK_FRAME_ITEMS_CNT
+};
+
 /*
  * A tag is made of the sign bit and the 4 lower order bits of byte 6.
  * So in total we have 32 possible tags.
@@ -6310,13 +6319,16 @@ static void mjs_print_stack_trace_line(struct mjs *mjs, size_t offset) {
 
 MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset) {
   mjs_print_stack_trace_line(mjs, offset);
-  while (mjs->call_stack.len >= sizeof(mjs_val_t) * 3) {
+  while (mjs->call_stack.len >=
+         sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT) {
     /* pop retval_stack_idx */
     mjs_pop_val(&mjs->call_stack);
     /* pop scope_index */
     mjs_pop_val(&mjs->call_stack);
     /* pop return_address and set current offset to it */
     offset = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+    /* pop this object */
+    mjs_pop_val(&mjs->call_stack);
     mjs_print_stack_trace_line(mjs, offset);
   }
 }
@@ -7047,7 +7059,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_RETURN: {
         size_t retval_stack_idx, return_address, scope_index;
-        assert(mjs_stack_size(&mjs->call_stack) >= 4);
+        assert(mjs_stack_size(&mjs->call_stack) >= CALL_STACK_FRAME_ITEMS_CNT);
 
         retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
         scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
@@ -7172,7 +7184,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_SETRETVAL: {
-        if (mjs_stack_size(&mjs->call_stack) < 4) {
+        if (mjs_stack_size(&mjs->call_stack) < CALL_STACK_FRAME_ITEMS_CNT) {
           mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "cannot return");
         } else {
           size_t retval_pos = mjs_get_int(mjs, *vptr(&mjs->call_stack, -1));

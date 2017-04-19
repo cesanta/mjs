@@ -32,6 +32,15 @@ enum mjs_type {
   MJS_TYPES_CNT
 };
 
+enum mjs_call_stack_frame_item {
+  CALL_STACK_FRAME_ITEM_RETVAL_STACK_IDX, /* TOS */
+  CALL_STACK_FRAME_ITEM_SCOPE_IDX,
+  CALL_STACK_FRAME_ITEM_RETURN_ADDR,
+  CALL_STACK_FRAME_ITEM_THIS,
+
+  CALL_STACK_FRAME_ITEMS_CNT
+};
+
 /*
  * A tag is made of the sign bit and the 4 lower order bits of byte 6.
  * So in total we have 32 possible tags.
