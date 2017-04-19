@@ -90,7 +90,7 @@ endif
 
 COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES)
 
-include $(REPO_ROOT)/common.mk
+#include $(REPO_ROOT)/common.mk
 
 # ==== Test Variants ====
 #

@@ -121,8 +121,8 @@ static int gc_arena_is_gc_needed(struct gc_arena *a) {
 
 MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs) {
   struct mbuf *m = &mjs->owned_strings;
-  if ((double)(m->size - m->len) / (double)_MJS_STRING_BUF_RESERVE < 0.1) {
-      mbuf_resize(m, m->size + _MJS_STRING_BUF_RESERVE);
+  if ((double)(m->size - m->len) / (double)MJS_STRING_BUF_RESERVE < 0.1) {
+      mbuf_resize(m, m->size + MJS_STRING_BUF_RESERVE);
       return 1;
   }
   return 0;
@@ -467,10 +467,10 @@ void mjs_gc(struct mjs *mjs, int full) {
   if (full) {
     /*
      * In case of full GC, we also resize strings buffer, but we still leave
-     * some extra space (at most, `_MJS_STRING_BUF_RESERVE`) in order to avoid
+     * some extra space (at most, `MJS_STRING_BUF_RESERVE`) in order to avoid
      * frequent reallocations
      */
-    size_t trimmed_size = mjs->owned_strings.len + _MJS_STRING_BUF_RESERVE;
+    size_t trimmed_size = mjs->owned_strings.len + MJS_STRING_BUF_RESERVE;
     if (trimmed_size < mjs->owned_strings.size) {
       mbuf_resize(&mjs->owned_strings, trimmed_size);
     }

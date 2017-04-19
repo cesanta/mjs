@@ -15,17 +15,17 @@
 #include "mjs/src/mjs_primitive.h"
 
 #ifndef MJS_OBJECT_ARENA_SIZE
-#define MJS_OBJECT_ARENA_SIZE 20
+#define MJS_OBJECT_ARENA_SIZE 1048576
 #endif
 #ifndef MJS_PROPERTY_ARENA_SIZE
-#define MJS_PROPERTY_ARENA_SIZE 20
+#define MJS_PROPERTY_ARENA_SIZE 1048576
 #endif
 
 #ifndef MJS_OBJECT_ARENA_INC_SIZE
-#define MJS_OBJECT_ARENA_INC_SIZE 10
+#define MJS_OBJECT_ARENA_INC_SIZE 524288
 #endif
 #ifndef MJS_PROPERTY_ARENA_INC_SIZE
-#define MJS_PROPERTY_ARENA_INC_SIZE 10
+#define MJS_PROPERTY_ARENA_INC_SIZE 524288
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
