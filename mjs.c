@@ -6522,6 +6522,46 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {
 /* Amalgamated: #include "mjs/src/mjs_tok.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
+/*
+ * Pushes call stack frame
+ */
+static void call_stack_push_frame(struct mjs *mjs, size_t offset,
+                                  mjs_val_t retpos) {
+  /* Pop `this` value, and apply it */
+  mjs_val_t this_obj = mjs_pop_val(&mjs->arg_stack);
+  push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
+  mjs->vals.this_obj = this_obj;
+
+  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, offset + 1));
+  push_mjs_val(&mjs->call_stack,
+               mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+  push_mjs_val(&mjs->call_stack, retpos);
+}
+
+/*
+ * Restores call stack frame. Returns the return address.
+ */
+static size_t call_stack_restore_frame(struct mjs *mjs) {
+  size_t retval_stack_idx, return_address, scope_index;
+  assert(mjs_stack_size(&mjs->call_stack) >= CALL_STACK_FRAME_ITEMS_CNT);
+
+  retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+  scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+  return_address = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+  mjs->vals.this_obj = mjs_pop_val(&mjs->call_stack);
+
+  // Remove created scopes
+  while (mjs_stack_size(&mjs->scopes) > scope_index) {
+    mjs_pop_val(&mjs->scopes);
+  }
+
+  // Shrink stack, leave return value on top
+  mjs->stack.len = retval_stack_idx * sizeof(mjs_val_t);
+
+  // Jump to the return address
+  return return_address;
+}
+
 static mjs_val_t mjs_find_scope(struct mjs *mjs, mjs_val_t key) {
   size_t num_scopes = mjs_stack_size(&mjs->scopes);
   while (num_scopes > 0) {
@@ -7058,24 +7098,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_RETURN: {
-        size_t retval_stack_idx, return_address, scope_index;
-        assert(mjs_stack_size(&mjs->call_stack) >= CALL_STACK_FRAME_ITEMS_CNT);
-
-        retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
-        scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
-        return_address = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
-        mjs->vals.this_obj = mjs_pop_val(&mjs->call_stack);
-
-        // Remove created scopes
-        while (mjs_stack_size(&mjs->scopes) > scope_index) {
-          mjs_pop_val(&mjs->scopes);
-        }
-
-        // Shrink stack, leave return value on top
-        mjs->stack.len = retval_stack_idx * sizeof(mjs_val_t);
-
-        // Jump to the return address
-        i = return_address - 1;
+        i = call_stack_restore_frame(mjs) - 1;
         LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", i + 1));
         // mjs_dump(mjs, 0, stdout);
         break;
@@ -7109,18 +7132,12 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_val_t retpos = vtop(&mjs->arg_stack);
         int func_pos = mjs_get_int(mjs, retpos) - 1;
         mjs_val_t *func = vptr(&mjs->stack, func_pos);
-        if (mjs_is_function(*func)) {
-          /* Drop data stack size (pushed by OP_ARGS) */
-          mjs_pop_val(&mjs->arg_stack);
-          /* Pop `this` value, and apply it */
-          mjs_val_t this_obj = mjs_pop_val(&mjs->arg_stack);
-          push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
-          mjs->vals.this_obj = this_obj;
 
-          push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, i + 1));
-          push_mjs_val(&mjs->call_stack,
-                       mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
-          push_mjs_val(&mjs->call_stack, retpos);
+        /* Drop data stack size (pushed by OP_ARGS) */
+        mjs_pop_val(&mjs->arg_stack);
+
+        if (mjs_is_function(*func)) {
+          call_stack_push_frame(mjs, i, retpos);
 
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
@@ -7128,45 +7145,21 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         } else if (mjs_is_string(*func)) {
           /* Call ffi-ed function */
 
-          /*
-           * Runtime expects data stack size at the top of call_stack, so,
-           * pop it from arg_stack and push to call_stack
-           */
-          push_mjs_val(&mjs->call_stack, mjs_pop_val(&mjs->arg_stack));
-
-          /* Apply `this` value for the call */
-          mjs_val_t this_obj = mjs->vals.this_obj;
-          mjs->vals.this_obj = mjs_pop_val(&mjs->arg_stack);
+          call_stack_push_frame(mjs, i, retpos);
 
           /* Perform the ffi-ed function call */
           mjs_ffi_call2(mjs);
 
-          /* Restore `this` */
-          mjs->vals.this_obj = this_obj;
-
-          /* Drop the data stack size pushed above */
-          mjs_pop_val(&mjs->call_stack);
+          call_stack_restore_frame(mjs);
         } else if (mjs_is_foreign(*func)) {
           /* Call cfunction */
 
-          /*
-           * Runtime expects data stack size at the top of call_stack, so,
-           * pop it from arg_stack and push to call_stack
-           */
-          push_mjs_val(&mjs->call_stack, mjs_pop_val(&mjs->arg_stack));
-
-          /* Apply `this` value for the call */
-          mjs_val_t this_obj = mjs->vals.this_obj;
-          mjs->vals.this_obj = mjs_pop_val(&mjs->arg_stack);
+          call_stack_push_frame(mjs, i, retpos);
 
           /* Perform the cfunction call */
           ((void (*) (struct mjs *)) mjs_get_ptr(mjs, *func))(mjs);
 
-          /* Restore `this` */
-          mjs->vals.this_obj = this_obj;
-
-          /* Drop the data stack size pushed above */
-          mjs_pop_val(&mjs->call_stack);
+          call_stack_restore_frame(mjs);
         } else {
           mjs_set_errorf(mjs, MJS_TYPE_ERROR, "calling non-callable");
         }
