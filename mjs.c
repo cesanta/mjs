@@ -10427,7 +10427,11 @@ double mjs_get_double(struct mjs *mjs, mjs_val_t v) {
 
 int mjs_get_int(struct mjs *mjs, mjs_val_t v) {
   (void) mjs;
-  return (int) get_double(v);
+  /*
+   * NOTE(dfrank): without double cast, all numbers >= 0x80000000 are always
+   * converted to exactly 0x80000000.
+   */
+  return (int) (unsigned int) get_double(v);
 }
 
 int32_t mjs_get_int32(struct mjs *mjs, mjs_val_t v) {

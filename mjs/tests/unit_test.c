@@ -1692,6 +1692,20 @@ const char *test_for_in_loop() {
   return NULL;
 }
 
+const char *test_primitives() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "0x87654321", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), (int)0x87654321);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 const char *test_objects() {
   struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
@@ -2577,6 +2591,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_while);
   RUN_TEST(test_for_loop);
   RUN_TEST(test_for_in_loop);
+  RUN_TEST(test_primitives);
   RUN_TEST(test_objects);
   RUN_TEST(test_arrays);
   RUN_TEST(test_json);
