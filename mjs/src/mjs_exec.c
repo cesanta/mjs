@@ -98,24 +98,56 @@ static void set_no_autoconversion_error(struct mjs *mjs) {
                      "implicit type conversion is prohibited");
 }
 
+static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  if ((mjs_is_foreign(a) || mjs_is_number(a)) &&
+      (mjs_is_foreign(b) || mjs_is_number(b))) {
+    int is_result_ptr = 0;
+
+    if (mjs_is_foreign(a) && mjs_is_foreign(b)) {
+      /* When two operands are pointers, only subtraction is supported */
+      if (op != TOK_MINUS) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid operands");
+      }
+    } else if (mjs_is_foreign(a) || mjs_is_foreign(b)) {
+      /*
+       * When one of the operands is a pointer, only + and - are supported,
+       * and the result is a pointer.
+       */
+      if (op != TOK_MINUS && op != TOK_PLUS) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid operands");
+      }
+      is_result_ptr = 1;
+    }
+
+    double da, db;
+    da = mjs_is_number(a) ? mjs_get_double(mjs, a)
+                          : (double) (uintptr_t) mjs_get_ptr(mjs, a);
+    db = mjs_is_number(b) ? mjs_get_double(mjs, b)
+                          : (double) (uintptr_t) mjs_get_ptr(mjs, b);
+    double result = do_arith_op(da, db, op);
+
+    /*
+     * If at least one of the operands was a pointer, result should also be
+     * a pointer
+     */
+    ret = is_result_ptr ? mjs_mk_foreign(mjs, (void *) (uintptr_t) result)
+                        : mjs_mk_number(mjs, result);
+  } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
+    ret = s_concat(mjs, a, b);
+  } else {
+    set_no_autoconversion_error(mjs);
+  }
+  return ret;
+}
+
 static void op_assign(struct mjs *mjs, int op) {
   mjs_val_t val = mjs_pop(mjs);
   mjs_val_t obj = mjs_pop(mjs);
   mjs_val_t key = mjs_pop(mjs);
   if (mjs_is_object(obj) && mjs_is_string(key)) {
     mjs_val_t v = mjs_get_v(mjs, obj, key);
-    if (mjs_is_number(v) && mjs_is_number(val)) {
-      double da = mjs_get_double(mjs, v);
-      double db = mjs_get_double(mjs, val);
-      double result = do_arith_op(da, db, op);
-      mjs_set_v(mjs, obj, key, mjs_mk_number(mjs, result));
-    } else if (mjs_is_string(v) && mjs_is_string(val) && (op == TOK_PLUS)) {
-      mjs_val_t result = s_concat(mjs, v, val);
-      mjs_set_v(mjs, obj, key, result);
-    } else {
-      mjs_set_v(mjs, obj, key, MJS_UNDEFINED);
-      set_no_autoconversion_error(mjs);
-    }
+    mjs_set_v(mjs, obj, key, do_op(mjs, v, val, op));
     mjs_push(mjs, v);
   } else {
     mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
@@ -137,18 +169,9 @@ static void exec_expr(struct mjs *mjs, int op) {
     case TOK_LSHIFT:
     case TOK_RSHIFT:
     case TOK_URSHIFT: {
-      mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
-      if (mjs_is_number(a) && mjs_is_number(b)) {
-        double da = mjs_get_double(mjs, a);
-        double db = mjs_get_double(mjs, b);
-        mjs_push(mjs, mjs_mk_number(mjs, do_arith_op(db, da, op)));
-      } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
-        mjs_push(mjs, s_concat(mjs, b, a));
-      } else {
-        mjs_push(mjs, MJS_UNDEFINED);
-        set_no_autoconversion_error(mjs);
-      }
+      mjs_val_t a = mjs_pop(mjs);
+      mjs_push(mjs, do_op(mjs, a, b, op));
       break;
     }
     case TOK_UNARY_MINUS: {
@@ -243,7 +266,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        mjs_val_t v1 = mjs_mk_number(mjs, mjs_get_double(mjs, v) + 1);
+        mjs_val_t v1 = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_PLUS);
         mjs_set_v(mjs, obj, key, v1);
         mjs_push(mjs, v);
       } else {
@@ -256,7 +279,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        mjs_val_t v1 = mjs_mk_number(mjs, mjs_get_double(mjs, v) - 1);
+        mjs_val_t v1 = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_MINUS);
         mjs_set_v(mjs, obj, key, v1);
         mjs_push(mjs, v);
       } else {
@@ -269,7 +292,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        v = mjs_mk_number(mjs, mjs_get_double(mjs, v) - 1);
+        v = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_MINUS);
         mjs_set_v(mjs, obj, key, v);
         mjs_push(mjs, v);
       } else {
@@ -282,7 +305,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        v = mjs_mk_number(mjs, mjs_get_double(mjs, v) + 1);
+        v = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_PLUS);
         mjs_set_v(mjs, obj, key, v);
         mjs_push(mjs, v);
       } else {

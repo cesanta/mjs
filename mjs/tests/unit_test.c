@@ -571,6 +571,10 @@ const void *ffi_get_null(void) {
   return NULL;
 }
 
+void ffi_set_byte(void *ptr, int val) {
+  *((char *)ptr) = val;
+}
+
 int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
@@ -681,6 +685,7 @@ void ffi_test_cb_viiiiiu(cb_viiiiiu *cb, void *userdata) {
 void *stub_dlsym(void *handle, const char *name) {
   (void) handle;
   if (strcmp(name, "ffi_get_null") == 0) return ffi_get_null;
+  if (strcmp(name, "ffi_set_byte") == 0) return ffi_set_byte;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
@@ -2514,6 +2519,8 @@ const char *test_foreign_ptr() {
 
   mjs_set_ffi_resolver(mjs, stub_dlsym);
 
+  uint8_t *ptr = NULL;
+
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(
           let get_null = ffi('void *ffi_get_null()');
@@ -2531,6 +2538,58 @@ const char *test_foreign_ptr() {
           ptr === null
           ), &res));
   ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let set_byte = ffi('void *ffi_set_byte(void *, int)');
+          let calloc = ffi('void *calloc(int, int)');
+          let free = ffi('void free(void *)');
+          let ptr = calloc(100, 1);
+          ptr;
+          ), &res));
+  ptr = (uint8_t *)mjs_get_ptr(mjs, res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          set_byte(ptr, 0xf0);
+
+          let ptr2 = ptr + 10;
+          set_byte(ptr2, 0xf1);
+
+          ptr2 += 10;
+          set_byte(ptr2, 0xf2);
+
+          set_byte(ptr2-1, 0xf3);
+
+          ptr2 -= 2;
+          set_byte(ptr2, 0xf4);
+
+          ptr2 = 5 + ptr;
+          set_byte(ptr + 1, ptr2 - ptr);
+
+          ptr2++;
+          set_byte(ptr + 2, ptr2 - ptr);
+
+          ptr2--;
+          set_byte(ptr + 3, ptr2 - ptr);
+          ), &res));
+
+  ASSERT_EQ(ptr[0], 0xf0);
+  ASSERT_EQ(ptr[10], 0xf1);
+  ASSERT_EQ(ptr[20], 0xf2);
+  ASSERT_EQ(ptr[19], 0xf3);
+  ASSERT_EQ(ptr[18], 0xf4);
+  ASSERT_EQ(ptr[1], 5);
+  ASSERT_EQ(ptr[2], 6);
+  ASSERT_EQ(ptr[3], 5);
+
+  /* ptr + ptr2 is not allowed */
+  ASSERT_EQ(mjs_exec( mjs, "ptr + ptr2", &res), MJS_TYPE_ERROR);
+
+  /* ptr * ptr2 is also not allowed */
+  ASSERT_EQ(mjs_exec( mjs, "ptr * ptr2", &res), MJS_TYPE_ERROR);
+
+  free(ptr);
 
   return NULL;
 }
