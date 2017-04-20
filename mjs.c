@@ -6202,6 +6202,10 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  /* err should never be MJS_OK here */
+  assert(err != MJS_OK);
+
   char *old_error_msg = mjs->error_msg;
   char *new_error_msg = NULL;
   mjs->error_msg = NULL;
@@ -7826,6 +7830,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           } else if (mjs_is_boolean(arg)) {
             intval = mjs_get_bool(mjs, arg);
           } else {
+            ret = MJS_TYPE_ERROR;
             mjs_prepend_errorf(
                 mjs, ret, "actual arg #%d is not an int (the type idx is: %s)",
                 i, mjs_typeof(arg));
@@ -7839,6 +7844,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           } else if (mjs_is_boolean(arg)) {
             intval = mjs_get_bool(mjs, arg);
           } else {
+            ret = MJS_TYPE_ERROR;
             mjs_prepend_errorf(
                 mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)",
                 i, mjs_typeof(arg));

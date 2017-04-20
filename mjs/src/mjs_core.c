@@ -101,6 +101,10 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  /* err should never be MJS_OK here */
+  assert(err != MJS_OK);
+
   char *old_error_msg = mjs->error_msg;
   char *new_error_msg = NULL;
   mjs->error_msg = NULL;
