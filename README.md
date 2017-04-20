@@ -23,6 +23,8 @@ where it enables scripting for IoT devices.
 - **`JSON.parse()`** and **`JSON.stringify()`** are available.
 - No closures, only lexical scoping (i.e. nested functions are allowed).
 - No exceptions.
+- No `new`. In order to create an object with a custom prototype, use
+  **`Object.create()`**, which is available.
 - Strict mode only.
 - No `var`, only `let`.
 - No `for..of`, `=>`, destructors, generators, proxies, promises.
@@ -53,6 +55,9 @@ where it enables scripting for IoT devices.
 
   <dt><tt>let str = JSON.stringify(value);</tt></dt>
   <dd>Get string representation of the mJS value.</dd>
+
+  <dt><tt>let proto = {foo: 1}; let o = Object.create(proto);</tt></dt>
+  <dd>Create an object with the provided prototype.</dd>
 
   <dt><tt>'some_string'.slice(start, end);</tt></dt>
   <dd>Return a substring between two indices. Example:
