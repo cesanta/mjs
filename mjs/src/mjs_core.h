@@ -95,6 +95,7 @@ struct mjs {
   enum mjs_err error;
   mjs_ffi_resolver_t *dlsym;  /* Symbol resolver function for FFI */
   ffi_cb_args_t *ffi_cb_args; /* List of FFI args descriptors */
+  size_t cur_bcode_offset;
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
@@ -132,17 +133,6 @@ MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
  * contains given bcode offset, or -1 in case the offset is too large.
  */
 MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset);
-
-/*
- * Returns the filename of the bcode by the bcode offset.
- */
-MJS_PRIVATE const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs,
-                                                         int offset);
-
-/*
- * Returns the line
- */
-MJS_PRIVATE int mjs_get_lineno_by_offset(struct mjs *mjs, int offset);
 
 /*
  * Prints stack trace starting from the given bcode offset; other offsets

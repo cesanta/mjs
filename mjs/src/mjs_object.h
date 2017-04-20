@@ -40,6 +40,11 @@ MJS_PRIVATE mjs_err_t mjs_set_internal(struct mjs *mjs, mjs_val_t obj,
                                        mjs_val_t name_v, char *name,
                                        size_t name_len, mjs_val_t val);
 
+/*
+ * Implementation of `Object.create(proto)`
+ */
+MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
+
 #define MJS_PROTO_PROP_NAME "__p" /* Make it < 5 chars */
 
 #endif /* MJS_OBJECT_H_ */

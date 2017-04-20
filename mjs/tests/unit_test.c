@@ -1198,6 +1198,9 @@ const char *test_errors(void) {
   ASSERT_EQ(mjs_exec(mjs, "let s = 'foo'; s += 12", &res), MJS_TYPE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "implicit type conversion is prohibited");
 
+  ASSERT_EQ(mjs_exec(mjs, "load('foo/bar/bazzz')", &res), MJS_FILE_READ_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "failed to read file \"foo/bar/bazzz\"");
+
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
   cleanup_mjs(&mjs);
@@ -1689,6 +1692,20 @@ const char *test_for_in_loop() {
   return NULL;
 }
 
+const char *test_primitives() {
+  struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "0x87654321", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), (int)0x87654321);
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+
+  return NULL;
+}
+
 const char *test_objects() {
   struct mjs *mjs __attribute__((cleanup(cleanup_mjs))) = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
@@ -2018,6 +2035,39 @@ const char *test_objects() {
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "function f(){ return {foo: 123} }; f()['foo']", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 123);
+
+  /* Prototypes with Object.create() */
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let ret = "";
+          let p = {foo: 1};
+          let o1 = Object.create(p);
+          let o2 = Object.create(p);
+
+          ret += "p_foo:"  + JSON.stringify(p.foo) + "_";
+          ret += "o1_foo:" + JSON.stringify(o1.foo) + "_";
+          ret += "o2_foo:" + JSON.stringify(o2.foo) + "_";
+
+          o1.foo = 2;
+
+          ret += "p_foo:"  + JSON.stringify(p.foo) + "_";
+          ret += "o1_foo:" + JSON.stringify(o1.foo) + "_";
+          ret += "o2_foo:" + JSON.stringify(o2.foo) + "_";
+
+          p.foo = 3;
+
+          ret += "p_foo:"  + JSON.stringify(p.foo) + "_";
+          ret += "o1_foo:" + JSON.stringify(o1.foo) + "_";
+          ret += "o2_foo:" + JSON.stringify(o2.foo) + "_";
+
+          ret;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "p_foo:1_o1_foo:1_o2_foo:1_"
+      "p_foo:1_o1_foo:2_o2_foo:1_"
+      "p_foo:3_o1_foo:2_o2_foo:3_"
+      );
 
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
@@ -2541,6 +2591,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_while);
   RUN_TEST(test_for_loop);
   RUN_TEST(test_for_in_loop);
+  RUN_TEST(test_primitives);
   RUN_TEST(test_objects);
   RUN_TEST(test_arrays);
   RUN_TEST(test_json);

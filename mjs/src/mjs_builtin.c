@@ -33,11 +33,21 @@ static void mjs_load(struct mjs *mjs) {
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
     if (mjs_is_object(arg1)) *bottom = arg1;
-    mjs_exec_file(mjs, path, &res);
+    mjs_err_t ret = mjs_exec_file(mjs, path, &res);
+    if (ret != MJS_OK) {
+      mjs_set_errorf(mjs, ret, "failed to read file \"%s\"", path);
+      goto clean;
+    }
     if (mjs_is_object(arg1)) *bottom = global;
+
+  clean:
     mjs_disown(mjs, &global);
   }
   mjs_return(mjs, res);
+}
+
+static void mjs_get_mjs(struct mjs *mjs) {
+  mjs_return(mjs, mjs_mk_foreign(mjs, mjs));
 }
 
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
@@ -50,9 +60,20 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
+  mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
 
+  /*
+   * Populate JSON.parse() and JSON.stringify()
+   */
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
   mjs_set(mjs, v, "parse", ~0, mjs_mk_foreign(mjs, mjs_op_json_parse));
   mjs_set(mjs, obj, "JSON", ~0, v);
+
+  /*
+   * Populate Object.create()
+   */
+  v = mjs_mk_object(mjs);
+  mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
+  mjs_set(mjs, obj, "Object", ~0, v);
 }

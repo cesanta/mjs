@@ -13,6 +13,7 @@
 #include "mjs/src/mjs_license.h"
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
+#include "mjs/src/mjs_util.h"
 
 #ifndef MJS_OBJECT_ARENA_SIZE
 #define MJS_OBJECT_ARENA_SIZE 1048576
@@ -184,59 +185,6 @@ MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset) {
     cur_idx += total_size;
   }
 
-  return ret;
-}
-
-MJS_PRIVATE const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs,
-                                                         int offset) {
-  const char *ret = NULL;
-  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
-  if (header_idx >= 0) {
-    ret = mjs->bcode.buf + header_idx +
-          sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
-  }
-  return ret;
-}
-
-MJS_PRIVATE int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
-  int ret = 1;
-  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
-  if (header_idx >= 0) {
-    mjs_header_item_t map_offset;
-    memcpy(&map_offset, mjs->bcode.buf + header_idx +
-                            sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
-           sizeof(map_offset));
-
-    mjs_header_item_t bcode_offset;
-    memcpy(&bcode_offset,
-           mjs->bcode.buf + header_idx +
-               sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
-           sizeof(bcode_offset));
-
-    offset -= (header_idx + bcode_offset);
-
-    /* get pointer to the length of the map followed by the map itself */
-    uint8_t *p = (uint8_t *) mjs->bcode.buf + header_idx + map_offset;
-
-    int llen, map_len = cs_varint_decode(p, &llen);
-    p += llen;
-    uint8_t *pe = p + map_len;
-
-    int prev_line_no = 1;
-    while (p < pe) {
-      int llen;
-      int cur_offset = cs_varint_decode(p, &llen);
-      p += llen;
-      int line_no = cs_varint_decode(p, &llen);
-      p += llen;
-
-      if (cur_offset >= offset) {
-        ret = prev_line_no;
-        break;
-      }
-      prev_line_no = line_no;
-    }
-  }
   return ret;
 }
 

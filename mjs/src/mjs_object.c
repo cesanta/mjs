@@ -9,6 +9,7 @@
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
+#include "mjs/src/mjs_util.h"
 
 MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
@@ -260,4 +261,19 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator) {
   }
 
   return key;
+}
+
+MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t proto_v = mjs_arg(mjs, 0);
+
+  if (!mjs_check_arg(mjs, 0, "proto", MJS_TYPE_OBJECT_GENERIC, &proto_v)) {
+    goto clean;
+  }
+
+  ret = mjs_mk_object(mjs);
+  mjs_set(mjs, ret, MJS_PROTO_PROP_NAME, ~0, proto_v);
+
+clean:
+  mjs_return(mjs, ret);
 }

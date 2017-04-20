@@ -20,4 +20,22 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
 
 #endif
 
+/*
+ * Returns the filename corresponding to the given bcode offset.
+ */
+const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset);
+
+/*
+ * Returns the line number corresponding to the given bcode offset.
+ */
+int mjs_get_lineno_by_offset(struct mjs *mjs, int offset);
+
+/*
+ * Returns bcode offset of the corresponding call frame cf_num, where 0 means
+ * the currently executing function, 1 means the first return address, etc.
+ *
+ * If given cf_num is too large, -1 is returned.
+ */
+int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
+
 #endif /* MJS_UTIL_PUBLIC_H_ */
