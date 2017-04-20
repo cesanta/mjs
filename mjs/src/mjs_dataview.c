@@ -27,10 +27,14 @@ void mjs_mem_set_dbl(void *ptr, double val) {
   memcpy(ptr, &val, sizeof(val));
 }
 
-unsigned mjs_mem_get_uint(void *ptr, int size, int bigendian) {
+/*
+ * TODO(dfrank): add support for unsigned ints to ffi and use
+ * unsigned int here
+ */
+double mjs_mem_get_uint(void *ptr, int size, int bigendian) {
   uint8_t *p = (uint8_t *) ptr;
   int i, inc = bigendian ? 1 : -1;
-  unsigned res = 0;
+  unsigned int res = 0;
   p += bigendian ? 0 : size - 1;
   for (i = 0; i < size; i++, p += inc) {
     res <<= 8;
@@ -39,23 +43,38 @@ unsigned mjs_mem_get_uint(void *ptr, int size, int bigendian) {
   return res;
 }
 
-void mjs_mem_set_uint(void *ptr, unsigned val, int size, int bigendian) {
-  uint8_t *p = (uint8_t *) ptr + (bigendian ? 0 : size - 1);
+/*
+ * TODO(dfrank): add support for unsigned ints to ffi and use
+ * unsigned int here
+ */
+double mjs_mem_get_int(void *ptr, int size, int bigendian) {
+  uint8_t *p = (uint8_t *) ptr;
   int i, inc = bigendian ? 1 : -1;
-  for (i = 0; i < size; i++, p += inc) {
-    *p = val & 0xff;
-    val >>= 8;
-  }
-}
+  int res = 0;
+  p += bigendian ? 0 : size - 1;
 
-int mjs_mem_get_int(void *ptr, int size, int bigendian) {
-  int8_t *p = (int8_t *) ptr + (bigendian ? 0 : size - 1);
-  int i, inc = bigendian ? 1 : -1, res = 0;
   for (i = 0; i < size; i++, p += inc) {
     res <<= 8;
     res |= *p;
   }
+
+  /* sign-extend */
+  {
+    int extra = sizeof(res) - size;
+    for (i = 0; i < extra; i++) res <<= 8;
+    for (i = 0; i < extra; i++) res >>= 8;
+  }
+
   return res;
+}
+
+void mjs_mem_set_uint(void *ptr, unsigned int val, int size, int bigendian) {
+  uint8_t *p = (uint8_t *) ptr + (bigendian ? size - 1 : 0);
+  int i, inc = bigendian ? -1 : 1;
+  for (i = 0; i < size; i++, p += inc) {
+    *p = val & 0xff;
+    val >>= 8;
+  }
 }
 
 void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {

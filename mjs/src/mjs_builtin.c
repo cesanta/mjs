@@ -61,6 +61,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
+  mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
 
   /*
    * Populate JSON.parse() and JSON.stringify()

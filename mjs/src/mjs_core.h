@@ -147,4 +147,5 @@ MJS_PRIVATE void push_mjs_val(struct mbuf *m, mjs_val_t v);
 MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m);
 MJS_PRIVATE mjs_val_t mjs_pop(struct mjs *mjs);
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v);
+MJS_PRIVATE void mjs_die(struct mjs *mjs);
 #endif /* MJS_CORE_H */

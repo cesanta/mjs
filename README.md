@@ -45,6 +45,9 @@ where it enables scripting for IoT devices.
   If not specified, a current global namespace is passed to the script,
   which allows <tt>file.js</tt> to modify the current namespace.</dd>
 
+  <dt><tt>die(message);</tt></dt>
+  <dd>Exit interpreter with the given error message</dd>
+
   <dt><tt>let value = JSON.parse(str);</tt></dt>
   <dd>Parse JSON string and return parsed value.</dd>
 
