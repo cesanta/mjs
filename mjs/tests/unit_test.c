@@ -2549,6 +2549,26 @@ const char *test_foreign_ptr() {
           ptr;
           ), &res));
   ptr = (uint8_t *)mjs_get_ptr(mjs, res);
+  ASSERT_EQ(ptr[0], 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "ptr[0] = 10; ptr[10] = 20;", &res));
+  ASSERT_EQ(ptr[0], 10);
+  ASSERT_EQ(ptr[10], 20);
+
+  ptr[15] = 100;
+  ASSERT_EXEC_OK(mjs_exec(mjs, "ptr[10] + ptr[15];", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 20 + 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "ptr[0] = 0", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "ptr[0] = 255", &res));
+  ASSERT_EQ(mjs_exec(mjs, "ptr[0] = -1;", &res), MJS_TYPE_ERROR);
+  ASSERT_EQ(mjs_exec(mjs, "ptr[0] = 256;", &res), MJS_TYPE_ERROR);
+
+  ASSERT_EQ(mjs_exec(mjs, "ptr['foo'];", &res), MJS_TYPE_ERROR);
+  ASSERT_EQ(mjs_exec(mjs, "ptr['foo'] = 1;", &res), MJS_TYPE_ERROR);
+  ASSERT_EQ(mjs_exec(mjs, "ptr[0] = 'bar';", &res), MJS_TYPE_ERROR);
+
+  memset(ptr, 0x00, 100);
 
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(

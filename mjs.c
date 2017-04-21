@@ -6788,7 +6788,46 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t val = mjs_pop(mjs);
       mjs_val_t obj = mjs_pop(mjs);
       mjs_val_t key = mjs_pop(mjs);
-      mjs_set_v(mjs, obj, key, val);
+      if (mjs_is_object(obj)) {
+        mjs_set_v(mjs, obj, key, val);
+      } else if (mjs_is_foreign(obj)) {
+        /*
+         * We don't have setters, so in order to support properties which behave
+         * like setters, we have to parse key right here, instead of having real
+         * built-in prototype objects
+         */
+
+        size_t n;
+        char *s = NULL;
+        int need_free = 0;
+
+        mjs_err_t err = mjs_to_string(mjs, &key, &s, &n, &need_free);
+
+        int isnum = 0;
+        int idx = cstr_to_ulong(s, n, &isnum);
+
+        if (err == MJS_OK) {
+          uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, obj);
+          int intval = mjs_get_int(mjs, val);
+          if (!isnum) {
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+            val = MJS_UNDEFINED;
+          } else if (!mjs_is_number(val) || intval < 0 || intval > 0xff) {
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                               "only number 0 .. 255 can be assigned");
+            val = MJS_UNDEFINED;
+          } else {
+            *(ptr + idx) = (uint8_t) intval;
+          }
+        }
+
+        if (need_free) {
+          free(s);
+          s = NULL;
+        }
+      } else {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "unsupported object type");
+      }
       mjs_push(mjs, val);
       break;
     }
