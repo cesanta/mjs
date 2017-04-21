@@ -497,6 +497,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           } else if (mjs_is_boolean(arg)) {
             intval = mjs_get_bool(mjs, arg);
           } else {
+            ret = MJS_TYPE_ERROR;
             mjs_prepend_errorf(
                 mjs, ret, "actual arg #%d is not an int (the type idx is: %s)",
                 i, mjs_typeof(arg));
@@ -510,6 +511,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           } else if (mjs_is_boolean(arg)) {
             intval = mjs_get_bool(mjs, arg);
           } else {
+            ret = MJS_TYPE_ERROR;
             mjs_prepend_errorf(
                 mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)",
                 i, mjs_typeof(arg));

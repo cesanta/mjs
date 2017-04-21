@@ -13,6 +13,7 @@
 #include "mjs/src/mjs_license.h"
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
+#include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_util.h"
 
 #ifndef MJS_OBJECT_ARENA_SIZE
@@ -101,6 +102,10 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  /* err should never be MJS_OK here */
+  assert(err != MJS_OK);
+
   char *old_error_msg = mjs->error_msg;
   char *new_error_msg = NULL;
   mjs->error_msg = NULL;
@@ -119,6 +124,25 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
     mjs->error_msg = new_error_msg;
   }
   return err;
+}
+
+MJS_PRIVATE void mjs_die(struct mjs *mjs) {
+  mjs_val_t msg_v = MJS_UNDEFINED;
+  const char *msg = NULL;
+  size_t msg_len = 0;
+
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "msg", MJS_TYPE_STRING, &msg_v)) {
+    goto clean;
+  }
+
+  msg = mjs_get_string(mjs, &msg_v, &msg_len);
+
+  /* TODO(dfrank): take error type as an argument */
+  mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "%.*s", (int) msg_len, msg);
+
+clean:
+  mjs_return(mjs, MJS_UNDEFINED);
 }
 
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err) {

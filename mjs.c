@@ -2536,6 +2536,7 @@ MJS_PRIVATE void push_mjs_val(struct mbuf *m, mjs_val_t v);
 MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m);
 MJS_PRIVATE mjs_val_t mjs_pop(struct mjs *mjs);
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v);
+MJS_PRIVATE void mjs_die(struct mjs *mjs);
 #endif /* MJS_CORE_H */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.h"
@@ -3271,9 +3272,9 @@ void *mjs_mem_get_ptr(void *base, int offset);
 void mjs_mem_set_ptr(void *ptr, void *val);
 double mjs_mem_get_dbl(void *ptr);
 void mjs_mem_set_dbl(void *ptr, double val);
-unsigned mjs_mem_get_uint(void *ptr, int size, int bigendian);
-void mjs_mem_set_uint(void *ptr, unsigned val, int size, int bigendian);
-int mjs_mem_get_int(void *ptr, int size, int bigendian);
+double mjs_mem_get_uint(void *ptr, int size, int bigendian);
+double mjs_mem_get_int(void *ptr, int size, int bigendian);
+void mjs_mem_set_uint(void *ptr, unsigned int val, int size, int bigendian);
 void mjs_mem_set_int(void *ptr, int val, int size, int bigendian);
 
 #endif /* MJS_DATAVIEW_H_ */
@@ -5997,6 +5998,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
+  mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
 
   /*
    * Populate JSON.parse() and JSON.stringify()
@@ -6114,6 +6116,7 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
+/* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 #ifndef MJS_OBJECT_ARENA_SIZE
@@ -6202,6 +6205,10 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
   va_list ap;
   va_start(ap, fmt);
+
+  /* err should never be MJS_OK here */
+  assert(err != MJS_OK);
+
   char *old_error_msg = mjs->error_msg;
   char *new_error_msg = NULL;
   mjs->error_msg = NULL;
@@ -6220,6 +6227,25 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
     mjs->error_msg = new_error_msg;
   }
   return err;
+}
+
+MJS_PRIVATE void mjs_die(struct mjs *mjs) {
+  mjs_val_t msg_v = MJS_UNDEFINED;
+  const char *msg = NULL;
+  size_t msg_len = 0;
+
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "msg", MJS_TYPE_STRING, &msg_v)) {
+    goto clean;
+  }
+
+  msg = mjs_get_string(mjs, &msg_v, &msg_len);
+
+  /* TODO(dfrank): take error type as an argument */
+  mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "%.*s", (int) msg_len, msg);
+
+clean:
+  mjs_return(mjs, MJS_UNDEFINED);
 }
 
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err) {
@@ -6447,10 +6473,14 @@ void mjs_mem_set_dbl(void *ptr, double val) {
   memcpy(ptr, &val, sizeof(val));
 }
 
-unsigned mjs_mem_get_uint(void *ptr, int size, int bigendian) {
+/*
+ * TODO(dfrank): add support for unsigned ints to ffi and use
+ * unsigned int here
+ */
+double mjs_mem_get_uint(void *ptr, int size, int bigendian) {
   uint8_t *p = (uint8_t *) ptr;
   int i, inc = bigendian ? 1 : -1;
-  unsigned res = 0;
+  unsigned int res = 0;
   p += bigendian ? 0 : size - 1;
   for (i = 0; i < size; i++, p += inc) {
     res <<= 8;
@@ -6459,23 +6489,38 @@ unsigned mjs_mem_get_uint(void *ptr, int size, int bigendian) {
   return res;
 }
 
-void mjs_mem_set_uint(void *ptr, unsigned val, int size, int bigendian) {
-  uint8_t *p = (uint8_t *) ptr + (bigendian ? 0 : size - 1);
+/*
+ * TODO(dfrank): add support for unsigned ints to ffi and use
+ * unsigned int here
+ */
+double mjs_mem_get_int(void *ptr, int size, int bigendian) {
+  uint8_t *p = (uint8_t *) ptr;
   int i, inc = bigendian ? 1 : -1;
-  for (i = 0; i < size; i++, p += inc) {
-    *p = val & 0xff;
-    val >>= 8;
-  }
-}
+  int res = 0;
+  p += bigendian ? 0 : size - 1;
 
-int mjs_mem_get_int(void *ptr, int size, int bigendian) {
-  int8_t *p = (int8_t *) ptr + (bigendian ? 0 : size - 1);
-  int i, inc = bigendian ? 1 : -1, res = 0;
   for (i = 0; i < size; i++, p += inc) {
     res <<= 8;
     res |= *p;
   }
+
+  /* sign-extend */
+  {
+    int extra = sizeof(res) - size;
+    for (i = 0; i < extra; i++) res <<= 8;
+    for (i = 0; i < extra; i++) res >>= 8;
+  }
+
   return res;
+}
+
+void mjs_mem_set_uint(void *ptr, unsigned int val, int size, int bigendian) {
+  uint8_t *p = (uint8_t *) ptr + (bigendian ? size - 1 : 0);
+  int i, inc = bigendian ? -1 : 1;
+  for (i = 0; i < size; i++, p += inc) {
+    *p = val & 0xff;
+    val >>= 8;
+  }
 }
 
 void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {
@@ -6584,24 +6629,56 @@ static void set_no_autoconversion_error(struct mjs *mjs) {
                      "implicit type conversion is prohibited");
 }
 
+static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  if ((mjs_is_foreign(a) || mjs_is_number(a)) &&
+      (mjs_is_foreign(b) || mjs_is_number(b))) {
+    int is_result_ptr = 0;
+
+    if (mjs_is_foreign(a) && mjs_is_foreign(b)) {
+      /* When two operands are pointers, only subtraction is supported */
+      if (op != TOK_MINUS) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid operands");
+      }
+    } else if (mjs_is_foreign(a) || mjs_is_foreign(b)) {
+      /*
+       * When one of the operands is a pointer, only + and - are supported,
+       * and the result is a pointer.
+       */
+      if (op != TOK_MINUS && op != TOK_PLUS) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid operands");
+      }
+      is_result_ptr = 1;
+    }
+
+    double da, db;
+    da = mjs_is_number(a) ? mjs_get_double(mjs, a)
+                          : (double) (uintptr_t) mjs_get_ptr(mjs, a);
+    db = mjs_is_number(b) ? mjs_get_double(mjs, b)
+                          : (double) (uintptr_t) mjs_get_ptr(mjs, b);
+    double result = do_arith_op(da, db, op);
+
+    /*
+     * If at least one of the operands was a pointer, result should also be
+     * a pointer
+     */
+    ret = is_result_ptr ? mjs_mk_foreign(mjs, (void *) (uintptr_t) result)
+                        : mjs_mk_number(mjs, result);
+  } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
+    ret = s_concat(mjs, a, b);
+  } else {
+    set_no_autoconversion_error(mjs);
+  }
+  return ret;
+}
+
 static void op_assign(struct mjs *mjs, int op) {
   mjs_val_t val = mjs_pop(mjs);
   mjs_val_t obj = mjs_pop(mjs);
   mjs_val_t key = mjs_pop(mjs);
   if (mjs_is_object(obj) && mjs_is_string(key)) {
     mjs_val_t v = mjs_get_v(mjs, obj, key);
-    if (mjs_is_number(v) && mjs_is_number(val)) {
-      double da = mjs_get_double(mjs, v);
-      double db = mjs_get_double(mjs, val);
-      double result = do_arith_op(da, db, op);
-      mjs_set_v(mjs, obj, key, mjs_mk_number(mjs, result));
-    } else if (mjs_is_string(v) && mjs_is_string(val) && (op == TOK_PLUS)) {
-      mjs_val_t result = s_concat(mjs, v, val);
-      mjs_set_v(mjs, obj, key, result);
-    } else {
-      mjs_set_v(mjs, obj, key, MJS_UNDEFINED);
-      set_no_autoconversion_error(mjs);
-    }
+    mjs_set_v(mjs, obj, key, do_op(mjs, v, val, op));
     mjs_push(mjs, v);
   } else {
     mjs_set_errorf(mjs, MJS_TYPE_ERROR, "invalid operand");
@@ -6623,18 +6700,9 @@ static void exec_expr(struct mjs *mjs, int op) {
     case TOK_LSHIFT:
     case TOK_RSHIFT:
     case TOK_URSHIFT: {
-      mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
-      if (mjs_is_number(a) && mjs_is_number(b)) {
-        double da = mjs_get_double(mjs, a);
-        double db = mjs_get_double(mjs, b);
-        mjs_push(mjs, mjs_mk_number(mjs, do_arith_op(db, da, op)));
-      } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
-        mjs_push(mjs, s_concat(mjs, b, a));
-      } else {
-        mjs_push(mjs, MJS_UNDEFINED);
-        set_no_autoconversion_error(mjs);
-      }
+      mjs_val_t a = mjs_pop(mjs);
+      mjs_push(mjs, do_op(mjs, a, b, op));
       break;
     }
     case TOK_UNARY_MINUS: {
@@ -6729,7 +6797,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        mjs_val_t v1 = mjs_mk_number(mjs, mjs_get_double(mjs, v) + 1);
+        mjs_val_t v1 = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_PLUS);
         mjs_set_v(mjs, obj, key, v1);
         mjs_push(mjs, v);
       } else {
@@ -6742,7 +6810,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        mjs_val_t v1 = mjs_mk_number(mjs, mjs_get_double(mjs, v) - 1);
+        mjs_val_t v1 = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_MINUS);
         mjs_set_v(mjs, obj, key, v1);
         mjs_push(mjs, v);
       } else {
@@ -6755,7 +6823,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        v = mjs_mk_number(mjs, mjs_get_double(mjs, v) - 1);
+        v = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_MINUS);
         mjs_set_v(mjs, obj, key, v);
         mjs_push(mjs, v);
       } else {
@@ -6768,7 +6836,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
-        v = mjs_mk_number(mjs, mjs_get_double(mjs, v) + 1);
+        v = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_PLUS);
         mjs_set_v(mjs, obj, key, v);
         mjs_push(mjs, v);
       } else {
@@ -7826,6 +7894,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           } else if (mjs_is_boolean(arg)) {
             intval = mjs_get_bool(mjs, arg);
           } else {
+            ret = MJS_TYPE_ERROR;
             mjs_prepend_errorf(
                 mjs, ret, "actual arg #%d is not an int (the type idx is: %s)",
                 i, mjs_typeof(arg));
@@ -7839,6 +7908,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           } else if (mjs_is_boolean(arg)) {
             intval = mjs_get_bool(mjs, arg);
           } else {
+            ret = MJS_TYPE_ERROR;
             mjs_prepend_errorf(
                 mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)",
                 i, mjs_typeof(arg));

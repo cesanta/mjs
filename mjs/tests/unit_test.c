@@ -571,6 +571,10 @@ const void *ffi_get_null(void) {
   return NULL;
 }
 
+void ffi_set_byte(void *ptr, int val) {
+  *((char *)ptr) = val;
+}
+
 int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
@@ -681,6 +685,7 @@ void ffi_test_cb_viiiiiu(cb_viiiiiu *cb, void *userdata) {
 void *stub_dlsym(void *handle, const char *name) {
   (void) handle;
   if (strcmp(name, "ffi_get_null") == 0) return ffi_get_null;
+  if (strcmp(name, "ffi_set_byte") == 0) return ffi_set_byte;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
@@ -702,6 +707,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "mjs_mem_get_ptr") == 0) return mjs_mem_get_ptr;
   if (strcmp(name, "mjs_mem_get_uint") == 0) return mjs_mem_get_uint;
   if (strcmp(name, "mjs_mem_set_uint") == 0) return mjs_mem_set_uint;
+  if (strcmp(name, "mjs_mem_get_int") == 0) return mjs_mem_get_int;
   return NULL;
 }
 
@@ -2514,6 +2520,8 @@ const char *test_foreign_ptr() {
 
   mjs_set_ffi_resolver(mjs, stub_dlsym);
 
+  uint8_t *ptr = NULL;
+
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(
           let get_null = ffi('void *ffi_get_null()');
@@ -2531,6 +2539,58 @@ const char *test_foreign_ptr() {
           ptr === null
           ), &res));
   ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let set_byte = ffi('void *ffi_set_byte(void *, int)');
+          let calloc = ffi('void *calloc(int, int)');
+          let free = ffi('void free(void *)');
+          let ptr = calloc(100, 1);
+          ptr;
+          ), &res));
+  ptr = (uint8_t *)mjs_get_ptr(mjs, res);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          set_byte(ptr, 0xf0);
+
+          let ptr2 = ptr + 10;
+          set_byte(ptr2, 0xf1);
+
+          ptr2 += 10;
+          set_byte(ptr2, 0xf2);
+
+          set_byte(ptr2-1, 0xf3);
+
+          ptr2 -= 2;
+          set_byte(ptr2, 0xf4);
+
+          ptr2 = 5 + ptr;
+          set_byte(ptr + 1, ptr2 - ptr);
+
+          ptr2++;
+          set_byte(ptr + 2, ptr2 - ptr);
+
+          ptr2--;
+          set_byte(ptr + 3, ptr2 - ptr);
+          ), &res));
+
+  ASSERT_EQ(ptr[0], 0xf0);
+  ASSERT_EQ(ptr[10], 0xf1);
+  ASSERT_EQ(ptr[20], 0xf2);
+  ASSERT_EQ(ptr[19], 0xf3);
+  ASSERT_EQ(ptr[18], 0xf4);
+  ASSERT_EQ(ptr[1], 5);
+  ASSERT_EQ(ptr[2], 6);
+  ASSERT_EQ(ptr[3], 5);
+
+  /* ptr + ptr2 is not allowed */
+  ASSERT_EQ(mjs_exec( mjs, "ptr + ptr2", &res), MJS_TYPE_ERROR);
+
+  /* ptr * ptr2 is also not allowed */
+  ASSERT_EQ(mjs_exec( mjs, "ptr * ptr2", &res), MJS_TYPE_ERROR);
+
+  free(ptr);
 
   return NULL;
 }
@@ -2555,8 +2615,8 @@ const char *test_dataview(void) {
 
   mjs_set(mjs, mjs_get_global(mjs), "buf", ~0, mjs_mk_foreign(mjs, buf));
   ASSERT_EXEC_OK(mjs_exec(mjs, "let peek = ffi('void *mjs_mem_get_ptr(void*,int)')", &res));
-  ASSERT_EXEC_OK(mjs_exec(mjs, "let peeku = ffi('int mjs_mem_get_uint(void*,int,int)')", &res));
-  ASSERT_EXEC_OK(mjs_exec(mjs, "let pokeu = ffi('int mjs_mem_set_uint(void*,int,int,int)')", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let peeku = ffi('double mjs_mem_get_uint(void*,int,int)')", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let pokeu = ffi('void mjs_mem_set_uint(void*,int,int,int)')", &res));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let b2 = peek('booo', 0);", &res));
 
@@ -2567,8 +2627,179 @@ const char *test_dataview(void) {
   CHECK_NUMERIC("peeku(buf, 3, 1)", 0x616263);
   CHECK_NUMERIC("peeku(buf, 4, 1)", 0x61626364);
 
-  /* TODO(lsm): fix this - make FFI marshal unsigned values */
-  CHECK_NUMERIC("peeku(peek(buf,12), 4, 1)", -1);
+  CHECK_NUMERIC("peeku(peek(buf,12), 4, 1)", 0xffffffff);
+
+  uint8_t *ptr = NULL;
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let calloc = ffi('void *calloc(int, int)');
+          let ptr = calloc(100, 1);
+          ptr;
+          ), &res));
+  ptr = (uint8_t *)mjs_get_ptr(mjs, res);
+
+  ptr[5] = 0x30;
+  ptr[6] = 0x31;
+  ptr[7] = 0x32;
+
+  ptr[10] = 0xff;
+  ptr[11] = 0xfe;
+  ptr[12] = 0xfd;
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          load("lib/api_dataview.js");
+          let dw = DataView.create(ptr, 0, 16);
+          ), &res));
+
+  // Test 8bit values
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          for (let i = 0; i < 16; i++) {
+            s += JSON.stringify(dw.getUint8(i)) + ":" + JSON.stringify(dw.getInt8(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0:0_0:0_0:0_0:0_0:0_48:48_49:49_50:50_0:0_0:0_255:-1_254:-2_253:-3_0:0_0:0_0:0_"
+      );
+
+  // Test 16bit values
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          for (let i = 0; i < 16; i += 2) {
+            s += JSON.stringify(dw.getUint16(i)) + ":" + JSON.stringify(dw.getInt16(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0:0_0:0_48:48_12594:12594_0:0_65534:-2_64768:-768_0:0_"
+      );
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          for (let i = 0; i < 16; i += 2) {
+            s += JSON.stringify(dw.getUint16(i, true)) + ":" + JSON.stringify(dw.getInt16(i, true)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0:0_0:0_12288:12288_12849:12849_0:0_65279:-257_253:253_0:0_"
+      );
+
+  // Test 32bit values
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          for (let i = 0; i < 16; i += 4) {
+            s += JSON.stringify(dw.getUint32(i)) + ":" + JSON.stringify(dw.getInt32(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0:0_3158322:3158322_65534:65534_4244635648:-50331648_"
+      );
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          for (let i = 0; i < 16; i += 4) {
+            s += JSON.stringify(dw.getUint32(i, true)) + ":" + JSON.stringify(dw.getInt32(i, true)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0:0_842084352:842084352_4278124544:-16842752_253:253_"
+      );
+
+  // Test setting
+
+  memset(ptr, 0x00, 100);
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          dw.setInt8(2, -2);
+          dw.setInt8(3, 10);
+          dw.setUint8(4, 0xff);
+          for (let i = 0; i < 8; i++) {
+            s += JSON.stringify(dw.getUint8(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0_0_254_10_255_0_0_0_"
+      );
+
+  memset(ptr, 0x00, 100);
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          dw.setInt16(1, -2);
+          dw.setUint16(4, 0x1234);
+          dw.setUint16(6, -2, true);
+          for (let i = 0; i < 8; i++) {
+            s += JSON.stringify(dw.getUint8(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0_255_254_0_18_52_254_255_"
+      );
+
+  memset(ptr, 0x00, 100);
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          dw.setInt32(1, -2);
+          dw.setUint32(5, 0x87654321);
+          dw.setUint32(9, -2, true);
+          for (let i = 0; i < 16; i++) {
+            s += JSON.stringify(dw.getUint8(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "0_255_255_255_254_135_101_67_33_254_255_255_255_0_0_0_"
+      );
+  /* Test non-zero offset */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let s = "";
+          let dw2 = DataView.create(ptr, 2);
+          for (let i = 0; i < 16; i++) {
+            s += JSON.stringify(dw2.getUint8(i)) + "_";
+          }
+          s;
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res),
+      "255_255_254_135_101_67_33_254_255_255_255_0_0_0_0_0_"
+      );
+
+  /* Make sure out-of-bounds check works */
+  ASSERT_EQ(mjs_exec(mjs,
+        STRINGIFY(
+          let dw2 = DataView.create(ptr, 0, 16);
+          dw2.getUint8(16);
+          ), &res), MJS_TYPE_ERROR);
+
+  ASSERT_EQ(mjs_exec(mjs,
+        STRINGIFY(
+          let dw2 = DataView.create(ptr, 0, 16);
+          dw2.getUint16(15);
+          ), &res), MJS_TYPE_ERROR);
+
+  ASSERT_EQ(mjs_exec(mjs,
+        STRINGIFY(
+          let dw2 = DataView.create(ptr, 0, 16);
+          dw2.getUint32(13);
+          ), &res), MJS_TYPE_ERROR);
+
+  free(ptr);
+  ptr = NULL;
 
   mjs_disown(mjs, &res);
   ASSERT_EQ(mjs->owned_values.len, 0);
