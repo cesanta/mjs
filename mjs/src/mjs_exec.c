@@ -266,33 +266,19 @@ static void exec_expr(struct mjs *mjs, int op) {
          * built-in prototype objects
          */
 
-        size_t n;
-        char *s = NULL;
-        int need_free = 0;
+        int ikey = mjs_get_int(mjs, key);
+        int ival = mjs_get_int(mjs, val);
 
-        mjs_err_t err = mjs_to_string(mjs, &key, &s, &n, &need_free);
-
-        int isnum = 0;
-        int idx = cstr_to_ulong(s, n, &isnum);
-
-        if (err == MJS_OK) {
+        if (!mjs_is_number(key)) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+          val = MJS_UNDEFINED;
+        } else if (!mjs_is_number(val) || ival < 0 || ival > 0xff) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                             "only number 0 .. 255 can be assigned");
+          val = MJS_UNDEFINED;
+        } else {
           uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, obj);
-          int intval = mjs_get_int(mjs, val);
-          if (!isnum) {
-            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
-            val = MJS_UNDEFINED;
-          } else if (!mjs_is_number(val) || intval < 0 || intval > 0xff) {
-            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
-                               "only number 0 .. 255 can be assigned");
-            val = MJS_UNDEFINED;
-          } else {
-            *(ptr + idx) = (uint8_t) intval;
-          }
-        }
-
-        if (need_free) {
-          free(s);
-          s = NULL;
+          *(ptr + ikey) = (uint8_t) ival;
         }
       } else {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "unsupported object type");
@@ -448,9 +434,8 @@ static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
   } else {
     uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, val);
     *res = mjs_mk_number(mjs, *(ptr + idx));
-    return 1;
   }
-  return 0;
+  return 1;
 }
 
 static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,

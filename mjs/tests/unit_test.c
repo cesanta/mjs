@@ -2574,12 +2574,28 @@ const char *test_foreign_ptr() {
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "ptr[0] = 0", &res));
   ASSERT_EXEC_OK(mjs_exec(mjs, "ptr[0] = 255", &res));
+
   ASSERT_EQ(mjs_exec(mjs, "ptr[0] = -1;", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "only number 0 .. 255 can be assigned");
+
   ASSERT_EQ(mjs_exec(mjs, "ptr[0] = 256;", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "only number 0 .. 255 can be assigned");
+
+  ASSERT_EQ(mjs_exec(mjs, "ptr[0] = 'bar';", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "only number 0 .. 255 can be assigned");
 
   ASSERT_EQ(mjs_exec(mjs, "ptr['foo'];", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "index must be a number");
+
   ASSERT_EQ(mjs_exec(mjs, "ptr['foo'] = 1;", &res), MJS_TYPE_ERROR);
-  ASSERT_EQ(mjs_exec(mjs, "ptr[0] = 'bar';", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "index must be a number");
+
+  /*
+   * TODO(dfrank): probably support non-numeric values which could be converted
+   * to number.
+   */
+  ASSERT_EQ(mjs_exec(mjs, "ptr['1'] = 1;", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "index must be a number");
 
   memset(ptr, 0x00, 100);
 
