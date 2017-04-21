@@ -7290,22 +7290,44 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_LOOP: {
         int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
+        /* push scope index */
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+
+        /* push break offset */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
         off = cs_varint_decode(&code[i + 1 + l1], &l2);
+
+        /* push continue offset */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
         i += l1 + l2;
         break;
       }
-      case OP_CONTINUE:
+      case OP_CONTINUE: {
+        /* restore scope index */
+        size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
+        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+
+        /* jump to "continue" address */
         i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
-        break;
-      case OP_BREAK:
+      } break;
+      case OP_BREAK: {
+        /* drop "continue" address */
         mjs_pop_val(&mjs->loop_addresses);
+
+        /* pop "break" address and jump to it */
         i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
+
+        /* restore scope index */
+        size_t scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
+        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+
         LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
-        break;
+      } break;
       case OP_NOP:
         break;
       case OP_EXIT:
@@ -10046,6 +10068,7 @@ static mjs_err_t parse_for_in(struct pstate *p) {
   mjs_err_t res = MJS_OK;
   size_t off_b, off_check_end;
 
+  /* new scope should be pushed before OP_LOOP instruction */
   emit_byte(p, OP_NEW_SCOPE);
 
   /* Put iterator variable name to the stack */
@@ -10148,6 +10171,9 @@ static mjs_err_t parse_for(struct pstate *p) {
    *   B -> del_scope
    */
 
+  /* new scope should be pushed before OP_LOOP instruction */
+  emit_byte(p, OP_NEW_SCOPE);
+
   /* Before parsing condition statement, push break/continue offsets  */
   emit_byte(p, OP_LOOP);
   size_t off_b = p->cur_idx;
@@ -10156,7 +10182,6 @@ static mjs_err_t parse_for(struct pstate *p) {
   emit_init_offset(p);
 
   /* Parse init statement */
-  emit_byte(p, OP_NEW_SCOPE);
   if (p->tok.tok == TOK_KEYWORD_LET) {
     if ((res = parse_let(p)) != MJS_OK) return res;
   } else {
@@ -10244,6 +10269,7 @@ static mjs_err_t parse_while(struct pstate *p) {
   EXPECT(p, TOK_KEYWORD_WHILE);
   EXPECT(p, TOK_OPEN_PAREN);
 
+  /* new scope should be pushed before OP_LOOP instruction */
   emit_byte(p, OP_NEW_SCOPE);
 
   /*
