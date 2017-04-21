@@ -12,7 +12,7 @@ TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 
 MFLAGS += -I. -I$(REPO_ROOT) -Isrc
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
-CFLAGS += -W -Wall -g -O0
+CFLAGS += -lm -W -Wall -g
 CFLAGS += $(MFLAGS) $(CFLAGS_EXTRA)
 COMMON_CFLAGS =
 ASAN_CFLAGS = -fsanitize=address
@@ -133,7 +133,7 @@ TEST_VARIANTS =
 define compile_test
 $(BUILD_DIR)/unit_test_$1: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
 	@echo BUILDING $$@ with $2, flags: "'$3'"
-	$2 $$(COMMON_TEST_FLAGS) $3 -o $$@
+	$2 $$(COMMON_TEST_FLAGS) $3 -lm -o $$@
 
 TEST_VARIANTS += $(BUILD_DIR)/unit_test_$1
 endef

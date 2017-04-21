@@ -1,3 +1,4 @@
+#include <math.h>
 #include "mjs.h"
 
 /* clang-format off */
@@ -708,6 +709,18 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "mjs_mem_get_uint") == 0) return mjs_mem_get_uint;
   if (strcmp(name, "mjs_mem_set_uint") == 0) return mjs_mem_set_uint;
   if (strcmp(name, "mjs_mem_get_int") == 0) return mjs_mem_get_int;
+  if (strcmp(name, "ceil") == 0) return ceil;
+  if (strcmp(name, "floor") == 0) return floor;
+  if (strcmp(name, "round") == 0) return round;
+  if (strcmp(name, "fmax") == 0) return fmax;
+  if (strcmp(name, "fmin") == 0) return fmin;
+  if (strcmp(name, "fabs") == 0) return fabs;
+  if (strcmp(name, "sqrt") == 0) return sqrt;
+  if (strcmp(name, "exp") == 0) return exp;
+  if (strcmp(name, "log") == 0) return log;
+  if (strcmp(name, "pow") == 0) return pow;
+  if (strcmp(name, "sin") == 0) return sin;
+  if (strcmp(name, "cos") == 0) return cos;
   return NULL;
 }
 
@@ -2827,6 +2840,66 @@ const char *test_dataview(void) {
   return NULL;
 }
 
+const char *test_lib_math(void) {
+  struct mjs *mjs = mjs_create();
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          load("lib/api_math.js");
+          ), &res));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.ceil(1.4)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.floor(1.4)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.round(1.4)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.round(1.5)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.max(100, 200)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 200);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.min(100, 200)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.abs(123)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 123);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.abs(-123)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 123);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.sqrt(1024)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 32);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.exp(5)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), exp(5));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.log(5.5)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), log(5.5));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.pow(3, 5)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), pow(3, 5));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.sin(0.2)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), sin(0.2));
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "Math.cos(0.2)", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), cos(0.2));
+
+  mjs_disown(mjs, &res);
+  ASSERT_EQ(mjs->owned_values.len, 0);
+  cleanup_mjs(&mjs);
+  return NULL;
+}
+
 static const char *run_all_tests(const char *filter, double *total_elapsed) {
   cs_log_set_level(2);
   RUN_TEST(test_arithmetic);
@@ -2870,6 +2943,8 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
 
   RUN_TEST(test_varint);
   RUN_TEST(test_dataview);
+
+  RUN_TEST(test_lib_math);
 
   return NULL;
 }
