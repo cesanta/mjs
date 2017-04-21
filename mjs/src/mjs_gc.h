@@ -38,7 +38,7 @@ MJS_PRIVATE int maybe_gc(struct mjs *mjs);
 MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
 MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
 
-MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
+MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *val);
 
 MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
 MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
