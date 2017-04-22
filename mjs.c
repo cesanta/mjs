@@ -9938,7 +9938,12 @@ static mjs_err_t parse_unary(struct pstate *p, int prev_op) {
     op = p->tok.tok;
     pnext1(p);
   }
-  if ((res = parse_postfix(p, prev_op)) != MJS_OK) return res;
+  if (findtok(s_unary_ops, p->tok.tok) != TOK_EOF) {
+    res = parse_unary(p, prev_op);
+  } else {
+    res = parse_postfix(p, prev_op);
+  }
+  if (res != MJS_OK) return res;
   if (op != TOK_EOF) {
     if (op == TOK_MINUS) op = TOK_UNARY_MINUS;
     if (op == TOK_PLUS) op = TOK_UNARY_PLUS;
