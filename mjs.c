@@ -7004,6 +7004,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   mjs_set_errorf(mjs, MJS_OK, NULL);
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
+
+  /*
+   * remember lengths of all stacks, they will be restored in case of an error
+   */
+  int stack_len = mjs->stack.len;
+  int call_stack_len = mjs->call_stack.len;
+  int arg_stack_len = mjs->arg_stack.len;
+  int scopes_len = mjs->scopes.len;
+
   for (i = off; i < mjs->bcode.len; i++) {
     mjs->cur_bcode_offset = i;
 
@@ -7344,6 +7353,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     }
     if (mjs->error != MJS_OK) {
       mjs_print_stack_trace(mjs, i - 1 /* undo the i++ */);
+
+      /* restore stack lenghts */
+      mjs->stack.len = stack_len;
+      mjs->call_stack.len = call_stack_len;
+      mjs->arg_stack.len = arg_stack_len;
+      mjs->scopes.len = scopes_len;
+
+      /* script will evaluate to `undefined` */
+      mjs_push(mjs, MJS_UNDEFINED);
       break;
     }
   }
