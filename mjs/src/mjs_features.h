@@ -10,4 +10,8 @@
 #define MJS_AGGRESSIVE_GC 0
 #endif
 
+#if !defined(MJS_MEMORY_STATS)
+#define MJS_MEMORY_STATS 0
+#endif
+
 #endif /* MJS_FEATURES_H_ */

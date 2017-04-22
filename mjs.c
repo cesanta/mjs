@@ -1937,6 +1937,10 @@ typedef unsigned long uintptr_t;
 #define MJS_AGGRESSIVE_GC 0
 #endif
 
+#if !defined(MJS_MEMORY_STATS)
+#define MJS_MEMORY_STATS 0
+#endif
+
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
@@ -2320,6 +2324,12 @@ struct gc_arena {
   size_t size_increment;
   struct gc_cell *free; /* head of free list */
   size_t cell_size;
+
+#if MJS_MEMORY_STATS
+  unsigned long allocations; /* cumulative counter of allocations */
+  unsigned long garbage;     /* cumulative counter of garbage */
+  unsigned long alive;       /* number of living cells */
+#endif
 
   gc_cell_destructor_t destructor;
 };
@@ -8411,6 +8421,11 @@ MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
 
   a->free = r->head.link;
 
+#if MJS_MEMORY_STATS
+  a->allocations++;
+  a->alive++;
+#endif
+
   /* Schedule GC if needed */
   if (gc_arena_is_gc_needed(a)) {
     mjs->need_gc = 1;
@@ -8434,6 +8449,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   struct gc_block *b;
   struct gc_cell *cur;
   struct gc_block **prevp = &a->blocks;
+#if MJS_MEMORY_STATS
+  a->alive = 0;
+#endif
 
   /*
    * Before we sweep, we should mark all free cells in a way that is
@@ -8467,6 +8485,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
       if (MARKED(cur)) {
         /* The cell is used and marked  */
         UNMARK(cur);
+#if MJS_MEMORY_STATS
+        a->alive++;
+#endif
       } else {
         /*
          * The cell is either:
@@ -8492,6 +8513,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
         cur->head.link = a->free;
         a->free = cur;
         freed_in_block++;
+#if MJS_MEMORY_STATS
+        a->garbage++;
+#endif
       }
     }
 

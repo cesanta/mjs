@@ -24,6 +24,12 @@ struct gc_arena {
   struct gc_cell *free; /* head of free list */
   size_t cell_size;
 
+#if MJS_MEMORY_STATS
+  unsigned long allocations; /* cumulative counter of allocations */
+  unsigned long garbage;     /* cumulative counter of garbage */
+  unsigned long alive;       /* number of living cells */
+#endif
+
   gc_cell_destructor_t destructor;
 };
 

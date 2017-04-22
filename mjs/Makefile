@@ -82,7 +82,7 @@ DOCKER_USER_ARG = --user $$(id -u):$$(id -u)
 endif
 endif
 
-COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES)
+COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES) -DMJS_MEMORY_STATS
 
 include $(REPO_ROOT)/common.mk
 
