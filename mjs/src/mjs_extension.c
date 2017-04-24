@@ -45,14 +45,39 @@ static void mjs_op_os_usleep(struct mjs *jsm)
     mjs_return(jsm, MJS_UNDEFINED);
 }
 
+static void mjs_op_sys_parseInt(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    if (mjs_nargs(jsm) < 1) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing a value");
+    } else {
+        mjs_val_t p = mjs_arg(jsm, 0);
+        if (mjs_is_number(p)) {
+            ret = mjs_mk_number(jsm, mjs_get_int(jsm, p));
+        } else if (mjs_is_string(p)) {
+            const char *nums = mjs_get_string(jsm, &p, NULL);
+            int64_t num = 0;
+            if (nums) num = to64(nums);
+            ret = mjs_mk_number(jsm, num);
+        }
+    }
+
+    mjs_return(jsm, ret);
+}
+
 void mjs_init_local(struct mjs *jsm, mjs_val_t o)
 {
     mjs_val_t time = mjs_mk_object(jsm);
     mjs_val_t os = mjs_mk_object(jsm);
+    mjs_val_t sys = mjs_mk_object(jsm);
 
     mjs_set(jsm, o, "TIME", ~0, time);
     mjs_set(jsm, time, "systime", ~0, mjs_mk_foreign(jsm, mjs_op_time_systime));
 
     mjs_set(jsm, o, "OS", ~0, os);
     mjs_set(jsm, os, "usleep", ~0, mjs_mk_foreign(jsm, mjs_op_os_usleep));
+
+    mjs_set(jsm, o, "SYS", ~0, sys);
+    mjs_set(jsm, sys, "parseInt", ~0, mjs_mk_foreign(jsm, mjs_op_sys_parseInt));
 }
