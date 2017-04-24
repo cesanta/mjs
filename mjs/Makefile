@@ -193,7 +193,7 @@ test_full: $(TEST_VARIANTS) $(PROG)
   done
 
 # Run just a single test (a first one from $(TEST_VARIANTS))
-test: $(firstword $(TEST_VARIANTS)) $(PROG)
+test: $(firstword $(TEST_VARIANTS))
 	$<
 
 clean:

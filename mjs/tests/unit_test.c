@@ -491,7 +491,7 @@ static const char *test_func1() {
   ffi_set_word(&args[2], 3);
   ffi_set_word(&args[3], 4);
 
-  ffi_call((ffi_fn_t) testfunc1, 4, &res, args);
+  ffi_call((ffi_fn_t *) testfunc1, 4, &res, args);
 
   ASSERT_EQ(res.v.i, 10);
 
@@ -510,7 +510,7 @@ static const char *test_func2() {
   ffi_set_word(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
-  ffi_call((ffi_fn_t) testfunc2, 2, &res, args);
+  ffi_call((ffi_fn_t *) testfunc2, 2, &res, args);
 
   ASSERT_EQ(res.v.i, 3);
 
@@ -529,7 +529,7 @@ static const char *test_func3() {
   ffi_set_double(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
-  ffi_call((ffi_fn_t) testfunc3, 2, &res, args);
+  ffi_call((ffi_fn_t *) testfunc3, 2, &res, args);
 
   ASSERT_EQ(res.v.i, 3);
 
@@ -552,7 +552,7 @@ static const char *test_func4() {
   ffi_set_word(&args[2], 3);
   ffi_set_word(&args[3], 4);
 
-  ffi_call((ffi_fn_t) testfunc4, 4, &res, args);
+  ffi_call((ffi_fn_t *) testfunc4, 4, &res, args);
 
   ASSERT_EQ(res.v.d, 10);
 
@@ -571,7 +571,7 @@ static const char *test_func5() {
   ffi_set_word(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
-  ffi_call((ffi_fn_t) testfunc5, 2, &res, args);
+  ffi_call((ffi_fn_t *) testfunc5, 2, &res, args);
 
   ASSERT_EQ(res.v.d, 3);
 
@@ -590,7 +590,7 @@ static const char *test_func6() {
   ffi_set_double(&args[0], 1);
   ffi_set_double(&args[1], 2);
 
-  ffi_call((ffi_fn_t) testfunc6, 2, &res, args);
+  ffi_call((ffi_fn_t *) testfunc6, 2, &res, args);
 
   ASSERT_EQ(res.v.d, 3);
 
@@ -753,6 +753,138 @@ void *stub_dlsym(void *handle, const char *name) {
   return NULL;
 }
 
+const char *test_parse_ffi_signature(struct mjs *mjs) {
+  mjs_ffi_sig_t sig;
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EXEC_OK(
+      mjs_parse_ffi_signature(mjs, "void ffi_dummy(int, int)", ~0, &sig, FFI_SIG_FUNC));
+  ASSERT_EQ(sig.val_types[0], MJS_FFI_CTYPE_NONE);
+  ASSERT_EQ(sig.val_types[1], MJS_FFI_CTYPE_INT);
+  ASSERT_EQ(sig.val_types[2], MJS_FFI_CTYPE_INT);
+  ASSERT_EQ(sig.val_types[3], MJS_FFI_CTYPE_NONE);
+  ASSERT_PTREQ(sig.cb_sig, NULL);
+  ASSERT_PTREQ(sig.fn, (ffi_fn_t *)ffi_dummy);
+  ASSERT_EQ(sig.is_valid, 1);
+  ASSERT_EQ(sig.args_cnt, 2);
+  mjs_ffi_sig_free(&sig);
+
+  /* check the same signature differently formatted */
+  {
+    mjs_ffi_sig_t sig2;
+    mjs_set_errorf(mjs, MJS_OK, NULL);
+    ASSERT_EXEC_OK(
+        mjs_parse_ffi_signature(mjs, "void ffi_dummy (int, int)", ~0, &sig2, FFI_SIG_FUNC));
+    ASSERT_EQ(memcmp(&sig, &sig2, sizeof(sig)), 0);
+    mjs_ffi_sig_free(&sig);
+  }
+
+  /* check a few wrong signatures */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "sdf ffi_dummy(int, int)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"sdf ffi_dummy(int, int)\": failed to parse val type \"sdf\"");
+  mjs_ffi_sig_free(&sig);
+
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "sdf ffi_dummy (int, int)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  mjs_ffi_sig_free(&sig);
+
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "void ffi_dummy(sdf, int)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  mjs_ffi_sig_free(&sig);
+
+  /* check signature with the callback */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EXEC_OK(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(int, userdata), userdata)", ~0, &sig, FFI_SIG_FUNC));
+  ASSERT_EQ(sig.val_types[0], MJS_FFI_CTYPE_INT);
+  ASSERT_EQ(sig.val_types[1], MJS_FFI_CTYPE_INT);
+  ASSERT_EQ(sig.val_types[2], MJS_FFI_CTYPE_CALLBACK);
+  ASSERT_EQ(sig.val_types[3], MJS_FFI_CTYPE_USERDATA);
+  ASSERT_EQ(sig.val_types[4], MJS_FFI_CTYPE_NONE);
+  ASSERT_PTRNEQ(sig.cb_sig, NULL);
+  ASSERT_PTREQ(sig.fn, (ffi_fn_t *)ffi_dummy);
+  ASSERT_EQ(sig.is_valid, 1);
+  ASSERT_EQ(sig.args_cnt, 3);
+
+  ASSERT_EQ(sig.cb_sig->val_types[0], MJS_FFI_CTYPE_NONE);
+  ASSERT_EQ(sig.cb_sig->val_types[1], MJS_FFI_CTYPE_INT);
+  ASSERT_EQ(sig.cb_sig->val_types[2], MJS_FFI_CTYPE_USERDATA);
+  ASSERT_EQ(sig.cb_sig->val_types[3], MJS_FFI_CTYPE_NONE);
+  ASSERT_EQ(sig.cb_sig->is_valid, 1);
+  ASSERT_PTREQ(sig.cb_sig->fn, (ffi_fn_t *)ffi_cb_impl_wwpwwww);
+  mjs_ffi_sig_free(&sig);
+
+  /* check signature with the callback */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EXEC_OK(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(void(*)(userdata), userdata)", ~0, &sig, FFI_SIG_FUNC));
+  ASSERT_EQ(sig.val_types[0], MJS_FFI_CTYPE_INT);
+  ASSERT_EQ(sig.val_types[1], MJS_FFI_CTYPE_CALLBACK);
+  ASSERT_EQ(sig.val_types[2], MJS_FFI_CTYPE_USERDATA);
+  ASSERT_EQ(sig.val_types[3], MJS_FFI_CTYPE_NONE);
+  ASSERT_PTRNEQ(sig.cb_sig, NULL);
+  ASSERT_PTREQ(sig.fn, (ffi_fn_t *)ffi_dummy);
+  ASSERT_EQ(sig.is_valid, 1);
+  ASSERT_EQ(sig.args_cnt, 2);
+
+  ASSERT_EQ(sig.cb_sig->val_types[0], MJS_FFI_CTYPE_NONE);
+  ASSERT_EQ(sig.cb_sig->val_types[1], MJS_FFI_CTYPE_USERDATA);
+  ASSERT_EQ(sig.cb_sig->val_types[2], MJS_FFI_CTYPE_NONE);
+  ASSERT_EQ(sig.cb_sig->is_valid, 1);
+  ASSERT_PTREQ(sig.cb_sig->fn, (ffi_fn_t *)ffi_cb_impl_wpwwwww);
+  mjs_ffi_sig_free(&sig);
+
+  /* wrong signature: two callbacks */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(int, userdata), void(*)(), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(int, userdata), void(*)(), userdata)\": only one callback is allowed");
+  mjs_ffi_sig_free(&sig);
+
+  /* wrong signature: callback without userdata */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(void(*)(), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(void(*)(), userdata)\": bad ffi signature: \"void(*)()\": no userdata arg");
+  mjs_ffi_sig_free(&sig);
+
+  /* wrong signature: callback is present, userdata is not */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(userdata))", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(userdata))\": callback and userdata should be either both present or both absent");
+  mjs_ffi_sig_free(&sig);
+
+  /* wrong signature: callback is not present, userdata is */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, userdata)\": callback and userdata should be either both present or both absent");
+  mjs_ffi_sig_free(&sig);
+
+  /* wrong signature: callback taking another callback */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(void(*)(void(*)(userdata), userdata), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(void(*)(void(*)(userdata), userdata), userdata)\": bad ffi signature: \"void(*)(void(*)(userdata), userdata)\": callback can't take another callback");
+  mjs_ffi_sig_free(&sig);
+
+  /* wrong signature: callback with double arg */
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  ASSERT_EQ(
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(double, userdata), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(double, userdata), userdata)\": bad ffi signature: \"void(*)(double, userdata)\": the callback signature is valid, but there's no existing callback implementation for it");
+  mjs_ffi_sig_free(&sig);
+
+  return NULL;
+}
+
 const char *test_call_ffi(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
@@ -804,9 +936,10 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i6i(114, 14, 7, 1, 4, 11)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_double(mjs, res), (114 - 14) / ((7 - 1) * 4) + 11 * 2);
 
+  /* TODO(dfrank): it needs to be refactored when ffied functions stop being strings */
   mjs_set(mjs, mjs_get_global(mjs), "ffi_test_s1s", ~0,
-          mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
-  ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('foo')", &res), MJS_OK);
+      mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_test_s1s('foo')", &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "foo");
 
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x01')", &res), MJS_OK);
@@ -1104,7 +1237,7 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec( mjs,
         "ffi_dummy(100, 200, function(){return 1;}, 1);",
         &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFI signature \"void ffi_dummy(int, int, foo(*)(userdata), userdata)\": bad callback signature: \"foo(*)(userdata)\": failed to parse val type \"foo\"");
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, foo(*)(userdata), userdata)\": bad ffi signature: \"foo(*)(userdata)\": failed to parse val type \"foo\"");
 
   /* --- */
 
@@ -1117,7 +1250,7 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec( mjs,
         "ffi_dummy(100, 200, function(){return 1;}, 1);",
         &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFI signature \"void ffi_dummy(int, int, void(*)(userdata, foo), userdata)\": bad callback signature: \"void(*)(userdata, foo)\": failed to parse val type \"foo\"");
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata, foo), userdata)\": bad ffi signature: \"void(*)(userdata, foo)\": failed to parse val type \"foo\"");
 
   /* --- */
 
@@ -1130,7 +1263,7 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec( mjs,
         "ffi_dummy(100, 200, function(){return 1;}, 1);",
         &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFI signature \"void ffi_dummy(int, int, void(*)(), userdata)\": bad callback signature: \"void(*)()\": no userdata arg");
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(), userdata)\": bad ffi signature: \"void(*)()\": no userdata arg");
 
   /* --- */
 
@@ -1143,7 +1276,7 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec( mjs,
         "ffi_dummy(100, 200, function(){return 1;});",
         &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFI signature \"void ffi_dummy(int, int, void(*)(userdata))\": need both function and userdata");
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata))\": callback and userdata should be either both present or both absent");
 
   /* --- */
 
@@ -1156,7 +1289,7 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec( mjs,
         "ffi_dummy(100, 200, function(){return 1;}, 1);",
         &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFI signature \"void ffi_dummy(userdata, int, void(*)(userdata), userdata)\": two or more userdata args: #0 and 3");
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(userdata, int, void(*)(userdata), userdata)\": more than one userdata arg: #0 and #3");
 
   /* --- */
 
@@ -1169,7 +1302,7 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec( mjs,
         "ffi_dummy(100, 200, function(){return 1;}, 1);",
         &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFI signature \"void ffi_dummy(int, int, void(*)(userdata, userdata), userdata)\": bad callback signature: \"void(*)(userdata, userdata)\": more than one userdata arg: #0 and #1");
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata, userdata), userdata)\": bad ffi signature: \"void(*)(userdata, userdata)\": more than one userdata arg: #0 and #1");
 
   mjs_disown(mjs, &res);
 
@@ -2542,7 +2675,7 @@ const char *test_foreign_ptr(struct mjs *mjs) {
 
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(
-          let set_byte = ffi('void *ffi_set_byte(void *, int)');
+          let set_byte = ffi('void ffi_set_byte(void *, int)');
           let calloc = ffi('void *calloc(int, int)');
           let free = ffi('void free(void *)');
           let ptr = calloc(100, 1);
@@ -2932,6 +3065,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST(test_func5);
   RUN_TEST(test_func6);
 
+  RUN_TEST_MJS(test_parse_ffi_signature);
   RUN_TEST_MJS(test_call_ffi);
   RUN_TEST_MJS(test_call_ffi_cb_vu);
   RUN_TEST_MJS(test_call_ffi_cb_viu);

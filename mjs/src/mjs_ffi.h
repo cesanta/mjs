@@ -6,6 +6,7 @@
 #ifndef MJS_FFI_H_
 #define MJS_FFI_H_
 
+#include "mjs/src/ffi/ffi.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_ffi_public.h"
 
@@ -17,6 +18,7 @@ mjs_ffi_resolver_t dlsym;
 enum mjs_ffi_ctype {
   MJS_FFI_CTYPE_NONE,
   MJS_FFI_CTYPE_USERDATA,
+  MJS_FFI_CTYPE_CALLBACK,
   MJS_FFI_CTYPE_INT,
   MJS_FFI_CTYPE_BOOL,
   MJS_FFI_CTYPE_DOUBLE,
@@ -26,13 +28,14 @@ enum mjs_ffi_ctype {
 };
 typedef uint8_t mjs_ffi_ctype_t;
 
-struct mjs_ffi_sig_stat {
-  int8_t is_valid;
-  int8_t userdata_idx;
-  int8_t args_cnt;
-  int8_t args_double_cnt;
+enum ffi_sig_type {
+  FFI_SIG_FUNC,
+  FFI_SIG_CALLBACK,
 };
 
+/*
+ * Parsed FFI signature
+ */
 struct mjs_ffi_sig {
   /*
    * The first item is the return value type (for `void`, `MJS_FFI_CTYPE_NONE`
@@ -40,15 +43,43 @@ struct mjs_ffi_sig {
    * `MJS_FFI_CTYPE_NONE`, it means that there are no more arguments.
    */
   mjs_ffi_ctype_t val_types[MJS_CB_SIGNATURE_MAX_SIZE];
-  struct mjs_ffi_sig_stat stat;
+
+  /*
+   * Callback signature, corresponds to the arg of type MJS_FFI_CTYPE_CALLBACK
+   * TODO(dfrank): probably we'll need to support multiple callback/userdata
+   * pairs
+   */
+  struct mjs_ffi_sig *cb_sig;
+
+  /*
+   * Function to call. If `is_callback` is not set, then it's the function
+   * obtained by dlsym; otherwise it's a pointer to the appropriate callback
+   * implementation.
+   */
+  ffi_fn_t *fn;
+
+  int8_t args_cnt;
+
+  /*
+   * If set, then the signature represents the callback (as opposed to a normal
+   * function), and `fn` points to the suitable callback implementation.
+   */
+  unsigned is_callback : 1;
+  unsigned is_valid : 1;
 };
 typedef struct mjs_ffi_sig mjs_ffi_sig_t;
 
+/* Initialize new FFI signature */
 MJS_PRIVATE void mjs_ffi_sig_init(mjs_ffi_sig_t *sig);
+/* Copy existing FFI signature */
+MJS_PRIVATE void mjs_ffi_sig_copy(mjs_ffi_sig_t *to, const mjs_ffi_sig_t *from);
+/* Free FFI signature. NOTE: the pointer `sig` itself is not freed */
+MJS_PRIVATE void mjs_ffi_sig_free(mjs_ffi_sig_t *sig);
+
 MJS_PRIVATE int mjs_ffi_sig_set_val_type(mjs_ffi_sig_t *sig, int idx,
                                          mjs_ffi_ctype_t type);
-MJS_PRIVATE struct mjs_ffi_sig_stat mjs_ffi_sig_stat_get(
-    struct mjs *mjs, const mjs_ffi_sig_t *sig);
+MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
+                                     enum ffi_sig_type sig_type);
 MJS_PRIVATE int mjs_ffi_is_regular_word(mjs_ffi_ctype_t type);
 MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(mjs_ffi_ctype_t type);
 

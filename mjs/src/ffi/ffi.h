@@ -15,7 +15,7 @@
  */
 #define FFI_MAX_ARGS_CNT 6
 
-typedef void (*ffi_fn_t)(void);
+typedef void(ffi_fn_t)(void);
 
 typedef intptr_t ffi_word_t;
 
@@ -33,7 +33,7 @@ struct ffi_arg {
   } v;
 };
 
-int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
+int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
              struct ffi_arg *args);
 
 void ffi_set_word(struct ffi_arg *arg, ffi_word_t v);

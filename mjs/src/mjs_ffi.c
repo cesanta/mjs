@@ -19,7 +19,7 @@
 #define RTLD_DEFAULT NULL
 #endif
 
-typedef void(cb_fn_t)(void);
+static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig);
 
 /*
  * Data of the two related arguments: callback function pointer and the
@@ -31,13 +31,6 @@ struct cbdata {
   /* JS userdata */
   mjs_val_t userdata;
 
-  /* C function signature source */
-  const char *signature;
-  size_t signature_len;
-  /*
-   * Descriptor of the C callback function signature.
-   */
-  mjs_ffi_sig_t sig;
   /* index of the function pointer param */
   int8_t func_idx;
   /* index of the userdata param */
@@ -72,59 +65,148 @@ static mjs_ffi_ctype_t parse_cval_type(struct mjs *mjs, const char *s,
   }
 }
 
-static int parse_cb_signature(struct mjs *mjs, const char *s, const char *e,
-                              mjs_ffi_sig_t *sig) {
-  int ret = 1;
+MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
+                                              int sig_len, mjs_ffi_sig_t *sig,
+                                              enum ffi_sig_type sig_type) {
+  mjs_err_t ret = MJS_OK;
   int vtidx = 0;
   const char *cur = s;
   mjs_ffi_ctype_t val_type = MJS_FFI_CTYPE_INVALID;
   const char *tmp_e = NULL;
+  if (sig_len == ~0) {
+    sig_len = strlen(s);
+  }
 
   mjs_ffi_sig_init(sig);
 
-  /* Parse return value type */
-  tmp_e = strchr(cur, '(');
-  if (tmp_e == NULL) {
-    ret = 0;
-    goto clean;
-  }
+  /* Parse return value type {{{ */
+
+  /* Skip type name */
+  for (tmp_e = cur; *tmp_e && *tmp_e >= 'a' && *tmp_e <= 'z';) tmp_e++;
+  /* Skip to function name */
+  while (*tmp_e == ' ' || *tmp_e == '*') tmp_e++;
+
   val_type = parse_cval_type(mjs, cur, tmp_e);
   if (val_type == MJS_FFI_CTYPE_INVALID) {
-    ret = 0;
+    ret = mjs->error;
     goto clean;
   }
   mjs_ffi_sig_set_val_type(sig, vtidx++, val_type);
+  /* }}} */
+
+  /* Parse function name (if any) {{{ */
+  /*
+   * If the name is inside of the parentheses, the signature assumed to be a
+   * function pointer, and the name will be ignored.
+   */
+  if (*tmp_e != '(') {
+    /* Regular function name */
+
+    cur = tmp_e;
+    while (*tmp_e && *tmp_e != ' ' && *tmp_e != '(') tmp_e++;
+
+    if (mjs->dlsym == NULL) {
+      ret = MJS_TYPE_ERROR;
+      mjs_prepend_errorf(mjs, ret,
+                         "resolver is not set, call mjs_set_ffi_resolver");
+      goto clean;
+    }
+
+    {
+      char buf[100];
+      snprintf(buf, sizeof(buf), "%.*s", (int) (tmp_e - cur), cur);
+      sig->fn = (ffi_fn_t *) mjs->dlsym(RTLD_DEFAULT, buf);
+      if (sig->fn == NULL) {
+        ret = MJS_TYPE_ERROR;
+        mjs_prepend_errorf(mjs, ret, "dlsym('%s') failed", buf);
+        goto clean;
+      }
+    }
+
+  } else {
+    /*
+     * Function pointer: ignore the name. Thus we leave sig->fn NULL here,
+     * but it will be later set to the appropriate callback implementation.
+     */
+    sig->is_callback = 1;
+
+    tmp_e = strchr(tmp_e, ')');
+    if (tmp_e == NULL) {
+      ret = MJS_TYPE_ERROR;
+      goto clean;
+    }
+  }
 
   /* Advance cur to the beginning of the arg list */
-  tmp_e = strchr(tmp_e, ')');
-  if (tmp_e == NULL) {
-    ret = 0;
-    goto clean;
-  }
   tmp_e = strchr(tmp_e, '(');
   if (tmp_e == NULL) {
-    ret = 0;
+    ret = MJS_TYPE_ERROR;
     goto clean;
   }
   cur = tmp_e + 1;
+  /* }}} */
 
-  /* Parse all args */
+  /* Parse all args {{{ */
   while (*tmp_e && *tmp_e != ')') {
     tmp_e = cur;
+    int level = 0; /* nested parens level */
+    int is_fp = 0; /* set to 1 is current arg is a callback function ptr */
 
     /* Advance tmp_e until the next arg separator */
-    while (*tmp_e && *tmp_e != ',' && *tmp_e != ')') tmp_e++;
+    while (*tmp_e && (level > 0 || (*tmp_e != ',' && *tmp_e != ')'))) {
+      switch (*tmp_e) {
+        case '(':
+          level++;
+          /*
+           * only function pointer params can have parens, so, set the flag
+           * that it's going to be a function pointer
+           */
+          is_fp = 1;
+          break;
+        case ')':
+          level--;
+          break;
+      }
+      tmp_e++;
+    }
 
     /* Parse current arg */
-    val_type = parse_cval_type(mjs, cur, tmp_e);
-    if (val_type == MJS_FFI_CTYPE_INVALID) {
-      /* parse_cval_type() has already set error message */
-      ret = 0;
-      goto clean;
+    if (is_fp) {
+      /* Current argument is a callback function pointer */
+      if (sig->cb_sig != NULL) {
+        /*
+         * We already have parsed some callback argument. Currently we don't
+         * support more than one callback argument, so, return error
+         * TODO(dfrank): probably improve
+         */
+        ret = MJS_TYPE_ERROR;
+        mjs_prepend_errorf(mjs, ret, "only one callback is allowed");
+        goto clean;
+      }
+
+      sig->cb_sig = calloc(sizeof(*sig->cb_sig), 1);
+      ret = mjs_parse_ffi_signature(mjs, cur, tmp_e - cur, sig->cb_sig,
+                                    FFI_SIG_CALLBACK);
+      if (ret != MJS_OK) {
+        mjs_ffi_sig_free(sig->cb_sig);
+        free(sig->cb_sig);
+        sig->cb_sig = NULL;
+        goto clean;
+      }
+      val_type = MJS_FFI_CTYPE_CALLBACK;
+    } else {
+      /* Some non-function argument */
+      val_type = parse_cval_type(mjs, cur, tmp_e);
+      if (val_type == MJS_FFI_CTYPE_INVALID) {
+        /* parse_cval_type() has already set error message */
+        ret = MJS_TYPE_ERROR;
+        goto clean;
+      }
     }
+
     if (!mjs_ffi_sig_set_val_type(sig, vtidx++, val_type)) {
-      mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "too many callback args");
-      ret = 0;
+      ret = MJS_TYPE_ERROR;
+      mjs_prepend_errorf(mjs, ret, "too many callback args");
       goto clean;
     }
 
@@ -137,17 +219,31 @@ static int parse_cb_signature(struct mjs *mjs, const char *s, const char *e,
       break;
     }
   }
+  /* }}} */
 
-  sig->stat = mjs_ffi_sig_stat_get(mjs, sig);
-  if (!sig->stat.is_valid) {
-    ret = 0;
+  /* Analyze the results and see if they are obviously wrong */
+  mjs_ffi_sig_validate(mjs, sig, sig_type);
+  if (!sig->is_valid) {
+    ret = MJS_TYPE_ERROR;
     goto clean;
   }
 
+  /* If the signature represents a callback, find the suitable implementation */
+  if (sig->is_callback) {
+    sig->fn = get_cb_impl_by_signature(sig);
+    if (sig->fn == NULL) {
+      ret = MJS_TYPE_ERROR;
+      mjs_prepend_errorf(mjs, ret,
+                         "the callback signature is valid, but there's "
+                         "no existing callback implementation for it");
+      goto clean;
+    }
+  }
+
 clean:
-  if (!ret) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "bad callback signature: \"%.*s\"",
-                       e - s, s);
+  if (ret != MJS_OK) {
+    mjs_prepend_errorf(mjs, ret, "bad ffi signature: \"%.*s\"", sig_len, s);
+    sig->is_valid = 0;
   }
   return ret;
 }
@@ -175,11 +271,11 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   mjs_own(cbargs->mjs, &res);
 
   /* There must be at least one argument: a userdata */
-  assert(cbargs->sig.stat.args_cnt > 0);
+  assert(cbargs->sig.args_cnt > 0);
 
   /* Create JS arguments */
-  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.stat.args_cnt);
-  for (i = 0; i < cbargs->sig.stat.args_cnt; i++) {
+  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.args_cnt);
+  for (i = 0; i < cbargs->sig.args_cnt; i++) {
     mjs_ffi_ctype_t val_type =
         cbargs->sig.val_types[i + 1 /* first val_type is return value type */];
     switch (val_type) {
@@ -215,7 +311,7 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   LOG(LL_VERBOSE_DEBUG, ("calling JS callback void-void %d from C",
                          mjs_get_int(cbargs->mjs, cbargs->func)));
   mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, MJS_UNDEFINED,
-                            cbargs->sig.stat.args_cnt, args);
+                            cbargs->sig.args_cnt, args);
   if (err != MJS_OK) {
     /*
      * There's not much we can do about the error here; let's at least print it
@@ -321,26 +417,48 @@ static struct mjs_ffi_cb_args **ffi_get_matching(struct mjs_ffi_cb_args **plist,
   return plist;
 }
 
-static cb_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
-  if (sig->stat.is_valid) {
-    if (sig->stat.args_cnt <= MJS_CB_ARGS_MAX_CNT) {
+static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
+  if (sig->is_valid) {
+    int i;
+    int double_cnt = 0;
+    int userdata_idx = 0 /* not a valid value: index 0 means return value */;
+
+    for (i = 1 /*0th item is a return value*/; i < MJS_CB_SIGNATURE_MAX_SIZE;
+         i++) {
+      mjs_ffi_ctype_t type = sig->val_types[i];
+      switch (type) {
+        case MJS_FFI_CTYPE_DOUBLE:
+          double_cnt++;
+          break;
+        case MJS_FFI_CTYPE_USERDATA:
+          assert(userdata_idx == 0); /* Otherwise is_valid should be 0 */
+          userdata_idx = i;
+          break;
+        default:
+          break;
+      }
+    }
+
+    assert(userdata_idx > 0); /* Otherwise is_valid should be 0 */
+
+    if (sig->args_cnt <= MJS_CB_ARGS_MAX_CNT) {
       if (mjs_ffi_is_regular_word_or_void(sig->val_types[0])) {
         /* Return type is a word or void */
-        if (sig->stat.args_double_cnt == 0) {
+        if (double_cnt == 0) {
           /* No double arguments */
-          switch (sig->stat.userdata_idx) {
+          switch (userdata_idx) {
             case 1:
-              return (cb_fn_t *) ffi_cb_impl_wpwwwww;
+              return (ffi_fn_t *) ffi_cb_impl_wpwwwww;
             case 2:
-              return (cb_fn_t *) ffi_cb_impl_wwpwwww;
+              return (ffi_fn_t *) ffi_cb_impl_wwpwwww;
             case 3:
-              return (cb_fn_t *) ffi_cb_impl_wwwpwww;
+              return (ffi_fn_t *) ffi_cb_impl_wwwpwww;
             case 4:
-              return (cb_fn_t *) ffi_cb_impl_wwwwpww;
+              return (ffi_fn_t *) ffi_cb_impl_wwwwpww;
             case 5:
-              return (cb_fn_t *) ffi_cb_impl_wwwwwpw;
+              return (ffi_fn_t *) ffi_cb_impl_wwwwwpw;
             case 6:
-              return (cb_fn_t *) ffi_cb_impl_wwwwwwp;
+              return (ffi_fn_t *) ffi_cb_impl_wwwwwwp;
             default:
               /* should never be here */
               abort();
@@ -363,30 +481,30 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_err_t ret = MJS_OK;
-  mjs_val_t sig = *vptr(&mjs->stack, mjs_getretvalpos(mjs));
-  const char *s = mjs_get_cstring(mjs, &sig);
-  const char *n, *e, *a = NULL;
-  ffi_fn_t fn;
+  mjs_ffi_sig_t sig;
+  mjs_ffi_ctype_t rtype;
+  const char *s =
+      mjs_get_cstring(mjs, vptr(&mjs->stack, mjs_getretvalpos(mjs)));
+
   int i, nargs;
   struct ffi_arg res;
   struct ffi_arg args[FFI_MAX_ARGS_CNT];
   struct cbdata cbdata;
-  mjs_ffi_ctype_t rtype;
 
   /* TODO(dfrank): support multiple callbacks */
   mjs_val_t resv = mjs_mk_undefined();
   mjs_val_t argvs[FFI_MAX_ARGS_CNT];
 
+  ret = mjs_parse_ffi_signature(mjs, s, ~0, &sig, FFI_SIG_FUNC);
+  if (ret != MJS_OK) {
+    goto clean;
+  }
+
   memset(&cbdata, 0, sizeof(cbdata));
   cbdata.func_idx = -1;
   cbdata.userdata_idx = -1;
 
-  for (n = s; *n && *n >= 'a' && *n <= 'z';) n++; /* Skip type name */
-  while (*n == ' ' || *n == '*') n++;             /* Skip to function name */
-  for (e = n; *e && *e != '(';) e++;              /* Skip function name */
-  if (*e == '(') a = e + 1;
-
-  rtype = parse_cval_type(mjs, s, n);
+  rtype = sig.val_types[0];
 
   switch (rtype) {
     case MJS_FFI_CTYPE_DOUBLE:
@@ -412,171 +530,122 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
 
   nargs =
       mjs_stack_size(&mjs->stack) - mjs_get_int(mjs, vtop(&mjs->call_stack));
-  for (i = 0; i < nargs; i++) {
-    const char *ae; /* pointer to the one-past-end character */
-    int level = 0;  /* nested parens level */
-    int is_fp = 0;  /* set to 1 is current arg is a callback function ptr */
-    mjs_val_t arg = mjs_arg(mjs, i);
-    if (a == NULL) {
-      ret = MJS_TYPE_ERROR;
-      mjs_prepend_errorf(mjs, ret, "got %d actuals", nargs);
-      goto clean;
-    }
-    while (*a == ' ') a++;
-    ae = a;
-    while (*ae && (level > 0 || (*ae != ',' && *ae != ')'))) {
-      switch (*ae) {
-        case '(':
-          level++;
-          /*
-           * only function pointer params can have parens, so, set the flag
-           * that it's going to be a function pointer
-           */
-          is_fp = 1;
-          break;
-        case ')':
-          level--;
-          break;
-      }
-      ae++;
-    }
 
-    if (is_fp) {
-      /*
-       * Current argument is a callback function pointer: remember the given JS
-       * function and the argument index
-       */
-      cbdata.func = arg;
-      cbdata.func_idx = i;
-      cbdata.signature = a;
-      cbdata.signature_len = (size_t)(ae - a);
-      if (!parse_cb_signature(mjs, a, ae, &cbdata.sig)) {
-        ret = MJS_TYPE_ERROR;
-        goto clean;
-      }
-    } else {
-      /* Some non-function argument */
-      mjs_ffi_ctype_t ctype = parse_cval_type(mjs, a, ae);
-      switch (ctype) {
-        case MJS_FFI_CTYPE_NONE:
-          /*
-           * Void argument: in any case, it's an error, because if C function
-           * takes no arguments, then the FFI-ed JS function should be called
-           * without any arguments, and thus we'll not face "void" here.
-           */
-          ret = MJS_TYPE_ERROR;
-          if (i == 0) {
-            /* FFI signature is correct, but invocation is wrong */
-            mjs_prepend_errorf(mjs, ret, "ffi-ed function takes no arguments");
-          } else {
-            /*
-             * FFI signature is wrong: we can't have "void" as a non-first
-             * "argument"
-             */
-            mjs_prepend_errorf(mjs, ret, "bad ffi arg #%d type: \"void\"", i);
-          }
-
-          goto clean;
-        case MJS_FFI_CTYPE_USERDATA:
-          /* Userdata for the callback */
-          if (cbdata.userdata_idx != -1) {
-            ret = MJS_TYPE_ERROR;
-            mjs_prepend_errorf(mjs, ret,
-                               "two or more userdata args: #%d and %d",
-                               cbdata.userdata_idx, i);
-
-            goto clean;
-          }
-          cbdata.userdata = arg;
-          cbdata.userdata_idx = i;
-          break;
-        case MJS_FFI_CTYPE_INT: {
-          int intval = 0;
-          if (mjs_is_number(arg)) {
-            intval = mjs_get_int(mjs, arg);
-          } else if (mjs_is_boolean(arg)) {
-            intval = mjs_get_bool(mjs, arg);
-          } else {
-            ret = MJS_TYPE_ERROR;
-            mjs_prepend_errorf(
-                mjs, ret, "actual arg #%d is not an int (the type idx is: %s)",
-                i, mjs_typeof(arg));
-          }
-          ffi_set_word(&args[i], intval);
-        } break;
-        case MJS_FFI_CTYPE_BOOL: {
-          int intval = 0;
-          if (mjs_is_number(arg)) {
-            intval = !!mjs_get_int(mjs, arg);
-          } else if (mjs_is_boolean(arg)) {
-            intval = mjs_get_bool(mjs, arg);
-          } else {
-            ret = MJS_TYPE_ERROR;
-            mjs_prepend_errorf(
-                mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)",
-                i, mjs_typeof(arg));
-          }
-          ffi_set_word(&args[i], intval);
-        } break;
-        case MJS_FFI_CTYPE_DOUBLE:
-          ffi_set_double(&args[i], mjs_get_double(mjs, arg));
-          break;
-        case MJS_FFI_CTYPE_CHAR_PTR: {
-          size_t s;
-          if (!mjs_is_string(arg)) {
-            ret = MJS_TYPE_ERROR;
-            mjs_prepend_errorf(
-                mjs, ret,
-                "actual arg #%d is not a string (the type idx is: %s)", i,
-                mjs_typeof(arg));
-            goto clean;
-          }
-          argvs[i] = arg;
-          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
-        } break;
-        case MJS_FFI_CTYPE_VOID_PTR:
-          if (!mjs_is_foreign(arg) && !mjs_is_string(arg)) {
-            ret = MJS_TYPE_ERROR;
-            mjs_prepend_errorf(mjs, ret, "actual arg #%d is not a ptr", i);
-            goto clean;
-          }
-          if (mjs_is_string(arg)) {
-            size_t n;
-            ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &arg, &n));
-          } else {
-            ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
-          }
-          break;
-        case MJS_FFI_CTYPE_INVALID:
-          /* parse_cval_type() has already set a more detailed error */
-          ret = MJS_TYPE_ERROR;
-          mjs_prepend_errorf(mjs, ret, "wrong arg type");
-          goto clean;
-        default:
-          abort();
-          break;
-      }
-    }
-
-    a = ae + 1;
-    if (*a == '\0') a = NULL;
-  }
-
-  if (mjs->dlsym == NULL) {
+  if (nargs != sig.args_cnt) {
     ret = MJS_TYPE_ERROR;
-    mjs_prepend_errorf(mjs, ret,
-                       "resolver is not set, call mjs_set_ffi_resolver");
+    mjs_prepend_errorf(mjs, ret, "got %d actuals, but function takes %d args",
+                       nargs, sig.args_cnt);
     goto clean;
   }
 
-  {
-    char buf[100];
-    snprintf(buf, sizeof(buf), "%.*s", (int) (e - n), n);
-    fn = (ffi_fn_t) mjs->dlsym(RTLD_DEFAULT, buf);
-    if (fn == NULL) {
-      ret = MJS_TYPE_ERROR;
-      mjs_prepend_errorf(mjs, ret, "dlsym('%s') failed", buf);
-      goto clean;
+  for (i = 0; i < nargs; i++) {
+    mjs_val_t arg = mjs_arg(mjs, i);
+
+    switch (sig.val_types[1 /* retval type */ + i]) {
+      case MJS_FFI_CTYPE_NONE:
+        /*
+         * Void argument: in any case, it's an error, because if C function
+         * takes no arguments, then the FFI-ed JS function should be called
+         * without any arguments, and thus we'll not face "void" here.
+         */
+        ret = MJS_TYPE_ERROR;
+        if (i == 0) {
+          /* FFI signature is correct, but invocation is wrong */
+          mjs_prepend_errorf(mjs, ret, "ffi-ed function takes no arguments");
+        } else {
+          /*
+           * FFI signature is wrong: we can't have "void" as a non-first
+           * "argument"
+           */
+          mjs_prepend_errorf(mjs, ret, "bad ffi arg #%d type: \"void\"", i);
+        }
+
+        goto clean;
+      case MJS_FFI_CTYPE_USERDATA:
+        /* Userdata for the callback */
+        if (cbdata.userdata_idx != -1) {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(mjs, ret, "two or more userdata args: #%d and %d",
+                             cbdata.userdata_idx, i);
+
+          goto clean;
+        }
+        cbdata.userdata = arg;
+        cbdata.userdata_idx = i;
+        break;
+      case MJS_FFI_CTYPE_INT: {
+        int intval = 0;
+        if (mjs_is_number(arg)) {
+          intval = mjs_get_int(mjs, arg);
+        } else if (mjs_is_boolean(arg)) {
+          intval = mjs_get_bool(mjs, arg);
+        } else {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(
+              mjs, ret, "actual arg #%d is not an int (the type idx is: %s)", i,
+              mjs_typeof(arg));
+        }
+        ffi_set_word(&args[i], intval);
+      } break;
+      case MJS_FFI_CTYPE_BOOL: {
+        int intval = 0;
+        if (mjs_is_number(arg)) {
+          intval = !!mjs_get_int(mjs, arg);
+        } else if (mjs_is_boolean(arg)) {
+          intval = mjs_get_bool(mjs, arg);
+        } else {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(
+              mjs, ret, "actual arg #%d is not a bool (the type idx is: %s)", i,
+              mjs_typeof(arg));
+        }
+        ffi_set_word(&args[i], intval);
+      } break;
+      case MJS_FFI_CTYPE_DOUBLE:
+        ffi_set_double(&args[i], mjs_get_double(mjs, arg));
+        break;
+      case MJS_FFI_CTYPE_CHAR_PTR: {
+        size_t s;
+        if (!mjs_is_string(arg)) {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(
+              mjs, ret, "actual arg #%d is not a string (the type idx is: %s)",
+              i, mjs_typeof(arg));
+          goto clean;
+        }
+        argvs[i] = arg;
+        ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
+      } break;
+      case MJS_FFI_CTYPE_VOID_PTR:
+        if (!mjs_is_foreign(arg) && !mjs_is_string(arg)) {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(mjs, ret, "actual arg #%d is not a ptr", i);
+          goto clean;
+        }
+        if (mjs_is_string(arg)) {
+          size_t n;
+          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &arg, &n));
+        } else {
+          ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
+        }
+        break;
+      case MJS_FFI_CTYPE_CALLBACK:
+        /*
+         * Current argument is a callback function pointer: remember the given
+         * JS
+         * function and the argument index
+         */
+        cbdata.func = arg;
+        cbdata.func_idx = i;
+        break;
+      case MJS_FFI_CTYPE_INVALID:
+        /* parse_cval_type() has already set a more detailed error */
+        ret = MJS_TYPE_ERROR;
+        mjs_prepend_errorf(mjs, ret, "wrong arg type");
+        goto clean;
+      default:
+        abort();
+        break;
     }
   }
 
@@ -585,17 +654,6 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     struct mjs_ffi_cb_args **pitem = NULL;
 
     /* the function takes a callback */
-
-    /* Get C callback implementation by the given signature */
-    cb_fn_t *cb_fn = get_cb_impl_by_signature(&cbdata.sig);
-    if (cb_fn == NULL) {
-      ret = MJS_TYPE_ERROR;
-      mjs_prepend_errorf(mjs, ret,
-                         "the callback signature '%.*s' is valid, but there's "
-                         "no existing callback implementation for it",
-                         cbdata.signature_len, cbdata.signature);
-      goto clean;
-    }
 
     /*
      * Get cbargs: either reuse the existing one (if the matching item exists),
@@ -608,7 +666,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs->mjs = mjs;
       cbargs->func = cbdata.func;
       cbargs->userdata = cbdata.userdata;
-      memcpy(&cbargs->sig, &cbdata.sig, sizeof(cbargs->sig));
+      mjs_ffi_sig_copy(&cbargs->sig, sig.cb_sig);
 
       /* Establish a link to the newly allocated item */
       *pitem = cbargs;
@@ -617,19 +675,19 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs = *pitem;
     }
 
-    ffi_set_ptr(&args[cbdata.func_idx], cb_fn);
+    ffi_set_ptr(&args[cbdata.func_idx], sig.cb_sig->fn);
     ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
   } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
     /*
      * incomplete signature: it contains either the function pointer or
      * userdata. It should contain both or none.
+     *
+     * It should be handled in mjs_parse_ffi_signature().
      */
-    ret = MJS_TYPE_ERROR;
-    mjs_prepend_errorf(mjs, ret, "need both function and userdata");
-    goto clean;
+    abort();
   }
 
-  ffi_call(fn, nargs, &res, args);
+  ffi_call(sig.fn, nargs, &res, args);
 
   switch (rtype) {
     case MJS_FFI_CTYPE_CHAR_PTR: {
@@ -653,15 +711,20 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       resv = mjs_mk_undefined();
       break;
   }
+
 clean:
   /*
    * If there was some error, prepend an error message with the subject
    * signature
    */
   if (ret != MJS_OK) {
-    mjs_prepend_errorf(mjs, ret, "failed to call FFI signature \"%s\"", s);
+    mjs_prepend_errorf(mjs, ret, "failed to call FFIed function");
+    /* TODO(dfrank) stringify mjs_ffi_sig_t in some human-readable format */
   }
   mjs_return(mjs, resv);
+
+  mjs_ffi_sig_free(&sig);
+
   return ret;
 }
 
@@ -681,6 +744,7 @@ MJS_PRIVATE void mjs_ffi_cb_free(struct mjs *mjs) {
       /* Found matching item: remove it from the linked list, and free */
       struct mjs_ffi_cb_args *cbargs = *pitem;
       *pitem = cbargs->next;
+      mjs_ffi_sig_free(&cbargs->sig);
       free(cbargs);
       ret = mjs_mk_number(mjs, 1);
     }
@@ -702,7 +766,23 @@ void mjs_ffi_args_free_list(struct mjs *mjs) {
 }
 
 MJS_PRIVATE void mjs_ffi_sig_init(mjs_ffi_sig_t *sig) {
-  memset(sig->val_types, MJS_FFI_CTYPE_NONE, MJS_CB_SIGNATURE_MAX_SIZE);
+  memset(sig, 0, sizeof(*sig));
+}
+
+MJS_PRIVATE void mjs_ffi_sig_copy(mjs_ffi_sig_t *to,
+                                  const mjs_ffi_sig_t *from) {
+  memcpy(to, from, sizeof(*to));
+  if (from->cb_sig != NULL) {
+    to->cb_sig = calloc(sizeof(*to->cb_sig), 1);
+    mjs_ffi_sig_copy(to->cb_sig, from->cb_sig);
+  }
+}
+
+MJS_PRIVATE void mjs_ffi_sig_free(mjs_ffi_sig_t *sig) {
+  if (sig->cb_sig != NULL) {
+    free(sig->cb_sig);
+    sig->cb_sig = NULL;
+  }
 }
 
 MJS_PRIVATE int mjs_ffi_sig_set_val_type(mjs_ffi_sig_t *sig, int idx,
@@ -716,22 +796,38 @@ MJS_PRIVATE int mjs_ffi_sig_set_val_type(mjs_ffi_sig_t *sig, int idx,
   }
 }
 
-MJS_PRIVATE struct mjs_ffi_sig_stat mjs_ffi_sig_stat_get(
-    struct mjs *mjs, const mjs_ffi_sig_t *sig) {
-  struct mjs_ffi_sig_stat ret;
+MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
+                                     enum ffi_sig_type sig_type) {
+  int ret = 0;
   int i;
+  int callback_idx = 0;
+  int userdata_idx = 0;
 
-  memset(&ret, 0, sizeof(ret));
-  ret.is_valid = 1;
+  sig->is_valid = 0;
 
-  /* Make sure return type is fine */
-  if (sig->val_types[0] != MJS_FFI_CTYPE_NONE &&
-      sig->val_types[0] != MJS_FFI_CTYPE_INT &&
-      sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
-      sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE) {
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
-    ret.is_valid = 0;
-    goto clean;
+  switch (sig_type) {
+    case FFI_SIG_FUNC:
+      /* Make sure return type is fine */
+      if (sig->val_types[0] != MJS_FFI_CTYPE_NONE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_INT &&
+          sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
+          sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR &&
+          sig->val_types[0] != MJS_FFI_CTYPE_CHAR_PTR) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+        goto clean;
+      }
+      break;
+    case FFI_SIG_CALLBACK:
+      /* Make sure return type is fine */
+      if (sig->val_types[0] != MJS_FFI_CTYPE_NONE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_INT &&
+          sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
+          sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+        goto clean;
+      }
   }
 
   /* Handle argument types */
@@ -739,45 +835,71 @@ MJS_PRIVATE struct mjs_ffi_sig_stat mjs_ffi_sig_stat_get(
     mjs_ffi_ctype_t type = sig->val_types[i];
     switch (type) {
       case MJS_FFI_CTYPE_USERDATA:
-        if (ret.userdata_idx != 0) {
-          /* There must be exactly one userdata arg, but we have more */
+        if (userdata_idx != 0) {
+          /* There must be at most one userdata arg, but we have more */
           mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
                              "more than one userdata arg: #%d and #%d",
-                             (ret.userdata_idx - 1), (i - 1));
-          ret.is_valid = 0;
+                             (userdata_idx - 1), (i - 1));
           goto clean;
         }
-        ret.userdata_idx = i;
+        userdata_idx = i;
+        break;
+      case MJS_FFI_CTYPE_CALLBACK:
+        switch (sig_type) {
+          case FFI_SIG_FUNC:
+            break;
+          case FFI_SIG_CALLBACK:
+            mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                               "callback can't take another callback");
+            goto clean;
+        }
+        callback_idx = i;
         break;
       case MJS_FFI_CTYPE_INT:
       case MJS_FFI_CTYPE_BOOL:
       case MJS_FFI_CTYPE_VOID_PTR:
       case MJS_FFI_CTYPE_CHAR_PTR:
-        /* Do nothing */
-        break;
       case MJS_FFI_CTYPE_DOUBLE:
-        ret.args_double_cnt++;
+        /* Do nothing */
         break;
       case MJS_FFI_CTYPE_NONE:
         /* No more arguments */
         goto args_over;
       default:
-        ret.is_valid = 0;
+        mjs_prepend_errorf(mjs, MJS_INTERNAL_ERROR, "invalid ffi_ctype: %d",
+                           type);
         goto clean;
     }
 
-    ret.args_cnt++;
+    sig->args_cnt++;
   }
 args_over:
 
-  if (ret.userdata_idx == 0) {
-    /* No userdata arg */
-    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "no userdata arg");
-    ret.is_valid = 0;
-    goto clean;
+  switch (sig_type) {
+    case FFI_SIG_FUNC:
+      if (!((callback_idx > 0 && userdata_idx > 0) ||
+            (callback_idx == 0 && userdata_idx == 0))) {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                           "callback and userdata should be either both "
+                           "present or both absent");
+        goto clean;
+      }
+      break;
+    case FFI_SIG_CALLBACK:
+      if (userdata_idx == 0) {
+        /* No userdata arg */
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "no userdata arg");
+        goto clean;
+      }
+      break;
   }
 
+  ret = 1;
+
 clean:
+  if (ret) {
+    sig->is_valid = 1;
+  }
   return ret;
 }
 
