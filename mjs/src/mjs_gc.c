@@ -37,8 +37,6 @@
  */
 #define GC_ARENA_CELLS_RESERVE 2
 
-void gc_mark_string(struct mjs *, mjs_val_t *);
-
 static struct gc_block *gc_new_block(struct gc_arena *a, size_t size);
 static void gc_free_block(struct gc_block *b);
 static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf);
@@ -142,6 +140,11 @@ MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
 
   a->free = r->head.link;
 
+#if MJS_MEMORY_STATS
+  a->allocations++;
+  a->alive++;
+#endif
+
   /* Schedule GC if needed */
   if (gc_arena_is_gc_needed(a)) {
     mjs->need_gc = 1;
@@ -165,6 +168,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   struct gc_block *b;
   struct gc_cell *cur;
   struct gc_block **prevp = &a->blocks;
+#if MJS_MEMORY_STATS
+  a->alive = 0;
+#endif
 
   /*
    * Before we sweep, we should mark all free cells in a way that is
@@ -198,6 +204,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
       if (MARKED(cur)) {
         /* The cell is used and marked  */
         UNMARK(cur);
+#if MJS_MEMORY_STATS
+        a->alive++;
+#endif
       } else {
         /*
          * The cell is either:
@@ -223,6 +232,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
         cur->head.link = a->free;
         a->free = cur;
         freed_in_block++;
+#if MJS_MEMORY_STATS
+        a->garbage++;
+#endif
       }
     }
 
@@ -243,21 +255,21 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   }
 }
 
-MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
+/* Mark an object */
+static void gc_mark_object(struct mjs *mjs, mjs_val_t *v) {
   struct mjs_object *obj_base;
   struct mjs_property *prop;
   struct mjs_property *next;
 
-  if (!mjs_is_object(v)) {
-    return;
-  }
-  obj_base = get_object_struct(v);
+  assert(mjs_is_object(*v));
+
+  obj_base = get_object_struct(*v);
 
   /*
    * we treat all object like things like objects but they might be functions,
-   * gc_gheck_val checks the appropriate arena per actual value type.
+   * gc_check_val checks the appropriate arena per actual value type.
    */
-  if (!gc_check_val(mjs, v)) {
+  if (!gc_check_val(mjs, *v)) {
     abort();
   }
 
@@ -270,9 +282,8 @@ MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
       abort();
     }
 
-    gc_mark_string(mjs, &prop->value);
-    gc_mark_string(mjs, &prop->name);
-    gc_mark(mjs, prop->value);
+    gc_mark(mjs, &prop->name);
+    gc_mark(mjs, &prop->value);
 
     next = prop->next;
     MARK(prop);
@@ -286,16 +297,8 @@ MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
   /* gc_mark(mjs, mjs_get_proto(mjs, v)); */
 }
 
-MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
-  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK);
-}
-
-MJS_PRIVATE mjs_val_t gc_string_val_from_offset(uint64_t s) {
-  return s | MJS_TAG_STRING_O;
-}
-
 /* Mark a string value */
-void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
+static void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
   mjs_val_t h, tmp = 0;
   char *s;
 
@@ -324,9 +327,7 @@ void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
 
   /* clang-format on */
 
-  if ((*v & MJS_TAG_MASK) != MJS_TAG_STRING_O) {
-    return;
-  }
+  assert((*v & MJS_TAG_MASK) == MJS_TAG_STRING_O);
 
   s = mjs->owned_strings.buf + gc_string_mjs_val_to_offset(*v);
   assert(s < mjs->owned_strings.buf + mjs->owned_strings.len);
@@ -342,6 +343,23 @@ void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
   s[-1] = 1;
   memcpy(s, &h, sizeof(h) - 2);
   memcpy(v, &tmp, sizeof(tmp));
+}
+
+MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *v) {
+  if (mjs_is_object(*v)) {
+    gc_mark_object(mjs, v);
+  }
+  if ((*v & MJS_TAG_MASK) == MJS_TAG_STRING_O) {
+    gc_mark_string(mjs, v);
+  }
+}
+
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
+  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK);
+}
+
+MJS_PRIVATE mjs_val_t gc_string_val_from_offset(uint64_t s) {
+  return s | MJS_TAG_STRING_O;
 }
 
 void gc_compact_strings(struct mjs *mjs) {
@@ -413,8 +431,7 @@ MJS_PRIVATE int maybe_gc(struct mjs *mjs) {
 static void gc_mark_val_array(struct mjs *mjs, mjs_val_t *vals, size_t len) {
   mjs_val_t *vp;
   for (vp = vals; vp < vals + len; vp++) {
-    gc_mark(mjs, *vp);
-    gc_mark_string(mjs, vp);
+    gc_mark(mjs, vp);
   }
 }
 
@@ -425,8 +442,7 @@ static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf) {
   mjs_val_t **vp;
   for (vp = (mjs_val_t **) mbuf->buf; (char *) vp < mbuf->buf + mbuf->len;
        vp++) {
-    gc_mark(mjs, **vp);
-    gc_mark_string(mjs, *vp);
+    gc_mark(mjs, *vp);
   }
 }
 
@@ -440,10 +456,8 @@ static void gc_mark_mbuf_val(struct mjs *mjs, const struct mbuf *mbuf) {
 
 static void gc_mark_ffi_cbargs_list(struct mjs *mjs, ffi_cb_args_t *cbargs) {
   for (; cbargs != NULL; cbargs = cbargs->next) {
-    gc_mark(mjs, cbargs->func);
-    gc_mark_string(mjs, &cbargs->func);
-    gc_mark(mjs, cbargs->userdata);
-    gc_mark_string(mjs, &cbargs->userdata);
+    gc_mark(mjs, &cbargs->func);
+    gc_mark(mjs, &cbargs->userdata);
   }
 }
 

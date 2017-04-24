@@ -290,7 +290,32 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t val = mjs_pop(mjs);
       mjs_val_t obj = mjs_pop(mjs);
       mjs_val_t key = mjs_pop(mjs);
-      mjs_set_v(mjs, obj, key, val);
+      if (mjs_is_object(obj)) {
+        mjs_set_v(mjs, obj, key, val);
+      } else if (mjs_is_foreign(obj)) {
+        /*
+         * We don't have setters, so in order to support properties which behave
+         * like setters, we have to parse key right here, instead of having real
+         * built-in prototype objects
+         */
+
+        int ikey = mjs_get_int(mjs, key);
+        int ival = mjs_get_int(mjs, val);
+
+        if (!mjs_is_number(key)) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+          val = MJS_UNDEFINED;
+        } else if (!mjs_is_number(val) || ival < 0 || ival > 0xff) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                             "only number 0 .. 255 can be assigned");
+          val = MJS_UNDEFINED;
+        } else {
+          uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, obj);
+          *(ptr + ikey) = (uint8_t) ival;
+        }
+      } else {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "unsupported object type");
+      }
       mjs_push(mjs, val);
       break;
     }
@@ -445,9 +470,8 @@ static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
   } else {
     uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, val);
     *res = mjs_mk_number(mjs, *(ptr + idx));
-    return 1;
   }
-  return 0;
+  return 1;
 }
 
 static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
@@ -482,6 +506,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   mjs_set_errorf(mjs, MJS_OK, NULL);
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
+
+  /*
+   * remember lengths of all stacks, they will be restored in case of an error
+   */
+  int stack_len = mjs->stack.len;
+  int call_stack_len = mjs->call_stack.len;
+  int arg_stack_len = mjs->arg_stack.len;
+  int scopes_len = mjs->scopes.len;
+
   for (i = off; i < mjs->bcode.len; i++) {
     mjs->cur_bcode_offset = i;
 
@@ -768,22 +801,44 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_LOOP: {
         int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
+        /* push scope index */
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+
+        /* push break offset */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
         off = cs_varint_decode(&code[i + 1 + l1], &l2);
+
+        /* push continue offset */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
         i += l1 + l2;
         break;
       }
-      case OP_CONTINUE:
+      case OP_CONTINUE: {
+        /* restore scope index */
+        size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
+        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+
+        /* jump to "continue" address */
         i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
-        break;
-      case OP_BREAK:
+      } break;
+      case OP_BREAK: {
+        /* drop "continue" address */
         mjs_pop_val(&mjs->loop_addresses);
+
+        /* pop "break" address and jump to it */
         i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
+
+        /* restore scope index */
+        size_t scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
+        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+
         LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
-        break;
+      } break;
       case OP_NOP:
         break;
       case OP_EXIT:
@@ -800,6 +855,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     }
     if (mjs->error != MJS_OK) {
       mjs_print_stack_trace(mjs, i - 1 /* undo the i++ */);
+
+      /* restore stack lenghts */
+      mjs->stack.len = stack_len;
+      mjs->call_stack.len = call_stack_len;
+      mjs->arg_stack.len = arg_stack_len;
+      mjs->scopes.len = scopes_len;
+
+      /* script will evaluate to `undefined` */
+      mjs_push(mjs, MJS_UNDEFINED);
       break;
     }
   }

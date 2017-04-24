@@ -1937,6 +1937,10 @@ typedef unsigned long uintptr_t;
 #define MJS_AGGRESSIVE_GC 0
 #endif
 
+#if !defined(MJS_MEMORY_STATS)
+#define MJS_MEMORY_STATS 0
+#endif
+
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
@@ -2321,6 +2325,12 @@ struct gc_arena {
   struct gc_cell *free; /* head of free list */
   size_t cell_size;
 
+#if MJS_MEMORY_STATS
+  unsigned long allocations; /* cumulative counter of allocations */
+  unsigned long garbage;     /* cumulative counter of garbage */
+  unsigned long alive;       /* number of living cells */
+#endif
+
   gc_cell_destructor_t destructor;
 };
 
@@ -2368,7 +2378,7 @@ MJS_PRIVATE int maybe_gc(struct mjs *mjs);
 MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
 MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
 
-MJS_PRIVATE void gc_mark(struct mjs *, mjs_val_t);
+MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *val);
 
 MJS_PRIVATE void gc_arena_init(struct gc_arena *, size_t, size_t, size_t);
 MJS_PRIVATE void gc_arena_destroy(struct mjs *, struct gc_arena *a);
@@ -2453,7 +2463,9 @@ enum mjs_call_stack_frame_item {
 #define MJS_TAG_STRING_D MAKE_TAG(1, 11) /* Dictionary string  */
 #define MJS_TAG_ARRAY MAKE_TAG(1, 12)
 #define MJS_TAG_FUNCTION MAKE_TAG(1, 13)
-#define MJS_TAG_NULL MAKE_TAG(1, 14)
+#define MJS_TAG_FUNCTION_FFI MAKE_TAG(1, 14)
+#define MJS_TAG_NULL MAKE_TAG(1, 15)
+
 #define MJS_TAG_MASK MAKE_TAG(1, 15)
 
 struct mjs_vals {
@@ -2488,6 +2500,7 @@ struct mjs {
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
+  struct gc_arena func_ffi_arena;
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;
@@ -6788,7 +6801,32 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t val = mjs_pop(mjs);
       mjs_val_t obj = mjs_pop(mjs);
       mjs_val_t key = mjs_pop(mjs);
-      mjs_set_v(mjs, obj, key, val);
+      if (mjs_is_object(obj)) {
+        mjs_set_v(mjs, obj, key, val);
+      } else if (mjs_is_foreign(obj)) {
+        /*
+         * We don't have setters, so in order to support properties which behave
+         * like setters, we have to parse key right here, instead of having real
+         * built-in prototype objects
+         */
+
+        int ikey = mjs_get_int(mjs, key);
+        int ival = mjs_get_int(mjs, val);
+
+        if (!mjs_is_number(key)) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
+          val = MJS_UNDEFINED;
+        } else if (!mjs_is_number(val) || ival < 0 || ival > 0xff) {
+          mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                             "only number 0 .. 255 can be assigned");
+          val = MJS_UNDEFINED;
+        } else {
+          uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, obj);
+          *(ptr + ikey) = (uint8_t) ival;
+        }
+      } else {
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "unsupported object type");
+      }
       mjs_push(mjs, val);
       break;
     }
@@ -6940,9 +6978,8 @@ static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
   } else {
     uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, val);
     *res = mjs_mk_number(mjs, *(ptr + idx));
-    return 1;
   }
-  return 0;
+  return 1;
 }
 
 static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
@@ -6977,6 +7014,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   mjs_set_errorf(mjs, MJS_OK, NULL);
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
+
+  /*
+   * remember lengths of all stacks, they will be restored in case of an error
+   */
+  int stack_len = mjs->stack.len;
+  int call_stack_len = mjs->call_stack.len;
+  int arg_stack_len = mjs->arg_stack.len;
+  int scopes_len = mjs->scopes.len;
+
   for (i = off; i < mjs->bcode.len; i++) {
     mjs->cur_bcode_offset = i;
 
@@ -7263,22 +7309,44 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       }
       case OP_LOOP: {
         int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
+        /* push scope index */
+        push_mjs_val(&mjs->loop_addresses,
+                     mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+
+        /* push break offset */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
         off = cs_varint_decode(&code[i + 1 + l1], &l2);
+
+        /* push continue offset */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
         i += l1 + l2;
         break;
       }
-      case OP_CONTINUE:
+      case OP_CONTINUE: {
+        /* restore scope index */
+        size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
+        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+
+        /* jump to "continue" address */
         i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
-        break;
-      case OP_BREAK:
+      } break;
+      case OP_BREAK: {
+        /* drop "continue" address */
         mjs_pop_val(&mjs->loop_addresses);
+
+        /* pop "break" address and jump to it */
         i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
+
+        /* restore scope index */
+        size_t scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
+        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+
         LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
-        break;
+      } break;
       case OP_NOP:
         break;
       case OP_EXIT:
@@ -7295,6 +7363,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     }
     if (mjs->error != MJS_OK) {
       mjs_print_stack_trace(mjs, i - 1 /* undo the i++ */);
+
+      /* restore stack lenghts */
+      mjs->stack.len = stack_len;
+      mjs->call_stack.len = call_stack_len;
+      mjs->arg_stack.len = arg_stack_len;
+      mjs->scopes.len = scopes_len;
+
+      /* script will evaluate to `undefined` */
+      mjs_push(mjs, MJS_UNDEFINED);
       break;
     }
   }
@@ -8245,8 +8322,6 @@ void *dlsym(void *handle, const char *name) {
  */
 #define GC_ARENA_CELLS_RESERVE 2
 
-void gc_mark_string(struct mjs *, mjs_val_t *);
-
 static struct gc_block *gc_new_block(struct gc_arena *a, size_t size);
 static void gc_free_block(struct gc_block *b);
 static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf);
@@ -8346,6 +8421,11 @@ MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
 
   a->free = r->head.link;
 
+#if MJS_MEMORY_STATS
+  a->allocations++;
+  a->alive++;
+#endif
+
   /* Schedule GC if needed */
   if (gc_arena_is_gc_needed(a)) {
     mjs->need_gc = 1;
@@ -8369,6 +8449,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   struct gc_block *b;
   struct gc_cell *cur;
   struct gc_block **prevp = &a->blocks;
+#if MJS_MEMORY_STATS
+  a->alive = 0;
+#endif
 
   /*
    * Before we sweep, we should mark all free cells in a way that is
@@ -8402,6 +8485,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
       if (MARKED(cur)) {
         /* The cell is used and marked  */
         UNMARK(cur);
+#if MJS_MEMORY_STATS
+        a->alive++;
+#endif
       } else {
         /*
          * The cell is either:
@@ -8427,6 +8513,9 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
         cur->head.link = a->free;
         a->free = cur;
         freed_in_block++;
+#if MJS_MEMORY_STATS
+        a->garbage++;
+#endif
       }
     }
 
@@ -8447,21 +8536,21 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   }
 }
 
-MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
+/* Mark an object */
+static void gc_mark_object(struct mjs *mjs, mjs_val_t *v) {
   struct mjs_object *obj_base;
   struct mjs_property *prop;
   struct mjs_property *next;
 
-  if (!mjs_is_object(v)) {
-    return;
-  }
-  obj_base = get_object_struct(v);
+  assert(mjs_is_object(*v));
+
+  obj_base = get_object_struct(*v);
 
   /*
    * we treat all object like things like objects but they might be functions,
-   * gc_gheck_val checks the appropriate arena per actual value type.
+   * gc_check_val checks the appropriate arena per actual value type.
    */
-  if (!gc_check_val(mjs, v)) {
+  if (!gc_check_val(mjs, *v)) {
     abort();
   }
 
@@ -8474,9 +8563,8 @@ MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
       abort();
     }
 
-    gc_mark_string(mjs, &prop->value);
-    gc_mark_string(mjs, &prop->name);
-    gc_mark(mjs, prop->value);
+    gc_mark(mjs, &prop->name);
+    gc_mark(mjs, &prop->value);
 
     next = prop->next;
     MARK(prop);
@@ -8490,16 +8578,8 @@ MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t v) {
   /* gc_mark(mjs, mjs_get_proto(mjs, v)); */
 }
 
-MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
-  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK);
-}
-
-MJS_PRIVATE mjs_val_t gc_string_val_from_offset(uint64_t s) {
-  return s | MJS_TAG_STRING_O;
-}
-
 /* Mark a string value */
-void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
+static void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
   mjs_val_t h, tmp = 0;
   char *s;
 
@@ -8528,9 +8608,7 @@ void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
 
   /* clang-format on */
 
-  if ((*v & MJS_TAG_MASK) != MJS_TAG_STRING_O) {
-    return;
-  }
+  assert((*v & MJS_TAG_MASK) == MJS_TAG_STRING_O);
 
   s = mjs->owned_strings.buf + gc_string_mjs_val_to_offset(*v);
   assert(s < mjs->owned_strings.buf + mjs->owned_strings.len);
@@ -8546,6 +8624,23 @@ void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
   s[-1] = 1;
   memcpy(s, &h, sizeof(h) - 2);
   memcpy(v, &tmp, sizeof(tmp));
+}
+
+MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *v) {
+  if (mjs_is_object(*v)) {
+    gc_mark_object(mjs, v);
+  }
+  if ((*v & MJS_TAG_MASK) == MJS_TAG_STRING_O) {
+    gc_mark_string(mjs, v);
+  }
+}
+
+MJS_PRIVATE uint64_t gc_string_mjs_val_to_offset(mjs_val_t v) {
+  return (((uint64_t)(uintptr_t) get_ptr(v)) & ~MJS_TAG_MASK);
+}
+
+MJS_PRIVATE mjs_val_t gc_string_val_from_offset(uint64_t s) {
+  return s | MJS_TAG_STRING_O;
 }
 
 void gc_compact_strings(struct mjs *mjs) {
@@ -8617,8 +8712,7 @@ MJS_PRIVATE int maybe_gc(struct mjs *mjs) {
 static void gc_mark_val_array(struct mjs *mjs, mjs_val_t *vals, size_t len) {
   mjs_val_t *vp;
   for (vp = vals; vp < vals + len; vp++) {
-    gc_mark(mjs, *vp);
-    gc_mark_string(mjs, vp);
+    gc_mark(mjs, vp);
   }
 }
 
@@ -8629,8 +8723,7 @@ static void gc_mark_mbuf_pt(struct mjs *mjs, const struct mbuf *mbuf) {
   mjs_val_t **vp;
   for (vp = (mjs_val_t **) mbuf->buf; (char *) vp < mbuf->buf + mbuf->len;
        vp++) {
-    gc_mark(mjs, **vp);
-    gc_mark_string(mjs, *vp);
+    gc_mark(mjs, *vp);
   }
 }
 
@@ -8644,10 +8737,8 @@ static void gc_mark_mbuf_val(struct mjs *mjs, const struct mbuf *mbuf) {
 
 static void gc_mark_ffi_cbargs_list(struct mjs *mjs, ffi_cb_args_t *cbargs) {
   for (; cbargs != NULL; cbargs = cbargs->next) {
-    gc_mark(mjs, cbargs->func);
-    gc_mark_string(mjs, &cbargs->func);
-    gc_mark(mjs, cbargs->userdata);
-    gc_mark_string(mjs, &cbargs->userdata);
+    gc_mark(mjs, &cbargs->func);
+    gc_mark(mjs, &cbargs->userdata);
   }
 }
 
@@ -9871,7 +9962,12 @@ static mjs_err_t parse_unary(struct pstate *p, int prev_op) {
     op = p->tok.tok;
     pnext1(p);
   }
-  if ((res = parse_postfix(p, prev_op)) != MJS_OK) return res;
+  if (findtok(s_unary_ops, p->tok.tok) != TOK_EOF) {
+    res = parse_unary(p, prev_op);
+  } else {
+    res = parse_postfix(p, prev_op);
+  }
+  if (res != MJS_OK) return res;
   if (op != TOK_EOF) {
     if (op == TOK_MINUS) op = TOK_UNARY_MINUS;
     if (op == TOK_PLUS) op = TOK_UNARY_PLUS;
@@ -10019,6 +10115,7 @@ static mjs_err_t parse_for_in(struct pstate *p) {
   mjs_err_t res = MJS_OK;
   size_t off_b, off_check_end;
 
+  /* new scope should be pushed before OP_LOOP instruction */
   emit_byte(p, OP_NEW_SCOPE);
 
   /* Put iterator variable name to the stack */
@@ -10121,6 +10218,9 @@ static mjs_err_t parse_for(struct pstate *p) {
    *   B -> del_scope
    */
 
+  /* new scope should be pushed before OP_LOOP instruction */
+  emit_byte(p, OP_NEW_SCOPE);
+
   /* Before parsing condition statement, push break/continue offsets  */
   emit_byte(p, OP_LOOP);
   size_t off_b = p->cur_idx;
@@ -10129,7 +10229,6 @@ static mjs_err_t parse_for(struct pstate *p) {
   emit_init_offset(p);
 
   /* Parse init statement */
-  emit_byte(p, OP_NEW_SCOPE);
   if (p->tok.tok == TOK_KEYWORD_LET) {
     if ((res = parse_let(p)) != MJS_OK) return res;
   } else {
@@ -10217,6 +10316,7 @@ static mjs_err_t parse_while(struct pstate *p) {
   EXPECT(p, TOK_KEYWORD_WHILE);
   EXPECT(p, TOK_OPEN_PAREN);
 
+  /* new scope should be pushed before OP_LOOP instruction */
   emit_byte(p, OP_NEW_SCOPE);
 
   /*

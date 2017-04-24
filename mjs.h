@@ -33,6 +33,10 @@
 #define MJS_AGGRESSIVE_GC 0
 #endif
 
+#if !defined(MJS_MEMORY_STATS)
+#define MJS_MEMORY_STATS 0
+#endif
+
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"

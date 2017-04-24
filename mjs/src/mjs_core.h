@@ -64,7 +64,9 @@ enum mjs_call_stack_frame_item {
 #define MJS_TAG_STRING_D MAKE_TAG(1, 11) /* Dictionary string  */
 #define MJS_TAG_ARRAY MAKE_TAG(1, 12)
 #define MJS_TAG_FUNCTION MAKE_TAG(1, 13)
-#define MJS_TAG_NULL MAKE_TAG(1, 14)
+#define MJS_TAG_FUNCTION_FFI MAKE_TAG(1, 14)
+#define MJS_TAG_NULL MAKE_TAG(1, 15)
+
 #define MJS_TAG_MASK MAKE_TAG(1, 15)
 
 struct mjs_vals {
@@ -99,6 +101,7 @@ struct mjs {
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
+  struct gc_arena func_ffi_arena;
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;

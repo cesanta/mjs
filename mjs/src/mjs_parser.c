@@ -350,7 +350,12 @@ static mjs_err_t parse_unary(struct pstate *p, int prev_op) {
     op = p->tok.tok;
     pnext1(p);
   }
-  if ((res = parse_postfix(p, prev_op)) != MJS_OK) return res;
+  if (findtok(s_unary_ops, p->tok.tok) != TOK_EOF) {
+    res = parse_unary(p, prev_op);
+  } else {
+    res = parse_postfix(p, prev_op);
+  }
+  if (res != MJS_OK) return res;
   if (op != TOK_EOF) {
     if (op == TOK_MINUS) op = TOK_UNARY_MINUS;
     if (op == TOK_PLUS) op = TOK_UNARY_PLUS;
@@ -498,6 +503,7 @@ static mjs_err_t parse_for_in(struct pstate *p) {
   mjs_err_t res = MJS_OK;
   size_t off_b, off_check_end;
 
+  /* new scope should be pushed before OP_LOOP instruction */
   emit_byte(p, OP_NEW_SCOPE);
 
   /* Put iterator variable name to the stack */
@@ -600,6 +606,9 @@ static mjs_err_t parse_for(struct pstate *p) {
    *   B -> del_scope
    */
 
+  /* new scope should be pushed before OP_LOOP instruction */
+  emit_byte(p, OP_NEW_SCOPE);
+
   /* Before parsing condition statement, push break/continue offsets  */
   emit_byte(p, OP_LOOP);
   size_t off_b = p->cur_idx;
@@ -608,7 +617,6 @@ static mjs_err_t parse_for(struct pstate *p) {
   emit_init_offset(p);
 
   /* Parse init statement */
-  emit_byte(p, OP_NEW_SCOPE);
   if (p->tok.tok == TOK_KEYWORD_LET) {
     if ((res = parse_let(p)) != MJS_OK) return res;
   } else {
@@ -696,6 +704,7 @@ static mjs_err_t parse_while(struct pstate *p) {
   EXPECT(p, TOK_KEYWORD_WHILE);
   EXPECT(p, TOK_OPEN_PAREN);
 
+  /* new scope should be pushed before OP_LOOP instruction */
   emit_byte(p, OP_NEW_SCOPE);
 
   /*
