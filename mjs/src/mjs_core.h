@@ -105,7 +105,7 @@ struct mjs {
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
-  struct gc_arena func_ffi_arena;
+  struct gc_arena ffi_sig_arena;
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;

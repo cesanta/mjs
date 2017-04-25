@@ -6,6 +6,7 @@
 #ifndef MJS_BUILTIN_H_
 #define MJS_BUILTIN_H_
 
+#include "mjs/src/mjs_core_public.h"
 #include "mjs/src/mjs_internal.h"
 
 #if defined(__cplusplus)

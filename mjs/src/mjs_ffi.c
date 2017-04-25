@@ -474,17 +474,67 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
   return NULL;
 }
 
+MJS_PRIVATE mjs_val_t mjs_ffi_sig_to_value(struct mjs_ffi_sig *psig) {
+  if (psig == NULL) {
+    return MJS_NULL;
+  } else {
+    return pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
+  }
+}
+
+MJS_PRIVATE int mjs_is_ffi_sig(mjs_val_t v) {
+  return (v & MJS_TAG_MASK) == MJS_TAG_FUNCTION_FFI;
+}
+
+MJS_PRIVATE struct mjs_ffi_sig *mjs_get_ffi_sig_struct(mjs_val_t v) {
+  struct mjs_ffi_sig *ret = NULL;
+  assert(mjs_is_ffi_sig(v));
+  ret = (struct mjs_ffi_sig *) get_ptr(v);
+  return ret;
+}
+
+MJS_PRIVATE mjs_val_t mjs_mk_ffi_sig(struct mjs *mjs) {
+  (void) mjs;
+
+  struct mjs_ffi_sig *psig = new_ffi_sig(mjs);
+  mjs_ffi_sig_init(psig);
+  return mjs_ffi_sig_to_value(psig);
+}
+
+MJS_PRIVATE void mjs_ffi_sig_destructor(struct mjs *mjs, void *psig) {
+  (void) mjs;
+  mjs_ffi_sig_free((mjs_ffi_sig_t *) psig);
+}
+
 MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
-  mjs_return(mjs, mjs_arg(mjs, 0));
-  return MJS_OK;
+  mjs_err_t rcode = MJS_OK;
+  const char *sig_str = NULL;
+  mjs_val_t sig_str_v = mjs_arg(mjs, 0);
+  mjs_val_t ret_v = MJS_UNDEFINED;
+  struct mjs_ffi_sig *psig = mjs_get_ffi_sig_struct(mjs_mk_ffi_sig(mjs));
+  size_t sig_str_len;
+
+  sig_str = mjs_get_string(mjs, &sig_str_v, &sig_str_len);
+
+  rcode =
+      mjs_parse_ffi_signature(mjs, sig_str, sig_str_len, psig, FFI_SIG_FUNC);
+  if (rcode != MJS_OK) {
+    goto clean;
+  }
+
+  ret_v = mjs_ffi_sig_to_value(psig);
+
+clean:
+  mjs_return(mjs, ret_v);
+  return rcode;
 }
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_err_t ret = MJS_OK;
-  mjs_ffi_sig_t sig;
+  mjs_ffi_sig_t *psig = NULL;
+  int need_free = 0;
   mjs_ffi_ctype_t rtype;
-  const char *s =
-      mjs_get_cstring(mjs, vptr(&mjs->stack, mjs_getretvalpos(mjs)));
+  mjs_val_t sig_v = *vptr(&mjs->stack, mjs_getretvalpos(mjs));
 
   int i, nargs;
   struct ffi_arg res;
@@ -495,8 +545,19 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_val_t resv = mjs_mk_undefined();
   mjs_val_t argvs[FFI_MAX_ARGS_CNT];
 
-  ret = mjs_parse_ffi_signature(mjs, s, ~0, &sig, FFI_SIG_FUNC);
-  if (ret != MJS_OK) {
+  if (mjs_is_ffi_sig(sig_v)) {
+    psig = mjs_get_ffi_sig_struct(sig_v);
+  } else if (mjs_is_string(sig_v)) {
+    psig = calloc(sizeof(*psig), 1);
+    need_free = 1;
+    const char *s = mjs_get_cstring(mjs, &sig_v);
+    ret = mjs_parse_ffi_signature(mjs, s, ~0, psig, FFI_SIG_FUNC);
+    if (ret != MJS_OK) {
+      goto clean;
+    }
+  } else {
+    ret = MJS_TYPE_ERROR;
+    mjs_prepend_errorf(mjs, ret, "non-ffi-callable value");
     goto clean;
   }
 
@@ -504,7 +565,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   cbdata.func_idx = -1;
   cbdata.userdata_idx = -1;
 
-  rtype = sig.val_types[0];
+  rtype = psig->val_types[0];
 
   switch (rtype) {
     case MJS_FFI_CTYPE_DOUBLE:
@@ -531,17 +592,17 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   nargs =
       mjs_stack_size(&mjs->stack) - mjs_get_int(mjs, vtop(&mjs->call_stack));
 
-  if (nargs != sig.args_cnt) {
+  if (nargs != psig->args_cnt) {
     ret = MJS_TYPE_ERROR;
     mjs_prepend_errorf(mjs, ret, "got %d actuals, but function takes %d args",
-                       nargs, sig.args_cnt);
+                       nargs, psig->args_cnt);
     goto clean;
   }
 
   for (i = 0; i < nargs; i++) {
     mjs_val_t arg = mjs_arg(mjs, i);
 
-    switch (sig.val_types[1 /* retval type */ + i]) {
+    switch (psig->val_types[1 /* retval type */ + i]) {
       case MJS_FFI_CTYPE_NONE:
         /*
          * Void argument: in any case, it's an error, because if C function
@@ -666,7 +727,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs->mjs = mjs;
       cbargs->func = cbdata.func;
       cbargs->userdata = cbdata.userdata;
-      mjs_ffi_sig_copy(&cbargs->sig, sig.cb_sig);
+      mjs_ffi_sig_copy(&cbargs->sig, psig->cb_sig);
 
       /* Establish a link to the newly allocated item */
       *pitem = cbargs;
@@ -675,7 +736,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs = *pitem;
     }
 
-    ffi_set_ptr(&args[cbdata.func_idx], sig.cb_sig->fn);
+    ffi_set_ptr(&args[cbdata.func_idx], psig->cb_sig->fn);
     ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
   } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
     /*
@@ -687,7 +748,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     abort();
   }
 
-  ffi_call(sig.fn, nargs, &res, args);
+  ffi_call(psig->fn, nargs, &res, args);
 
   switch (rtype) {
     case MJS_FFI_CTYPE_CHAR_PTR: {
@@ -723,7 +784,10 @@ clean:
   }
   mjs_return(mjs, resv);
 
-  mjs_ffi_sig_free(&sig);
+  if (need_free) {
+    mjs_ffi_sig_free(psig);
+    free(psig);
+  }
 
   return ret;
 }

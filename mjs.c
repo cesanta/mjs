@@ -2295,18 +2295,22 @@ enum ffi_sig_type {
  */
 struct mjs_ffi_sig {
   /*
+   * Callback signature, corresponds to the arg of type MJS_FFI_CTYPE_CALLBACK
+   * TODO(dfrank): probably we'll need to support multiple callback/userdata
+   * pairs
+   *
+   * NOTE(dfrank): instances of this structure are grouped into GC arenas and
+   * managed by GC, and for the GC mark to work, the first element should be
+   * a pointer (so that the two LSBs are not used).
+   */
+  struct mjs_ffi_sig *cb_sig;
+
+  /*
    * The first item is the return value type (for `void`, `MJS_FFI_CTYPE_NONE`
    * is used); the rest are arguments. If some argument is
    * `MJS_FFI_CTYPE_NONE`, it means that there are no more arguments.
    */
   mjs_ffi_ctype_t val_types[MJS_CB_SIGNATURE_MAX_SIZE];
-
-  /*
-   * Callback signature, corresponds to the arg of type MJS_FFI_CTYPE_CALLBACK
-   * TODO(dfrank): probably we'll need to support multiple callback/userdata
-   * pairs
-   */
-  struct mjs_ffi_sig *cb_sig;
 
   /*
    * Function to call. If `is_callback` is not set, then it's the function
@@ -2315,6 +2319,7 @@ struct mjs_ffi_sig {
    */
   ffi_fn_t *fn;
 
+  /* Number of arguments in the signature */
   int8_t args_cnt;
 
   /*
@@ -2333,6 +2338,32 @@ MJS_PRIVATE void mjs_ffi_sig_copy(mjs_ffi_sig_t *to, const mjs_ffi_sig_t *from);
 /* Free FFI signature. NOTE: the pointer `sig` itself is not freed */
 MJS_PRIVATE void mjs_ffi_sig_free(mjs_ffi_sig_t *sig);
 
+/*
+ * Creates a new FFI signature from the GC arena, and return mjs_val_t which
+ * wraps it.
+ */
+MJS_PRIVATE mjs_val_t mjs_mk_ffi_sig(struct mjs *mjs);
+
+/*
+ * Checks whether the given value is a FFI signature.
+ */
+MJS_PRIVATE int mjs_is_ffi_sig(mjs_val_t v);
+
+/*
+ * Wraps FFI signature structure into mjs_val_t value.
+ */
+MJS_PRIVATE mjs_val_t mjs_ffi_sig_to_value(struct mjs_ffi_sig *psig);
+
+/*
+ * Extracts a pointer to the FFI signature struct from the mjs_val_t value.
+ */
+MJS_PRIVATE struct mjs_ffi_sig *mjs_get_ffi_sig_struct(mjs_val_t v);
+
+/*
+ * A wrapper for mjs_ffi_sig_free() suitable to use as a GC cell destructor.
+ */
+MJS_PRIVATE void mjs_ffi_sig_destructor(struct mjs *mjs, void *psig);
+
 MJS_PRIVATE int mjs_ffi_sig_set_val_type(mjs_ffi_sig_t *sig, int idx,
                                          mjs_ffi_ctype_t type);
 MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
@@ -2349,8 +2380,18 @@ struct mjs_ffi_cb_args {
 };
 typedef struct mjs_ffi_cb_args ffi_cb_args_t;
 
+/*
+ * cfunction:
+ * Parses the FFI signature string and returns a value wrapping mjs_ffi_sig_t.
+ */
 MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs);
+
+/*
+ * cfunction:
+ * Performs the FFI signature call.
+ */
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs);
+
 MJS_PRIVATE void mjs_ffi_cb_free(struct mjs *);
 MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
 
@@ -2452,6 +2493,7 @@ MJS_PRIVATE int maybe_gc(struct mjs *mjs);
 
 MJS_PRIVATE struct mjs_object *new_object(struct mjs *);
 MJS_PRIVATE struct mjs_property *new_property(struct mjs *);
+MJS_PRIVATE struct mjs_ffi_sig *new_ffi_sig(struct mjs *mjs);
 
 MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *val);
 
@@ -2583,7 +2625,7 @@ struct mjs {
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
-  struct gc_arena func_ffi_arena;
+  struct gc_arena ffi_sig_arena;
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;
@@ -3648,6 +3690,7 @@ MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
 #ifndef MJS_BUILTIN_H_
 #define MJS_BUILTIN_H_
 
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 
 #if defined(__cplusplus)
@@ -6346,9 +6389,10 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "common/str_util.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_bcode.h" */
 /* Amalgamated: #include "mjs/src/mjs_builtin.h" */
+/* Amalgamated: #include "mjs/src/mjs_core.h" */
+/* Amalgamated: #include "mjs/src/mjs_ffi.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
@@ -6362,12 +6406,18 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 #ifndef MJS_PROPERTY_ARENA_SIZE
 #define MJS_PROPERTY_ARENA_SIZE 20
 #endif
+#ifndef MJS_FUNC_FFI_ARENA_SIZE
+#define MJS_FUNC_FFI_ARENA_SIZE 20
+#endif
 
 #ifndef MJS_OBJECT_ARENA_INC_SIZE
 #define MJS_OBJECT_ARENA_INC_SIZE 10
 #endif
 #ifndef MJS_PROPERTY_ARENA_INC_SIZE
 #define MJS_PROPERTY_ARENA_INC_SIZE 10
+#endif
+#ifndef MJS_FUNC_FFI_ARENA_INC_SIZE
+#define MJS_FUNC_FFI_ARENA_INC_SIZE 10
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
@@ -6385,6 +6435,7 @@ void mjs_destroy(struct mjs *mjs) {
   mjs_ffi_args_free_list(mjs);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
+  gc_arena_destroy(mjs, &mjs->ffi_sig_arena);
   free(mjs);
 }
 
@@ -6414,6 +6465,9 @@ struct mjs *mjs_create(void) {
                 MJS_OBJECT_ARENA_SIZE, MJS_OBJECT_ARENA_INC_SIZE);
   gc_arena_init(&mjs->property_arena, sizeof(struct mjs_property),
                 MJS_PROPERTY_ARENA_SIZE, MJS_PROPERTY_ARENA_INC_SIZE);
+  gc_arena_init(&mjs->ffi_sig_arena, sizeof(struct mjs_ffi_sig),
+                MJS_FUNC_FFI_ARENA_SIZE, MJS_FUNC_FFI_ARENA_INC_SIZE);
+  mjs->ffi_sig_arena.destructor = mjs_ffi_sig_destructor;
 
   mjs_val_t global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);
@@ -7465,7 +7519,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
           // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
-        } else if (mjs_is_string(*func)) {
+        } else if (mjs_is_string(*func) || mjs_is_ffi_sig(*func)) {
           /* Call ffi-ed function */
 
           call_stack_push_frame(mjs, i, retpos);
@@ -8172,17 +8226,67 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
   return NULL;
 }
 
+MJS_PRIVATE mjs_val_t mjs_ffi_sig_to_value(struct mjs_ffi_sig *psig) {
+  if (psig == NULL) {
+    return MJS_NULL;
+  } else {
+    return pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
+  }
+}
+
+MJS_PRIVATE int mjs_is_ffi_sig(mjs_val_t v) {
+  return (v & MJS_TAG_MASK) == MJS_TAG_FUNCTION_FFI;
+}
+
+MJS_PRIVATE struct mjs_ffi_sig *mjs_get_ffi_sig_struct(mjs_val_t v) {
+  struct mjs_ffi_sig *ret = NULL;
+  assert(mjs_is_ffi_sig(v));
+  ret = (struct mjs_ffi_sig *) get_ptr(v);
+  return ret;
+}
+
+MJS_PRIVATE mjs_val_t mjs_mk_ffi_sig(struct mjs *mjs) {
+  (void) mjs;
+
+  struct mjs_ffi_sig *psig = new_ffi_sig(mjs);
+  mjs_ffi_sig_init(psig);
+  return mjs_ffi_sig_to_value(psig);
+}
+
+MJS_PRIVATE void mjs_ffi_sig_destructor(struct mjs *mjs, void *psig) {
+  (void) mjs;
+  mjs_ffi_sig_free((mjs_ffi_sig_t *) psig);
+}
+
 MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
-  mjs_return(mjs, mjs_arg(mjs, 0));
-  return MJS_OK;
+  mjs_err_t rcode = MJS_OK;
+  const char *sig_str = NULL;
+  mjs_val_t sig_str_v = mjs_arg(mjs, 0);
+  mjs_val_t ret_v = MJS_UNDEFINED;
+  struct mjs_ffi_sig *psig = mjs_get_ffi_sig_struct(mjs_mk_ffi_sig(mjs));
+  size_t sig_str_len;
+
+  sig_str = mjs_get_string(mjs, &sig_str_v, &sig_str_len);
+
+  rcode =
+      mjs_parse_ffi_signature(mjs, sig_str, sig_str_len, psig, FFI_SIG_FUNC);
+  if (rcode != MJS_OK) {
+    goto clean;
+  }
+
+  ret_v = mjs_ffi_sig_to_value(psig);
+
+clean:
+  mjs_return(mjs, ret_v);
+  return rcode;
 }
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_err_t ret = MJS_OK;
-  mjs_ffi_sig_t sig;
+  mjs_ffi_sig_t *psig = NULL;
+  int need_free = 0;
   mjs_ffi_ctype_t rtype;
-  const char *s =
-      mjs_get_cstring(mjs, vptr(&mjs->stack, mjs_getretvalpos(mjs)));
+  mjs_val_t sig_v = *vptr(&mjs->stack, mjs_getretvalpos(mjs));
 
   int i, nargs;
   struct ffi_arg res;
@@ -8193,8 +8297,19 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_val_t resv = mjs_mk_undefined();
   mjs_val_t argvs[FFI_MAX_ARGS_CNT];
 
-  ret = mjs_parse_ffi_signature(mjs, s, ~0, &sig, FFI_SIG_FUNC);
-  if (ret != MJS_OK) {
+  if (mjs_is_ffi_sig(sig_v)) {
+    psig = mjs_get_ffi_sig_struct(sig_v);
+  } else if (mjs_is_string(sig_v)) {
+    psig = calloc(sizeof(*psig), 1);
+    need_free = 1;
+    const char *s = mjs_get_cstring(mjs, &sig_v);
+    ret = mjs_parse_ffi_signature(mjs, s, ~0, psig, FFI_SIG_FUNC);
+    if (ret != MJS_OK) {
+      goto clean;
+    }
+  } else {
+    ret = MJS_TYPE_ERROR;
+    mjs_prepend_errorf(mjs, ret, "non-ffi-callable value");
     goto clean;
   }
 
@@ -8202,7 +8317,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   cbdata.func_idx = -1;
   cbdata.userdata_idx = -1;
 
-  rtype = sig.val_types[0];
+  rtype = psig->val_types[0];
 
   switch (rtype) {
     case MJS_FFI_CTYPE_DOUBLE:
@@ -8229,17 +8344,17 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   nargs =
       mjs_stack_size(&mjs->stack) - mjs_get_int(mjs, vtop(&mjs->call_stack));
 
-  if (nargs != sig.args_cnt) {
+  if (nargs != psig->args_cnt) {
     ret = MJS_TYPE_ERROR;
     mjs_prepend_errorf(mjs, ret, "got %d actuals, but function takes %d args",
-                       nargs, sig.args_cnt);
+                       nargs, psig->args_cnt);
     goto clean;
   }
 
   for (i = 0; i < nargs; i++) {
     mjs_val_t arg = mjs_arg(mjs, i);
 
-    switch (sig.val_types[1 /* retval type */ + i]) {
+    switch (psig->val_types[1 /* retval type */ + i]) {
       case MJS_FFI_CTYPE_NONE:
         /*
          * Void argument: in any case, it's an error, because if C function
@@ -8364,7 +8479,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs->mjs = mjs;
       cbargs->func = cbdata.func;
       cbargs->userdata = cbdata.userdata;
-      mjs_ffi_sig_copy(&cbargs->sig, sig.cb_sig);
+      mjs_ffi_sig_copy(&cbargs->sig, psig->cb_sig);
 
       /* Establish a link to the newly allocated item */
       *pitem = cbargs;
@@ -8373,7 +8488,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs = *pitem;
     }
 
-    ffi_set_ptr(&args[cbdata.func_idx], sig.cb_sig->fn);
+    ffi_set_ptr(&args[cbdata.func_idx], psig->cb_sig->fn);
     ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
   } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
     /*
@@ -8385,7 +8500,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     abort();
   }
 
-  ffi_call(sig.fn, nargs, &res, args);
+  ffi_call(psig->fn, nargs, &res, args);
 
   switch (rtype) {
     case MJS_FFI_CTYPE_CHAR_PTR: {
@@ -8421,7 +8536,10 @@ clean:
   }
   mjs_return(mjs, resv);
 
-  mjs_ffi_sig_free(&sig);
+  if (need_free) {
+    mjs_ffi_sig_free(psig);
+    free(psig);
+  }
 
   return ret;
 }
@@ -8680,6 +8798,10 @@ MJS_PRIVATE struct mjs_property *new_property(struct mjs *mjs) {
   return (struct mjs_property *) gc_alloc_cell(mjs, &mjs->property_arena);
 }
 
+MJS_PRIVATE struct mjs_ffi_sig *new_ffi_sig(struct mjs *mjs) {
+  return (struct mjs_ffi_sig *) gc_alloc_cell(mjs, &mjs->ffi_sig_arena);
+}
+
 /* Initializes a new arena. */
 MJS_PRIVATE void gc_arena_init(struct gc_arena *a, size_t cell_size,
                                size_t initial_size, size_t size_increment) {
@@ -8882,6 +9004,27 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   }
 }
 
+/* Mark an FFI signature */
+static void gc_mark_ffi_sig(struct mjs *mjs, mjs_val_t *v) {
+  struct mjs_ffi_sig *psig;
+
+  assert(mjs_is_ffi_sig(*v));
+
+  psig = mjs_get_ffi_sig_struct(*v);
+
+  /*
+   * we treat all object like things like objects but they might be functions,
+   * gc_check_val checks the appropriate arena per actual value type.
+   */
+  if (!gc_check_val(mjs, *v)) {
+    abort();
+  }
+
+  if (MARKED(psig)) return;
+
+  MARK(psig);
+}
+
 /* Mark an object */
 static void gc_mark_object(struct mjs *mjs, mjs_val_t *v) {
   struct mjs_object *obj_base;
@@ -8975,6 +9118,9 @@ static void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
 MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *v) {
   if (mjs_is_object(*v)) {
     gc_mark_object(mjs, v);
+  }
+  if (mjs_is_ffi_sig(*v)) {
+    gc_mark_ffi_sig(mjs, v);
   }
   if ((*v & MJS_TAG_MASK) == MJS_TAG_STRING_O) {
     gc_mark_string(mjs, v);
@@ -9104,6 +9250,7 @@ void mjs_gc(struct mjs *mjs, int full) {
 
   gc_sweep(mjs, &mjs->object_arena, 0);
   gc_sweep(mjs, &mjs->property_arena, 0);
+  gc_sweep(mjs, &mjs->ffi_sig_arena, 0);
 
   if (full) {
     /*
@@ -9121,6 +9268,9 @@ void mjs_gc(struct mjs *mjs, int full) {
 MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v) {
   if (mjs_is_object(v)) {
     return gc_check_ptr(&mjs->object_arena, get_object_struct(v));
+  }
+  if (mjs_is_ffi_sig(v)) {
+    return gc_check_ptr(&mjs->ffi_sig_arena, mjs_get_ffi_sig_struct(v));
   }
   return 1;
 }

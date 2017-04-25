@@ -94,6 +94,7 @@ static const char *s_run_test_mjs(void) {
 
   uint32_t objects_alive = mjs->object_arena.alive;
   uint32_t props_alive = mjs->property_arena.alive;
+  uint32_t ffi_sigs_alive = mjs->ffi_sig_arena.alive;
 
   /*
    * If test succeeds, run it again and check if memory usage is still the same
@@ -104,6 +105,7 @@ static const char *s_run_test_mjs(void) {
 
     ASSERT_EQ(objects_alive, mjs->object_arena.alive);
     ASSERT_EQ(props_alive, mjs->property_arena.alive);
+    ASSERT_EQ(ffi_sigs_alive, mjs->ffi_sig_arena.alive);
   }
 
   ASSERT_EQ(mjs->owned_values.len, 0);
@@ -1232,81 +1234,63 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
 
   /* test wrong signatures */
 
-  ASSERT_EXEC_OK(mjs_exec(mjs,
+  ASSERT_EQ(mjs_exec(mjs,
         STRINGIFY(
           let ffi_dummy = ffi(
             "void ffi_dummy(int, int, foo(*)(userdata), userdata)"
             );
-          ), &res));
-  ASSERT_EQ(mjs_exec( mjs,
-        "ffi_dummy(100, 200, function(){return 1;}, 1);",
-        &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, foo(*)(userdata), userdata)\": bad ffi signature: \"foo(*)(userdata)\": failed to parse val type \"foo\"");
+          ), &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"void ffi_dummy(int, int, foo(*)(userdata), userdata)\": bad ffi signature: \"foo(*)(userdata)\": failed to parse val type \"foo\"");
 
   /* --- */
 
-  ASSERT_EXEC_OK(mjs_exec(mjs,
+  ASSERT_EQ(mjs_exec(mjs,
         STRINGIFY(
           let ffi_dummy = ffi(
             "void ffi_dummy(int, int, void(*)(userdata, foo), userdata)"
             );
-          ), &res));
-  ASSERT_EQ(mjs_exec( mjs,
-        "ffi_dummy(100, 200, function(){return 1;}, 1);",
-        &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata, foo), userdata)\": bad ffi signature: \"void(*)(userdata, foo)\": failed to parse val type \"foo\"");
+          ), &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata, foo), userdata)\": bad ffi signature: \"void(*)(userdata, foo)\": failed to parse val type \"foo\"");
 
   /* --- */
 
-  ASSERT_EXEC_OK(mjs_exec(mjs,
+  ASSERT_EQ(mjs_exec(mjs,
         STRINGIFY(
           let ffi_dummy = ffi(
             "void ffi_dummy(int, int, void(*)(), userdata)"
             );
-          ), &res));
-  ASSERT_EQ(mjs_exec( mjs,
-        "ffi_dummy(100, 200, function(){return 1;}, 1);",
-        &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(), userdata)\": bad ffi signature: \"void(*)()\": no userdata arg");
+          ), &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"void ffi_dummy(int, int, void(*)(), userdata)\": bad ffi signature: \"void(*)()\": no userdata arg");
 
   /* --- */
 
-  ASSERT_EXEC_OK(mjs_exec(mjs,
+  ASSERT_EQ(mjs_exec(mjs,
         STRINGIFY(
           let ffi_dummy = ffi(
             "void ffi_dummy(int, int, void(*)(userdata))"
             );
-          ), &res));
-  ASSERT_EQ(mjs_exec( mjs,
-        "ffi_dummy(100, 200, function(){return 1;});",
-        &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata))\": callback and userdata should be either both present or both absent");
+          ), &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata))\": callback and userdata should be either both present or both absent");
 
   /* --- */
 
-  ASSERT_EXEC_OK(mjs_exec(mjs,
+  ASSERT_EQ(mjs_exec(mjs,
         STRINGIFY(
           let ffi_dummy = ffi(
             "void ffi_dummy(userdata, int, void(*)(userdata), userdata)"
             );
-          ), &res));
-  ASSERT_EQ(mjs_exec( mjs,
-        "ffi_dummy(100, 200, function(){return 1;}, 1);",
-        &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(userdata, int, void(*)(userdata), userdata)\": more than one userdata arg: #0 and #3");
+          ), &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"void ffi_dummy(userdata, int, void(*)(userdata), userdata)\": more than one userdata arg: #0 and #3");
 
   /* --- */
 
-  ASSERT_EXEC_OK(mjs_exec(mjs,
+  ASSERT_EQ(mjs_exec(mjs,
         STRINGIFY(
           let ffi_dummy = ffi(
             "void ffi_dummy(int, int, void(*)(userdata, userdata), userdata)"
             );
-          ), &res));
-  ASSERT_EQ(mjs_exec( mjs,
-        "ffi_dummy(100, 200, function(){return 1;}, 1);",
-        &res), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata, userdata), userdata)\": bad ffi signature: \"void(*)(userdata, userdata)\": more than one userdata arg: #0 and #1");
+          ), &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"void ffi_dummy(int, int, void(*)(userdata, userdata), userdata)\": bad ffi signature: \"void(*)(userdata, userdata)\": more than one userdata arg: #0 and #1");
 
   mjs_disown(mjs, &res);
 
