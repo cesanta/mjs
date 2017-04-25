@@ -10,6 +10,10 @@
 #include "mjs/src/mjs_mm.h"
 #include "mjs/src/mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * performs arithmetics on gc_cell pointers as if they were arena->cell_size
  * bytes wide
@@ -52,5 +56,9 @@ MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
 
 /* checks whether a pointer is within the ranges of an arena */
 MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_GC_H_ */

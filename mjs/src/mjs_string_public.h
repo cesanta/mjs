@@ -10,6 +10,10 @@
 
 #define MJS_STRING_LITERAL_MAX_LEN 128
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * Creates a string primitive value.
  * `str` must point to the utf8 string of length `len`.
@@ -66,5 +70,9 @@ const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
  * behaviour.
  */
 int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_STRING_PUBLIC_H_ */

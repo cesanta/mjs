@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_core_public.h"
 #include <stdio.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 const char *mjs_typeof(mjs_val_t v);
 
 void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp);
@@ -37,5 +41,9 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset);
  * If given cf_num is too large, -1 is returned.
  */
 int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_UTIL_PUBLIC_H_ */

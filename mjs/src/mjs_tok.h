@@ -8,6 +8,10 @@
 
 #include "mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 struct tok {
   int tok;
   int len;
@@ -127,5 +131,9 @@ MJS_PRIVATE void pinit(const char *file_name, const char *buf, struct pstate *);
 MJS_PRIVATE int pnext(struct pstate *);
 MJS_PRIVATE int mjs_is_ident(int c);
 MJS_PRIVATE int mjs_is_digit(int c);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_TOK_H_ */

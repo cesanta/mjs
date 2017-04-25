@@ -8,6 +8,10 @@
 
 #include "mjs/src/mjs_core_public.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /* JavaScript `null` value */
 #define MJS_NULL MJS_TAG_NULL
 
@@ -100,5 +104,9 @@ int mjs_is_boolean(mjs_val_t v);
 
 mjs_val_t mjs_mk_function(struct mjs *mjs, size_t off);
 int mjs_is_function(mjs_val_t v);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_PRIMITIVE_PUBLIC_H_ */

@@ -10,6 +10,10 @@
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_ffi_public.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 mjs_ffi_resolver_t dlsym;
 
 #define MJS_CB_ARGS_MAX_CNT 6
@@ -96,5 +100,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs);
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs);
 MJS_PRIVATE void mjs_ffi_cb_free(struct mjs *);
 MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_FFI_H_ */

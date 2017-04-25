@@ -1,6 +1,10 @@
 #include <math.h>
 #include "mjs.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /* clang-format off */
 
 #define STRINGIFY(x) #x
@@ -3088,3 +3092,7 @@ int main(void) {
   printf("%s, run %d in %.3fs\n", msg ? "FAIL" : "PASS", num_tests, seconds);
   return msg == NULL ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */

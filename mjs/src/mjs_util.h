@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_util_public.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
 MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
@@ -31,5 +35,9 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
  * as size + index.
  */
 MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_UTIL_H_ */

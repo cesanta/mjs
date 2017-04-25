@@ -11,6 +11,10 @@
 #include "mjs/src/mjs_license.h"
 #include "mjs/src/mjs_features.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 #define MJS_ENABLE_DEBUG 1
 
 /*
@@ -178,5 +182,9 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_CORE_PUBLIC_H_ */

@@ -1775,6 +1775,10 @@ int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap);
 #include <stdbool.h>
 /* Amalgamated: #include "common/platform.h" */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * Maximum number of word-sized args to ffi-ed function. If at least one
  * of the args is double, only 2 args are allowed.
@@ -1806,6 +1810,10 @@ void ffi_set_word(struct ffi_arg *arg, ffi_word_t v);
 void ffi_set_bool(struct ffi_arg *arg, bool v);
 void ffi_set_ptr(struct ffi_arg *arg, void *v);
 void ffi_set_double(struct ffi_arg *arg, double v);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_FFI_FFI_H_ */
 #ifdef MJS_MODULE_LINES
@@ -1957,6 +1965,10 @@ typedef unsigned long uintptr_t;
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_features.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 #define MJS_ENABLE_DEBUG 1
 
@@ -2126,6 +2138,10 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_CORE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_array_public.h"
@@ -2219,9 +2235,17 @@ MJS_PRIVATE void mjs_array_splice(struct mjs *mjs);
 
 /* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
 
 void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_FFI_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
@@ -2238,6 +2262,10 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 /* Amalgamated: #include "mjs/src/ffi/ffi.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 mjs_ffi_resolver_t dlsym;
 
@@ -2326,6 +2354,10 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs);
 MJS_PRIVATE void mjs_ffi_cb_free(struct mjs *);
 MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_FFI_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_mm.h"
@@ -2339,6 +2371,10 @@ MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
 #define MJS_MM_H_
 
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 struct mjs;
 
@@ -2365,6 +2401,10 @@ struct gc_arena {
   gc_cell_destructor_t destructor;
 };
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_MM_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_gc.h"
@@ -2380,6 +2420,10 @@ struct gc_arena {
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_mm.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /*
  * performs arithmetics on gc_cell pointers as if they were arena->cell_size
@@ -2424,6 +2468,10 @@ MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v);
 /* checks whether a pointer is within the ranges of an arena */
 MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_GC_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core.h"
@@ -2439,6 +2487,10 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
 /* Amalgamated: #include "mjs/src/mjs_ffi.h" */
 /* Amalgamated: #include "mjs/src/mjs_gc.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 #define JUMP_INSTRUCTION_SIZE 2
 
@@ -2581,6 +2633,11 @@ MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m);
 MJS_PRIVATE mjs_val_t mjs_pop(struct mjs *mjs);
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v);
 MJS_PRIVATE void mjs_die(struct mjs *mjs);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_CORE_H */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.h"
@@ -2595,6 +2652,10 @@ MJS_PRIVATE void mjs_die(struct mjs *mjs);
 
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /*
  * Tries to convert `mjs_val_t` to a string, returns MJS_OK if successful.
@@ -2616,6 +2677,10 @@ MJS_PRIVATE mjs_val_t mjs_to_boolean_v(struct mjs *mjs, mjs_val_t v);
 
 MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_CONVERSION_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_object_public.h"
@@ -2630,6 +2695,10 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
 
 /* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stddef.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /*
  * Returns true if the given value is an object or array.
@@ -2696,6 +2765,10 @@ int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len);
  */
 mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_OBJECT_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_object.h"
@@ -2710,6 +2783,10 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
 
 /* Amalgamated: #include "mjs/src/mjs_object_public.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 struct mjs;
 
@@ -2749,6 +2826,10 @@ MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
 
 #define MJS_PROTO_PROP_NAME "__p" /* Make it < 5 chars */
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_OBJECT_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_primitive_public.h"
@@ -2762,6 +2843,10 @@ MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
 #define MJS_PRIMITIVE_PUBLIC_H_
 
 /* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /* JavaScript `null` value */
 #define MJS_NULL MJS_TAG_NULL
@@ -2856,6 +2941,10 @@ int mjs_is_boolean(mjs_val_t v);
 mjs_val_t mjs_mk_function(struct mjs *mjs, size_t off);
 int mjs_is_function(mjs_val_t v);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_PRIMITIVE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_primitive.h"
@@ -2871,8 +2960,16 @@ int mjs_is_function(mjs_val_t v);
 /* Amalgamated: #include "mjs/src/mjs_primitive_public.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_PRIMITIVE_H */
 #ifdef MJS_MODULE_LINES
@@ -2889,6 +2986,10 @@ MJS_PRIVATE void *get_ptr(mjs_val_t v);
 /* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 
 #define MJS_STRING_LITERAL_MAX_LEN 128
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /*
  * Creates a string primitive value.
@@ -2947,6 +3048,10 @@ const char *mjs_get_cstring(struct mjs *mjs, mjs_val_t *v);
  */
 int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_STRING_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_string.h"
@@ -2961,6 +3066,10 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_string_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /*
  * Size of the extra space for strings mbuf that is needed to avoid frequent
@@ -2985,6 +3094,10 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
 #define EMBSTR_ZERO_TERM 1
 #define EMBSTR_UNESCAPE 2
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_STRING_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_util_public.h"
@@ -2999,6 +3112,10 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
 
 /* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stdio.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 const char *mjs_typeof(mjs_val_t v);
 
@@ -3029,6 +3146,10 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset);
  */
 int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_UTIL_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_util.h"
@@ -3043,6 +3164,10 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
 
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_util_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
@@ -3066,6 +3191,10 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
  * as size + index.
  */
 MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
@@ -3174,6 +3303,10 @@ typedef unsigned long uintptr_t;
 #define MJS_TOK_H_
 
 /* Amalgamated: #include "mjs_internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 struct tok {
   int tok;
@@ -3295,6 +3428,10 @@ MJS_PRIVATE int pnext(struct pstate *);
 MJS_PRIVATE int mjs_is_ident(int c);
 MJS_PRIVATE int mjs_is_digit(int c);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_TOK_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_dataview.h"
@@ -3306,6 +3443,10 @@ MJS_PRIVATE int mjs_is_digit(int c);
 
 #ifndef MJS_DATAVIEW_H_
 #define MJS_DATAVIEW_H_
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 /*
  * Functions for memory introspection.
@@ -3320,6 +3461,10 @@ double mjs_mem_get_uint(void *ptr, int size, int bigendian);
 double mjs_mem_get_int(void *ptr, int size, int bigendian);
 void mjs_mem_set_uint(void *ptr, unsigned int val, int size, int bigendian);
 void mjs_mem_set_int(void *ptr, int val, int size, int bigendian);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_DATAVIEW_H_ */
 #ifdef MJS_MODULE_LINES
@@ -3336,6 +3481,10 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian);
 /* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stdio.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 mjs_err_t mjs_exec(struct mjs *, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_buf(struct mjs *, const char *src, size_t, mjs_val_t *res);
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res);
@@ -3344,6 +3493,10 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                    mjs_val_t this_val, int nargs, ...);
 mjs_val_t mjs_get_this(struct mjs *mjs);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
@@ -3359,10 +3512,18 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 
 /* Amalgamated: #include "mjs/src/mjs_exec_public.h" */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * At the moment, all exec-related functions are public, and are declared in
  * mjs_exec_public.h
  */
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_EXEC_H_ */
 #ifdef MJS_MODULE_LINES
@@ -3376,6 +3537,10 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 #ifndef MJS_JSON_H_
 #define MJS_JSON_H_
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 MJS_PRIVATE mjs_err_t to_json_or_debug(struct mjs *mjs, mjs_val_t v, char *buf,
                                        size_t size, size_t *res_len,
                                        uint8_t is_debug);
@@ -3387,6 +3552,10 @@ MJS_PRIVATE void mjs_op_json_parse(struct mjs *mjs);
 
 MJS_PRIVATE mjs_err_t
 mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_JSON_H_ */
 #ifdef MJS_MODULE_LINES
@@ -3401,6 +3570,10 @@ mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res);
 #define MJS_BCODE_H_
 
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
 
 enum mjs_opcode {
   OP_NOP,          /* ( -- ) */
@@ -3459,6 +3632,10 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len);
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v);
 
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_BCODE_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_builtin.h"
@@ -3473,7 +3650,15 @@ MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
 
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_BUILTIN_H_ */
 #ifdef MJS_MODULE_LINES
@@ -3489,8 +3674,16 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj);
 
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 MJS_PRIVATE mjs_err_t
 mjs_parse(const char *path, const char *buf, struct mjs *);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_PARSER_H */
 #ifdef MJS_MODULE_LINES
