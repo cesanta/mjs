@@ -66,6 +66,26 @@ static void mjs_op_sys_parseInt(struct mjs *jsm)
     mjs_return(jsm, ret);
 }
 
+static void mjs_op_sys_delete(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    if (mjs_nargs(jsm) < 2) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing argument");
+    } else {
+        mjs_val_t obj = mjs_arg(jsm, 0);
+        mjs_val_t prop = mjs_arg(jsm, 1);
+        if (mjs_is_object(obj) && mjs_is_string(prop)) {
+            ret = obj;
+            mjs_del(jsm, obj, mjs_get_string(jsm, &prop, NULL), ~0);
+        } else {
+            mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "type mismatch");
+        }
+    }
+
+    mjs_return(jsm, ret);
+}
+
 void mjs_init_local(struct mjs *jsm, mjs_val_t o)
 {
     mjs_val_t time = mjs_mk_object(jsm);
@@ -80,4 +100,5 @@ void mjs_init_local(struct mjs *jsm, mjs_val_t o)
 
     mjs_set(jsm, o, "SYS", ~0, sys);
     mjs_set(jsm, sys, "parseInt", ~0, mjs_mk_foreign(jsm, mjs_op_sys_parseInt));
+    mjs_set(jsm, sys, "objDelete", ~0, mjs_mk_foreign(jsm, mjs_op_sys_delete));
 }
