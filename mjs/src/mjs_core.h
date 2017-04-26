@@ -10,6 +10,10 @@
 #include "mjs/src/mjs_gc.h"
 #include "mjs/src/mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 #define JUMP_INSTRUCTION_SIZE 2
 
 enum mjs_type {
@@ -101,7 +105,7 @@ struct mjs {
 
   struct gc_arena object_arena;
   struct gc_arena property_arena;
-  struct gc_arena func_ffi_arena;
+  struct gc_arena ffi_sig_arena;
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;
@@ -151,4 +155,9 @@ MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m);
 MJS_PRIVATE mjs_val_t mjs_pop(struct mjs *mjs);
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v);
 MJS_PRIVATE void mjs_die(struct mjs *mjs);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
 #endif /* MJS_CORE_H */

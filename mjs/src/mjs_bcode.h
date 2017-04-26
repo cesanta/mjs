@@ -8,6 +8,10 @@
 
 #include "mjs/src/mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 enum mjs_opcode {
   OP_NOP,          /* ( -- ) */
   OP_DROP,         /* ( a -- ) */
@@ -64,5 +68,9 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len);
  */
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_BCODE_H_ */

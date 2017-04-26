@@ -49,6 +49,10 @@ MJS_PRIVATE struct mjs_property *new_property(struct mjs *mjs) {
   return (struct mjs_property *) gc_alloc_cell(mjs, &mjs->property_arena);
 }
 
+MJS_PRIVATE struct mjs_ffi_sig *new_ffi_sig(struct mjs *mjs) {
+  return (struct mjs_ffi_sig *) gc_alloc_cell(mjs, &mjs->ffi_sig_arena);
+}
+
 /* Initializes a new arena. */
 MJS_PRIVATE void gc_arena_init(struct gc_arena *a, size_t cell_size,
                                size_t initial_size, size_t size_increment) {
@@ -255,6 +259,27 @@ void gc_sweep(struct mjs *mjs, struct gc_arena *a, size_t start) {
   }
 }
 
+/* Mark an FFI signature */
+static void gc_mark_ffi_sig(struct mjs *mjs, mjs_val_t *v) {
+  struct mjs_ffi_sig *psig;
+
+  assert(mjs_is_ffi_sig(*v));
+
+  psig = mjs_get_ffi_sig_struct(*v);
+
+  /*
+   * we treat all object like things like objects but they might be functions,
+   * gc_check_val checks the appropriate arena per actual value type.
+   */
+  if (!gc_check_val(mjs, *v)) {
+    abort();
+  }
+
+  if (MARKED(psig)) return;
+
+  MARK(psig);
+}
+
 /* Mark an object */
 static void gc_mark_object(struct mjs *mjs, mjs_val_t *v) {
   struct mjs_object *obj_base;
@@ -348,6 +373,9 @@ static void gc_mark_string(struct mjs *mjs, mjs_val_t *v) {
 MJS_PRIVATE void gc_mark(struct mjs *mjs, mjs_val_t *v) {
   if (mjs_is_object(*v)) {
     gc_mark_object(mjs, v);
+  }
+  if (mjs_is_ffi_sig(*v)) {
+    gc_mark_ffi_sig(mjs, v);
   }
   if ((*v & MJS_TAG_MASK) == MJS_TAG_STRING_O) {
     gc_mark_string(mjs, v);
@@ -477,6 +505,7 @@ void mjs_gc(struct mjs *mjs, int full) {
 
   gc_sweep(mjs, &mjs->object_arena, 0);
   gc_sweep(mjs, &mjs->property_arena, 0);
+  gc_sweep(mjs, &mjs->ffi_sig_arena, 0);
 
   if (full) {
     /*
@@ -494,6 +523,9 @@ void mjs_gc(struct mjs *mjs, int full) {
 MJS_PRIVATE int gc_check_val(struct mjs *mjs, mjs_val_t v) {
   if (mjs_is_object(v)) {
     return gc_check_ptr(&mjs->object_arena, get_object_struct(v));
+  }
+  if (mjs_is_ffi_sig(v)) {
+    return gc_check_ptr(&mjs->ffi_sig_arena, mjs_get_ffi_sig_struct(v));
   }
   return 1;
 }

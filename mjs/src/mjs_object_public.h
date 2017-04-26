@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_core_public.h"
 #include <stddef.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * Returns true if the given value is an object or array.
  */
@@ -73,5 +77,9 @@ int mjs_del(struct mjs *mjs, mjs_val_t obj, const char *name, size_t len);
  *   }
  */
 mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_OBJECT_PUBLIC_H_ */

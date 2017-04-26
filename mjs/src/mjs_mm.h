@@ -8,6 +8,10 @@
 
 #include "mjs/src/mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 struct mjs;
 
 typedef void (*gc_cell_destructor_t)(struct mjs *mjs, void *);
@@ -32,5 +36,9 @@ struct gc_arena {
 
   gc_cell_destructor_t destructor;
 };
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_MM_H_ */

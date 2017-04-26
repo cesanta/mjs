@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_object_public.h"
 #include "mjs/src/mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 struct mjs;
 
 struct mjs_property {
@@ -46,5 +50,9 @@ MJS_PRIVATE mjs_err_t mjs_set_internal(struct mjs *mjs, mjs_val_t obj,
 MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
 
 #define MJS_PROTO_PROP_NAME "__p" /* Make it < 5 chars */
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_OBJECT_H_ */

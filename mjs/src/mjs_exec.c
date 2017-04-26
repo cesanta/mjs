@@ -733,7 +733,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
           i = mjs_get_func_addr(*func) - 1;
           *func = MJS_UNDEFINED;  // Return value
           // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
-        } else if (mjs_is_string(*func)) {
+        } else if (mjs_is_string(*func) || mjs_is_ffi_sig(*func)) {
           /* Call ffi-ed function */
 
           call_stack_push_frame(mjs, i, retpos);

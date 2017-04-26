@@ -8,7 +8,15 @@
 
 #include "mjs/src/mjs_internal.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 MJS_PRIVATE mjs_err_t
 mjs_parse(const char *path, const char *buf, struct mjs *);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_PARSER_H */

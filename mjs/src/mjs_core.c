@@ -6,9 +6,10 @@
 #include "common/cs_varint.h"
 #include "common/str_util.h"
 
-#include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_builtin.h"
+#include "mjs/src/mjs_core.h"
+#include "mjs/src/mjs_ffi.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_license.h"
 #include "mjs/src/mjs_object.h"
@@ -22,12 +23,18 @@
 #ifndef MJS_PROPERTY_ARENA_SIZE
 #define MJS_PROPERTY_ARENA_SIZE 1048576
 #endif
+#ifndef MJS_FUNC_FFI_ARENA_SIZE
+#define MJS_FUNC_FFI_ARENA_SIZE 20
+#endif
 
 #ifndef MJS_OBJECT_ARENA_INC_SIZE
 #define MJS_OBJECT_ARENA_INC_SIZE 524288
 #endif
 #ifndef MJS_PROPERTY_ARENA_INC_SIZE
 #define MJS_PROPERTY_ARENA_INC_SIZE 524288
+#endif
+#ifndef MJS_FUNC_FFI_ARENA_INC_SIZE
+#define MJS_FUNC_FFI_ARENA_INC_SIZE 10
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
@@ -45,6 +52,7 @@ void mjs_destroy(struct mjs *mjs) {
   mjs_ffi_args_free_list(mjs);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
+  gc_arena_destroy(mjs, &mjs->ffi_sig_arena);
   free(mjs);
 }
 
@@ -74,6 +82,9 @@ struct mjs *mjs_create(void) {
                 MJS_OBJECT_ARENA_SIZE, MJS_OBJECT_ARENA_INC_SIZE);
   gc_arena_init(&mjs->property_arena, sizeof(struct mjs_property),
                 MJS_PROPERTY_ARENA_SIZE, MJS_PROPERTY_ARENA_INC_SIZE);
+  gc_arena_init(&mjs->ffi_sig_arena, sizeof(struct mjs_ffi_sig),
+                MJS_FUNC_FFI_ARENA_SIZE, MJS_FUNC_FFI_ARENA_INC_SIZE);
+  mjs->ffi_sig_arena.destructor = mjs_ffi_sig_destructor;
 
   mjs_val_t global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);

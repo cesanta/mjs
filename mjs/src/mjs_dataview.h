@@ -6,6 +6,10 @@
 #ifndef MJS_DATAVIEW_H_
 #define MJS_DATAVIEW_H_
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * Functions for memory introspection.
  * These are supposed to be FFI-ed and used from the JS environment.
@@ -19,5 +23,9 @@ double mjs_mem_get_uint(void *ptr, int size, int bigendian);
 double mjs_mem_get_int(void *ptr, int size, int bigendian);
 void mjs_mem_set_uint(void *ptr, unsigned int val, int size, int bigendian);
 void mjs_mem_set_int(void *ptr, int val, int size, int bigendian);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_DATAVIEW_H_ */

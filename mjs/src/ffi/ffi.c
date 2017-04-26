@@ -86,7 +86,7 @@ typedef double (*ddw_t)(double, ffi_word_t);
 typedef double (*dwd_t)(ffi_word_t, double);
 typedef double (*ddd_t)(double, double);
 
-int ffi_call(ffi_fn_t func, int nargs, struct ffi_arg *res,
+int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
              struct ffi_arg *args) {
   int i, doubles = 0;
 

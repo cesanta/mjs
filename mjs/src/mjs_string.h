@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_string_public.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * Size of the extra space for strings mbuf that is needed to avoid frequent
  * reallocations
@@ -32,5 +36,9 @@ MJS_PRIVATE void mjs_string_indexof(struct mjs *mjs);
 
 #define EMBSTR_ZERO_TERM 1
 #define EMBSTR_UNESCAPE 2
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_STRING_H_ */

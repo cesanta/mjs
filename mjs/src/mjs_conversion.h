@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_core.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
 /*
  * Tries to convert `mjs_val_t` to a string, returns MJS_OK if successful.
  * String is returned as a pair of pointers: `char **p, size_t *sizep`.
@@ -28,5 +32,9 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
 MJS_PRIVATE mjs_val_t mjs_to_boolean_v(struct mjs *mjs, mjs_val_t v);
 
 MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
 
 #endif /* MJS_CONVERSION_H_ */
