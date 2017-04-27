@@ -897,8 +897,10 @@ const char *test_call_ffi(struct mjs *mjs) {
 
   mjs_set_ffi_resolver(mjs, stub_dlsym);
 
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_i2i", ~0,
-          mjs_mk_string(mjs, "int ffi_test_i2i(int, int)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_i2i = ffi('int ffi_test_i2i(int, int)')",
+        &res));
+
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i2i(44, 2)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), 42);
 
@@ -913,8 +915,10 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_get_int(mjs, res), 43);
 
   /* function which takes bool */
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_iib", ~0,
-      mjs_mk_string(mjs, "int ffi_test_iib(int, bool)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iib = ffi('int ffi_test_iib(int, bool)')",
+        &res));
+
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_iib(40, true)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), 40-10);
 
@@ -922,29 +926,30 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_get_int(mjs, res), 40-20);
 
   /* function which returns bool */
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_bi", ~0,
-      mjs_mk_string(mjs, "bool ffi_test_bi(int)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_bi = ffi('bool ffi_test_bi(int)')",
+        &res));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_bi(50)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_bool(mjs, res), false);
 
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_bi(51)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_bool(mjs, res), true);
 
-  mjs_set(
-      mjs, mjs_get_global(mjs), "ffi_test_i5i", ~0,
-      mjs_mk_string(mjs, "int ffi_test_i5i(int, int, int, int, int)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_i5i = ffi('int ffi_test_i5i(int, int, int, int, int)')",
+        &res));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i5i(114, 14, 7, 1, 4)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), (114 - 14) / ((7 - 1) * 4));
 
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_i6i", ~0,
-          mjs_mk_string(mjs, "int ffi_test_i6i(int, int, int, int, int, int)",
-                        ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_i6i = ffi('int ffi_test_i6i(int, int, int, int, int, int)')",
+        &res));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i6i(114, 14, 7, 1, 4, 11)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_double(mjs, res), (114 - 14) / ((7 - 1) * 4) + 11 * 2);
 
-  /* TODO(dfrank): it needs to be refactored when ffied functions stop being strings */
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_s1s", ~0,
-      mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_s1s = ffi('char *ffi_test_s1s(char *)')",
+        &res));
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_test_s1s('foo')", &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "foo");
 
@@ -957,16 +962,14 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x00')", &res), MJS_OK);
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
 
-  ASSERT_EQ(
+  ASSERT_EXEC_OK(
       mjs_exec(mjs, "ffi('double ffi_test_d2d(double,double)')(3.71, 1.28)",
-               &res),
-      MJS_OK);
+               &res));
   ASSERT_LT(fabs(mjs_get_double(mjs, res) - 17.33), 0.0001);
 
-  ASSERT_EQ(
+  ASSERT_EXEC_OK(
       mjs_exec(mjs, "ffi('int ffi_test_iid(int,double)')(300, 1.28)",
-        &res),
-      MJS_OK);
+        &res));
   ASSERT_EQ(mjs_get_int(mjs, res), (1234 + 300 + 128));
 
   /* Test calling ffi-ed function from JS function */
@@ -979,6 +982,11 @@ const char *test_call_ffi(struct mjs *mjs) {
           ), &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 15*((15+1)-3));
 
+  /* calling strings is not supported anymore */
+  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_s1s", ~0,
+      mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x01')", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: non-ffi-callable value");
 
   mjs_disown(mjs, &res);
 

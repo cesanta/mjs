@@ -8284,7 +8284,6 @@ clean:
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_err_t ret = MJS_OK;
   mjs_ffi_sig_t *psig = NULL;
-  int need_free = 0;
   mjs_ffi_ctype_t rtype;
   mjs_val_t sig_v = *vptr(&mjs->stack, mjs_getretvalpos(mjs));
 
@@ -8299,14 +8298,6 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
 
   if (mjs_is_ffi_sig(sig_v)) {
     psig = mjs_get_ffi_sig_struct(sig_v);
-  } else if (mjs_is_string(sig_v)) {
-    psig = calloc(sizeof(*psig), 1);
-    need_free = 1;
-    const char *s = mjs_get_cstring(mjs, &sig_v);
-    ret = mjs_parse_ffi_signature(mjs, s, ~0, psig, FFI_SIG_FUNC);
-    if (ret != MJS_OK) {
-      goto clean;
-    }
   } else {
     ret = MJS_TYPE_ERROR;
     mjs_prepend_errorf(mjs, ret, "non-ffi-callable value");
@@ -8535,11 +8526,6 @@ clean:
     /* TODO(dfrank) stringify mjs_ffi_sig_t in some human-readable format */
   }
   mjs_return(mjs, resv);
-
-  if (need_free) {
-    mjs_ffi_sig_free(psig);
-    free(psig);
-  }
 
   return ret;
 }
