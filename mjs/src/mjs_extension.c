@@ -26,6 +26,14 @@ static void mjs_op_time_systime(struct mjs *jsm)
     mjs_set(jsm, ret, "localtime", ~0, mjs_mk_string(jsm, timestr, ~0, 1));
     mjs_set(jsm, ret, "timestamp", ~0, mjs_mk_number(jsm, time(NULL)));
 
+    mjs_set(jsm, ret, "year", ~0, mjs_mk_number(jsm, tm->tm_year + 1900));
+    mjs_set(jsm, ret, "month", ~0, mjs_mk_number(jsm, tm->tm_mon + 1));
+    mjs_set(jsm, ret, "day", ~0, mjs_mk_number(jsm, tm->tm_mday));
+
+    mjs_set(jsm, ret, "hour", ~0, mjs_mk_number(jsm, tm->tm_hour));
+    mjs_set(jsm, ret, "minute", ~0, mjs_mk_number(jsm, tm->tm_min));
+    mjs_set(jsm, ret, "second", ~0, mjs_mk_number(jsm, tm->tm_sec));
+
     mjs_return(jsm, ret);
 }
 
