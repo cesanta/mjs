@@ -216,3 +216,8 @@ $(BUILD_DIR)/unit_test.exe: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DI
 wtest: $(BUILD_DIR)/unit_test.exe
 	wine $(BUILD_DIR)/unit_test.exe
 
+difftest:
+	@TMP=`mktemp -t checkout-diff.XXXXXX`; \
+	git diff  >$$TMP ; \
+	if [ -s "$$TMP" ]; then echo found diffs in checkout:; git status -s; head -n 50 "$$TMP"; exit 1; fi; \
+	rm $$TMP
