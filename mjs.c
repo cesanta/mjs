@@ -10298,7 +10298,11 @@ static mjs_err_t parse_object_literal(struct pstate *p) {
     if ((res = parse_expr(p)) != MJS_OK) return res;
     emit_op(p, TOK_ASSIGN);
     emit_byte(p, OP_DROP);
-    if (p->tok.tok == TOK_COMMA) pnext1(p);
+    if (p->tok.tok == TOK_COMMA) {
+      pnext1(p);
+    }  else if  (p->tok.tok != TOK_CLOSE_CURLY) {
+      SYNTAX_ERROR(p);
+    }
   }
   return res;
 }
