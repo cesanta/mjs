@@ -1412,26 +1412,26 @@ void cs_log_set_level(enum cs_log_level level);
 #if CS_ENABLE_STDIO
 
 void cs_log_set_file(FILE *file);
-extern enum cs_log_level cs_log_level;
-void cs_log_print_prefix(const char *func);
+extern enum cs_log_level cs_log_threshold;
+void cs_log_print_prefix(enum cs_log_level level, const char *func);
 void cs_log_printf(const char *fmt, ...);
 
-#define LOG(l, x)                    \
-  do {                               \
-    if (cs_log_level >= l) {         \
-      cs_log_print_prefix(__func__); \
-      cs_log_printf x;               \
-    }                                \
+#define LOG(l, x)                       \
+  do {                                  \
+    if (cs_log_threshold >= l) {        \
+      cs_log_print_prefix(l, __func__); \
+      cs_log_printf x;                  \
+    }                                   \
   } while (0)
 
 #ifndef CS_NDEBUG
 
-#define DBG(x)                              \
-  do {                                      \
-    if (cs_log_level >= LL_VERBOSE_DEBUG) { \
-      cs_log_print_prefix(__func__);        \
-      cs_log_printf x;                      \
-    }                                       \
+#define DBG(x)                                         \
+  do {                                                 \
+    if (cs_log_threshold >= LL_VERBOSE_DEBUG) {        \
+      cs_log_print_prefix(LL_VERBOSE_DEBUG, __func__); \
+      cs_log_printf x;                                 \
+    }                                                  \
   } while (0)
 
 #else /* NDEBUG */
@@ -3977,7 +3977,7 @@ int json_escape(struct json_out *out, const char *str, size_t str_len);
 
 /* Amalgamated: #include "common/cs_time.h" */
 
-enum cs_log_level cs_log_level WEAK =
+enum cs_log_level cs_log_threshold WEAK =
 #if CS_ENABLE_DEBUG
     LL_VERBOSE_DEBUG;
 #else
@@ -3992,12 +3992,15 @@ FILE *cs_log_file WEAK = NULL;
 double cs_log_ts WEAK;
 #endif
 
-void cs_log_print_prefix(const char *func) WEAK;
-void cs_log_print_prefix(const char *func) {
+enum cs_log_level cs_log_cur_msg_level WEAK = LL_NONE;
+
+void cs_log_print_prefix(enum cs_log_level level, const char *func) WEAK;
+void cs_log_print_prefix(enum cs_log_level level, const char *func) {
   char prefix[21];
   strncpy(prefix, func, 20);
   prefix[20] = '\0';
   if (cs_log_file == NULL) cs_log_file = stderr;
+  cs_log_cur_msg_level = level;
   fprintf(cs_log_file, "%-20s ", prefix);
 #if CS_LOG_ENABLE_TS_DIFF
   {
@@ -4016,6 +4019,7 @@ void cs_log_printf(const char *fmt, ...) {
   va_end(ap);
   fputc('\n', cs_log_file);
   fflush(cs_log_file);
+  cs_log_cur_msg_level = LL_NONE;
 }
 
 void cs_log_set_file(FILE *file) WEAK;
@@ -4027,7 +4031,7 @@ void cs_log_set_file(FILE *file) {
 
 void cs_log_set_level(enum cs_log_level level) WEAK;
 void cs_log_set_level(enum cs_log_level level) {
-  cs_log_level = level;
+  cs_log_threshold = level;
 #if CS_LOG_ENABLE_TS_DIFF && CS_ENABLE_STDIO
   cs_log_ts = cs_time();
 #endif
@@ -7315,7 +7319,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
 #endif
 
     const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
-    if (cs_log_level >= LL_VERBOSE_DEBUG) {
+    if (cs_log_threshold >= LL_VERBOSE_DEBUG) {
       /* mjs_dump(mjs, 0, stdout); */
       printf("executing: ");
       mjs_disasm_single(code, i, stdout);
@@ -7661,7 +7665,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   size_t off = mjs->bcode.len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
-  if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
+  if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
   if (mjs->error != MJS_OK) {
     fprintf(stderr, "  at %s: %s\n", path, mjs->error_msg);
   } else {
