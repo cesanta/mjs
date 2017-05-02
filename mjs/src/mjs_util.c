@@ -50,7 +50,7 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
     if (modf(d, &iv) == 0) {
       fprintf(fp, "%" INT64_FMT, (int64_t) d);
     } else {
-      fprintf(fp, "%lg", mjs_get_double(mjs, v));
+      fprintf(fp, "%f", mjs_get_double(mjs, v));
     }
   } else if (mjs_is_boolean(v)) {
     fprintf(fp, "%s", mjs_get_bool(mjs, v) ? "true" : "false");
