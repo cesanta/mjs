@@ -8,6 +8,8 @@
 
 #include "mjs/src/mjs_internal.h"
 
+#include "mjs/src/mjs_core.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
@@ -68,6 +70,33 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len);
  */
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v);
+
+/*
+ * Adds a new bcode part; does not retain `bp`.
+ */
+MJS_PRIVATE void mjs_bcode_part_add(struct mjs *mjs,
+                                    const struct mjs_bcode_part *bp);
+
+/*
+ * Returns bcode part by the bcode number
+ */
+MJS_PRIVATE struct mjs_bcode_part *mjs_bcode_part_get(struct mjs *mjs, int num);
+
+/*
+ * Returns bcode part by the global bcode offset
+ */
+MJS_PRIVATE struct mjs_bcode_part *mjs_bcode_part_get_by_offset(struct mjs *mjs,
+                                                                size_t offset);
+
+/*
+ * Returns a number of bcode parts
+ */
+MJS_PRIVATE int mjs_bcode_parts_cnt(struct mjs *mjs);
+
+/*
+ * Adds the bcode being generated (mjs->bcode_gen) as a next bcode part
+ */
+MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs);
 
 #if defined(__cplusplus)
 }

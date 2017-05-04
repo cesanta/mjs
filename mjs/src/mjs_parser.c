@@ -227,7 +227,7 @@ static mjs_err_t parse_array_literal(struct pstate *p) {
 }
 
 static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
-  struct mbuf *bcode = &p->mjs->bcode;
+  struct mbuf *bcode_gen = &p->mjs->bcode_gen;
   enum mjs_err res = MJS_OK;
   int tok = t->tok;
   LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
@@ -273,9 +273,9 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
     }
     case TOK_STR: {
       emit_byte(p, OP_PUSH_STR);
-      size_t oldlen = bcode->len;
-      embed_string(bcode, p->cur_idx, t->ptr, t->len, EMBSTR_UNESCAPE);
-      p->cur_idx += bcode->len - oldlen;
+      size_t oldlen = bcode_gen->len;
+      embed_string(bcode_gen, p->cur_idx, t->ptr, t->len, EMBSTR_UNESCAPE);
+      p->cur_idx += bcode_gen->len - oldlen;
     } break;
     case TOK_OPEN_BRACKET:
       res = parse_array_literal(p);
@@ -875,55 +875,59 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   struct pstate p;
   pinit(path, buf, &p);
   p.mjs = mjs;
-  p.cur_idx = p.mjs->bcode.len;
+  p.cur_idx = p.mjs->bcode_gen.len;
   emit_byte(&p, OP_BCODE_HEADER);
 
   /*
-   * TODO(dfrank): don't access mjs->bcode directly, use emit_... API which
+   * TODO(dfrank): don't access mjs->bcode_gen directly, use emit_... API which
    * takes care of p->cur_idx
    */
 
   /* Remember starting bcode position, and reserve the room for bcode header */
-  size_t start_idx = p.mjs->bcode.len;
-  mbuf_append(&p.mjs->bcode, NULL,
+  size_t start_idx = p.mjs->bcode_gen.len;
+  mbuf_append(&p.mjs->bcode_gen, NULL,
               sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT);
 
   /* Append NULL-terminated filename */
-  mbuf_append(&p.mjs->bcode, path, strlen(path) + 1 /* null-terminate */);
+  mbuf_append(&p.mjs->bcode_gen, path, strlen(path) + 1 /* null-terminate */);
 
-  mjs_header_item_t bcode_offset = p.mjs->bcode.len - start_idx;
-  memcpy(p.mjs->bcode.buf + start_idx +
+  mjs_header_item_t bcode_offset = p.mjs->bcode_gen.len - start_idx;
+  memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
          &bcode_offset, sizeof(mjs_header_item_t));
 
-  p.start_bcode_idx = p.mjs->bcode.len;
-  p.cur_idx = p.mjs->bcode.len;
+  p.start_bcode_idx = p.mjs->bcode_gen.len;
+  p.cur_idx = p.mjs->bcode_gen.len;
 
   res = parse_statement_list(&p, TOK_EOF);
   emit_byte(&p, OP_EXIT);
 
   /* remember map offset */
-  mjs_header_item_t map_offset = p.mjs->bcode.len - start_idx;
-  memcpy(p.mjs->bcode.buf + start_idx +
+  mjs_header_item_t map_offset = p.mjs->bcode_gen.len - start_idx;
+  memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
          &map_offset, sizeof(mjs_header_item_t));
 
   /* put map length varint */
   int map_len = p.offset_lineno_map.len;
   size_t llen = cs_varint_llen(map_len);
-  mbuf_resize(&p.mjs->bcode, p.mjs->bcode.size + llen);
-  cs_varint_encode(map_len, (uint8_t *) p.mjs->bcode.buf + p.mjs->bcode.len);
-  p.mjs->bcode.len += llen;
+  mbuf_resize(&p.mjs->bcode_gen, p.mjs->bcode_gen.size + llen);
+  cs_varint_encode(map_len,
+                   (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len);
+  p.mjs->bcode_gen.len += llen;
 
   /* put the map itself */
-  mbuf_append(&p.mjs->bcode, p.offset_lineno_map.buf, p.offset_lineno_map.len);
+  mbuf_append(&p.mjs->bcode_gen, p.offset_lineno_map.buf,
+              p.offset_lineno_map.len);
 
-  mjs_header_item_t total_size = p.mjs->bcode.len - start_idx;
-  memcpy(p.mjs->bcode.buf + start_idx +
+  mjs_header_item_t total_size = p.mjs->bcode_gen.len - start_idx;
+  memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_TOTAL_SIZE,
          &total_size, sizeof(mjs_header_item_t));
 
   mbuf_free(&p.offset_lineno_map);
+
+  mjs_bcode_commit(mjs);
 
   return res;
 }

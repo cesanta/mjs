@@ -6,6 +6,8 @@
 #ifndef MJS_CORE_H
 #define MJS_CORE_H
 
+#include "common/mg_str.h"
+
 #include "mjs/src/mjs_ffi.h"
 #include "mjs/src/mjs_gc.h"
 #include "mjs/src/mjs_internal.h"
@@ -85,8 +87,15 @@ struct mjs_vals {
   mjs_val_t last_getprop_obj;
 };
 
+struct mjs_bcode_part {
+  size_t start_idx;
+  struct mg_str data;
+};
+
 struct mjs {
-  struct mbuf bcode;
+  struct mbuf bcode_gen;
+  struct mbuf bcode_parts;
+  size_t bcode_len;
   struct mbuf stack;
   struct mbuf call_stack;
   struct mbuf arg_stack;
@@ -134,12 +143,6 @@ MJS_PRIVATE int mjs_nargs(struct mjs *mjs);
 MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t);
 
 MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
-
-/*
- * Returns offset of the bcode header (see enum mjs_header_items) which
- * contains given bcode offset, or -1 in case the offset is too large.
- */
-MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset);
 
 /*
  * Prints stack trace starting from the given bcode offset; other offsets

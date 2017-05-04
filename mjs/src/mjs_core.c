@@ -38,7 +38,17 @@
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
-  mbuf_free(&mjs->bcode);
+  {
+    int parts_cnt = mjs_bcode_parts_cnt(mjs);
+    int i;
+    for (i = 0; i < parts_cnt; i++) {
+      struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
+      free((void *) bp->data.p);
+    }
+  }
+
+  mbuf_free(&mjs->bcode_gen);
+  mbuf_free(&mjs->bcode_parts);
   mbuf_free(&mjs->stack);
   mbuf_free(&mjs->call_stack);
   mbuf_free(&mjs->arg_stack);
@@ -63,11 +73,14 @@ struct mjs *mjs_create(void) {
   mbuf_init(&mjs->arg_stack, 0);
   mbuf_init(&mjs->owned_strings, 0);
   mbuf_init(&mjs->foreign_strings, 0);
-  mbuf_init(&mjs->bcode, 0);
+  mbuf_init(&mjs->bcode_gen, 0);
+  mbuf_init(&mjs->bcode_parts, 0);
   mbuf_init(&mjs->owned_values, 0);
   mbuf_init(&mjs->scopes, 0);
   mbuf_init(&mjs->loop_addresses, 0);
   mbuf_init(&mjs->json_visited_stack, 0);
+
+  mjs->bcode_len = 0;
 
   /*
    * The compacting GC exploits the null terminator of the previous string as a
@@ -204,23 +217,6 @@ MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v) {
 
 mjs_val_t mjs_get_global(struct mjs *mjs) {
   return *vptr(&mjs->scopes, 0);
-}
-
-MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset) {
-  int32_t total_size, ret = -1, cur_idx = 0;
-
-  while ((size_t) cur_idx < mjs->bcode.len) {
-    assert(mjs->bcode.buf[cur_idx] == OP_BCODE_HEADER);
-    cur_idx++;
-    memcpy(&total_size, mjs->bcode.buf + cur_idx, sizeof(total_size));
-    if (offset < (size_t) cur_idx + total_size) {
-      ret = cur_idx;
-      break;
-    }
-    cur_idx += total_size;
-  }
-
-  return ret;
 }
 
 static void mjs_print_stack_trace_line(struct mjs *mjs, size_t offset) {

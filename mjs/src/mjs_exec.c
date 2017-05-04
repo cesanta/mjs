@@ -19,7 +19,7 @@
 #include "mjs/src/mjs_util.h"
 
 /*
- * Pushes call stack frame
+ * Pushes call stack frame. Offset is a global bcode offset
  */
 static void call_stack_push_frame(struct mjs *mjs, size_t offset,
                                   mjs_val_t retpos) {
@@ -479,7 +479,14 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   int arg_stack_len = mjs->arg_stack.len;
   int scopes_len = mjs->scopes.len;
 
-  for (i = off; i < mjs->bcode.len; i++) {
+  struct mjs_bcode_part bp = *mjs_bcode_part_get_by_offset(mjs, off);
+  off -= bp.start_idx;
+
+  static int aaa = 0;
+  if (aaa++ >= 1) {
+    // abort();
+  }
+  for (i = off; i < bp.data.len; i++) {
     mjs->cur_bcode_offset = i;
 
     if (mjs->need_gc) {
@@ -491,7 +498,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
     maybe_gc(mjs);
 #endif
 
-    const uint8_t *code = (const uint8_t *) mjs->bcode.buf;
+    const uint8_t *code = (const uint8_t *) bp.data.p;
     if (cs_log_threshold >= LL_VERBOSE_DEBUG) {
       /* mjs_dump(mjs, 0, stdout); */
       printf("executing: ");
@@ -528,7 +535,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       case OP_PUSH_FUNC: {
         int llen, n = cs_varint_decode(&code[i + 1], &llen);
-        mjs_push(mjs, mjs_mk_function(mjs, i - n));
+        mjs_push(mjs, mjs_mk_function(mjs, bp.start_idx + i - n));
         i += llen;
         break;
       }
@@ -653,8 +660,16 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
       }
       case OP_RETURN: {
-        i = call_stack_restore_frame(mjs) - 1;
-        LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", i + 1));
+        /*
+         * Return address is saved as a global bcode offset, so we need to
+         * convert
+         * it to the local offset
+         */
+        size_t off_ret = call_stack_restore_frame(mjs) - 1;
+        bp = *mjs_bcode_part_get_by_offset(mjs, off_ret);
+        code = (const uint8_t *) bp.data.p;
+        i = off_ret - bp.start_idx;
+        LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", off_ret + 1));
         // mjs_dump(mjs, 0, stdout);
         break;
       }
@@ -692,15 +707,23 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         mjs_pop_val(&mjs->arg_stack);
 
         if (mjs_is_function(*func)) {
-          call_stack_push_frame(mjs, i, retpos);
+          call_stack_push_frame(mjs, bp.start_idx + i, retpos);
 
-          i = mjs_get_func_addr(*func) - 1;
+          /*
+           * Function offset is a global bcode offset, so we need to convert it
+           * to the local offset
+           */
+          size_t off_call = mjs_get_func_addr(*func) - 1;
+          bp = *mjs_bcode_part_get_by_offset(mjs, off_call);
+          code = (const uint8_t *) bp.data.p;
+          i = off_call - bp.start_idx;
+
           *func = MJS_UNDEFINED;  // Return value
           // LOG(LL_VERBOSE_DEBUG, ("CALLING  %d", i + 1));
         } else if (mjs_is_string(*func) || mjs_is_ffi_sig(*func)) {
           /* Call ffi-ed function */
 
-          call_stack_push_frame(mjs, i, retpos);
+          call_stack_push_frame(mjs, bp.start_idx + i, retpos);
 
           /* Perform the ffi-ed function call */
           mjs_ffi_call2(mjs);
@@ -709,7 +732,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         } else if (mjs_is_foreign(*func)) {
           /* Call cfunction */
 
-          call_stack_push_frame(mjs, i, retpos);
+          call_stack_push_frame(mjs, bp.start_idx + i, retpos);
 
           /* Perform the cfunction call */
           ((void (*) (struct mjs *)) mjs_get_ptr(mjs, *func))(mjs);
@@ -806,15 +829,15 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       case OP_NOP:
         break;
       case OP_EXIT:
-        i = mjs->bcode.len;
+        i = bp.data.len;
         break;
       default:
 #if MJS_ENABLE_DEBUG
         mjs_dump(mjs, 1, stdout);
 #endif
-        mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "Unknown opcode: %d, off %d",
-                       (int) opcode, (int) i);
-        i = mjs->bcode.len;
+        mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "Unknown opcode: %d, off %d+%d",
+                       (int) opcode, (int) bp.start_idx, (int) i);
+        i = bp.data.len;
         break;
     }
     if (mjs->error != MJS_OK) {
@@ -835,7 +858,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
 
 mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
                     mjs_val_t *res) {
-  size_t off = mjs->bcode.len;
+  size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
   if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
@@ -903,9 +926,10 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
   // Push return address: returning to the end of bcode causes execution
   // to stop
-  // TODO(dfrank): make special return value for that, because mjs->bcode.len
+  //
+  // TODO(dfrank): make special return value for that, because mjs->bcode_len
   // might change after function invocation (if function parses some new code)
-  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, mjs->bcode.len));
+  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, mjs->bcode_len));
   push_mjs_val(&mjs->call_stack,
                mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
   // Push undefined which will be later replaced with the return value

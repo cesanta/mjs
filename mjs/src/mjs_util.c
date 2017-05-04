@@ -263,8 +263,13 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp) {
   mjs_dump_obj_stack("SCOPES", &mjs->scopes, mjs, fp);
   mjs_dump_obj_stack("LOOP_OFFSETS", &mjs->loop_addresses, mjs, fp);
   if (do_disasm) {
+    int parts_cnt = mjs_bcode_parts_cnt(mjs);
+    int i;
     fprintf(fp, "  CODE:\n");
-    mjs_disasm((uint8_t *) mjs->bcode.buf, mjs->bcode.len, fp);
+    for (i = 0; i < parts_cnt; i++) {
+      struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
+      mjs_disasm((uint8_t *) bp->data.p, bp->data.len, fp);
+    }
   }
   fprintf(fp, "------- MJS VM DUMP END\n");
 }
@@ -317,9 +322,9 @@ MJS_PRIVATE int mjs_normalize_idx(int idx, int size) {
 
 const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
   const char *ret = NULL;
-  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
-  if (header_idx >= 0) {
-    ret = mjs->bcode.buf + header_idx +
+  struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
+  if (bp != NULL) {
+    ret = bp->data.p + 1 /* OP_BCODE_HEADER */ +
           sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
   }
   return ret;
@@ -327,23 +332,23 @@ const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
 
 int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
   int ret = 1;
-  int header_idx = mjs_get_bcode_header_offset(mjs, offset);
-  if (header_idx >= 0) {
+  struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
+  if (bp != NULL) {
     mjs_header_item_t map_offset;
-    memcpy(&map_offset, mjs->bcode.buf + header_idx +
+    memcpy(&map_offset, bp->data.p + 1 /* OP_BCODE_HEADER */ +
                             sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
            sizeof(map_offset));
 
     mjs_header_item_t bcode_offset;
     memcpy(&bcode_offset,
-           mjs->bcode.buf + header_idx +
+           bp->data.p + 1 /* OP_BCODE_HEADER */ +
                sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
            sizeof(bcode_offset));
 
-    offset -= (header_idx + bcode_offset);
+    offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset);
 
     /* get pointer to the length of the map followed by the map itself */
-    uint8_t *p = (uint8_t *) mjs->bcode.buf + header_idx + map_offset;
+    uint8_t *p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
 
     int llen, map_len = cs_varint_decode(p, &llen);
     p += llen;

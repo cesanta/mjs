@@ -6,6 +6,7 @@
 #include "common/cs_varint.h"
 
 #include "mjs/src/mjs_internal.h"
+#include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_tok.h"
 
@@ -34,13 +35,13 @@ static void add_lineno_map_item(struct pstate *pstate) {
 
 MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte) {
   add_lineno_map_item(pstate);
-  mbuf_insert(&pstate->mjs->bcode, pstate->cur_idx, &byte, sizeof(byte));
+  mbuf_insert(&pstate->mjs->bcode_gen, pstate->cur_idx, &byte, sizeof(byte));
   pstate->cur_idx += sizeof(byte);
 }
 
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
   add_lineno_map_item(pstate);
-  struct mbuf *b = &pstate->mjs->bcode;
+  struct mbuf *b = &pstate->mjs->bcode_gen;
   size_t llen = cs_varint_llen(n);
   mbuf_insert(b, pstate->cur_idx, NULL, llen);
   cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
@@ -49,7 +50,7 @@ MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
 
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
   add_lineno_map_item(pstate);
-  struct mbuf *b = &pstate->mjs->bcode;
+  struct mbuf *b = &pstate->mjs->bcode_gen;
   size_t llen = cs_varint_llen(len);
   mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
   cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
@@ -59,21 +60,21 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
 
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v) {
-  assert(offset < mjs->bcode.len);
+  assert(offset < mjs->bcode_gen.len);
   int llen = cs_varint_llen(v);
   int diff = llen - MJS_INIT_OFFSET_SIZE;
   if (diff > 0) {
-    mbuf_resize(&mjs->bcode, mjs->bcode.size + diff);
+    mbuf_resize(&mjs->bcode_gen, mjs->bcode_gen.size + diff);
   }
   /*
    * Offset is going to take more than one was reserved, so, move the data
    * forward
    */
-  memmove(mjs->bcode.buf + offset + llen,
-          mjs->bcode.buf + offset + MJS_INIT_OFFSET_SIZE,
-          mjs->bcode.len - offset - MJS_INIT_OFFSET_SIZE);
-  mjs->bcode.len += diff;
-  cs_varint_encode(v, (uint8_t *) mjs->bcode.buf + offset);
+  memmove(mjs->bcode_gen.buf + offset + llen,
+          mjs->bcode_gen.buf + offset + MJS_INIT_OFFSET_SIZE,
+          mjs->bcode_gen.len - offset - MJS_INIT_OFFSET_SIZE);
+  mjs->bcode_gen.len += diff;
+  cs_varint_encode(v, (uint8_t *) mjs->bcode_gen.buf + offset);
 
   /*
    * If current parsing index is after the offset at which we've inserted new
@@ -83,4 +84,62 @@ MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
     p->cur_idx += diff;
   }
   return diff;
+}
+
+MJS_PRIVATE void mjs_bcode_part_add(struct mjs *mjs,
+                                    const struct mjs_bcode_part *bp) {
+  mbuf_append(&mjs->bcode_parts, bp, sizeof(*bp));
+}
+
+MJS_PRIVATE struct mjs_bcode_part *mjs_bcode_part_get(struct mjs *mjs,
+                                                      int num) {
+  assert(num < mjs_bcode_parts_cnt(mjs));
+  return (struct mjs_bcode_part *) (mjs->bcode_parts.buf +
+                                    num * sizeof(struct mjs_bcode_part));
+}
+
+MJS_PRIVATE struct mjs_bcode_part *mjs_bcode_part_get_by_offset(struct mjs *mjs,
+                                                                size_t offset) {
+  int i;
+  int parts_cnt = mjs_bcode_parts_cnt(mjs);
+  struct mjs_bcode_part *bp = NULL;
+
+  if (offset >= mjs->bcode_len) {
+    return NULL;
+  }
+
+  for (i = 0; i < parts_cnt; i++) {
+    bp = mjs_bcode_part_get(mjs, i);
+    if (offset < bp->start_idx + bp->data.len) {
+      break;
+    }
+  }
+
+  /* given the non-corrupted data, the needed part must be found */
+  assert(i < parts_cnt);
+
+  return bp;
+}
+
+MJS_PRIVATE int mjs_bcode_parts_cnt(struct mjs *mjs) {
+  return mjs->bcode_parts.len / sizeof(struct mjs_bcode_part);
+}
+
+MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
+  struct mjs_bcode_part bp;
+  memset(&bp, 0, sizeof(bp));
+
+  /* Make sure the bcode doesn't occupy any extra space */
+  mbuf_trim(&mjs->bcode_gen);
+
+  /* Transfer the ownership of the bcode data to the new mg_str */
+  bp.data.p = mjs->bcode_gen.buf;
+  bp.data.len = mjs->bcode_gen.len;
+  mbuf_init(&mjs->bcode_gen, 0);
+
+  bp.start_idx = mjs->bcode_len;
+
+  mjs_bcode_part_add(mjs, &bp);
+
+  mjs->bcode_len += bp.data.len;
 }
