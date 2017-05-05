@@ -6432,6 +6432,12 @@ static void mjs_load(struct mjs *mjs) {
     if (mjs_is_object(arg1)) *bottom = arg1;
     mjs_err_t ret = mjs_exec_file(mjs, path, &res);
     if (ret != MJS_OK) {
+      /*
+       * arg0 and path might be invalidated by executing a file, so refresh
+       * them
+       */
+      arg0 = mjs_arg(mjs, 0);
+      path = mjs_get_cstring(mjs, &arg0);
       mjs_set_errorf(mjs, ret, "failed to read file \"%s\"", path);
       goto clean;
     }
