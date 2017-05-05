@@ -1950,6 +1950,22 @@ typedef unsigned long uintptr_t;
 #define MJS_MEMORY_STATS 0
 #endif
 
+/*
+ * MJS_GENERATE_JSC: if enabled, and if mmapping is also enabled (CS_MMAP),
+ * then execution of any .js file will result in creation of a .jsc file with
+ * precompiled bcode, and this .jsc file will be mmapped, instead of keeping
+ * bcode in RAM.
+ *
+ * By default it's enabled (provided that CS_MMAP is defined)
+ */
+#if !defined(MJS_GENERATE_JSC)
+#if defined(CS_MMAP)
+#define MJS_GENERATE_JSC 1
+#else
+#define MJS_GENERATE_JSC 0
+#endif
+#endif
+
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
@@ -2678,6 +2694,7 @@ struct mjs_vals {
 struct mjs_bcode_part {
   size_t start_idx;
   struct mg_str data;
+  unsigned in_rom : 1;
 };
 
 struct mjs {
@@ -6589,7 +6606,9 @@ void mjs_destroy(struct mjs *mjs) {
     int i;
     for (i = 0; i < parts_cnt; i++) {
       struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
-      free((void *) bp->data.p);
+      if (!bp->in_rom) {
+        free((void *) bp->data.p);
+      }
     }
   }
 
@@ -6985,6 +7004,7 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {
  */
 
 /* Amalgamated: #include "common/cs_varint.h" */
+/* Amalgamated: #include "common/cs_file.h" */
 
 /* Amalgamated: #include "mjs/src/mjs_array.h" */
 /* Amalgamated: #include "mjs/src/mjs_bcode.h" */
@@ -7846,6 +7866,64 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
   if (mjs->error != MJS_OK) {
     fprintf(stderr, "  at %s: %s\n", path, mjs->error_msg);
   } else {
+#if MJS_GENERATE_JSC && defined(CS_MMAP)
+    if (path != NULL) {
+      const char *jsext = ".js";
+      int basename_len = (int) strlen(path) - strlen(jsext);
+      if (basename_len > 0 && strcmp(path + basename_len, jsext) == 0) {
+        /* source file has a .js extension: create a .jsc counterpart */
+        int rewrite = 1;
+
+        /* construct .jsc filename */
+        const char *jscext = ".jsc";
+        char filename_jsc[basename_len + strlen(jscext) + 1 /* nul-term */];
+        memcpy(filename_jsc, path, basename_len);
+        strcpy(filename_jsc + basename_len, jscext);
+
+        /* get last bcode part */
+        struct mjs_bcode_part *bp =
+            mjs_bcode_part_get(mjs, mjs_bcode_parts_cnt(mjs) - 1);
+
+        /*
+         * before writing .jsc file, check if it already exists and has the
+         * same contents
+         *
+         * TODO(dfrank): probably store crc32 before the bcode data, and only
+         * compare it. Or if not, then at least use cs_mmap_file(), when
+         * unmmapping is supported.
+         */
+        {
+          size_t size;
+          char *data = cs_read_file(filename_jsc, &size);
+          if (size == bp->data.len) {
+            if (memcmp(data, bp->data.p, size) == 0) {
+              /* .jsc file is up to date, so don't rewrite it */
+              rewrite = 0;
+            }
+          }
+          free(data);
+        }
+
+        /* try to open .jsc file for writing */
+        if (rewrite) {
+          FILE *fp = fopen(filename_jsc, "wb");
+          if (fp != NULL) {
+            /* write last bcode part to .jsc */
+            fwrite(bp->data.p, bp->data.len, 1, fp);
+            fclose(fp);
+
+            /* free RAM buffer with last bcode part */
+            free((void *) bp->data.p);
+
+            /* mmap .jsc file and set last bcode part buffer to it */
+            bp->data.p = cs_mmap_file(filename_jsc, &bp->data.len);
+            bp->in_rom = 1;
+          }
+        }
+      }
+    }
+#endif
+
     mjs_execute(mjs, off);
     r = mjs_pop(mjs);
   }

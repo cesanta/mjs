@@ -90,6 +90,7 @@ struct mjs_vals {
 struct mjs_bcode_part {
   size_t start_idx;
   struct mg_str data;
+  unsigned in_rom : 1;
 };
 
 struct mjs {

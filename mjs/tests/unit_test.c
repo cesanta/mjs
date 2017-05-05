@@ -220,9 +220,12 @@ const char *test_exec(void) {
     while ((dp = readdir(dirp)) != NULL) {
       char path[256];
       const char *prefix = "test_";
+      const char *jsext = ".js";
       mjs_val_t res = MJS_UNDEFINED;
+      int basename_len = (int)strlen(dp->d_name) - strlen(jsext);
 
       if (strncmp(dp->d_name, prefix, strlen(prefix)) != 0) continue;
+      if (strncmp(dp->d_name + basename_len, jsext, strlen(jsext)) != 0) continue;
       snprintf(path, sizeof(path), "%s/%s", dir, dp->d_name);
       LOG(LL_INFO, ("executing %s", path));
 

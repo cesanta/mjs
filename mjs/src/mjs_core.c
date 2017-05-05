@@ -43,7 +43,9 @@ void mjs_destroy(struct mjs *mjs) {
     int i;
     for (i = 0; i < parts_cnt; i++) {
       struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
-      free((void *) bp->data.p);
+      if (!bp->in_rom) {
+        free((void *) bp->data.p);
+      }
     }
   }
 
