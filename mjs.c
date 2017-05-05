@@ -8280,8 +8280,11 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   mjs_val_t res = MJS_UNDEFINED;
   union ffi_cb_data_val ret;
   int i;
+  struct mjs *mjs = cbargs->mjs;
+  mjs_ffi_ctype_t return_ctype = MJS_FFI_CTYPE_NONE;
+
   memset(&ret, 0, sizeof(ret));
-  mjs_own(cbargs->mjs, &res);
+  mjs_own(mjs, &res);
 
   /* There must be at least one argument: a userdata */
   assert(cbargs->sig.args_cnt > 0);
@@ -8296,22 +8299,22 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
         args[i] = cbargs->userdata;
         break;
       case MJS_FFI_CTYPE_INT:
-        args[i] = mjs_mk_number(cbargs->mjs, data->args[i].w);
+        args[i] = mjs_mk_number(mjs, data->args[i].w);
         break;
       case MJS_FFI_CTYPE_BOOL:
-        args[i] = mjs_mk_boolean(cbargs->mjs, !!data->args[i].w);
+        args[i] = mjs_mk_boolean(mjs, !!data->args[i].w);
         break;
       case MJS_FFI_CTYPE_CHAR_PTR: {
         const char *s = (char *) data->args[i].w;
         if (s == NULL) s = "";
-        args[i] = mjs_mk_string(cbargs->mjs, s, ~0, 1);
+        args[i] = mjs_mk_string(mjs, s, ~0, 1);
         break;
       }
       case MJS_FFI_CTYPE_VOID_PTR:
-        args[i] = mjs_mk_foreign(cbargs->mjs, (void *) data->args[i].w);
+        args[i] = mjs_mk_foreign(mjs, (void *) data->args[i].w);
         break;
       case MJS_FFI_CTYPE_DOUBLE:
-        args[i] = mjs_mk_number(cbargs->mjs, data->args[i].d);
+        args[i] = mjs_mk_number(mjs, data->args[i].d);
         break;
       default:
         /* should never be here */
@@ -8320,47 +8323,58 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
     }
   }
 
+  /*
+   * save return ctype outside of `cbargs` before calling the callback, because
+   * callback might call `ffi_cb_free()`, which will effectively invalidate
+   * `cbargs`
+   */
+  return_ctype = cbargs->sig.val_types[0];
+
   /* Call JS function */
   LOG(LL_VERBOSE_DEBUG, ("calling JS callback void-void %d from C",
-                         mjs_get_int(cbargs->mjs, cbargs->func)));
-  mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, MJS_UNDEFINED,
+                         mjs_get_int(mjs, cbargs->func)));
+  mjs_err_t err = mjs_apply(mjs, &res, cbargs->func, MJS_UNDEFINED,
                             cbargs->sig.args_cnt, args);
+  /*
+   * cbargs might be invalidated by the callback (if it called ffi_cb_free), so
+   * null it out
+   */
+  cbargs = NULL;
   if (err != MJS_OK) {
     /*
      * There's not much we can do about the error here; let's at least print it
      */
-    fprintf(stderr, "MJS callback error: %s\n", mjs_strerror(cbargs->mjs, err));
+    fprintf(stderr, "MJS callback error: %s\n", mjs_strerror(mjs, err));
 
     goto clean;
   }
 
   /* Get return value, if needed */
-  switch (cbargs->sig.val_types[0]) {
+  switch (return_ctype) {
     case MJS_FFI_CTYPE_NONE:
       /* do nothing */
       break;
     case MJS_FFI_CTYPE_INT:
-      ret.w = mjs_get_int(cbargs->mjs, res);
+      ret.w = mjs_get_int(mjs, res);
       break;
     case MJS_FFI_CTYPE_BOOL:
-      ret.w = mjs_get_bool(cbargs->mjs, res);
+      ret.w = mjs_get_bool(mjs, res);
       break;
     case MJS_FFI_CTYPE_VOID_PTR:
-      ret.p = mjs_get_ptr(cbargs->mjs, res);
+      ret.p = mjs_get_ptr(mjs, res);
       break;
     case MJS_FFI_CTYPE_DOUBLE:
-      ret.d = mjs_get_double(cbargs->mjs, res);
+      ret.d = mjs_get_double(mjs, res);
       break;
     default:
       /* should never be here */
-      LOG(LL_ERROR,
-          ("unexpected return val type %d\n", cbargs->sig.val_types[0]));
+      LOG(LL_ERROR, ("unexpected return val type %d\n", return_ctype));
       abort();
   }
 
 clean:
   free(args);
-  mjs_disown(cbargs->mjs, &res);
+  mjs_disown(mjs, &res);
   return ret;
 }
 
