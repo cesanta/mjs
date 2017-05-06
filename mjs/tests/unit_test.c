@@ -1360,7 +1360,10 @@ const char *test_errors(struct mjs *mjs) {
   ASSERT_STREQ(mjs->error_msg, "implicit type conversion is prohibited");
 
   ASSERT_EQ(mjs_exec(mjs, "load('foo/bar/bazzz')", &res), MJS_FILE_READ_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to read file \"foo/bar/bazzz\"");
+  ASSERT_STREQ(mjs->error_msg, "failed to exec file \"foo/bar/bazzz\": failed to read file \"foo/bar/bazzz\"");
+
+  ASSERT_EQ(mjs_exec(mjs, "load('tests/module2.js')", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "failed to exec file \"tests/module2.js\": bad ffi signature: \"int foo(int)\": dlsym('foo') failed");
 
   mjs_disown(mjs, &res);
   return NULL;

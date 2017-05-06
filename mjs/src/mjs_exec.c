@@ -942,11 +942,18 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
   mjs_val_t r = MJS_UNDEFINED;
   size_t size;
   char *source_code = cs_read_file(path, &size);
-  r = MJS_UNDEFINED;
-  if (source_code != NULL) {
-    error = mjs_exec_internal(mjs, path, source_code, generate_jsc, &r);
-    free(source_code);
+
+  if (source_code == NULL) {
+    error = MJS_FILE_READ_ERROR;
+    mjs_prepend_errorf(mjs, error, "failed to read file \"%s\"", path);
+    goto clean;
   }
+
+  r = MJS_UNDEFINED;
+  error = mjs_exec_internal(mjs, path, source_code, generate_jsc, &r);
+  free(source_code);
+
+clean:
   if (res != NULL) *res = r;
   return error;
 }

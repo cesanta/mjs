@@ -6448,7 +6448,7 @@ static void mjs_load(struct mjs *mjs) {
        */
       arg0 = mjs_arg(mjs, 0);
       path = mjs_get_cstring(mjs, &arg0);
-      mjs_set_errorf(mjs, ret, "failed to read file \"%s\"", path);
+      mjs_prepend_errorf(mjs, ret, "failed to exec file \"%s\"", path);
       goto clean;
     }
     if (mjs_is_object(arg1)) *bottom = global;
@@ -7962,11 +7962,18 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
   mjs_val_t r = MJS_UNDEFINED;
   size_t size;
   char *source_code = cs_read_file(path, &size);
-  r = MJS_UNDEFINED;
-  if (source_code != NULL) {
-    error = mjs_exec_internal(mjs, path, source_code, generate_jsc, &r);
-    free(source_code);
+
+  if (source_code == NULL) {
+    error = MJS_FILE_READ_ERROR;
+    mjs_prepend_errorf(mjs, error, "failed to read file \"%s\"", path);
+    goto clean;
   }
+
+  r = MJS_UNDEFINED;
+  error = mjs_exec_internal(mjs, path, source_code, generate_jsc, &r);
+  free(source_code);
+
+clean:
   if (res != NULL) *res = r;
   return error;
 }

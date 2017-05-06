@@ -41,7 +41,7 @@ static void mjs_load(struct mjs *mjs) {
        */
       arg0 = mjs_arg(mjs, 0);
       path = mjs_get_cstring(mjs, &arg0);
-      mjs_set_errorf(mjs, ret, "failed to read file \"%s\"", path);
+      mjs_prepend_errorf(mjs, ret, "failed to exec file \"%s\"", path);
       goto clean;
     }
     if (mjs_is_object(arg1)) *bottom = global;
