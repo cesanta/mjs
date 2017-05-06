@@ -468,7 +468,11 @@ static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
 
 static void mjs_execute(struct mjs *mjs, size_t off) {
   size_t i;
+
   mjs_set_errorf(mjs, MJS_OK, NULL);
+  free(mjs->stack_trace);
+  mjs->stack_trace = NULL;
+
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
 
@@ -842,7 +846,7 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
         break;
     }
     if (mjs->error != MJS_OK) {
-      mjs_print_stack_trace(mjs, i - 1 /* undo the i++ */);
+      mjs_gen_stack_trace(mjs, i - 1 /* undo the i++ */);
 
       /* restore stack lenghts */
       mjs->stack.len = stack_len;
@@ -864,9 +868,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
   if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
-  if (mjs->error != MJS_OK) {
-    fprintf(stderr, "  at %s: %s\n", path, mjs->error_msg);
-  } else {
+  if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
     if (generate_jsc && path != NULL) {
       const char *jsext = ".js";

@@ -108,6 +108,7 @@ struct mjs {
   struct mbuf json_visited_stack;
   struct mjs_vals vals;
   char *error_msg;
+  char *stack_trace;
   enum mjs_err error;
   mjs_ffi_resolver_t *dlsym;  /* Symbol resolver function for FFI */
   ffi_cb_args_t *ffi_cb_args; /* List of FFI args descriptors */
@@ -149,7 +150,7 @@ MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
  * Prints stack trace starting from the given bcode offset; other offsets
  * (if any) will be fetched from the call_stack.
  */
-MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset);
+MJS_PRIVATE void mjs_gen_stack_trace(struct mjs *mjs, size_t offset);
 
 MJS_PRIVATE mjs_val_t vtop(struct mbuf *m);
 MJS_PRIVATE size_t mjs_stack_size(const struct mbuf *m);

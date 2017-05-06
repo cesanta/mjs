@@ -19,7 +19,7 @@ extern "C" {
   do {                                                                      \
     mjs_err_t err = _exec_;                                                 \
     if (err != MJS_OK) {                                                    \
-      fprintf(stderr, "exec error: %d [%s]\n", mjs->error, mjs->error_msg); \
+      mjs_print_error(mjs, stderr, "exec error", 1 /* print_stack_trace */);\
     }                                                                       \
     ASSERT_EQ(err, MJS_OK);                                                 \
     if (mjs->stack.len != 0) {                                              \

@@ -66,6 +66,7 @@
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_features.h" */
@@ -235,6 +236,14 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
  */
 mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...);
+
+/*
+ * Print the last error details. If print_stack_trace is non-zero, also
+ * print stack trace. `msg` is the message which gets prepended to the actual
+ * error message, if it's NULL, then "MJS error" is used.
+ */
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace);
 
 /*
  * return a string representation of an error.
@@ -311,6 +320,7 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_features.h" */
@@ -480,6 +490,14 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...);
  */
 mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...);
+
+/*
+ * Print the last error details. If print_stack_trace is non-zero, also
+ * print stack trace. `msg` is the message which gets prepended to the actual
+ * error message, if it's NULL, then "MJS error" is used.
+ */
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace);
 
 /*
  * return a string representation of an error.

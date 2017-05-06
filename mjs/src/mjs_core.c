@@ -61,6 +61,7 @@ void mjs_destroy(struct mjs *mjs) {
   mbuf_free(&mjs->loop_addresses);
   mbuf_free(&mjs->json_visited_stack);
   free(mjs->error_msg);
+  free(mjs->stack_trace);
   mjs_ffi_args_free_list(mjs);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
@@ -152,6 +153,19 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
   return err;
 }
 
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace) {
+  if (print_stack_trace && mjs->stack_trace != NULL) {
+    fprintf(fp, "%s", mjs->stack_trace);
+  }
+
+  if (msg == NULL) {
+    msg = "MJS error";
+  }
+
+  fprintf(fp, "%s: %s\n", msg, mjs_strerror(mjs, mjs->error));
+}
+
 MJS_PRIVATE void mjs_die(struct mjs *mjs) {
   mjs_val_t msg_v = MJS_UNDEFINED;
   const char *msg = NULL;
@@ -221,18 +235,29 @@ mjs_val_t mjs_get_global(struct mjs *mjs) {
   return *vptr(&mjs->scopes, 0);
 }
 
-static void mjs_print_stack_trace_line(struct mjs *mjs, size_t offset) {
+static void mjs_append_stack_trace_line(struct mjs *mjs, size_t offset) {
   const char *filename = mjs_get_bcode_filename_by_offset(mjs, offset);
   int line_no = mjs_get_lineno_by_offset(mjs, offset);
+  char *new_line = NULL;
+  const char *fmt = "  at %s:%d\n";
   if (filename == NULL) {
     fprintf(stderr, "ERROR: wrong bcode offset %d\n", (int) offset);
     filename = "<unknown-filename>";
   }
-  fprintf(stderr, "  at %s:%d\n", filename, line_no);
+  mg_asprintf(&new_line, 0, fmt, filename, line_no);
+
+  if (mjs->stack_trace != NULL) {
+    char *old = mjs->stack_trace;
+    mg_asprintf(&mjs->stack_trace, 0, "%s%s", mjs->stack_trace, new_line);
+    free(old);
+    free(new_line);
+  } else {
+    mjs->stack_trace = new_line;
+  }
 }
 
-MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset) {
-  mjs_print_stack_trace_line(mjs, offset);
+MJS_PRIVATE void mjs_gen_stack_trace(struct mjs *mjs, size_t offset) {
+  mjs_append_stack_trace_line(mjs, offset);
   while (mjs->call_stack.len >=
          sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT) {
     /* pop retval_stack_idx */
@@ -243,7 +268,7 @@ MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset) {
     offset = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
     /* pop this object */
     mjs_pop_val(&mjs->call_stack);
-    mjs_print_stack_trace_line(mjs, offset);
+    mjs_append_stack_trace_line(mjs, offset);
   }
 }
 

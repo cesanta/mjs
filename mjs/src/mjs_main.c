@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     mjs_fprintf(res, mjs, stdout);
     putchar('\n');
   } else {
-    printf("Error: %s\n", mjs_strerror(mjs, mjs->error));
+    mjs_print_error(mjs, stdout, NULL, 1 /* print_stack_trace */);
   }
   mjs_destroy(mjs);
 

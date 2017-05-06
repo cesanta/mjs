@@ -331,7 +331,8 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
     /*
      * There's not much we can do about the error here; let's at least print it
      */
-    fprintf(stderr, "MJS callback error: %s\n", mjs_strerror(mjs, err));
+    mjs_print_error(mjs, stderr, "MJS callback error",
+                    1 /* print_stack_trace */);
 
     goto clean;
   }
