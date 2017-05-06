@@ -231,7 +231,7 @@ const char *test_exec(void) {
 
       mjs = mjs_create();
       mjs_own(mjs, &res);
-      ASSERT_EXEC_OK(mjs_exec_file(mjs, path, &res));
+      ASSERT_EXEC_OK(mjs_exec_file(mjs, path, 1, &res));
       ASSERT_EQ(mjs_get_bool(mjs, res), 1);
       mjs_disown(mjs, &res);
       ASSERT_EQ(mjs->owned_values.len, 0);

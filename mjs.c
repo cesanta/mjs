@@ -3726,7 +3726,16 @@ extern "C" {
 
 mjs_err_t mjs_exec(struct mjs *, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_buf(struct mjs *, const char *src, size_t, mjs_val_t *res);
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res);
+
+/*
+ * Execute file. If `generate_jsc` is non-zero, and the filename ends with
+ * ".js", the ".jsc" file will be generated.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then `generate_jsc` has no
+ * effect.
+ */
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
+                        mjs_val_t *res);
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args);
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
@@ -6431,7 +6440,7 @@ static void mjs_load(struct mjs *mjs) {
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
     if (mjs_is_object(arg1)) *bottom = arg1;
-    mjs_err_t ret = mjs_exec_file(mjs, path, &res);
+    mjs_err_t ret = mjs_exec_file(mjs, path, 1, &res);
     if (ret != MJS_OK) {
       /*
        * arg0 and path might be invalidated by executing a file, so refresh
@@ -7868,8 +7877,9 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
   }
 }
 
-mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
-                    mjs_val_t *res) {
+MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
+                                        const char *src, int generate_jsc,
+                                        mjs_val_t *res) {
   size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
@@ -7878,7 +7888,7 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
     fprintf(stderr, "  at %s: %s\n", path, mjs->error_msg);
   } else {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
-    if (path != NULL) {
+    if (generate_jsc && path != NULL) {
       const char *jsext = ".js";
       int basename_len = (int) strlen(path) - strlen(jsext);
       if (basename_len > 0 && strcmp(path + basename_len, jsext) == 0) {
@@ -7943,17 +7953,18 @@ mjs_err_t mjs_exec2(struct mjs *mjs, const char *path, const char *src,
 }
 
 mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res) {
-  return mjs_exec2(mjs, "<stdin>", src, res);
+  return mjs_exec_internal(mjs, "<stdin>", src, 0 /* generate_jsc */, res);
 }
 
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res) {
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
+                        mjs_val_t *res) {
   mjs_err_t error = MJS_FILE_READ_ERROR;
   mjs_val_t r = MJS_UNDEFINED;
   size_t size;
   char *source_code = cs_read_file(path, &size);
   r = MJS_UNDEFINED;
   if (source_code != NULL) {
-    error = mjs_exec2(mjs, path, source_code, &r);
+    error = mjs_exec_internal(mjs, path, source_code, generate_jsc, &r);
     free(source_code);
   }
   if (res != NULL) *res = r;
@@ -10079,7 +10090,7 @@ int main(int argc, char *argv[]) {
     }
   }
   for (; i < argc; i++) {
-    err = mjs_exec_file(mjs, argv[i], &res);
+    err = mjs_exec_file(mjs, argv[i], 1, &res);
   }
 
   if (err == MJS_OK) {

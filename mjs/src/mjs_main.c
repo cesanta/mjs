@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     }
   }
   for (; i < argc; i++) {
-    err = mjs_exec_file(mjs, argv[i], &res);
+    err = mjs_exec_file(mjs, argv[i], 1, &res);
   }
 
   if (err == MJS_OK) {

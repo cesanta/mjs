@@ -33,7 +33,7 @@ static void mjs_load(struct mjs *mjs) {
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
     if (mjs_is_object(arg1)) *bottom = arg1;
-    mjs_err_t ret = mjs_exec_file(mjs, path, &res);
+    mjs_err_t ret = mjs_exec_file(mjs, path, 1, &res);
     if (ret != MJS_OK) {
       /*
        * arg0 and path might be invalidated by executing a file, so refresh
