@@ -9,6 +9,10 @@
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_util.h"
 
+void *mjs_mem_to_ptr(unsigned val) {
+  return (void *) (unsigned long) val;
+}
+
 void *mjs_mem_get_ptr(void *base, int offset) {
   return (char *) base + offset;
 }

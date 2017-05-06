@@ -3691,6 +3691,7 @@ extern "C" {
  * These are supposed to be FFI-ed and used from the JS environment.
  */
 
+void *mjs_mem_to_ptr(unsigned int val);
 void *mjs_mem_get_ptr(void *base, int offset);
 void mjs_mem_set_ptr(void *ptr, void *val);
 double mjs_mem_get_dbl(void *ptr);
@@ -6929,6 +6930,10 @@ MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v) {
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
+
+void *mjs_mem_to_ptr(unsigned val) {
+  return (void *) (unsigned long) val;
+}
 
 void *mjs_mem_get_ptr(void *base, int offset) {
   return (char *) base + offset;

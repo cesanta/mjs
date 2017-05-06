@@ -743,6 +743,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "malloc") == 0) return malloc;
   if (strcmp(name, "calloc") == 0) return calloc;
   if (strcmp(name, "free") == 0) return free;
+  if (strcmp(name, "mjs_mem_to_ptr") == 0) return mjs_mem_to_ptr;
   if (strcmp(name, "mjs_mem_get_ptr") == 0) return mjs_mem_get_ptr;
   if (strcmp(name, "mjs_mem_get_uint") == 0) return mjs_mem_get_uint;
   if (strcmp(name, "mjs_mem_set_uint") == 0) return mjs_mem_set_uint;
