@@ -23,6 +23,29 @@ static void mjs_print(struct mjs *mjs) {
   mjs_return(mjs, MJS_UNDEFINED);
 }
 
+/*
+ * If the file with the given filename was already loaded, returns the
+ * corresponding bcode part; otherwise returns NULL.
+ */
+static struct mjs_bcode_part *mjs_get_loaded_file_bcode(struct mjs *mjs,
+                                                        const char *filename) {
+  int parts_cnt = mjs_bcode_parts_cnt(mjs);
+  int i;
+
+  if (filename == NULL) {
+    return 0;
+  }
+
+  for (i = 0; i < parts_cnt; i++) {
+    struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
+    const char *cur_fn = mjs_get_bcode_filename(mjs, bp);
+    if (strcmp(filename, cur_fn) == 0) {
+      return bp;
+    }
+  }
+  return NULL;
+}
+
 static void mjs_load(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_val_t arg0 = mjs_arg(mjs, 0);
@@ -30,10 +53,21 @@ static void mjs_load(struct mjs *mjs) {
 
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
+    struct mjs_bcode_part *bp = NULL;
+
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
+
     if (mjs_is_object(arg1)) *bottom = arg1;
-    mjs_err_t ret = mjs_exec_file(mjs, path, 1, &res);
+    mjs_err_t ret;
+    bp = mjs_get_loaded_file_bcode(mjs, path);
+    if (bp == NULL) {
+      /* File was not loaded before, so, load */
+      ret = mjs_exec_file(mjs, path, 1, &res);
+    } else {
+      /* File was already loaded before, so, just re-evaluate it */
+      ret = mjs_execute(mjs, bp->start_idx, &res);
+    }
     if (ret != MJS_OK) {
       /*
        * arg0 and path might be invalidated by executing a file, so refresh

@@ -3309,6 +3309,8 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
 extern "C" {
 #endif /* __cplusplus */
 
+struct mjs_bcode_part;
+
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
 MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
@@ -3331,6 +3333,9 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
  * as size + index.
  */
 MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
+
+MJS_PRIVATE const char *mjs_get_bcode_filename(struct mjs *mjs,
+                                               struct mjs_bcode_part *bp);
 
 #if defined(__cplusplus)
 }
@@ -3774,10 +3779,7 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 extern "C" {
 #endif /* __cplusplus */
 
-/*
- * At the moment, all exec-related functions are public, and are declared in
- * mjs_exec_public.h
- */
+MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res);
 
 #if defined(__cplusplus)
 }
@@ -6440,6 +6442,29 @@ static void mjs_print(struct mjs *mjs) {
   mjs_return(mjs, MJS_UNDEFINED);
 }
 
+/*
+ * If the file with the given filename was already loaded, returns the
+ * corresponding bcode part; otherwise returns NULL.
+ */
+static struct mjs_bcode_part *mjs_get_loaded_file_bcode(struct mjs *mjs,
+                                                        const char *filename) {
+  int parts_cnt = mjs_bcode_parts_cnt(mjs);
+  int i;
+
+  if (filename == NULL) {
+    return 0;
+  }
+
+  for (i = 0; i < parts_cnt; i++) {
+    struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
+    const char *cur_fn = mjs_get_bcode_filename(mjs, bp);
+    if (strcmp(filename, cur_fn) == 0) {
+      return bp;
+    }
+  }
+  return NULL;
+}
+
 static void mjs_load(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_val_t arg0 = mjs_arg(mjs, 0);
@@ -6447,10 +6472,21 @@ static void mjs_load(struct mjs *mjs) {
 
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
+    struct mjs_bcode_part *bp = NULL;
+
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
+
     if (mjs_is_object(arg1)) *bottom = arg1;
-    mjs_err_t ret = mjs_exec_file(mjs, path, 1, &res);
+    mjs_err_t ret;
+    bp = mjs_get_loaded_file_bcode(mjs, path);
+    if (bp == NULL) {
+      /* File was not loaded before, so, load */
+      ret = mjs_exec_file(mjs, path, 1, &res);
+    } else {
+      /* File was already loaded before, so, just re-evaluate it */
+      ret = mjs_execute(mjs, bp->start_idx, &res);
+    }
     if (ret != MJS_OK) {
       /*
        * arg0 and path might be invalidated by executing a file, so refresh
@@ -7521,7 +7557,7 @@ static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
   return handled;
 }
 
-static void mjs_execute(struct mjs *mjs, size_t off) {
+MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   size_t i;
 
   mjs_set_errorf(mjs, MJS_OK, NULL);
@@ -7914,6 +7950,9 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       break;
     }
   }
+
+  *res = mjs_pop(mjs);
+  return mjs->error;
 }
 
 MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
@@ -7982,8 +8021,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
     }
 #endif
 
-    mjs_execute(mjs, off);
-    r = mjs_pop(mjs);
+    mjs_execute(mjs, off, &r);
   }
   if (res != NULL) *res = r;
   return mjs->error;
@@ -8067,8 +8105,7 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
     mjs_push(mjs, args[i]);
   }
 
-  mjs_execute(mjs, addr);
-  r = mjs_pop(mjs);
+  mjs_execute(mjs, addr, &r);
 
   if (res != NULL) *res = r;
   mjs->vals.this_obj = prev_this_val;
@@ -12592,12 +12629,18 @@ MJS_PRIVATE int mjs_normalize_idx(int idx, int size) {
   return idx;
 }
 
+MJS_PRIVATE const char *mjs_get_bcode_filename(struct mjs *mjs,
+                                               struct mjs_bcode_part *bp) {
+  (void) mjs;
+  return bp->data.p + 1 /* OP_BCODE_HEADER */ +
+         sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
+}
+
 const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
   const char *ret = NULL;
   struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
   if (bp != NULL) {
-    ret = bp->data.p + 1 /* OP_BCODE_HEADER */ +
-          sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
+    ret = mjs_get_bcode_filename(mjs, bp);
   }
   return ret;
 }

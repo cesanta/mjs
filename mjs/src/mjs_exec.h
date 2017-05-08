@@ -12,10 +12,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-/*
- * At the moment, all exec-related functions are public, and are declared in
- * mjs_exec_public.h
- */
+MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res);
 
 #if defined(__cplusplus)
 }

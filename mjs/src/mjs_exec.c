@@ -466,7 +466,7 @@ static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
   return handled;
 }
 
-static void mjs_execute(struct mjs *mjs, size_t off) {
+MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   size_t i;
 
   mjs_set_errorf(mjs, MJS_OK, NULL);
@@ -859,6 +859,9 @@ static void mjs_execute(struct mjs *mjs, size_t off) {
       break;
     }
   }
+
+  *res = mjs_pop(mjs);
+  return mjs->error;
 }
 
 MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
@@ -927,8 +930,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
     }
 #endif
 
-    mjs_execute(mjs, off);
-    r = mjs_pop(mjs);
+    mjs_execute(mjs, off, &r);
   }
   if (res != NULL) *res = r;
   return mjs->error;
@@ -1012,8 +1014,7 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
     mjs_push(mjs, args[i]);
   }
 
-  mjs_execute(mjs, addr);
-  r = mjs_pop(mjs);
+  mjs_execute(mjs, addr, &r);
 
   if (res != NULL) *res = r;
   mjs->vals.this_obj = prev_this_val;

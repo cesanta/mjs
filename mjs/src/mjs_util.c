@@ -320,12 +320,18 @@ MJS_PRIVATE int mjs_normalize_idx(int idx, int size) {
   return idx;
 }
 
+MJS_PRIVATE const char *mjs_get_bcode_filename(struct mjs *mjs,
+                                               struct mjs_bcode_part *bp) {
+  (void) mjs;
+  return bp->data.p + 1 /* OP_BCODE_HEADER */ +
+         sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
+}
+
 const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
   const char *ret = NULL;
   struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
   if (bp != NULL) {
-    ret = bp->data.p + 1 /* OP_BCODE_HEADER */ +
-          sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
+    ret = mjs_get_bcode_filename(mjs, bp);
   }
   return ret;
 }

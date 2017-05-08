@@ -2768,6 +2768,34 @@ const char *test_foreign_ptr(struct mjs *mjs) {
   return NULL;
 }
 
+const char *test_load(struct mjs *mjs) {
+  mjs_val_t func = MJS_UNDEFINED;
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &func);
+  mjs_own(mjs, &res);
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  /*
+   * Make sure repeated load of the same file does not generate new bcode
+   *
+   * Note that the code which actually loads the file should be a function
+   * which we'll save and call twice; if we were executing load() directly
+   * a few times, the code which calls load() would be added to bcode.
+   */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){load('tests/module1.js')}", &func));
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func, MJS_UNDEFINED, 0, NULL));
+  size_t len1 = mjs->bcode_parts.len;
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func, MJS_UNDEFINED, 0, NULL));
+  size_t len2 = mjs->bcode_parts.len;
+  ASSERT_EQ(len1, len2);
+
+  mjs_disown(mjs, &res);
+  mjs_disown(mjs, &func);
+
+  return NULL;
+}
+
 const char *test_dataview(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   uint8_t buf[20] = "abcd1234 :-)\xff\xff\xff\xff";
@@ -3059,6 +3087,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_long_jump);
   RUN_TEST_MJS(test_foreign_str);
   RUN_TEST_MJS(test_foreign_ptr);
+  RUN_TEST_MJS(test_load);
 
   /* FFI */
   RUN_TEST(test_func1);
