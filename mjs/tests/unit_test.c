@@ -2768,10 +2768,24 @@ const char *test_foreign_ptr(struct mjs *mjs) {
   return NULL;
 }
 
-const char *test_load(struct mjs *mjs) {
-  mjs_val_t func = MJS_UNDEFINED;
+/*
+ * NOTE: this function should not be used with RUN_TEST_MJS, because this test
+ * relies on the fact that "test/module1.js" is not loaded yet, but
+ * when RUN_TEST_MJS does the second pass, it's already loaded.
+ */
+const char *test_load(void) {
+  struct mjs *mjs = mjs_create();
+
+  mjs_val_t func_load = MJS_UNDEFINED;
+  mjs_val_t func_add_foo_to_s = MJS_UNDEFINED;
+  mjs_val_t func_get_s = MJS_UNDEFINED;
+  mjs_val_t func_set_foo = MJS_UNDEFINED;
   mjs_val_t res = MJS_UNDEFINED;
-  mjs_own(mjs, &func);
+
+  mjs_own(mjs, &func_add_foo_to_s);
+  mjs_own(mjs, &func_get_s);
+  mjs_own(mjs, &func_set_foo);
+  mjs_own(mjs, &func_load);
   mjs_own(mjs, &res);
 
   mjs_set_ffi_resolver(mjs, stub_dlsym);
@@ -2783,15 +2797,43 @@ const char *test_load(struct mjs *mjs) {
    * which we'll save and call twice; if we were executing load() directly
    * a few times, the code which calls load() would be added to bcode.
    */
-  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){load('tests/module1.js')}", &func));
-  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func, MJS_UNDEFINED, 0, NULL));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let s = ''; let foo = 2;", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){s += JSON.stringify(foo) + '_';}", &func_add_foo_to_s));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){return s;}", &func_get_s));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(newfoo){foo = newfoo;}", &func_set_foo));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){load('tests/module1.js'); return foo;}", &func_load));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_load, MJS_UNDEFINED, 0, NULL));
   size_t len1 = mjs->bcode_parts.len;
-  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_call(mjs, &res, func_set_foo, MJS_UNDEFINED, 1, res));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_call(mjs, &res, func_set_foo, MJS_UNDEFINED, 1, mjs_mk_number(mjs, 100)));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_load, MJS_UNDEFINED, 0, NULL));
   size_t len2 = mjs->bcode_parts.len;
   ASSERT_EQ(len1, len2);
 
+  ASSERT_EXEC_OK(mjs_call(mjs, &res, func_set_foo, MJS_UNDEFINED, 1, res));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_get_s, MJS_UNDEFINED, 0, NULL));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "2_1_100_100_");
+
   mjs_disown(mjs, &res);
-  mjs_disown(mjs, &func);
+  mjs_disown(mjs, &func_add_foo_to_s);
+  mjs_disown(mjs, &func_get_s);
+  mjs_disown(mjs, &func_set_foo);
+  mjs_disown(mjs, &func_load);
+
+  cleanup_mjs(&mjs);
 
   return NULL;
 }
@@ -3087,7 +3129,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_long_jump);
   RUN_TEST_MJS(test_foreign_str);
   RUN_TEST_MJS(test_foreign_ptr);
-  RUN_TEST_MJS(test_load);
+  RUN_TEST(test_load);
 
   /* FFI */
   RUN_TEST(test_func1);

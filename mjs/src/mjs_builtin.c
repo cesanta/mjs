@@ -3,6 +3,7 @@
  * All rights reserved
  */
 
+#include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_dataview.h"
 #include "mjs/src/mjs_exec.h"
@@ -50,6 +51,7 @@ static void mjs_load(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_val_t arg0 = mjs_arg(mjs, 0);
   mjs_val_t arg1 = mjs_arg(mjs, 1);
+  int custom_global = 0; /* whether the custom global object was provided */
 
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
@@ -58,15 +60,29 @@ static void mjs_load(struct mjs *mjs) {
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
 
-    if (mjs_is_object(arg1)) *bottom = arg1;
+    if (mjs_is_object(arg1)) {
+      custom_global = 1;
+      *bottom = arg1;
+    }
     mjs_err_t ret;
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */
       ret = mjs_exec_file(mjs, path, 1, &res);
     } else {
-      /* File was already loaded before, so, just re-evaluate it */
-      ret = mjs_execute(mjs, bp->start_idx, &res);
+      /*
+       * File was already loaded before, so if it was evaluated successfully,
+       * then skip the evaluation at all (and assume MJS_OK); otherwise
+       * re-evaluate it again.
+       *
+       * However, if the custom global object was provided, then reevaluate
+       * the file in any case.
+       */
+      if (bp->exec_res != MJS_OK || custom_global) {
+        ret = mjs_execute(mjs, bp->start_idx, &res);
+      } else {
+        ret = MJS_OK;
+      }
     }
     if (ret != MJS_OK) {
       /*

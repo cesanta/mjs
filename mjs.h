@@ -127,6 +127,8 @@ typedef enum mjs_err {
   MJS_NOT_IMPLEMENTED_ERROR,
   MJS_FILE_READ_ERROR,
   MJS_BAD_ARGS_ERROR,
+
+  MJS_ERRS_CNT
 } mjs_err_t;
 struct mjs;
 
@@ -381,6 +383,8 @@ typedef enum mjs_err {
   MJS_NOT_IMPLEMENTED_ERROR,
   MJS_FILE_READ_ERROR,
   MJS_BAD_ARGS_ERROR,
+
+  MJS_ERRS_CNT
 } mjs_err_t;
 struct mjs;
 

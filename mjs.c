@@ -2040,6 +2040,8 @@ typedef enum mjs_err {
   MJS_NOT_IMPLEMENTED_ERROR,
   MJS_FILE_READ_ERROR,
   MJS_BAD_ARGS_ERROR,
+
+  MJS_ERRS_CNT
 } mjs_err_t;
 struct mjs;
 
@@ -2701,8 +2703,21 @@ struct mjs_vals {
 };
 
 struct mjs_bcode_part {
+  /* Global index of the bcode part */
   size_t start_idx;
+
+  /* Actual bcode data */
   struct mg_str data;
+
+  /*
+   * Result of evaluation (not parsing: if there is an error during parsing,
+   * the bcode is not even committed). It is used to determine whether we
+   * need to evaluate the file: if file was already evaluated, and the result
+   * was MJS_OK, then we won't evaluate it again. Otherwise, we will.
+   */
+  mjs_err_t exec_res : 4;
+
+  /* If set, bcode data does not need to be freed */
   unsigned in_rom : 1;
 };
 
@@ -6409,6 +6424,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
   mbuf_init(&mjs->bcode_gen, 0);
 
   bp.start_idx = mjs->bcode_len;
+  bp.exec_res = MJS_ERRS_CNT;
 
   mjs_bcode_part_add(mjs, &bp);
 
@@ -6422,6 +6438,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
  * All rights reserved
  */
 
+/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_dataview.h" */
 /* Amalgamated: #include "mjs/src/mjs_exec.h" */
@@ -6469,6 +6486,7 @@ static void mjs_load(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_val_t arg0 = mjs_arg(mjs, 0);
   mjs_val_t arg1 = mjs_arg(mjs, 1);
+  int custom_global = 0; /* whether the custom global object was provided */
 
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
@@ -6477,15 +6495,29 @@ static void mjs_load(struct mjs *mjs) {
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
 
-    if (mjs_is_object(arg1)) *bottom = arg1;
+    if (mjs_is_object(arg1)) {
+      custom_global = 1;
+      *bottom = arg1;
+    }
     mjs_err_t ret;
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */
       ret = mjs_exec_file(mjs, path, 1, &res);
     } else {
-      /* File was already loaded before, so, just re-evaluate it */
-      ret = mjs_execute(mjs, bp->start_idx, &res);
+      /*
+       * File was already loaded before, so if it was evaluated successfully,
+       * then skip the evaluation at all (and assume MJS_OK); otherwise
+       * re-evaluate it again.
+       *
+       * However, if the custom global object was provided, then reevaluate
+       * the file in any case.
+       */
+      if (bp->exec_res != MJS_OK || custom_global) {
+        ret = mjs_execute(mjs, bp->start_idx, &res);
+      } else {
+        ret = MJS_OK;
+      }
     }
     if (ret != MJS_OK) {
       /*
@@ -7574,6 +7606,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   int call_stack_len = mjs->call_stack.len;
   int arg_stack_len = mjs->arg_stack.len;
   int scopes_len = mjs->scopes.len;
+  size_t start_off = off;
 
   struct mjs_bcode_part bp = *mjs_bcode_part_get_by_offset(mjs, off);
   off -= bp.start_idx;
@@ -7950,6 +7983,9 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       break;
     }
   }
+
+  /* Remember result of the evaluation of this bcode part */
+  mjs_bcode_part_get_by_offset(mjs, start_off)->exec_res = mjs->error;
 
   *res = mjs_pop(mjs);
   return mjs->error;

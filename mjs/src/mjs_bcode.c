@@ -138,6 +138,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
   mbuf_init(&mjs->bcode_gen, 0);
 
   bp.start_idx = mjs->bcode_len;
+  bp.exec_res = MJS_ERRS_CNT;
 
   mjs_bcode_part_add(mjs, &bp);
 

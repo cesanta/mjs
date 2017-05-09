@@ -88,8 +88,21 @@ struct mjs_vals {
 };
 
 struct mjs_bcode_part {
+  /* Global index of the bcode part */
   size_t start_idx;
+
+  /* Actual bcode data */
   struct mg_str data;
+
+  /*
+   * Result of evaluation (not parsing: if there is an error during parsing,
+   * the bcode is not even committed). It is used to determine whether we
+   * need to evaluate the file: if file was already evaluated, and the result
+   * was MJS_OK, then we won't evaluate it again. Otherwise, we will.
+   */
+  mjs_err_t exec_res : 4;
+
+  /* If set, bcode data does not need to be freed */
   unsigned in_rom : 1;
 };
 

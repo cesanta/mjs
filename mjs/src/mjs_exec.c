@@ -483,6 +483,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   int call_stack_len = mjs->call_stack.len;
   int arg_stack_len = mjs->arg_stack.len;
   int scopes_len = mjs->scopes.len;
+  size_t start_off = off;
 
   struct mjs_bcode_part bp = *mjs_bcode_part_get_by_offset(mjs, off);
   off -= bp.start_idx;
@@ -859,6 +860,9 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       break;
     }
   }
+
+  /* Remember result of the evaluation of this bcode part */
+  mjs_bcode_part_get_by_offset(mjs, start_off)->exec_res = mjs->error;
 
   *res = mjs_pop(mjs);
   return mjs->error;
