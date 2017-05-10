@@ -2768,6 +2768,94 @@ const char *test_foreign_ptr(struct mjs *mjs) {
   return NULL;
 }
 
+const char *test_backtrace(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  ASSERT_EQ(mjs_exec(mjs, "foo", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace, "  at <stdin>:1\n");
+
+  ASSERT_EQ(mjs_exec(mjs, "function f1() { return bar; };\nf1();\n", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at <stdin>:1\n"
+      "  at <stdin>:2\n"
+      );
+
+  ASSERT_EQ(mjs_exec(mjs, 
+        "function f1() { return bar; };"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "f1();\n",
+        &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at <stdin>:1\n"
+      "  at <stdin>:101\n"
+      );
+
+  ASSERT_EQ(mjs_exec(mjs, "load('tests/err1.js'); err1f1();", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  ASSERT_EQ(mjs_exec(mjs, "load('tests/err2.js'); err2f1();", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err2.js:7\n"
+      "  at tests/err2.js:3\n"
+      "  at <stdin>:1\n"
+      );
+
+  /* Exception in the argument to a JS function */
+  ASSERT_EQ(mjs_exec(mjs, STRINGIFY(
+          function f1(a) { return a; };
+          load('tests/err1.js');
+          f1(err1f1());
+          ), &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  /* Exception in the argument to a ffi-ed function */
+  ASSERT_EQ(mjs_exec(mjs, STRINGIFY(
+          let malloc = ffi('void *malloc(int)');
+          load('tests/err1.js');
+          malloc(err1f1());
+          ), &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  /* Exception in the argument to a cfunction */
+  ASSERT_EQ(mjs_exec(mjs, STRINGIFY(
+          load('tests/err1.js');
+          print(err1f1());
+          ), &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  mjs_disown(mjs, &res);
+
+  return NULL;
+}
+
 /*
  * NOTE: this function should not be used with RUN_TEST_MJS, because this test
  * relies on the fact that "test/module1.js" is not loaded yet, but
@@ -3129,6 +3217,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_long_jump);
   RUN_TEST_MJS(test_foreign_str);
   RUN_TEST_MJS(test_foreign_ptr);
+  RUN_TEST_MJS(test_backtrace);
   RUN_TEST(test_load);
 
   /* FFI */

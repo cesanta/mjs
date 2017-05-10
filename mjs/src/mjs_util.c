@@ -351,7 +351,7 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
                sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
            sizeof(bcode_offset));
 
-    offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset);
+    offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset) + bp->start_idx;
 
     /* get pointer to the length of the map followed by the map itself */
     uint8_t *p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;

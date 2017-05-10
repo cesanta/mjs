@@ -7791,8 +7791,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       case OP_RETURN: {
         /*
          * Return address is saved as a global bcode offset, so we need to
-         * convert
-         * it to the local offset
+         * convert it to the local offset
          */
         size_t off_ret = call_stack_restore_frame(mjs) - 1;
         bp = *mjs_bcode_part_get_by_offset(mjs, off_ret);
@@ -7970,7 +7969,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
     }
     if (mjs->error != MJS_OK) {
-      mjs_gen_stack_trace(mjs, i - 1 /* undo the i++ */);
+      mjs_gen_stack_trace(mjs, bp.start_idx + i - 1 /* undo the i++ */);
 
       /* restore stack lenghts */
       mjs->stack.len = stack_len;
@@ -12696,7 +12695,7 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
                sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
            sizeof(bcode_offset));
 
-    offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset);
+    offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset) + bp->start_idx;
 
     /* get pointer to the length of the map followed by the map itself */
     uint8_t *p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
