@@ -8021,19 +8021,20 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
          * same contents
          *
          * TODO(dfrank): probably store crc32 before the bcode data, and only
-         * compare it. Or if not, then at least use cs_mmap_file(), when
-         * unmmapping is supported.
+         * compare it.
          */
         {
           size_t size;
-          char *data = cs_read_file(filename_jsc, &size);
-          if (size == bp->data.len) {
-            if (memcmp(data, bp->data.p, size) == 0) {
-              /* .jsc file is up to date, so don't rewrite it */
-              rewrite = 0;
+          char *data = cs_mmap_file(filename_jsc, &size);
+          if (data != NULL) {
+            if (size == bp->data.len) {
+              if (memcmp(data, bp->data.p, size) == 0) {
+                /* .jsc file is up to date, so don't rewrite it */
+                rewrite = 0;
+              }
             }
+            munmap(data, size);
           }
-          free(data);
         }
 
         /* try to open .jsc file for writing */
