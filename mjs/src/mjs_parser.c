@@ -927,7 +927,15 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
 
   mbuf_free(&p.offset_lineno_map);
 
-  mjs_bcode_commit(mjs);
+  /*
+   * If parsing was successful, commit the bcode; otherwise drop generated
+   * bcode
+   */
+  if (res == MJS_OK) {
+    mjs_bcode_commit(mjs);
+  } else {
+    mbuf_free(&mjs->bcode_gen);
+  }
 
   return res;
 }
