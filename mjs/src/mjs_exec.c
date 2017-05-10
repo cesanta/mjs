@@ -20,19 +20,20 @@
 #include "mjs/src/mjs_util.h"
 
 /*
- * Pushes call stack frame. Offset is a global bcode offset
+ * Pushes call stack frame. Offset is a global bcode offset. Retval_stack_idx
+ * is an index in mjs->stack at which return value should be written later.
  */
 static void call_stack_push_frame(struct mjs *mjs, size_t offset,
-                                  mjs_val_t retpos) {
+                                  mjs_val_t retval_stack_idx) {
   /* Pop `this` value, and apply it */
   mjs_val_t this_obj = mjs_pop_val(&mjs->arg_stack);
   push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
   mjs->vals.this_obj = this_obj;
 
-  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, offset + 1));
+  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, offset));
   push_mjs_val(&mjs->call_stack,
                mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
-  push_mjs_val(&mjs->call_stack, retpos);
+  push_mjs_val(&mjs->call_stack, retval_stack_idx);
 }
 
 /*
@@ -670,11 +671,15 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
          * Return address is saved as a global bcode offset, so we need to
          * convert it to the local offset
          */
-        size_t off_ret = call_stack_restore_frame(mjs) - 1;
-        bp = *mjs_bcode_part_get_by_offset(mjs, off_ret);
-        code = (const uint8_t *) bp.data.p;
-        i = off_ret - bp.start_idx;
-        LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", off_ret + 1));
+        size_t off_ret = call_stack_restore_frame(mjs);
+        if (off_ret != MJS_BCODE_OFFSET_EXIT) {
+          bp = *mjs_bcode_part_get_by_offset(mjs, off_ret);
+          code = (const uint8_t *) bp.data.p;
+          i = off_ret - bp.start_idx;
+          LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", off_ret + 1));
+        } else {
+          goto clean;
+        }
         // mjs_dump(mjs, 0, stdout);
         break;
       }
@@ -704,15 +709,15 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       case OP_CALL: {
         // LOG(LL_INFO, ("BEFORE CALL"));
         // mjs_dump(mjs, 0, stdout);
-        mjs_val_t retpos = vtop(&mjs->arg_stack);
-        int func_pos = mjs_get_int(mjs, retpos) - 1;
+        mjs_val_t retval_stack_idx = vtop(&mjs->arg_stack);
+        int func_pos = mjs_get_int(mjs, retval_stack_idx) - 1;
         mjs_val_t *func = vptr(&mjs->stack, func_pos);
 
         /* Drop data stack size (pushed by OP_ARGS) */
         mjs_pop_val(&mjs->arg_stack);
 
         if (mjs_is_function(*func)) {
-          call_stack_push_frame(mjs, bp.start_idx + i, retpos);
+          call_stack_push_frame(mjs, bp.start_idx + i, retval_stack_idx);
 
           /*
            * Function offset is a global bcode offset, so we need to convert it
@@ -728,7 +733,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         } else if (mjs_is_string(*func) || mjs_is_ffi_sig(*func)) {
           /* Call ffi-ed function */
 
-          call_stack_push_frame(mjs, bp.start_idx + i, retpos);
+          call_stack_push_frame(mjs, bp.start_idx + i, retval_stack_idx);
 
           /* Perform the ffi-ed function call */
           mjs_ffi_call2(mjs);
@@ -737,7 +742,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         } else if (mjs_is_foreign(*func)) {
           /* Call cfunction */
 
-          call_stack_push_frame(mjs, bp.start_idx + i, retpos);
+          call_stack_push_frame(mjs, bp.start_idx + i, retval_stack_idx);
 
           /* Perform the cfunction call */
           ((void (*) (struct mjs *)) mjs_get_ptr(mjs, *func))(mjs);
@@ -860,6 +865,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
     }
   }
 
+clean:
   /* Remember result of the evaluation of this bcode part */
   mjs_bcode_part_get_by_offset(mjs, start_off)->exec_res = mjs->error;
 
@@ -997,30 +1003,37 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
   mjs_val_t prev_this_val = mjs->vals.this_obj;
 
-  push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
-  mjs->vals.this_obj = this_val;
-
-  // Push return address: returning to the end of bcode causes execution
-  // to stop
-  //
-  // TODO(dfrank): make special return value for that, because mjs->bcode_len
-  // might change after function invocation (if function parses some new code)
-  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, mjs->bcode_len));
-  push_mjs_val(&mjs->call_stack,
-               mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
-  // Push undefined which will be later replaced with the return value
+  /* Push undefined which will be later replaced with the return value */
   mjs_push(mjs, MJS_UNDEFINED);
-  push_mjs_val(&mjs->call_stack,
-               mjs_mk_number(mjs, mjs_stack_size(&mjs->stack)));
+
+  /* Remember index by which return value should be written */
+  mjs_val_t retval_stack_idx = mjs_mk_number(mjs, mjs_stack_size(&mjs->stack));
 
   // Push all arguments
   for (i = 0; i < nargs; i++) {
     mjs_push(mjs, args[i]);
   }
 
+  /* Push this value to arg_stack, call_stack_push_frame() expects that */
+  push_mjs_val(&mjs->arg_stack, this_val);
+
+  /* Push call stack frame, just like OP_CALL does that */
+  call_stack_push_frame(mjs, MJS_BCODE_OFFSET_EXIT, retval_stack_idx);
   mjs_execute(mjs, addr, &r);
+
+  /*
+   * If there was an error, we need to restore frame and do the cleanup
+   * which is otherwise done by OP_RETURN
+   */
+  if (mjs->error != MJS_OK) {
+    call_stack_restore_frame(mjs);
+
+    // Pop cell at which the returned value should've been written
+    mjs_pop(mjs);
+  }
 
   if (res != NULL) *res = r;
   mjs->vals.this_obj = prev_this_val;
+
   return mjs->error;
 }

@@ -262,6 +262,7 @@ void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp) {
   mjs_dump_obj_stack("CALL_STACK", &mjs->call_stack, mjs, fp);
   mjs_dump_obj_stack("SCOPES", &mjs->scopes, mjs, fp);
   mjs_dump_obj_stack("LOOP_OFFSETS", &mjs->loop_addresses, mjs, fp);
+  mjs_dump_obj_stack("ARG_STACK", &mjs->arg_stack, mjs, fp);
   if (do_disasm) {
     int parts_cnt = mjs_bcode_parts_cnt(mjs);
     int i;

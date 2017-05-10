@@ -9,6 +9,7 @@
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_builtin.h"
 #include "mjs/src/mjs_core.h"
+#include "mjs/src/mjs_exec.h"
 #include "mjs/src/mjs_ffi.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_license.h"
@@ -236,23 +237,27 @@ mjs_val_t mjs_get_global(struct mjs *mjs) {
 }
 
 static void mjs_append_stack_trace_line(struct mjs *mjs, size_t offset) {
-  const char *filename = mjs_get_bcode_filename_by_offset(mjs, offset);
-  int line_no = mjs_get_lineno_by_offset(mjs, offset);
-  char *new_line = NULL;
-  const char *fmt = "  at %s:%d\n";
-  if (filename == NULL) {
-    fprintf(stderr, "ERROR: wrong bcode offset %d\n", (int) offset);
-    filename = "<unknown-filename>";
-  }
-  mg_asprintf(&new_line, 0, fmt, filename, line_no);
+  if (offset != MJS_BCODE_OFFSET_EXIT) {
+    const char *filename = mjs_get_bcode_filename_by_offset(mjs, offset);
+    int line_no = mjs_get_lineno_by_offset(mjs, offset);
+    char *new_line = NULL;
+    const char *fmt = "  at %s:%d\n";
+    if (filename == NULL) {
+      fprintf(stderr,
+              "ERROR during stack trace generation: wrong bcode offset %d\n",
+              (int) offset);
+      filename = "<unknown-filename>";
+    }
+    mg_asprintf(&new_line, 0, fmt, filename, line_no);
 
-  if (mjs->stack_trace != NULL) {
-    char *old = mjs->stack_trace;
-    mg_asprintf(&mjs->stack_trace, 0, "%s%s", mjs->stack_trace, new_line);
-    free(old);
-    free(new_line);
-  } else {
-    mjs->stack_trace = new_line;
+    if (mjs->stack_trace != NULL) {
+      char *old = mjs->stack_trace;
+      mg_asprintf(&mjs->stack_trace, 0, "%s%s", mjs->stack_trace, new_line);
+      free(old);
+      free(new_line);
+    } else {
+      mjs->stack_trace = new_line;
+    }
   }
 }
 

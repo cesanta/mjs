@@ -8,6 +8,12 @@
 
 #include "mjs/src/mjs_exec_public.h"
 
+/*
+ * A special bcode offset value which causes mjs_execute() to exit immediately;
+ * used in mjs_apply().
+ */
+#define MJS_BCODE_OFFSET_EXIT ((size_t) 0x7fffffff)
+
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */

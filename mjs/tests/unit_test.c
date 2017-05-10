@@ -15,13 +15,15 @@ extern "C" {
 
 #include <stdbool.h>
 
-#define ASSERT_EXEC_OK(_exec_)                                              \
+#define ASSERT_EXEC_OK(_exec_) ASSERT_EXEC_RES(_exec_, MJS_OK)
+
+#define ASSERT_EXEC_RES(_exec_, _res_)                                      \
   do {                                                                      \
     mjs_err_t err = _exec_;                                                 \
-    if (err != MJS_OK) {                                                    \
+    if (err != MJS_OK && _res_ == MJS_OK) {                                 \
       mjs_print_error(mjs, stderr, "exec error", 1 /* print_stack_trace */);\
     }                                                                       \
-    ASSERT_EQ(err, MJS_OK);                                                 \
+    ASSERT_EQ(err, _res_);                                                  \
     if (mjs->stack.len != 0) {                                              \
       fprintf(stderr, "stack len is not zero: %d\n", (int)mjs->stack.len);  \
     }                                                                       \
@@ -2868,11 +2870,13 @@ const char *test_load(void) {
   mjs_val_t func_add_foo_to_s = MJS_UNDEFINED;
   mjs_val_t func_get_s = MJS_UNDEFINED;
   mjs_val_t func_set_foo = MJS_UNDEFINED;
+  mjs_val_t func_faulty = MJS_UNDEFINED;
   mjs_val_t res = MJS_UNDEFINED;
 
   mjs_own(mjs, &func_add_foo_to_s);
   mjs_own(mjs, &func_get_s);
   mjs_own(mjs, &func_set_foo);
+  mjs_own(mjs, &func_faulty);
   mjs_own(mjs, &func_load);
   mjs_own(mjs, &res);
 
@@ -2890,6 +2894,7 @@ const char *test_load(void) {
   ASSERT_EXEC_OK(mjs_exec(mjs, "function(){return s;}", &func_get_s));
   ASSERT_EXEC_OK(mjs_exec(mjs, "function(newfoo){foo = newfoo;}", &func_set_foo));
   ASSERT_EXEC_OK(mjs_exec(mjs, "function(){load('tests/module1.js'); return foo;}", &func_load));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){return non_existing;}", &func_faulty));
 
   ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
 
@@ -2915,10 +2920,13 @@ const char *test_load(void) {
   ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_get_s, MJS_UNDEFINED, 0, NULL));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "2_1_100_100_");
 
+  ASSERT_EXEC_RES(mjs_apply(mjs, &res, func_faulty, MJS_UNDEFINED, 0, NULL), MJS_REFERENCE_ERROR);
+
   mjs_disown(mjs, &res);
   mjs_disown(mjs, &func_add_foo_to_s);
   mjs_disown(mjs, &func_get_s);
   mjs_disown(mjs, &func_set_foo);
+  mjs_disown(mjs, &func_faulty);
   mjs_disown(mjs, &func_load);
 
   cleanup_mjs(&mjs);
