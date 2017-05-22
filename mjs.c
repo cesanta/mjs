@@ -1529,9 +1529,9 @@ char *cs_mmap_file(const char *path, size_t *size);
 extern "C" {
 #endif /* __cplusplus */
 
-int cs_varint_encode(int64_t num, uint8_t *to);
-int64_t cs_varint_decode(const uint8_t *from, int *llen);
-int cs_varint_llen(int64_t num);
+int cs_varint_encode(uint64_t num, uint8_t *to);
+uint64_t cs_varint_decode(const uint8_t *from, int *llen);
+int cs_varint_llen(uint64_t num);
 
 #if defined(__cplusplus)
 }
@@ -4197,32 +4197,38 @@ char *cs_mmap_file(const char *path, size_t *size) {
 
 /* Amalgamated: #include "common/cs_varint.h" */
 
+#include <stdio.h>
+
 /*
  * Strings in AST are encoded as tuples (length, string).
  * Length is variable-length: if high bit is set in a byte, next byte is used.
  * Small string length (less then 128 bytes) is encoded in 1 byte.
  */
-int64_t cs_varint_decode(const uint8_t *p, int *llen) {
-  int64_t i = 0, num = 0;
+uint64_t cs_varint_decode(const uint8_t *p, int *llen) {
+  unsigned int i = 0;
+  unsigned int shift = 0;
+  uint64_t num = 0;
 
   do {
     /*
      * Each byte of varint contains 7 bits, in little endian order.
      * MSB is a continuation bit: it tells whether next byte is used.
      */
-    num |= ((int64_t)(p[i] & 0x7f)) << (7 * i);
+    num |= ((uint64_t)(p[i] & 0x7f)) << shift;
     /*
      * First we increment i, then check whether it is within boundary and
      * whether decoded byte had continuation bit set.
      */
-  } while ((unsigned int) ++i < sizeof(int64_t) && (p[i - 1] & 0x80));
+    i++;
+    shift += 7;
+  } while (shift < sizeof(uint64_t) * 8 && (p[i - 1] & 0x80));
   *llen = i;
 
   return num;
 }
 
 /* Return number of bytes to store length */
-int cs_varint_llen(int64_t num) {
+int cs_varint_llen(uint64_t num) {
   int n = 0;
 
   do {
@@ -4232,7 +4238,7 @@ int cs_varint_llen(int64_t num) {
   return n;
 }
 
-int cs_varint_encode(int64_t num, uint8_t *p) {
+int cs_varint_encode(uint64_t num, uint8_t *p) {
   int i, llen = cs_varint_llen(num);
 
   for (i = 0; i < llen; i++) {
