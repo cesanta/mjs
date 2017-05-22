@@ -7154,8 +7154,19 @@ static double do_arith_op(double da, double db, int op) {
     case TOK_MINUS:   return da - db;
     case TOK_PLUS:    return da + db;
     case TOK_MUL:     return da * db;
-    case TOK_DIV:     return da / db;
-    case TOK_REM:     return (int64_t) da % (int64_t) db;
+    case TOK_DIV:
+      if (db != 0) {
+        return da / db;
+      } else {
+        /* TODO(dfrank): add support for Infinity and return it here */
+        return MJS_TAG_NAN;
+      }
+    case TOK_REM:
+      if (db != 0) {
+        return (int64_t) da % (int64_t) db;
+      } else {
+        return MJS_TAG_NAN;
+      }
     case TOK_AND:     return (int64_t) da & (int64_t) db;
     case TOK_OR:      return (int64_t) da | (int64_t) db;
     case TOK_XOR:     return (int64_t) da ^ (int64_t) db;
