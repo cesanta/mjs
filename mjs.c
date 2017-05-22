@@ -7153,6 +7153,10 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {
 /* Amalgamated: #include "mjs/src/mjs_tok.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
+#if MJS_GENERATE_JSC && defined(CS_MMAP)
+#include <sys/mman.h>
+#endif
+
 /*
  * Pushes call stack frame. Offset is a global bcode offset. Retval_stack_idx
  * is an index in mjs->stack at which return value should be written later.
