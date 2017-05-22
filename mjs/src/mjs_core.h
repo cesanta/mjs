@@ -6,8 +6,6 @@
 #ifndef MJS_CORE_H
 #define MJS_CORE_H
 
-#include "common/mg_str.h"
-
 #include "mjs/src/mjs_ffi.h"
 #include "mjs/src/mjs_gc.h"
 #include "mjs/src/mjs_internal.h"
@@ -92,7 +90,10 @@ struct mjs_bcode_part {
   size_t start_idx;
 
   /* Actual bcode data */
-  struct mg_str data;
+  struct {
+    const char *p; /* Memory chunk pointer */
+    size_t len;    /* Memory chunk length */
+  } data;
 
   /*
    * Result of evaluation (not parsing: if there is an error during parsing,

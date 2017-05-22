@@ -2251,73 +2251,6 @@ MJS_PRIVATE void mjs_array_splice(struct mjs *mjs);
 
 #endif /* MJS_ARRAY_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/mg_str.h"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef CS_COMMON_MG_STR_H_
-#define CS_COMMON_MG_STR_H_
-
-#include <stddef.h>
-
-/* Amalgamated: #include "common/platform.h" */
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-/* Describes chunk of memory */
-struct mg_str {
-  const char *p; /* Memory chunk pointer */
-  size_t len;    /* Memory chunk length */
-};
-
-/*
- * Helper functions for creating mg_str struct from plain C string.
- * `NULL` is allowed and becomes `{NULL, 0}`.
- */
-struct mg_str mg_mk_str(const char *s);
-struct mg_str mg_mk_str_n(const char *s, size_t len);
-
-/* Macro for initializing mg_str. */
-#define MG_MK_STR(str_literal) \
-  { str_literal, sizeof(str_literal) - 1 }
-#define MG_NULL_STR \
-  { NULL, 0 }
-
-/*
- * Cross-platform version of `strcmp()` where where first string is
- * specified by `struct mg_str`.
- */
-int mg_vcmp(const struct mg_str *str2, const char *str1);
-
-/*
- * Cross-platform version of `strncasecmp()` where first string is
- * specified by `struct mg_str`.
- */
-int mg_vcasecmp(const struct mg_str *str2, const char *str1);
-
-/* Creates a copy of s (heap-allocated). */
-struct mg_str mg_strdup(const struct mg_str s);
-
-/*
- * Creates a copy of s (heap-allocated).
- * Resulting string is NUL-terminated (but NUL is not included in len).
- */
-struct mg_str mg_strdup_nul(const struct mg_str s);
-
-int mg_strcmp(const struct mg_str str1, const struct mg_str str2);
-int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n);
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
-#endif /* CS_COMMON_MG_STR_H_ */
-#ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_ffi_public.h"
 #endif
 /*
@@ -2621,8 +2554,6 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
 #ifndef MJS_CORE_H
 #define MJS_CORE_H
 
-/* Amalgamated: #include "common/mg_str.h" */
-
 /* Amalgamated: #include "mjs/src/mjs_ffi.h" */
 /* Amalgamated: #include "mjs/src/mjs_gc.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
@@ -2707,7 +2638,10 @@ struct mjs_bcode_part {
   size_t start_idx;
 
   /* Actual bcode data */
-  struct mg_str data;
+  struct {
+    const char *p; /* Memory chunk pointer */
+    size_t len;    /* Memory chunk length */
+  } data;
 
   /*
    * Result of evaluation (not parsing: if there is an error during parsing,
@@ -6424,7 +6358,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
   /* Make sure the bcode doesn't occupy any extra space */
   mbuf_trim(&mjs->bcode_gen);
 
-  /* Transfer the ownership of the bcode data to the new mg_str */
+  /* Transfer the ownership of the bcode data */
   bp.data.p = mjs->bcode_gen.buf;
   bp.data.len = mjs->bcode_gen.len;
   mbuf_init(&mjs->bcode_gen, 0);

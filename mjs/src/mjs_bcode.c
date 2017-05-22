@@ -132,7 +132,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
   /* Make sure the bcode doesn't occupy any extra space */
   mbuf_trim(&mjs->bcode_gen);
 
-  /* Transfer the ownership of the bcode data to the new mg_str */
+  /* Transfer the ownership of the bcode data */
   bp.data.p = mjs->bcode_gen.buf;
   bp.data.len = mjs->bcode_gen.len;
   mbuf_init(&mjs->bcode_gen, 0);
