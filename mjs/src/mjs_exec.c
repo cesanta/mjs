@@ -355,18 +355,12 @@ static void exec_expr(struct mjs *mjs, int op) {
       }
       break;
     }
-    case TOK_LOGICAL_AND: {
-      mjs_val_t b = mjs_pop(mjs);
-      mjs_val_t a = mjs_pop(mjs);
-      mjs_push(mjs, mjs_is_truthy(mjs, a) ? b : a);
-      break;
-    }
-    case TOK_LOGICAL_OR: {
-      mjs_val_t b = mjs_pop(mjs);
-      mjs_val_t a = mjs_pop(mjs);
-      mjs_push(mjs, mjs_is_truthy(mjs, a) ? a : b);
-      break;
-    }
+    /*
+     * NOTE: TOK_LOGICAL_AND and TOK_LOGICAL_OR don't need to be here, because
+     * they are just naturally handled by the short-circuit evaluation.
+     * See PARSE_LTR_BINOP() macro in mjs_parser.c.
+     */
+
     /* clang-format off */
     case TOK_MINUS_ASSIGN:    op_assign(mjs, TOK_MINUS);    break;
     case TOK_PLUS_ASSIGN:     op_assign(mjs, TOK_PLUS);     break;
@@ -574,6 +568,27 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         i += llen;
         if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
+          i += n;
+        }
+        break;
+      }
+      /*
+       * OP_JMP_NEUTRAL_... ops are like as OP_JMP_..., but they are completely
+       * stack-neutral: they just check the TOS, and increment instruction
+       * pointer if the TOS is truthy/falsy.
+       */
+      case OP_JMP_NEUTRAL_TRUE: {
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        i += llen;
+        if (mjs_is_truthy(mjs, vtop(&mjs->stack))) {
+          i += n;
+        }
+        break;
+      }
+      case OP_JMP_NEUTRAL_FALSE: {
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        i += llen;
+        if (!mjs_is_truthy(mjs, vtop(&mjs->stack))) {
           i += n;
         }
         break;

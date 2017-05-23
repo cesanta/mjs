@@ -3324,35 +3324,37 @@ extern "C" {
 #endif /* __cplusplus */
 
 enum mjs_opcode {
-  OP_NOP,          /* ( -- ) */
-  OP_DROP,         /* ( a -- ) */
-  OP_DUP,          /* ( a -- a a ) */
-  OP_SWAP,         /* ( a b -- b a ) */
-  OP_JMP,          /* ( -- ) */
-  OP_JMP_TRUE,     /* ( -- ) */
-  OP_JMP_FALSE,    /* ( -- ) */
-  OP_FIND_SCOPE,   /* ( a -- a b ) */
-  OP_PUSH_SCOPE,   /* ( -- a ) */
-  OP_PUSH_STR,     /* ( -- a ) */
-  OP_PUSH_TRUE,    /* ( -- a ) */
-  OP_PUSH_FALSE,   /* ( -- a ) */
-  OP_PUSH_INT,     /* ( -- a ) */
-  OP_PUSH_DBL,     /* ( -- a ) */
-  OP_PUSH_NULL,    /* ( -- a ) */
-  OP_PUSH_UNDEF,   /* ( -- a ) */
-  OP_PUSH_OBJ,     /* ( -- a ) */
-  OP_PUSH_ARRAY,   /* ( -- a ) */
-  OP_PUSH_FUNC,    /* ( -- a ) */
-  OP_PUSH_THIS,    /* ( -- a ) */
-  OP_GET,          /* ( key obj  -- obj[key] ) */
-  OP_CREATE,       /* ( key obj -- ) */
-  OP_EXPR,         /* ( ... -- a ) */
-  OP_APPEND,       /* ( a b -- ) */
-  OP_SET_ARG,      /* ( a -- a ) */
-  OP_NEW_SCOPE,    /* ( -- ) */
-  OP_DEL_SCOPE,    /* ( -- ) */
-  OP_CALL,         /* ( func param1 param2 ... num_params -- result ) */
-  OP_RETURN,       /* ( -- ) */
+  OP_NOP,               /* ( -- ) */
+  OP_DROP,              /* ( a -- ) */
+  OP_DUP,               /* ( a -- a a ) */
+  OP_SWAP,              /* ( a b -- b a ) */
+  OP_JMP,               /* ( -- ) */
+  OP_JMP_TRUE,          /* ( -- ) */
+  OP_JMP_NEUTRAL_TRUE,  /* ( -- ) */
+  OP_JMP_FALSE,         /* ( -- ) */
+  OP_JMP_NEUTRAL_FALSE, /* ( -- ) */
+  OP_FIND_SCOPE,        /* ( a -- a b ) */
+  OP_PUSH_SCOPE,        /* ( -- a ) */
+  OP_PUSH_STR,          /* ( -- a ) */
+  OP_PUSH_TRUE,         /* ( -- a ) */
+  OP_PUSH_FALSE,        /* ( -- a ) */
+  OP_PUSH_INT,          /* ( -- a ) */
+  OP_PUSH_DBL,          /* ( -- a ) */
+  OP_PUSH_NULL,         /* ( -- a ) */
+  OP_PUSH_UNDEF,        /* ( -- a ) */
+  OP_PUSH_OBJ,          /* ( -- a ) */
+  OP_PUSH_ARRAY,        /* ( -- a ) */
+  OP_PUSH_FUNC,         /* ( -- a ) */
+  OP_PUSH_THIS,         /* ( -- a ) */
+  OP_GET,               /* ( key obj  -- obj[key] ) */
+  OP_CREATE,            /* ( key obj -- ) */
+  OP_EXPR,              /* ( ... -- a ) */
+  OP_APPEND,            /* ( a b -- ) */
+  OP_SET_ARG,           /* ( a -- a ) */
+  OP_NEW_SCOPE,         /* ( -- ) */
+  OP_DEL_SCOPE,         /* ( -- ) */
+  OP_CALL,              /* ( func param1 param2 ... num_params -- result ) */
+  OP_RETURN,            /* ( -- ) */
   OP_LOOP,         /* ( -- ) Push break & continue addresses to loop_labels */
   OP_BREAK,        /* ( -- ) */
   OP_CONTINUE,     /* ( -- ) */
@@ -7442,18 +7444,12 @@ static void exec_expr(struct mjs *mjs, int op) {
       }
       break;
     }
-    case TOK_LOGICAL_AND: {
-      mjs_val_t b = mjs_pop(mjs);
-      mjs_val_t a = mjs_pop(mjs);
-      mjs_push(mjs, mjs_is_truthy(mjs, a) ? b : a);
-      break;
-    }
-    case TOK_LOGICAL_OR: {
-      mjs_val_t b = mjs_pop(mjs);
-      mjs_val_t a = mjs_pop(mjs);
-      mjs_push(mjs, mjs_is_truthy(mjs, a) ? a : b);
-      break;
-    }
+    /*
+     * NOTE: TOK_LOGICAL_AND and TOK_LOGICAL_OR don't need to be here, because
+     * they are just naturally handled by the short-circuit evaluation.
+     * See PARSE_LTR_BINOP() macro in mjs_parser.c.
+     */
+
     /* clang-format off */
     case TOK_MINUS_ASSIGN:    op_assign(mjs, TOK_MINUS);    break;
     case TOK_PLUS_ASSIGN:     op_assign(mjs, TOK_PLUS);     break;
@@ -7661,6 +7657,27 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         i += llen;
         if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
+          i += n;
+        }
+        break;
+      }
+      /*
+       * OP_JMP_NEUTRAL_... ops are like as OP_JMP_..., but they are completely
+       * stack-neutral: they just check the TOS, and increment instruction
+       * pointer if the TOS is truthy/falsy.
+       */
+      case OP_JMP_NEUTRAL_TRUE: {
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        i += llen;
+        if (mjs_is_truthy(mjs, vtop(&mjs->stack))) {
+          i += n;
+        }
+        break;
+      }
+      case OP_JMP_NEUTRAL_FALSE: {
+        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        i += llen;
+        if (!mjs_is_truthy(mjs, vtop(&mjs->stack))) {
           i += n;
         }
         break;
@@ -10573,17 +10590,34 @@ static void emit_op(struct pstate *pstate, int tok) {
 
 // Intentionally left as macro rather than a function, to let the
 // compiler to inline calls and mimimize runtime stack usage.
-#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)      \
-  do {                                                \
-    mjs_err_t res = MJS_OK;                           \
-    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res; \
-    if (prev_op != TOK_EOF) emit_op(p, prev_op);      \
-    if (findtok(ops, p->tok.tok) != TOK_EOF) {        \
-      int op = p->tok.tok;                            \
-      pnext1(p);                                      \
-      if ((res = f2(p, op)) != MJS_OK) return res;    \
-    }                                                 \
-    return res;                                       \
+#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                             \
+  do {                                                                       \
+    mjs_err_t res = MJS_OK;                                                  \
+    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res;                        \
+    if (prev_op != TOK_EOF) emit_op(p, prev_op);                             \
+    if (findtok(ops, p->tok.tok) != TOK_EOF) {                               \
+      int op = p->tok.tok;                                                   \
+      size_t off_if = 0;                                                     \
+      /* For AND/OR, implement short-circuit evaluation */                   \
+      if (ops[0] == TOK_LOGICAL_AND || ops[0] == TOK_LOGICAL_OR) {           \
+        emit_byte(p, ops[0] == TOK_LOGICAL_AND ? OP_JMP_NEUTRAL_FALSE        \
+                                               : OP_JMP_NEUTRAL_TRUE);       \
+        off_if = p->cur_idx;                                                 \
+        emit_init_offset(p);                                                 \
+        /* No need to emit TOK_LOGICAL_AND and TOK_LOGICAL_OR: */            \
+        /* Just drop the first value, and evaluate the second one. */        \
+        emit_byte(p, OP_DROP);                                               \
+        op = TOK_EOF;                                                        \
+      }                                                                      \
+      pnext1(p);                                                             \
+      if ((res = f2(p, op)) != MJS_OK) return res;                           \
+                                                                             \
+      if (off_if != 0) {                                                     \
+        mjs_bcode_insert_offset(p, p->mjs, off_if,                           \
+                                p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE); \
+      }                                                                      \
+    }                                                                        \
+    return res;                                                              \
   } while (0)
 
 #define PARSE_RTL_BINOP(p, f1, f2, ops, prev_op)        \
@@ -12436,14 +12470,13 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
   static const char *names[] = {
-      "NOP",        "DROP",        "DUP",        "SWAP",       "JMP",
-      "JMP_TRUE",   "JMP_FALSE",   "FIND_SCOPE", "PUSH_SCOPE", "PUSH_STR",
-      "PUSH_TRUE",  "PUSH_FALSE",  "PUSH_INT",   "PUSH_DBL",   "PUSH_NULL",
-      "PUSH_UNDEF", "PUSH_OBJ",    "PUSH_ARRAY", "PUSH_FUNC",  "PUSH_THIS",
-      "GET",        "CREATE",      "EXPR",       "APPEND",     "SET_ARG",
-      "NEW_SCOPE",  "DEL_SCOPE",   "CALL",       "RETURN",     "LOOP",
-      "BREAK",      "CONTINUE",    "SETRETVAL",  "EXIT",       "BCODE_HDR",
-      "ARGS",       "FOR_IN_NEXT",
+      "NOP", "DROP", "DUP", "SWAP", "JMP", "JMP_TRUE", "JMP_NEUTRAL_TRUE",
+      "JMP_FALSE", "JMP_NEUTRAL_FALSE", "FIND_SCOPE", "PUSH_SCOPE", "PUSH_STR",
+      "PUSH_TRUE", "PUSH_FALSE", "PUSH_INT", "PUSH_DBL", "PUSH_NULL",
+      "PUSH_UNDEF", "PUSH_OBJ", "PUSH_ARRAY", "PUSH_FUNC", "PUSH_THIS", "GET",
+      "CREATE", "EXPR", "APPEND", "SET_ARG", "NEW_SCOPE", "DEL_SCOPE", "CALL",
+      "RETURN", "LOOP", "BREAK", "CONTINUE", "SETRETVAL", "EXIT", "BCODE_HDR",
+      "ARGS", "FOR_IN_NEXT",
   };
   const char *name = "UNKNOWN OPCODE";
   assert(ARRAY_SIZE(names) == OP_MAX);
@@ -12485,7 +12518,9 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
     }
     case OP_JMP:
     case OP_JMP_TRUE:
-    case OP_JMP_FALSE: {
+    case OP_JMP_NEUTRAL_TRUE:
+    case OP_JMP_FALSE:
+    case OP_JMP_NEUTRAL_FALSE: {
       int llen, n = cs_varint_decode(&code[i + 1], &llen);
       fprintf(fp, "\t%u",
               (unsigned) i + n + llen +

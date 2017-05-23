@@ -481,6 +481,14 @@ const char *test_logic(struct mjs *mjs) {
   ASSERT_EQ(mjs_is_boolean(res), 0);
   ASSERT_EQ(mjs_get_double(mjs, res), 1);
 
+  /* Test short-circuit for && */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a=1, b=2, c=0; if (a > 1 && (b = b+1) > 2) { c=b; } b", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
+  /* Test short-circuit for || */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a=1, b=2, c=0; if (a === 1 || (b = b+1) > 2) { c=b; } b", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
   mjs_disown(mjs, &res);
 
   return NULL;

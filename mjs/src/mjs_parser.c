@@ -72,17 +72,34 @@ static void emit_op(struct pstate *pstate, int tok) {
 
 // Intentionally left as macro rather than a function, to let the
 // compiler to inline calls and mimimize runtime stack usage.
-#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)      \
-  do {                                                \
-    mjs_err_t res = MJS_OK;                           \
-    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res; \
-    if (prev_op != TOK_EOF) emit_op(p, prev_op);      \
-    if (findtok(ops, p->tok.tok) != TOK_EOF) {        \
-      int op = p->tok.tok;                            \
-      pnext1(p);                                      \
-      if ((res = f2(p, op)) != MJS_OK) return res;    \
-    }                                                 \
-    return res;                                       \
+#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                             \
+  do {                                                                       \
+    mjs_err_t res = MJS_OK;                                                  \
+    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res;                        \
+    if (prev_op != TOK_EOF) emit_op(p, prev_op);                             \
+    if (findtok(ops, p->tok.tok) != TOK_EOF) {                               \
+      int op = p->tok.tok;                                                   \
+      size_t off_if = 0;                                                     \
+      /* For AND/OR, implement short-circuit evaluation */                   \
+      if (ops[0] == TOK_LOGICAL_AND || ops[0] == TOK_LOGICAL_OR) {           \
+        emit_byte(p, ops[0] == TOK_LOGICAL_AND ? OP_JMP_NEUTRAL_FALSE        \
+                                               : OP_JMP_NEUTRAL_TRUE);       \
+        off_if = p->cur_idx;                                                 \
+        emit_init_offset(p);                                                 \
+        /* No need to emit TOK_LOGICAL_AND and TOK_LOGICAL_OR: */            \
+        /* Just drop the first value, and evaluate the second one. */        \
+        emit_byte(p, OP_DROP);                                               \
+        op = TOK_EOF;                                                        \
+      }                                                                      \
+      pnext1(p);                                                             \
+      if ((res = f2(p, op)) != MJS_OK) return res;                           \
+                                                                             \
+      if (off_if != 0) {                                                     \
+        mjs_bcode_insert_offset(p, p->mjs, off_if,                           \
+                                p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE); \
+      }                                                                      \
+    }                                                                        \
+    return res;                                                              \
   } while (0)
 
 #define PARSE_RTL_BINOP(p, f1, f2, ops, prev_op)        \

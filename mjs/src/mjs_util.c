@@ -79,14 +79,13 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
   static const char *names[] = {
-      "NOP",        "DROP",        "DUP",        "SWAP",       "JMP",
-      "JMP_TRUE",   "JMP_FALSE",   "FIND_SCOPE", "PUSH_SCOPE", "PUSH_STR",
-      "PUSH_TRUE",  "PUSH_FALSE",  "PUSH_INT",   "PUSH_DBL",   "PUSH_NULL",
-      "PUSH_UNDEF", "PUSH_OBJ",    "PUSH_ARRAY", "PUSH_FUNC",  "PUSH_THIS",
-      "GET",        "CREATE",      "EXPR",       "APPEND",     "SET_ARG",
-      "NEW_SCOPE",  "DEL_SCOPE",   "CALL",       "RETURN",     "LOOP",
-      "BREAK",      "CONTINUE",    "SETRETVAL",  "EXIT",       "BCODE_HDR",
-      "ARGS",       "FOR_IN_NEXT",
+      "NOP", "DROP", "DUP", "SWAP", "JMP", "JMP_TRUE", "JMP_NEUTRAL_TRUE",
+      "JMP_FALSE", "JMP_NEUTRAL_FALSE", "FIND_SCOPE", "PUSH_SCOPE", "PUSH_STR",
+      "PUSH_TRUE", "PUSH_FALSE", "PUSH_INT", "PUSH_DBL", "PUSH_NULL",
+      "PUSH_UNDEF", "PUSH_OBJ", "PUSH_ARRAY", "PUSH_FUNC", "PUSH_THIS", "GET",
+      "CREATE", "EXPR", "APPEND", "SET_ARG", "NEW_SCOPE", "DEL_SCOPE", "CALL",
+      "RETURN", "LOOP", "BREAK", "CONTINUE", "SETRETVAL", "EXIT", "BCODE_HDR",
+      "ARGS", "FOR_IN_NEXT",
   };
   const char *name = "UNKNOWN OPCODE";
   assert(ARRAY_SIZE(names) == OP_MAX);
@@ -128,7 +127,9 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
     }
     case OP_JMP:
     case OP_JMP_TRUE:
-    case OP_JMP_FALSE: {
+    case OP_JMP_NEUTRAL_TRUE:
+    case OP_JMP_FALSE:
+    case OP_JMP_NEUTRAL_FALSE: {
       int llen, n = cs_varint_decode(&code[i + 1], &llen);
       fprintf(fp, "\t%u",
               (unsigned) i + n + llen +
