@@ -493,7 +493,7 @@ MJS_PRIVATE mjs_val_t mjs_ffi_sig_to_value(struct mjs_ffi_sig *psig) {
   if (psig == NULL) {
     return MJS_NULL;
   } else {
-    return pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
+    return mjs_legit_pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
   }
 }
 

@@ -3053,7 +3053,20 @@ int mjs_is_function(mjs_val_t v);
 extern "C" {
 #endif /* __cplusplus */
 
-MJS_PRIVATE mjs_val_t pointer_to_value(void *p);
+/*
+ * Convert a pointer to mjs_val_t. If pointer is not valid, mjs crashes.
+ */
+MJS_PRIVATE mjs_val_t mjs_legit_pointer_to_value(void *p);
+
+/*
+ * Convert a pointer to mjs_val_t. If pointer is not valid, error is set
+ * in the mjs context.
+ */
+MJS_PRIVATE mjs_val_t mjs_pointer_to_value(struct mjs *mjs, void *p);
+
+/*
+ * Extracts a pointer from the mjs_val_t value.
+ */
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
 
 #if defined(__cplusplus)
@@ -8624,7 +8637,7 @@ MJS_PRIVATE mjs_val_t mjs_ffi_sig_to_value(struct mjs_ffi_sig *psig) {
   if (psig == NULL) {
     return MJS_NULL;
   } else {
-    return pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
+    return mjs_legit_pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
   }
 }
 
@@ -10221,7 +10234,7 @@ MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
     return MJS_NULL;
   } else {
-    return pointer_to_value(o) | MJS_TAG_OBJECT;
+    return mjs_legit_pointer_to_value(o) | MJS_TAG_OBJECT;
   }
 }
 
@@ -11523,10 +11536,22 @@ int mjs_is_boolean(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_BOOLEAN;
 }
 
-MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
+#define MJS_IS_POINTER_LEGIT(n) \
+  (((n) &MJS_TAG_MASK) == 0 || ((n) &MJS_TAG_MASK) == (~0 & MJS_TAG_MASK))
+
+MJS_PRIVATE mjs_val_t mjs_pointer_to_value(struct mjs *mjs, void *p) {
   uint64_t n = ((uint64_t)(uintptr_t) p);
 
-  assert((n & MJS_TAG_MASK) == 0 || (n & MJS_TAG_MASK) == (~0 & MJS_TAG_MASK));
+  if (!MJS_IS_POINTER_LEGIT(n)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid pointer value: %p", p);
+  }
+  return n & ~MJS_TAG_MASK;
+}
+
+MJS_PRIVATE mjs_val_t mjs_legit_pointer_to_value(void *p) {
+  uint64_t n = ((uint64_t)(uintptr_t) p);
+
+  assert(MJS_IS_POINTER_LEGIT(n));
   return n & ~MJS_TAG_MASK;
 }
 
@@ -11544,7 +11569,7 @@ void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v) {
 
 mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
   (void) mjs;
-  return pointer_to_value(p) | MJS_TAG_FOREIGN;
+  return mjs_pointer_to_value(mjs, p) | MJS_TAG_FOREIGN;
 }
 
 int mjs_is_foreign(mjs_val_t v) {

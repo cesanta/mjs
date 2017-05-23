@@ -15,7 +15,7 @@ MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
     return MJS_NULL;
   } else {
-    return pointer_to_value(o) | MJS_TAG_OBJECT;
+    return mjs_legit_pointer_to_value(o) | MJS_TAG_OBJECT;
   }
 }
 
