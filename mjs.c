@@ -8722,6 +8722,11 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
 
   /* TODO(dfrank): support multiple callbacks */
   mjs_val_t resv = mjs_mk_undefined();
+
+  /*
+   * String arguments, needed to support short strings which are packed into
+   * mjs_val_t itself
+   */
   mjs_val_t argvs[FFI_MAX_ARGS_CNT];
 
   if (mjs_is_ffi_sig(sig_v)) {
@@ -8845,6 +8850,10 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
               i, mjs_typeof(arg));
           goto clean;
         }
+        /*
+         * String argument should be saved separately in order to support
+         * short strings (which are packed into mjs_val_t itself)
+         */
         argvs[i] = arg;
         ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
       } break;
@@ -8856,7 +8865,12 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
         }
         if (mjs_is_string(arg)) {
           size_t n;
-          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &arg, &n));
+          /*
+           * String argument should be saved separately in order to support
+           * short strings (which are packed into mjs_val_t itself)
+           */
+          argvs[i] = arg;
+          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &n));
         } else {
           ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
         }
