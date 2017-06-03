@@ -7799,7 +7799,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
           bp = *mjs_bcode_part_get_by_offset(mjs, off_ret);
           code = (const uint8_t *) bp.data.p;
           i = off_ret - bp.start_idx;
-          LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", off_ret + 1));
+          LOG(LL_VERBOSE_DEBUG, ("RETURNING TO %d", (int) off_ret + 1));
         } else {
           goto clean;
         }
@@ -8122,7 +8122,7 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   int i;
   size_t addr = mjs_get_func_addr(func);
 
-  LOG(LL_VERBOSE_DEBUG, ("applying func %d", mjs_get_func_addr(func)));
+  LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 
   mjs_val_t prev_this_val = mjs->vals.this_obj;
 
