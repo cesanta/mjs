@@ -30,8 +30,13 @@ int main(int argc, char *argv[]) {
       err = mjs_exec_file(mjs, argv[++i], generate_jsc, &res);
     } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       printf("mJS (c) Cesanta, built: " __DATE__ "\n");
-      printf("Usage:\n  ");
-      printf("%s [-l debug_level] [-e expression] js_file ...\n", argv[0]);
+      printf("Usage:\n");
+      printf("%s [OPTIONS] [js_file ...]\n", argv[0]);
+      printf("OPTIONS:\n");
+      printf("  -e string    - Execute JavaScript expression\n");
+      printf("  -j           - Enable code precompiling to .jsc files\n");
+      printf("  -f js_file   - Execute code from .js JavaScript file\n");
+      printf("  -l level     - Set debug level, from 0 to 5\n");
       return EXIT_SUCCESS;
     } else {
       fprintf(stderr, "Unknown flag: [%s]\n", argv[i]);
