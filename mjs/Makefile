@@ -35,6 +35,10 @@ ifeq ($(UNAME_S),Linux)
   ASAN_CFLAGS += -fsanitize=leak
 endif
 
+ifeq ($(UNAME_S),Darwin)
+  MFLAGS += -D_DARWIN_C_SOURCE
+endif
+
 PROG = $(BUILD_DIR)/mjs
 
 all: $(PROG)
