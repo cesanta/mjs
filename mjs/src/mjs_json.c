@@ -336,9 +336,21 @@ static void frozen_cb(void *data, const char *name, size_t name_len,
   mjs_own(ctx->mjs, &v);
 
   switch (token->type) {
-    case JSON_TYPE_STRING:
-      v = mjs_mk_string(ctx->mjs, token->ptr, token->len, 1 /* copy */);
+    case JSON_TYPE_STRING: {
+      char *dst;
+      if (token->len > 0 && (dst = malloc(token->len)) != NULL) {
+        int len = json_unescape(token->ptr, token->len, dst, token->len);
+        v = mjs_mk_string(ctx->mjs, dst, len, 1 /* copy */);
+        free(dst);
+      } else {
+        /*
+         * This branch is for 0-len strings, and for malloc errors
+         * TODO(lsm): on malloc error, propagate the error upstream
+         */
+        v = mjs_mk_string(ctx->mjs, "", 0, 1 /* copy */);
+      }
       break;
+    }
     case JSON_TYPE_NUMBER:
       v = mjs_mk_number(ctx->mjs, strtod(token->ptr, NULL));
       break;
