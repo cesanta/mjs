@@ -918,6 +918,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
       if (basename_len > 0 && strcmp(path + basename_len, jsext) == 0) {
         /* source file has a .js extension: create a .jsc counterpart */
         int rewrite = 1;
+        int read_mmapped = 1;
 
         /* construct .jsc filename */
         const char *jscext = ".jsc";
@@ -957,17 +958,24 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
             /* write last bcode part to .jsc */
             fwrite(bp->data.p, bp->data.len, 1, fp);
             fclose(fp);
-
-            /* free RAM buffer with last bcode part */
-            free((void *) bp->data.p);
-
-            /* mmap .jsc file and set last bcode part buffer to it */
-            bp->data.p = cs_mmap_file(filename_jsc, &bp->data.len);
-            bp->in_rom = 1;
+          } else {
+            LOG(LL_WARN, ("Failed to open %s for writing", filename_jsc));
+            read_mmapped = 0;
           }
+        }
+
+        if (read_mmapped) {
+          /* free RAM buffer with last bcode part */
+          free((void *) bp->data.p);
+
+          /* mmap .jsc file and set last bcode part buffer to it */
+          bp->data.p = cs_mmap_file(filename_jsc, &bp->data.len);
+          bp->in_rom = 1;
         }
       }
     }
+#else
+    (void) generate_jsc;
 #endif
 
     mjs_execute(mjs, off, &r);
