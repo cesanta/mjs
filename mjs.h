@@ -253,6 +253,15 @@ void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -509,6 +518,15 @@ void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -535,15 +553,7 @@ extern "C" {
 mjs_err_t mjs_exec(struct mjs *, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_buf(struct mjs *, const char *src, size_t, mjs_val_t *res);
 
-/*
- * Execute file. If `generate_jsc` is non-zero, and the filename ends with
- * ".js", the ".jsc" file will be generated.
- *
- * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then `generate_jsc` has no
- * effect.
- */
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
-                        mjs_val_t *res);
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res);
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args);
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,

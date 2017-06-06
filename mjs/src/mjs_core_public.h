@@ -194,6 +194,15 @@ void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */

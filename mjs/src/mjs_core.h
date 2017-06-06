@@ -134,6 +134,7 @@ struct mjs {
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;
+  unsigned generate_jsc : 1;
 };
 
 /*

@@ -2170,6 +2170,15 @@ void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
 
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -2686,6 +2695,7 @@ struct mjs {
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;
+  unsigned generate_jsc : 1;
 };
 
 /*
@@ -3710,15 +3720,7 @@ extern "C" {
 mjs_err_t mjs_exec(struct mjs *, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_buf(struct mjs *, const char *src, size_t, mjs_val_t *res);
 
-/*
- * Execute file. If `generate_jsc` is non-zero, and the filename ends with
- * ".js", the ".jsc" file will be generated.
- *
- * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then `generate_jsc` has no
- * effect.
- */
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
-                        mjs_val_t *res);
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res);
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args);
 mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
@@ -6468,7 +6470,7 @@ static void mjs_load(struct mjs *mjs) {
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */
-      ret = mjs_exec_file(mjs, path, 1, &res);
+      ret = mjs_exec_file(mjs, path, &res);
     } else {
       /*
        * File was already loaded before, so if it was evaluated successfully,
@@ -6998,6 +7000,10 @@ MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m) {
 
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v) {
   push_mjs_val(&mjs->stack, v);
+}
+
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc) {
+  mjs->generate_jsc = generate_jsc;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_dataview.c"
@@ -8003,6 +8009,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
   if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
+  if (generate_jsc == -1) generate_jsc = mjs->generate_jsc;
   if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
     if (generate_jsc && path != NULL) {
@@ -8081,8 +8088,7 @@ mjs_err_t mjs_exec(struct mjs *mjs, const char *src, mjs_val_t *res) {
   return mjs_exec_internal(mjs, "<stdin>", src, 0 /* generate_jsc */, res);
 }
 
-mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
-                        mjs_val_t *res) {
+mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res) {
   mjs_err_t error = MJS_FILE_READ_ERROR;
   mjs_val_t r = MJS_UNDEFINED;
   size_t size;
@@ -8095,7 +8101,7 @@ mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, int generate_jsc,
   }
 
   r = MJS_UNDEFINED;
-  error = mjs_exec_internal(mjs, path, source_code, generate_jsc, &r);
+  error = mjs_exec_internal(mjs, path, source_code, -1, &r);
   free(source_code);
 
 clean:
@@ -10237,17 +10243,17 @@ int main(int argc, char *argv[]) {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
   mjs_err_t err = MJS_OK;
-  int i, generate_jsc = 0;
+  int i;
 
   for (i = 1; i < argc && argv[i][0] == '-' && err == MJS_OK; i++) {
     if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
       cs_log_set_level(atoi(argv[++i]));
     } else if (strcmp(argv[i], "-j") == 0) {
-      generate_jsc = 1;
+      mjs_set_generate_jsc(mjs, 1);
     } else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
       err = mjs_exec(mjs, argv[++i], &res);
     } else if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) {
-      err = mjs_exec_file(mjs, argv[++i], generate_jsc, &res);
+      err = mjs_exec_file(mjs, argv[++i], &res);
     } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       printf("mJS (c) Cesanta, built: " __DATE__ "\n");
       printf("Usage:\n");
@@ -10264,7 +10270,7 @@ int main(int argc, char *argv[]) {
     }
   }
   for (; i < argc && err == MJS_OK; i++) {
-    err = mjs_exec_file(mjs, argv[i], generate_jsc, &res);
+    err = mjs_exec_file(mjs, argv[i], &res);
   }
 
   if (err == MJS_OK) {

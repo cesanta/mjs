@@ -17,17 +17,17 @@ int main(int argc, char *argv[]) {
   struct mjs *mjs = mjs_create();
   mjs_val_t res = MJS_UNDEFINED;
   mjs_err_t err = MJS_OK;
-  int i, generate_jsc = 0;
+  int i;
 
   for (i = 1; i < argc && argv[i][0] == '-' && err == MJS_OK; i++) {
     if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
       cs_log_set_level(atoi(argv[++i]));
     } else if (strcmp(argv[i], "-j") == 0) {
-      generate_jsc = 1;
+      mjs_set_generate_jsc(mjs, 1);
     } else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
       err = mjs_exec(mjs, argv[++i], &res);
     } else if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) {
-      err = mjs_exec_file(mjs, argv[++i], generate_jsc, &res);
+      err = mjs_exec_file(mjs, argv[++i], &res);
     } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       printf("mJS (c) Cesanta, built: " __DATE__ "\n");
       printf("Usage:\n");
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
     }
   }
   for (; i < argc && err == MJS_OK; i++) {
-    err = mjs_exec_file(mjs, argv[i], generate_jsc, &res);
+    err = mjs_exec_file(mjs, argv[i], &res);
   }
 
   if (err == MJS_OK) {

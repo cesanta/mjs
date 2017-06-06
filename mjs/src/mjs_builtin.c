@@ -68,7 +68,7 @@ static void mjs_load(struct mjs *mjs) {
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */
-      ret = mjs_exec_file(mjs, path, 1, &res);
+      ret = mjs_exec_file(mjs, path, &res);
     } else {
       /*
        * File was already loaded before, so if it was evaluated successfully,

@@ -377,3 +377,7 @@ MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m) {
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v) {
   push_mjs_val(&mjs->stack, v);
 }
+
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc) {
+  mjs->generate_jsc = generate_jsc;
+}
