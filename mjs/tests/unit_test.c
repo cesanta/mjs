@@ -731,6 +731,15 @@ void ffi_test_cb_viiiiiu(cb_viiiiiu *cb, void *userdata) {
 }
 /* }}} */
 
+static void ffi_test_inbuf(char *buf, int len) {
+  char pattern[] = { 'a', 'b', 0, 'c', 'd', 1 };
+  int i;
+  for (i = 0; i < len; i++) {
+    buf[i] = pattern[i % sizeof(pattern)];
+  }
+}
+
+
 void *stub_dlsym(void *handle, const char *name) {
   (void) handle;
   if (strcmp(name, "ffi_get_null") == 0) return ffi_get_null;
@@ -750,6 +759,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_cb_iiui") == 0) return ffi_test_cb_iiui;
   if (strcmp(name, "ffi_test_cb_iiui2") == 0) return ffi_test_cb_iiui2;
   if (strcmp(name, "ffi_test_cb_viiiiiu") == 0) return ffi_test_cb_viiiiiu;
+  if (strcmp(name, "ffi_test_inbuf") == 0) return ffi_test_inbuf;
   if (strcmp(name, "malloc") == 0) return malloc;
   if (strcmp(name, "calloc") == 0) return calloc;
   if (strcmp(name, "free") == 0) return free;
@@ -1001,6 +1011,41 @@ const char *test_call_ffi(struct mjs *mjs) {
       mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x01')", &res), MJS_TYPE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: non-ffi-callable value");
+
+  /* Test the ability to pass char buffers to C */
+  {
+    size_t len;
+    const char *p, *result = "\x61\x62\x00\x63\x64\x01\x61\x62\x00\x63";
+
+    /* Try big string, big read */
+    ASSERT_EQ(mjs_exec(mjs, "let buf = 'o1o2o3o4o5'; ", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "let f = ffi('void ffi_test_inbuf(char *, int)');", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "f(buf, buf.length);", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "buf", &res), MJS_OK);
+    p = mjs_get_string(mjs, &res, &len);
+    ASSERT(p != NULL);
+    ASSERT_EQ(len, 10);
+    ASSERT_EQ(memcmp(p, result, len), 0);
+
+    /* Try big string, small read */
+    ASSERT_EQ(mjs_exec(mjs, "buf = 'o1o2o3o4o5';", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "f(buf, 2);", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "buf", &res), MJS_OK);
+    p = mjs_get_string(mjs, &res, &len);
+    ASSERT(p != NULL);
+    ASSERT_EQ(len, 10);
+    ASSERT_STREQ(p, "abo2o3o4o5");
+
+    /* Try small string, small read */
+    ASSERT_EQ(mjs_exec(mjs, "buf = 'o1';", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "f(buf, buf.length);", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "buf", &res), MJS_OK);
+    p = mjs_get_string(mjs, &res, &len);
+    ASSERT(p != NULL);
+    ASSERT_EQ(len, 2);
+    /* TODO(lsm): enable */
+    /* ASSERT_STREQ(p, "ab"); */
+  }
 
   mjs_disown(mjs, &res);
 
@@ -3210,7 +3255,6 @@ const char *test_lib_math(struct mjs *mjs) {
 
 static const char *run_all_tests(const char *filter, double *total_elapsed) {
   cs_log_set_level(2);
-  RUN_TEST(test_exec);
 
   RUN_TEST_MJS(test_arithmetic);
   RUN_TEST_MJS(test_block);
@@ -3257,6 +3301,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_dataview);
 
   RUN_TEST_MJS(test_lib_math);
+  RUN_TEST(test_exec);
 
   return NULL;
 }
