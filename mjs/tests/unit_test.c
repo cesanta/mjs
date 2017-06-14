@@ -2535,13 +2535,25 @@ const char *test_string(struct mjs *mjs) {
   ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.charCodeAt(0)", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 'a');
 
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.at(0)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 'a');
+
   ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.charCodeAt(-1)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 'f');
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.at(-1)", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 'f');
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(0)", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 255);
 
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(0)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 255);
+
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(1)", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(1)", &res));
   ASSERT_EQ(res, MJS_UNDEFINED);
 
   /* concatenation */
