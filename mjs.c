@@ -7500,7 +7500,7 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
   } else if (strcmp(name, "slice") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_string_slice);
     return 1;
-  } else if (strcmp(name, "charCodeAt") == 0) {
+  } else if (strcmp(name, "at") == 0 || strcmp(name, "charCodeAt") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
     return 1;
   } else if (isnum) {
