@@ -10,6 +10,13 @@ GO_PACKAGES = $(shell go list cesanta.com/cloud/... | grep -v vendor) \
 FORMAT_FILES ?= '*.[ch]'
 REPO_ABS_PATH := $(shell cd $(REPO_ROOT) && pwd)
 
+# Additional filter shell command for files to format; it could be for example
+# "grep -v foobar", or even "grep -v foo | grep -v bar" (without quotes).
+FORMAT_FILES_FILTER_CMD ?=
+ifneq ("$(FORMAT_FILES_FILTER_CMD)","")
+	FORMAT_FILES_FILTER_CMD += |
+endif
+
 CLANG = clang
 ifneq ("$(wildcard /usr/bin/clang-3.6)","")
   CLANG:=/usr/bin/clang-3.6
@@ -33,5 +40,6 @@ format:
 	@test -d "$(REPO_ROOT)" && true || { echo "Define REPO_ROOT Makefile variable, REPO_ROOT/common.mk wants it." ; false ; }
 	@git --git-dir $(REPO_ABS_PATH)/.git --work-tree $(REPO_ROOT) \
 		ls-files --full-name $(FORMAT_FILES) | \
+		$(FORMAT_FILES_FILTER_CMD) \
 		xargs -IFILE echo $(REPO_ABS_PATH)/FILE | \
 		xargs -t $(CLANG_FORMAT) -i
