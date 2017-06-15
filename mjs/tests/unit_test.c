@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 #include "mjs.h"
 
 #if defined(__cplusplus)
@@ -770,6 +771,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "mjs_mem_get_int") == 0) return mjs_mem_get_int;
   if (strcmp(name, "ceil") == 0) return ceil;
   if (strcmp(name, "floor") == 0) return floor;
+  if (strcmp(name, "rand") == 0) return rand;
   if (strcmp(name, "round") == 0) return round;
   if (strcmp(name, "fmax") == 0) return fmax;
   if (strcmp(name, "fmin") == 0) return fmin;

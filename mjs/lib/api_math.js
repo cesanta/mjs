@@ -11,4 +11,6 @@ let Math = {
   pow: ffi('double pow(double, double)'),
   sin: ffi('double sin(double)'),
   cos: ffi('double cos(double)'),
+  rand: ffi('int rand()'),
+  random: function() { return Math.rand() / 0x7fffffff; },
 };
