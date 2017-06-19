@@ -79,6 +79,9 @@ where it enables scripting for IoT devices.
 
   <dt><tt>let f = ffi('int foo(int)');</tt></dt>
   <dd>Import C function into mJS. See next section.</dd>
+
+  <dt><tt>gc(full);</tt></dt>
+  <dd>Perform garbage collection. If `full` is `true`, reclaim RAM to OS.</dd>
 </dl>
 
 # C/C++ interoperability

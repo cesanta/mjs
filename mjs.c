@@ -6510,6 +6510,12 @@ static void mjs_get_mjs(struct mjs *mjs) {
   mjs_return(mjs, mjs_mk_foreign(mjs, mjs));
 }
 
+static void mjs_do_gc(struct mjs *mjs) {
+  mjs_val_t arg0 = mjs_arg(mjs, 0);
+  mjs_gc(mjs, mjs_is_boolean(arg0) ? mjs_get_bool(mjs, arg0) : 0);
+  mjs_return(mjs, arg0);
+}
+
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_val_t v;
 
@@ -6522,6 +6528,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
   mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
+  mjs_set(mjs, obj, "gc", ~0, mjs_mk_foreign(mjs, mjs_do_gc));
 
   /*
    * Populate JSON.parse() and JSON.stringify()
