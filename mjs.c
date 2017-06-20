@@ -8961,7 +8961,11 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   switch (rtype) {
     case MJS_FFI_CTYPE_CHAR_PTR: {
       const char *s = (const char *) (uintptr_t) res.v.i;
-      resv = mjs_mk_string(mjs, s, ~0, 1);
+      if (s != NULL) {
+        resv = mjs_mk_string(mjs, s, ~0, 1);
+      } else {
+        resv = MJS_NULL;
+      }
       break;
     }
     case MJS_FFI_CTYPE_VOID_PTR:
