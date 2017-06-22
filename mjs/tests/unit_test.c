@@ -37,6 +37,13 @@ extern "C" {
     ASSERT_EQ(mjs_get_double(mjs, res), (double) result); \
   } while (0)
 
+#define CHECK_TRUE(str)                       \
+  do {                                        \
+    ASSERT_EXEC_OK(mjs_exec(mjs, str, &res)); \
+    ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));   \
+  } while (0)
+
+
 /*
  * Like `RUN_TEST()`, but the test function should have a prototype
  * test_func_t.
@@ -2557,6 +2564,21 @@ const char *test_string(struct mjs *mjs) {
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(1)", &res));
   ASSERT_EQ(res, MJS_UNDEFINED);
+
+  /* chr(), error conditions - wrong argument */
+  CHECK_TRUE("chr() === null;");
+  CHECK_TRUE("chr('x') === null;");
+  CHECK_TRUE("chr({}) === null;");
+  CHECK_TRUE("chr([]) === null;");
+  CHECK_TRUE("chr(false) === null;");
+  CHECK_TRUE("chr(0x100) === null;");
+  CHECK_TRUE("chr(-1) === null;");
+
+  /* chr(), success */
+  CHECK_TRUE("chr(0) === '\\x00';");
+  CHECK_TRUE("chr(1) === '\\x01';");
+  CHECK_TRUE("chr(0x61) === 'a';");
+  CHECK_TRUE("chr(0xff) === '\\xff';");
 
   /* concatenation */
 

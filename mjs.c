@@ -6515,6 +6515,16 @@ static void mjs_get_mjs(struct mjs *mjs) {
   mjs_return(mjs, mjs_mk_foreign(mjs, mjs));
 }
 
+static void mjs_chr(struct mjs *mjs) {
+  mjs_val_t arg0 = mjs_arg(mjs, 0), res = MJS_NULL;
+  int n = mjs_get_int(mjs, arg0);
+  if (mjs_is_number(arg0) && n >= 0 && n <= 255) {
+    uint8_t s = n;
+    res = mjs_mk_string(mjs, (const char *) &s, sizeof(s), 1);
+  }
+  mjs_return(mjs, res);
+}
+
 static void mjs_do_gc(struct mjs *mjs) {
   mjs_val_t arg0 = mjs_arg(mjs, 0);
   mjs_gc(mjs, mjs_is_boolean(arg0) ? mjs_get_bool(mjs, arg0) : 0);
@@ -6534,6 +6544,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
   mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
   mjs_set(mjs, obj, "gc", ~0, mjs_mk_foreign(mjs, mjs_do_gc));
+  mjs_set(mjs, obj, "chr", ~0, mjs_mk_foreign(mjs, mjs_chr));
 
   /*
    * Populate JSON.parse() and JSON.stringify()

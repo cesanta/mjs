@@ -67,6 +67,11 @@ where it enables scripting for IoT devices.
   <dd>Return numeric byte value at given string index. Example:
       <tt>'abc'.at(0) === 0x61;</tt></dd>
 
+  <dt><tt>chr(n);</tt></dt>
+  <dd>Return 1-byte string whose ASCII code is the integer `n`. If `n` is
+    not numeric or outside of `0-255` range, `null` is returned. Example:
+      <tt>chr(0x61) === 'a';</tt></dd>
+
   <dt><tt>let a = [1,2,3,4,5]; a.splice(start, deleteCount, ...);</tt></dt>
   <dd>Change the contents of an array by removing existing elements and/or
     adding new elements. Example:
