@@ -58,10 +58,11 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
     size_t i, size;
     const char *s = mjs_get_string(mjs, &v, &size);
     for (i = 0; i < size; i++) {
-      if (isprint(s[i])) {
-        putchar(s[i]);
+      int ch = ((unsigned char *) s)[i];
+      if (isprint(ch)) {
+        putchar(ch);
       } else {
-        printf("\\x%02x", ((unsigned char *) s)[i]);
+        printf("\\x%02x", ch);
       }
     }
   } else if (mjs_is_array(v)) {
