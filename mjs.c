@@ -12528,9 +12528,15 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
   } else if (mjs_is_boolean(v)) {
     fprintf(fp, "%s", mjs_get_bool(mjs, v) ? "true" : "false");
   } else if (mjs_is_string(v)) {
-    size_t size;
+    size_t i, size;
     const char *s = mjs_get_string(mjs, &v, &size);
-    printf("%.*s", (int) size, s);
+    for (i = 0; i < size; i++) {
+      if (isprint(s[i])) {
+        putchar(s[i]);
+      } else {
+        printf("\\x%02x", ((unsigned char *) s)[i]);
+      }
+    }
   } else if (mjs_is_array(v)) {
     fprintf(fp, "<array>");
   } else if (mjs_is_object(v)) {
