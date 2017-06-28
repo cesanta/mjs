@@ -1655,6 +1655,73 @@ void mbuf_trim(struct mbuf *);
 
 #endif /* CS_COMMON_MG_MEM_H_ */
 #ifdef MJS_MODULE_LINES
+#line 1 "common/mg_str.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_MG_STR_H_
+#define CS_COMMON_MG_STR_H_
+
+#include <stddef.h>
+
+/* Amalgamated: #include "common/platform.h" */
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/* Describes chunk of memory */
+struct mg_str {
+  const char *p; /* Memory chunk pointer */
+  size_t len;    /* Memory chunk length */
+};
+
+/*
+ * Helper functions for creating mg_str struct from plain C string.
+ * `NULL` is allowed and becomes `{NULL, 0}`.
+ */
+struct mg_str mg_mk_str(const char *s);
+struct mg_str mg_mk_str_n(const char *s, size_t len);
+
+/* Macro for initializing mg_str. */
+#define MG_MK_STR(str_literal) \
+  { str_literal, sizeof(str_literal) - 1 }
+#define MG_NULL_STR \
+  { NULL, 0 }
+
+/*
+ * Cross-platform version of `strcmp()` where where first string is
+ * specified by `struct mg_str`.
+ */
+int mg_vcmp(const struct mg_str *str2, const char *str1);
+
+/*
+ * Cross-platform version of `strncasecmp()` where first string is
+ * specified by `struct mg_str`.
+ */
+int mg_vcasecmp(const struct mg_str *str2, const char *str1);
+
+/* Creates a copy of s (heap-allocated). */
+struct mg_str mg_strdup(const struct mg_str s);
+
+/*
+ * Creates a copy of s (heap-allocated).
+ * Resulting string is NUL-terminated (but NUL is not included in len).
+ */
+struct mg_str mg_strdup_nul(const struct mg_str s);
+
+int mg_strcmp(const struct mg_str str1, const struct mg_str str2);
+int mg_strncmp(const struct mg_str str1, const struct mg_str str2, size_t n);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* CS_COMMON_MG_STR_H_ */
+#ifdef MJS_MODULE_LINES
 #line 1 "common/str_util.h"
 #endif
 /*
@@ -1669,6 +1736,7 @@ void mbuf_trim(struct mbuf *);
 #include <stdlib.h>
 
 /* Amalgamated: #include "common/platform.h" */
+/* Amalgamated: #include "common/mg_str.h" */
 
 #ifndef CS_ENABLE_STRDUP
 #define CS_ENABLE_STRDUP 0
@@ -1762,6 +1830,32 @@ int mg_asprintf(char **buf, size_t size, const char *fmt, ...);
 
 /* Same as mg_asprintf, but takes varargs list. */
 int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap);
+
+/*
+ * A helper function for traversing a comma separated list of values.
+ * It returns a list pointer shifted to the next value or NULL if the end
+ * of the list found.
+ * The value is stored in a val vector. If the value has a form "x=y", then
+ * eq_val vector is initialised to point to the "y" part, and val vector length
+ * is adjusted to point only to "x".
+ * If the list is just a comma separated list of entries, like "aa,bb,cc" then
+ * `eq_val` will contain zero-length string.
+ *
+ * The purpose of this function is to parse comma separated string without
+ * any copying/memory allocation.
+ */
+const char *mg_next_comma_list_entry(const char *list, struct mg_str *val,
+                                     struct mg_str *eq_val);
+
+/*
+ * Matches 0-terminated string (mg_match_prefix) or string with given length
+ * mg_match_prefix_n against a glob pattern.
+ *
+ * Match is case-insensitive. Returns number of bytes matched, or -1 if no
+ * match.
+ */
+int mg_match_prefix(const char *pattern, int pattern_len, const char *str);
+int mg_match_prefix_n(const struct mg_str pattern, const struct mg_str str);
 
 #ifdef __cplusplus
 }
@@ -4783,6 +4877,98 @@ int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap) {
   }
 
   return len;
+}
+
+const char *mg_next_comma_list_entry(const char *, struct mg_str *,
+                                     struct mg_str *) WEAK;
+const char *mg_next_comma_list_entry(const char *list, struct mg_str *val,
+                                     struct mg_str *eq_val) {
+  if (list == NULL || *list == '\0') {
+    /* End of the list */
+    list = NULL;
+  } else {
+    val->p = list;
+    if ((list = strchr(val->p, ',')) != NULL) {
+      /* Comma found. Store length and shift the list ptr */
+      val->len = list - val->p;
+      list++;
+    } else {
+      /* This value is the last one */
+      list = val->p + strlen(val->p);
+      val->len = list - val->p;
+    }
+
+    if (eq_val != NULL) {
+      /* Value has form "x=y", adjust pointers and lengths */
+      /* so that val points to "x", and eq_val points to "y". */
+      eq_val->len = 0;
+      eq_val->p = (const char *) memchr(val->p, '=', val->len);
+      if (eq_val->p != NULL) {
+        eq_val->p++; /* Skip over '=' character */
+        eq_val->len = val->p + val->len - eq_val->p;
+        val->len = (eq_val->p - val->p) - 1;
+      }
+    }
+  }
+
+  return list;
+}
+
+int mg_match_prefix_n(const struct mg_str, const struct mg_str) WEAK;
+int mg_match_prefix_n(const struct mg_str pattern, const struct mg_str str) {
+  const char *or_str;
+  size_t len, i = 0, j = 0;
+  int res;
+
+  if ((or_str = (const char *) memchr(pattern.p, '|', pattern.len)) != NULL ||
+      (or_str = (const char *) memchr(pattern.p, ',', pattern.len)) != NULL) {
+    struct mg_str pstr = {pattern.p, (size_t)(or_str - pattern.p)};
+    res = mg_match_prefix_n(pstr, str);
+    if (res > 0) return res;
+    pstr.p = or_str + 1;
+    pstr.len = (pattern.p + pattern.len) - (or_str + 1);
+    return mg_match_prefix_n(pstr, str);
+  }
+
+  for (; i < pattern.len; i++, j++) {
+    if (pattern.p[i] == '?' && j != str.len) {
+      continue;
+    } else if (pattern.p[i] == '$') {
+      return j == str.len ? (int) j : -1;
+    } else if (pattern.p[i] == '*') {
+      i++;
+      if (i < pattern.len && pattern.p[i] == '*') {
+        i++;
+        len = str.len - j;
+      } else {
+        len = 0;
+        while (j + len != str.len && str.p[j + len] != '/') {
+          len++;
+        }
+      }
+      if (i == pattern.len) {
+        return j + len;
+      }
+      do {
+        const struct mg_str pstr = {pattern.p + i, pattern.len - i};
+        const struct mg_str sstr = {str.p + j + len, str.len - j - len};
+        res = mg_match_prefix_n(pstr, sstr);
+      } while (res == -1 && len-- > 0);
+      return res == -1 ? -1 : (int) (j + res + len);
+    } else if (str_util_lowercase(&pattern.p[i]) !=
+               str_util_lowercase(&str.p[j])) {
+      return -1;
+    }
+  }
+  return j;
+}
+
+int mg_match_prefix(const char *, int, const char *) WEAK;
+int mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
+  const struct mg_str pstr = {pattern, (size_t) pattern_len};
+  struct mg_str s = {str, 0};
+  if (str != NULL) s.len = strlen(str);
+  return mg_match_prefix_n(pstr, s);
 }
 
 #endif /* EXCLUDE_COMMON */
