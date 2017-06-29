@@ -1409,36 +1409,34 @@ enum cs_log_level {
   _LL_MAX = 5,
 };
 
+/* Set log level. */
 void cs_log_set_level(enum cs_log_level level);
+
+/* Set log filter. NULL (a default) logs everything. */
+void cs_log_set_filter(char *source_file_name);
+
+int cs_log_print_prefix(enum cs_log_level level, const char *func,
+                        const char *filename);
+
+extern enum cs_log_level cs_log_threshold;
 
 #if CS_ENABLE_STDIO
 
 void cs_log_set_file(FILE *file);
-extern enum cs_log_level cs_log_threshold;
-void cs_log_print_prefix(enum cs_log_level level, const char *func);
 void cs_log_printf(const char *fmt, ...)
 #ifdef __GNUC__
     __attribute__((format(printf, 1, 2)))
 #endif
     ;
 
-#define LOG(l, x)                       \
-  do {                                  \
-    if (cs_log_threshold >= l) {        \
-      cs_log_print_prefix(l, __func__); \
-      cs_log_printf x;                  \
-    }                                   \
+#define LOG(l, x)                                                    \
+  do {                                                               \
+    if (cs_log_print_prefix(l, __func__, __FILE__)) cs_log_printf x; \
   } while (0)
 
 #ifndef CS_NDEBUG
 
-#define DBG(x)                                         \
-  do {                                                 \
-    if (cs_log_threshold >= LL_VERBOSE_DEBUG) {        \
-      cs_log_print_prefix(LL_VERBOSE_DEBUG, __func__); \
-      cs_log_printf x;                                 \
-    }                                                  \
-  } while (0)
+#define DBG(x) LOG(LL_VERBOSE_DEBUG, x)
 
 #else /* NDEBUG */
 
@@ -1483,177 +1481,6 @@ double cs_time(void);
 #endif /* __cplusplus */
 
 #endif /* CS_COMMON_CS_TIME_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "common/cs_file.h"
-#endif
-/*
- * Copyright (c) 2015 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef CS_COMMON_CS_FILE_H_
-#define CS_COMMON_CS_FILE_H_
-
-/* Amalgamated: #include "common/platform.h" */
-
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-/*
- * Read whole file `path` in memory. It is responsibility of the caller
- * to `free()` allocated memory. File content is guaranteed to be
- * '\0'-terminated. File size is returned in `size` variable, which does not
- * count terminating `\0`.
- * Return: allocated memory, or NULL on error.
- */
-char *cs_read_file(const char *path, size_t *size);
-
-#ifdef CS_MMAP
-char *cs_mmap_file(const char *path, size_t *size);
-#endif
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
-#endif /* CS_COMMON_CS_FILE_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "common/cs_varint.h"
-#endif
-/*
- * Copyright (c) 2014-2017 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef CS_COMMON_CS_VARINT_H_
-#define CS_COMMON_CS_VARINT_H_
-
-#include <stdint.h>
-
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus */
-
-int cs_varint_encode(uint64_t num, uint8_t *to);
-uint64_t cs_varint_decode(const uint8_t *from, int *llen);
-int cs_varint_llen(uint64_t num);
-
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
-
-#endif /* CS_COMMON_CS_VARINT_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "common/mbuf.h"
-#endif
-/*
- * Copyright (c) 2015 Cesanta Software Limited
- * All rights reserved
- */
-
-/*
- * === Memory Buffers
- *
- * Mbufs are mutable/growing memory buffers, like C++ strings.
- * Mbuf can append data to the end of a buffer or insert data into arbitrary
- * position in the middle of a buffer. The buffer grows automatically when
- * needed.
- */
-
-#ifndef CS_COMMON_MBUF_H_
-#define CS_COMMON_MBUF_H_
-
-#include <stdlib.h>
-/* Amalgamated: #include "common/platform.h" */
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-#ifndef MBUF_SIZE_MULTIPLIER
-#define MBUF_SIZE_MULTIPLIER 1.5
-#endif
-
-/* Memory buffer descriptor */
-struct mbuf {
-  char *buf;   /* Buffer pointer */
-  size_t len;  /* Data length. Data is located between offset 0 and len. */
-  size_t size; /* Buffer size allocated by realloc(1). Must be >= len */
-};
-
-/*
- * Initialises an Mbuf.
- * `initial_capacity` specifies the initial capacity of the mbuf.
- */
-void mbuf_init(struct mbuf *, size_t initial_capacity);
-
-/* Frees the space allocated for the mbuffer and resets the mbuf structure. */
-void mbuf_free(struct mbuf *);
-
-/*
- * Appends data to the Mbuf.
- *
- * Returns the number of bytes appended or 0 if out of memory.
- */
-size_t mbuf_append(struct mbuf *, const void *data, size_t data_size);
-
-/*
- * Inserts data at a specified offset in the Mbuf.
- *
- * Existing data will be shifted forwards and the buffer will
- * be grown if necessary.
- * Returns the number of bytes inserted.
- */
-size_t mbuf_insert(struct mbuf *, size_t, const void *, size_t);
-
-/* Removes `data_size` bytes from the beginning of the buffer. */
-void mbuf_remove(struct mbuf *, size_t data_size);
-
-/*
- * Resizes an Mbuf.
- *
- * If `new_size` is smaller than buffer's `len`, the
- * resize is not performed.
- */
-void mbuf_resize(struct mbuf *, size_t new_size);
-
-/* Shrinks an Mbuf by resizing its `size` to `len`. */
-void mbuf_trim(struct mbuf *);
-
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
-
-#endif /* CS_COMMON_MBUF_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "common/mg_mem.h"
-#endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef CS_COMMON_MG_MEM_H_
-#define CS_COMMON_MG_MEM_H_
-
-#ifndef MG_MALLOC
-#define MG_MALLOC malloc
-#endif
-
-#ifndef MG_CALLOC
-#define MG_CALLOC calloc
-#endif
-
-#ifndef MG_REALLOC
-#define MG_REALLOC realloc
-#endif
-
-#ifndef MG_FREE
-#define MG_FREE free
-#endif
-
-#endif /* CS_COMMON_MG_MEM_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mg_str.h"
 #endif
@@ -1862,6 +1689,177 @@ int mg_match_prefix_n(const struct mg_str pattern, const struct mg_str str);
 #endif
 
 #endif /* CS_COMMON_STR_UTIL_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "common/cs_file.h"
+#endif
+/*
+ * Copyright (c) 2015 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_CS_FILE_H_
+#define CS_COMMON_CS_FILE_H_
+
+/* Amalgamated: #include "common/platform.h" */
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
+/*
+ * Read whole file `path` in memory. It is responsibility of the caller
+ * to `free()` allocated memory. File content is guaranteed to be
+ * '\0'-terminated. File size is returned in `size` variable, which does not
+ * count terminating `\0`.
+ * Return: allocated memory, or NULL on error.
+ */
+char *cs_read_file(const char *path, size_t *size);
+
+#ifdef CS_MMAP
+char *cs_mmap_file(const char *path, size_t *size);
+#endif
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* CS_COMMON_CS_FILE_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "common/cs_varint.h"
+#endif
+/*
+ * Copyright (c) 2014-2017 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_CS_VARINT_H_
+#define CS_COMMON_CS_VARINT_H_
+
+#include <stdint.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+int cs_varint_encode(uint64_t num, uint8_t *to);
+uint64_t cs_varint_decode(const uint8_t *from, int *llen);
+int cs_varint_llen(uint64_t num);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* CS_COMMON_CS_VARINT_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "common/mbuf.h"
+#endif
+/*
+ * Copyright (c) 2015 Cesanta Software Limited
+ * All rights reserved
+ */
+
+/*
+ * === Memory Buffers
+ *
+ * Mbufs are mutable/growing memory buffers, like C++ strings.
+ * Mbuf can append data to the end of a buffer or insert data into arbitrary
+ * position in the middle of a buffer. The buffer grows automatically when
+ * needed.
+ */
+
+#ifndef CS_COMMON_MBUF_H_
+#define CS_COMMON_MBUF_H_
+
+#include <stdlib.h>
+/* Amalgamated: #include "common/platform.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+#ifndef MBUF_SIZE_MULTIPLIER
+#define MBUF_SIZE_MULTIPLIER 1.5
+#endif
+
+/* Memory buffer descriptor */
+struct mbuf {
+  char *buf;   /* Buffer pointer */
+  size_t len;  /* Data length. Data is located between offset 0 and len. */
+  size_t size; /* Buffer size allocated by realloc(1). Must be >= len */
+};
+
+/*
+ * Initialises an Mbuf.
+ * `initial_capacity` specifies the initial capacity of the mbuf.
+ */
+void mbuf_init(struct mbuf *, size_t initial_capacity);
+
+/* Frees the space allocated for the mbuffer and resets the mbuf structure. */
+void mbuf_free(struct mbuf *);
+
+/*
+ * Appends data to the Mbuf.
+ *
+ * Returns the number of bytes appended or 0 if out of memory.
+ */
+size_t mbuf_append(struct mbuf *, const void *data, size_t data_size);
+
+/*
+ * Inserts data at a specified offset in the Mbuf.
+ *
+ * Existing data will be shifted forwards and the buffer will
+ * be grown if necessary.
+ * Returns the number of bytes inserted.
+ */
+size_t mbuf_insert(struct mbuf *, size_t, const void *, size_t);
+
+/* Removes `data_size` bytes from the beginning of the buffer. */
+void mbuf_remove(struct mbuf *, size_t data_size);
+
+/*
+ * Resizes an Mbuf.
+ *
+ * If `new_size` is smaller than buffer's `len`, the
+ * resize is not performed.
+ */
+void mbuf_resize(struct mbuf *, size_t new_size);
+
+/* Shrinks an Mbuf by resizing its `size` to `len`. */
+void mbuf_trim(struct mbuf *);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* CS_COMMON_MBUF_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "common/mg_mem.h"
+#endif
+/*
+ * Copyright (c) 2014-2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_MG_MEM_H_
+#define CS_COMMON_MG_MEM_H_
+
+#ifndef MG_MALLOC
+#define MG_MALLOC malloc
+#endif
+
+#ifndef MG_CALLOC
+#define MG_CALLOC calloc
+#endif
+
+#ifndef MG_REALLOC
+#define MG_REALLOC realloc
+#endif
+
+#ifndef MG_FREE
+#define MG_FREE free
+#endif
+
+#endif /* CS_COMMON_MG_MEM_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/ffi/ffi.h"
 #endif
@@ -4186,6 +4184,7 @@ int json_escape(struct json_out *out, const char *str, size_t str_len);
 #include <string.h>
 
 /* Amalgamated: #include "common/cs_time.h" */
+/* Amalgamated: #include "common/str_util.h" */
 
 enum cs_log_level cs_log_threshold WEAK =
 #if CS_ENABLE_DEBUG
@@ -4193,6 +4192,9 @@ enum cs_log_level cs_log_threshold WEAK =
 #else
     LL_ERROR;
 #endif
+
+static char *s_filter_pattern = NULL;
+static size_t s_filter_pattern_len;
 
 #if CS_ENABLE_STDIO
 
@@ -4204,9 +4206,30 @@ double cs_log_ts WEAK;
 
 enum cs_log_level cs_log_cur_msg_level WEAK = LL_NONE;
 
-void cs_log_print_prefix(enum cs_log_level level, const char *func) WEAK;
-void cs_log_print_prefix(enum cs_log_level level, const char *func) {
+void cs_log_set_filter(char *str) WEAK;
+void cs_log_set_filter(char *str) {
+  free(s_filter_pattern);
+  if (str != NULL) {
+    s_filter_pattern = strdup(str);
+    s_filter_pattern_len = strlen(str);
+  } else {
+    s_filter_pattern = NULL;
+    s_filter_pattern_len = 0;
+  }
+};
+
+int cs_log_print_prefix(enum cs_log_level, const char *, const char *) WEAK;
+int cs_log_print_prefix(enum cs_log_level level, const char *func,
+                        const char *filename) {
   char prefix[21];
+
+  if (level > cs_log_threshold) return 0;
+  if (s_filter_pattern != NULL &&
+      mg_match_prefix(s_filter_pattern, s_filter_pattern_len, func) < 0 &&
+      mg_match_prefix(s_filter_pattern, s_filter_pattern_len, filename) < 0) {
+    return 0;
+  }
+
   strncpy(prefix, func, 20);
   prefix[20] = '\0';
   if (cs_log_file == NULL) cs_log_file = stderr;
@@ -4219,6 +4242,7 @@ void cs_log_print_prefix(enum cs_log_level level, const char *func) {
     cs_log_ts = now;
   }
 #endif
+  return 1;
 }
 
 void cs_log_printf(const char *fmt, ...) WEAK;
