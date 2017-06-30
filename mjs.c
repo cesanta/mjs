@@ -5754,7 +5754,8 @@ int json_printf_array(struct json_out *out, va_list *ap) {
 }
 
 #ifdef _WIN32
-int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap) WEAK;
+int cs_win_vsnprintf(char *str, size_t size, const char *format,
+                     va_list ap) WEAK;
 int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
   int res = _vsnprintf(str, size, format, ap);
   va_end(ap);
@@ -5861,7 +5862,7 @@ static void json_scanf_cb(void *callback_data, const char *name,
                           size_t name_len, const char *path,
                           const struct json_token *token) {
   struct json_scanf_info *info = (struct json_scanf_info *) callback_data;
-  char buf[32];  /* Must be enough to hold numbers */
+  char buf[32]; /* Must be enough to hold numbers */
 
   (void) name;
   (void) name_len;
@@ -5882,7 +5883,7 @@ static void json_scanf_cb(void *callback_data, const char *name,
   switch (info->type) {
     case 'B':
       info->num_conversions++;
-      switch (sizeof(bool)){
+      switch (sizeof(bool)) {
         case sizeof(char):
           *(char *) info->target = (token->type == JSON_TYPE_TRUE ? 1 : 0);
           break;
@@ -12743,23 +12744,24 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out) {
       if (isprint(ch)) {
         json_printf(out, "%c", ch);
       } else {
-        json_printf(out, "\\x%02x", ch);
+        json_printf(out, "%s%02x", "\\x", ch);
       }
     }
   } else if (mjs_is_array(v)) {
-    json_printf(out, "<array>");
+    json_printf(out, "%s", "<array>");
   } else if (mjs_is_object(v)) {
-    json_printf(out, "<object>");
+    json_printf(out, "%s", "<object>");
   } else if (mjs_is_foreign(v)) {
-    json_printf(out, "<foreign_ptr@%lx>", (unsigned long) mjs_get_ptr(mjs, v));
+    json_printf(out, "%s%lx%s", "<foreign_ptr@",
+                (unsigned long) mjs_get_ptr(mjs, v), ">");
   } else if (mjs_is_function(v)) {
-    json_printf(out, "<function@%d>", (int) mjs_get_func_addr(v));
+    json_printf(out, "%s%d%s", "<function@", (int) mjs_get_func_addr(v), ">");
   } else if (mjs_is_null(v)) {
-    json_printf(out, "null");
+    json_printf(out, "%s", "null");
   } else if (mjs_is_undefined(v)) {
-    json_printf(out, "undefined");
+    json_printf(out, "%s", "undefined");
   } else {
-    json_printf(out, "(unknown value type %" INT64_FMT ") ", (int64_t) v);
+    json_printf(out, "%s%" INT64_FMT "%s", "<???", (int64_t) v, ">");
   }
 }
 
