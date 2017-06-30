@@ -5632,7 +5632,7 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
          * TODO(dfrank): reimplement %s and %.*s in order to avoid that.
          */
 
-        const char *end_of_format_specifier = "sdfFgGlhuIc.*-0123456789";
+        const char *end_of_format_specifier = "sdfFgGlhuIcx.*-0123456789";
         size_t n = strspn(fmt + 1, end_of_format_specifier);
         char *pbuf = buf;
         size_t need_len;
@@ -5708,6 +5708,7 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
       }
       len += out->printer(out, quote, 1);
     } else {
+      len += out->printer(out, fmt, 1);
       fmt++;
     }
   }
