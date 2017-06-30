@@ -16,7 +16,7 @@ extern "C" {
 struct mjs_bcode_part;
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
-MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i);
 MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
 
 /*

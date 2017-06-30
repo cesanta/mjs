@@ -3330,11 +3330,12 @@ extern "C" {
 const char *mjs_typeof(mjs_val_t v);
 
 void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp);
+void mjs_sprintf(mjs_val_t v, struct mjs *mjs, char *buf, size_t buflen);
 
 #if MJS_ENABLE_DEBUG
 
-void mjs_disasm(const uint8_t *code, size_t len, FILE *fp);
-void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
+void mjs_disasm(const uint8_t *code, size_t len);
+void mjs_dump(struct mjs *mjs, int do_disasm);
 
 #endif
 
@@ -3382,7 +3383,7 @@ extern "C" {
 struct mjs_bcode_part;
 
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
-MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i);
 MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
 
 /*
@@ -7849,11 +7850,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
 #endif
 
     const uint8_t *code = (const uint8_t *) bp.data.p;
-    if (cs_log_threshold >= LL_VERBOSE_DEBUG) {
-      /* mjs_dump(mjs, 0, stdout); */
-      printf("executing: ");
-      mjs_disasm_single(code, i, stdout);
-    }
+    mjs_disasm_single(code, i);
     prev_opcode = opcode;
     opcode = code[i];
     switch (opcode) {
@@ -8207,7 +8204,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       default:
 #if MJS_ENABLE_DEBUG
-        mjs_dump(mjs, 1, stdout);
+        mjs_dump(mjs, 1);
 #endif
         mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "Unknown opcode: %d, off %d+%d",
                        (int) opcode, (int) bp.start_idx, (int) i);
@@ -8243,7 +8240,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
-  if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
+  if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1);
   if (generate_jsc == -1) generate_jsc = mjs->generate_jsc;
   if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
@@ -12687,7 +12684,7 @@ MJS_PRIVATE int pnext(struct pstate *p) {
  */
 
 /* Amalgamated: #include "common/cs_varint.h" */
-
+/* Amalgamated: #include "frozen/frozen.h" */
 /* Amalgamated: #include "mjs/src/mjs_array.h" */
 /* Amalgamated: #include "mjs/src/mjs_bcode.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
@@ -12727,42 +12724,52 @@ MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t) {
   }
 }
 
-void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
+void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out) {
   if (mjs_is_number(v)) {
     double iv, d = mjs_get_double(mjs, v);
     if (modf(d, &iv) == 0) {
-      fprintf(fp, "%" INT64_FMT, (int64_t) d);
+      json_printf(out, "%" INT64_FMT, (int64_t) d);
     } else {
-      fprintf(fp, "%f", mjs_get_double(mjs, v));
+      json_printf(out, "%f", mjs_get_double(mjs, v));
     }
   } else if (mjs_is_boolean(v)) {
-    fprintf(fp, "%s", mjs_get_bool(mjs, v) ? "true" : "false");
+    json_printf(out, "%s", mjs_get_bool(mjs, v) ? "true" : "false");
   } else if (mjs_is_string(v)) {
     size_t i, size;
     const char *s = mjs_get_string(mjs, &v, &size);
     for (i = 0; i < size; i++) {
       int ch = ((unsigned char *) s)[i];
       if (isprint(ch)) {
-        putchar(ch);
+        json_printf(out, "%c", ch);
       } else {
-        printf("\\x%02x", ch);
+        json_printf(out, "\\x%02x", ch);
       }
     }
   } else if (mjs_is_array(v)) {
-    fprintf(fp, "<array>");
+    json_printf(out, "<array>");
   } else if (mjs_is_object(v)) {
-    fprintf(fp, "<object>");
+    json_printf(out, "<object>");
   } else if (mjs_is_foreign(v)) {
-    fprintf(fp, "<foreign_ptr@%lx>", (unsigned long) mjs_get_ptr(mjs, v));
+    json_printf(out, "<foreign_ptr@%lx>", (unsigned long) mjs_get_ptr(mjs, v));
   } else if (mjs_is_function(v)) {
-    fprintf(fp, "<function@%d>", (int) mjs_get_func_addr(v));
+    json_printf(out, "<function@%d>", (int) mjs_get_func_addr(v));
   } else if (mjs_is_null(v)) {
-    fprintf(fp, "null");
+    json_printf(out, "null");
   } else if (mjs_is_undefined(v)) {
-    fprintf(fp, "undefined");
+    json_printf(out, "undefined");
   } else {
-    fprintf(fp, "(unknown value type %" INT64_FMT ") ", (int64_t) v);
+    json_printf(out, "(unknown value type %" INT64_FMT ") ", (int64_t) v);
   }
+}
+
+void mjs_sprintf(mjs_val_t v, struct mjs *mjs, char *buf, size_t n) {
+  struct json_out out = JSON_OUT_BUF(buf, n);
+  mjs_jprintf(v, mjs, &out);
+}
+
+void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
+  struct json_out out = JSON_OUT_FILE(fp);
+  mjs_jprintf(v, mjs, &out);
 }
 
 #if MJS_ENABLE_DEBUG
@@ -12777,41 +12784,44 @@ MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
       "RETURN", "LOOP", "BREAK", "CONTINUE", "SETRETVAL", "EXIT", "BCODE_HDR",
       "ARGS", "FOR_IN_NEXT",
   };
-  const char *name = "UNKNOWN OPCODE";
+  const char *name = "???";
   assert(ARRAY_SIZE(names) == OP_MAX);
   if (opcode < ARRAY_SIZE(names)) name = names[opcode];
   return name;
 }
 
-MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
+  char buf[40];
   size_t start_i = i;
-  fprintf(fp, "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
+
+  snprintf(buf, sizeof(buf), "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
 
   switch (code[i]) {
     case OP_PUSH_FUNC: {
       int llen, n = cs_varint_decode(&code[i + 1], &llen);
-      fprintf(fp, " %04u", (unsigned) (i - n));
+      LOG(LL_VERBOSE_DEBUG, ("%s %04u", buf, (unsigned) (i - n)));
       i += llen;
       break;
     }
     case OP_PUSH_INT: {
       int llen;
       unsigned long n = cs_varint_decode(&code[i + 1], &llen);
-      fprintf(fp, "\t%lu", n);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t%lu", buf, n));
       i += llen;
       break;
     }
     case OP_SET_ARG: {
       int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
       n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
-      fprintf(fp, "\t[%.*s] %d", n, code + i + 1 + llen1 + llen2, arg_no);
+      LOG(LL_VERBOSE_DEBUG,
+          ("%s\t[%.*s] %d", buf, n, code + i + 1 + llen1 + llen2, arg_no));
       i += llen1 + llen2 + n;
       break;
     }
     case OP_PUSH_STR:
     case OP_PUSH_DBL: {
       int llen, n = cs_varint_decode(&code[i + 1], &llen);
-      fprintf(fp, "\t[%.*s]", n, code + i + 1 + llen);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s]", buf, n, code + i + 1 + llen));
       i += llen + n;
       break;
     }
@@ -12821,18 +12831,20 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
     case OP_JMP_FALSE:
     case OP_JMP_NEUTRAL_FALSE: {
       int llen, n = cs_varint_decode(&code[i + 1], &llen);
-      fprintf(fp, "\t%u",
-              (unsigned) i + n + llen +
-                  1 /* becaue i will be incremented on the usual terms */);
+      LOG(LL_VERBOSE_DEBUG,
+          ("%s\t%u", buf,
+           (unsigned) i + n + llen +
+               1 /* becaue i will be incremented on the usual terms */));
       i += llen;
       break;
     }
     case OP_LOOP: {
       int l1, l2, n2, n1 = cs_varint_decode(&code[i + 1], &l1);
       n2 = cs_varint_decode(&code[i + l1 + 1], &l2);
-      fprintf(fp, "\tB:%lu C:%lu (%d)",
-              (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
-              (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i);
+      LOG(LL_VERBOSE_DEBUG,
+          ("%s\tB:%lu C:%lu (%d)", buf,
+           (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
+           (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i));
       i += l1 + l2;
       break;
     }
@@ -12886,7 +12898,7 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
         case TOK_URSHIFT_ASSIGN:  name = ">>>="; break;
       }
       /* clang-format on */
-      fprintf(fp, "\t%s", name);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t%s", buf, name));
       i++;
       break;
     }
@@ -12899,24 +12911,22 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp) {
              &code[i + 1 + MJS_HDR_ITEM_MAP_OFFSET * sizeof(total_size)],
              sizeof(map_offset));
       i += sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT;
-      fprintf(fp, "\t[%s] end:%lu map_offset: %lu", &code[i + 1],
-              (unsigned long) start + total_size,
-              (unsigned long) start + map_offset);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t[%s] end:%lu map_offset: %lu", buf,
+                             &code[i + 1], (unsigned long) start + total_size,
+                             (unsigned long) start + map_offset));
       i += strlen((char *) (code + i + 1)) + 1;
       break;
     }
   }
-
-  fputc('\n', fp);
   return i - start_i;
 }
 
-void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
+void mjs_disasm(const uint8_t *code, size_t len) {
   size_t i, start = 0;
   mjs_header_item_t map_offset = 0, total_size = 0;
 
   for (i = 0; i < len; i++) {
-    size_t delta = mjs_disasm_single(code, i, fp);
+    size_t delta = mjs_disasm_single(code, i);
     if (code[i] == OP_BCODE_HEADER) {
       start = i;
       memcpy(&total_size, &code[i + 1], sizeof(total_size));
@@ -12935,35 +12945,34 @@ void mjs_disasm(const uint8_t *code, size_t len, FILE *fp) {
 }
 
 static void mjs_dump_obj_stack(const char *name, const struct mbuf *m,
-                               struct mjs *mjs, FILE *fp) {
+                               struct mjs *mjs) {
+  char buf[50];
   size_t i, n;
   n = mjs_stack_size(m);
-  fprintf(fp, "  %12s (%d elems): ", name, (int) n);
+  LOG(LL_VERBOSE_DEBUG, ("%12s (%d elems): ", name, (int) n));
   for (i = 0; i < n; i++) {
-    fprintf(fp, " [");
-    mjs_fprintf(((mjs_val_t *) m->buf)[i], mjs, fp);
-    fprintf(fp, "]");
+    mjs_sprintf(((mjs_val_t *) m->buf)[i], mjs, buf, sizeof(buf));
+    LOG(LL_VERBOSE_DEBUG, ("%34s", buf));
   }
-  fprintf(fp, "\n");
 }
 
-void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp) {
-  fprintf(fp, "------- MJS VM DUMP BEGIN\n");
-  mjs_dump_obj_stack("DATA_STACK", &mjs->stack, mjs, fp);
-  mjs_dump_obj_stack("CALL_STACK", &mjs->call_stack, mjs, fp);
-  mjs_dump_obj_stack("SCOPES", &mjs->scopes, mjs, fp);
-  mjs_dump_obj_stack("LOOP_OFFSETS", &mjs->loop_addresses, mjs, fp);
-  mjs_dump_obj_stack("ARG_STACK", &mjs->arg_stack, mjs, fp);
+void mjs_dump(struct mjs *mjs, int do_disasm) {
+  LOG(LL_VERBOSE_DEBUG, ("------- MJS VM DUMP BEGIN"));
+  mjs_dump_obj_stack("DATA_STACK", &mjs->stack, mjs);
+  mjs_dump_obj_stack("CALL_STACK", &mjs->call_stack, mjs);
+  mjs_dump_obj_stack("SCOPES", &mjs->scopes, mjs);
+  mjs_dump_obj_stack("LOOP_OFFSETS", &mjs->loop_addresses, mjs);
+  mjs_dump_obj_stack("ARG_STACK", &mjs->arg_stack, mjs);
   if (do_disasm) {
     int parts_cnt = mjs_bcode_parts_cnt(mjs);
     int i;
-    fprintf(fp, "  CODE:\n");
+    LOG(LL_VERBOSE_DEBUG, ("%23s", "CODE:"));
     for (i = 0; i < parts_cnt; i++) {
       struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
-      mjs_disasm((uint8_t *) bp->data.p, bp->data.len, fp);
+      mjs_disasm((uint8_t *) bp->data.p, bp->data.len);
     }
   }
-  fprintf(fp, "------- MJS VM DUMP END\n");
+  LOG(LL_VERBOSE_DEBUG, ("------- MJS VM DUMP END"));
 }
 
 MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,

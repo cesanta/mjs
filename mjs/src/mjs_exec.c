@@ -515,11 +515,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
 #endif
 
     const uint8_t *code = (const uint8_t *) bp.data.p;
-    if (cs_log_threshold >= LL_VERBOSE_DEBUG) {
-      /* mjs_dump(mjs, 0, stdout); */
-      printf("executing: ");
-      mjs_disasm_single(code, i, stdout);
-    }
+    mjs_disasm_single(code, i);
     prev_opcode = opcode;
     opcode = code[i];
     switch (opcode) {
@@ -873,7 +869,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       default:
 #if MJS_ENABLE_DEBUG
-        mjs_dump(mjs, 1, stdout);
+        mjs_dump(mjs, 1);
 #endif
         mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "Unknown opcode: %d, off %d+%d",
                        (int) opcode, (int) bp.start_idx, (int) i);
@@ -909,7 +905,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
-  if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1, stderr);
+  if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1);
   if (generate_jsc == -1) generate_jsc = mjs->generate_jsc;
   if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
