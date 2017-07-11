@@ -917,8 +917,8 @@ const char *test_parse_ffi_signature(struct mjs *mjs) {
   /* wrong signature: callback with double arg */
   mjs_set_errorf(mjs, MJS_OK, NULL);
   ASSERT_EQ(
-      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(double, userdata), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(double, userdata), userdata)\": bad ffi signature: \"void(*)(double, userdata)\": the callback signature is valid, but there's no existing callback implementation for it");
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(double, double, userdata), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(double, double, userdata), userdata)\": bad ffi signature: \"void(*)(double, double, userdata)\": the callback signature is valid, but there's no existing callback implementation for it");
   mjs_ffi_sig_free(&sig);
 
   return NULL;

@@ -8839,6 +8839,26 @@ static uintptr_t ffi_cb_impl_wwwwwwp(uintptr_t w0, uintptr_t w1, uintptr_t w2,
   ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
   return ffi_cb_impl_generic((void *) w5, &data).w;
 }
+
+static uintptr_t ffi_cb_impl_wpd(uintptr_t w0, double d1) {
+  struct ffi_cb_data data;
+
+  memset(&data, 0, sizeof(data));
+  data.args[0].w = w0;
+  data.args[1].d = d1;
+
+  return ffi_cb_impl_generic((void *) w0, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wdp(double d0, uintptr_t w1) {
+  struct ffi_cb_data data;
+
+  memset(&data, 0, sizeof(data));
+  data.args[0].d = d0;
+  data.args[1].w = w1;
+
+  return ffi_cb_impl_generic((void *) w1, &data).w;
+}
 /* }}} */
 
 static struct mjs_ffi_cb_args **ffi_get_matching(struct mjs_ffi_cb_args **plist,
@@ -8879,25 +8899,36 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
     if (sig->args_cnt <= MJS_CB_ARGS_MAX_CNT) {
       if (mjs_ffi_is_regular_word_or_void(sig->val_types[0])) {
         /* Return type is a word or void */
-        if (double_cnt == 0) {
-          /* No double arguments */
-          switch (userdata_idx) {
-            case 1:
-              return (ffi_fn_t *) ffi_cb_impl_wpwwwww;
-            case 2:
-              return (ffi_fn_t *) ffi_cb_impl_wwpwwww;
-            case 3:
-              return (ffi_fn_t *) ffi_cb_impl_wwwpwww;
-            case 4:
-              return (ffi_fn_t *) ffi_cb_impl_wwwwpww;
-            case 5:
-              return (ffi_fn_t *) ffi_cb_impl_wwwwwpw;
-            case 6:
-              return (ffi_fn_t *) ffi_cb_impl_wwwwwwp;
-            default:
-              /* should never be here */
-              abort();
-          }
+        switch (double_cnt) {
+          case 0:
+            /* No double arguments */
+            switch (userdata_idx) {
+              case 1:
+                return (ffi_fn_t *) ffi_cb_impl_wpwwwww;
+              case 2:
+                return (ffi_fn_t *) ffi_cb_impl_wwpwwww;
+              case 3:
+                return (ffi_fn_t *) ffi_cb_impl_wwwpwww;
+              case 4:
+                return (ffi_fn_t *) ffi_cb_impl_wwwwpww;
+              case 5:
+                return (ffi_fn_t *) ffi_cb_impl_wwwwwpw;
+              case 6:
+                return (ffi_fn_t *) ffi_cb_impl_wwwwwwp;
+              default:
+                /* should never be here */
+                abort();
+            }
+            break;
+          case 1:
+            /* 1 double argument */
+            switch (userdata_idx) {
+              case 1:
+                return (ffi_fn_t *) ffi_cb_impl_wpd;
+              case 2:
+                return (ffi_fn_t *) ffi_cb_impl_wdp;
+            }
+            break;
         }
       }
     } else {
