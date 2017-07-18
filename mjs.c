@@ -7842,10 +7842,6 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   struct mjs_bcode_part bp = *mjs_bcode_part_get_by_offset(mjs, off);
   off -= bp.start_idx;
 
-  static int aaa = 0;
-  if (aaa++ >= 1) {
-    // abort();
-  }
   for (i = off; i < bp.data.len; i++) {
     mjs->cur_bcode_offset = i;
 
