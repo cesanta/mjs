@@ -636,6 +636,10 @@ int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
 
+int ffi_test_iiid(int a0, int a1, double d2) {
+  return (d2 * a0 - a1) * 1000;
+}
+
 int ffi_test_iib(int a0, bool b) {
   return a0 - (b ? 10 : 20);
 }
@@ -753,6 +757,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_get_null") == 0) return ffi_get_null;
   if (strcmp(name, "ffi_set_byte") == 0) return ffi_set_byte;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
+  if (strcmp(name, "ffi_test_iiid") == 0) return ffi_test_iiid;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
@@ -1055,6 +1060,13 @@ const char *test_call_ffi(struct mjs *mjs) {
     /* TODO(lsm): enable */
     /* ASSERT_STREQ(p, "ab"); */
   }
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iiid = ffi('int ffi_test_iiid(int, int, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiid(3, 2, 13.3)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 37900);
 
   mjs_disown(mjs, &res);
 
