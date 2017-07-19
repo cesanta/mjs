@@ -6297,6 +6297,7 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
             default:
               return -1;
           }
+          break;
         }
         case 2: {
           bdd_t f = (bdd_t) func;

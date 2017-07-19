@@ -640,6 +640,16 @@ int ffi_test_iiid(int a0, int a1, double d2) {
   return (d2 * a0 - a1) * 1000;
 }
 
+bool ffi_test_biid(int a0, int a1, double d2) {
+  (void) a0;
+  (void) a1;
+  return d2 > 10.0;
+}
+
+double ffi_test_diid(int a0, int a1, double d2) {
+  return d2 * a0 - a1;
+}
+
 int ffi_test_iib(int a0, bool b) {
   return a0 - (b ? 10 : 20);
 }
@@ -758,6 +768,8 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_set_byte") == 0) return ffi_set_byte;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
   if (strcmp(name, "ffi_test_iiid") == 0) return ffi_test_iiid;
+  if (strcmp(name, "ffi_test_biid") == 0) return ffi_test_biid;
+  if (strcmp(name, "ffi_test_diid") == 0) return ffi_test_diid;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
@@ -1065,8 +1077,25 @@ const char *test_call_ffi(struct mjs *mjs) {
       mjs_exec(mjs, "let ffi_test_iiid = ffi('int ffi_test_iiid(int, int, double)')",
         &res));
 
-  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiid(3, 2, 13.3)", &res), MJS_OK);
-  ASSERT_EQ(mjs_get_int(mjs, res), 37900);
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiid(3, 2, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38200);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_diid = ffi('double ffi_test_diid(int, int, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_diid(3, 2, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.2);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_biid = ffi('bool ffi_test_biid(int, int, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biid(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biid(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
 
   mjs_disown(mjs, &res);
 
