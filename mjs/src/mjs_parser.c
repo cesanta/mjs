@@ -845,6 +845,10 @@ static mjs_err_t parse_return(struct pstate *p) {
 static mjs_err_t parse_statement(struct pstate *p) {
   LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   switch (p->tok.tok) {
+    case TOK_SEMICOLON:
+      emit_byte(p, OP_PUSH_UNDEF);
+      pnext1(p);
+      return MJS_OK;
     case TOK_KEYWORD_LET:
       return parse_let(p);
     case TOK_OPEN_CURLY:
