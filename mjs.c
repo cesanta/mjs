@@ -11850,8 +11850,16 @@ static mjs_err_t parse_statement(struct pstate *p) {
       mjs_set_errorf(p->mjs, MJS_SYNTAX_ERROR, "[%.*s] is not implemented",
                      p->tok.len, p->tok.ptr);
       return MJS_SYNTAX_ERROR;
-    default:
-      return parse_expr(p);
+    default: {
+      mjs_err_t res = MJS_OK;
+      for (;;) {
+        if ((res = parse_expr(p)) != MJS_OK) return res;
+        if (p->tok.tok != TOK_COMMA) break;
+        emit_byte(p, OP_DROP);
+        pnext1(p);
+      }
+      return res;
+    }
   }
 }
 

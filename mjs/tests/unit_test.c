@@ -3330,9 +3330,19 @@ const char *test_lib_math(struct mjs *mjs) {
   return NULL;
 }
 
+const char *test_parser(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+  CHECK_NUMERIC("1,2,3", 3);
+  CHECK_NUMERIC("let f = function(x){return x;}; f(1),f(2),f(3)", 3);
+  mjs_disown(mjs, &res);
+  return NULL;
+}
+
 static const char *run_all_tests(const char *filter, double *total_elapsed) {
   cs_log_set_level(2);
 
+  RUN_TEST_MJS(test_parser);
   RUN_TEST_MJS(test_arithmetic);
   RUN_TEST_MJS(test_block);
   RUN_TEST_MJS(test_function);
