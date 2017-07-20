@@ -171,6 +171,28 @@ static void op_assign(struct mjs *mjs, int op) {
   }
 }
 
+static int check_equal(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
+  int ret = 0;
+  if (a == b) {
+    ret = 1;
+  } else if (mjs_is_number(a) && mjs_is_number(b)) {
+    /*
+     * The case of equal numbers is handled above, so here the result is always
+     * false
+     */
+    ret = 0;
+  } else if (mjs_is_string(a) && mjs_is_string(b)) {
+    ret = s_cmp(mjs, a, b) == 0;
+  } else if (mjs_is_foreign(a) && b == MJS_NULL) {
+    ret = mjs_get_ptr(mjs, a) == NULL;
+  } else if (a == MJS_NULL && mjs_is_foreign(b)) {
+    ret = mjs_get_ptr(mjs, b) == NULL;
+  } else {
+    ret = 0;
+  }
+  return ret;
+}
+
 static void exec_expr(struct mjs *mjs, int op) {
   switch (op) {
     case TOK_DOT:
@@ -217,33 +239,13 @@ static void exec_expr(struct mjs *mjs, int op) {
     case TOK_EQ_EQ: {
       mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
-      if (a == b) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, 1));
-      } else if (mjs_is_number(a) && mjs_is_number(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, 0));
-      } else if (mjs_is_string(a) && mjs_is_string(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, s_cmp(mjs, a, b) == 0));
-      } else if (mjs_is_foreign(a) && b == MJS_NULL) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, mjs_get_ptr(mjs, a) == NULL));
-      } else if (a == MJS_NULL && mjs_is_foreign(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, mjs_get_ptr(mjs, b) == NULL));
-      } else {
-        mjs_push(mjs, mjs_mk_boolean(mjs, 0));
-      }
+      mjs_push(mjs, mjs_mk_boolean(mjs, check_equal(mjs, a, b)));
       break;
     }
     case TOK_NE_NE: {
       mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
-      if (a == b) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, 0));
-      } else if (mjs_is_number(a) && mjs_is_number(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, 1));
-      } else if (mjs_is_string(a) && mjs_is_string(b)) {
-        mjs_push(mjs, mjs_mk_boolean(mjs, s_cmp(mjs, a, b) != 0));
-      } else {
-        mjs_push(mjs, mjs_mk_boolean(mjs, 1));
-      }
+      mjs_push(mjs, mjs_mk_boolean(mjs, !check_equal(mjs, a, b)));
       break;
     }
     case TOK_LT: {

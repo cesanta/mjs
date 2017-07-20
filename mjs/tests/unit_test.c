@@ -2810,6 +2810,24 @@ const char *test_foreign_ptr(struct mjs *mjs) {
 
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(
+          let get_null = ffi('void *ffi_get_null()');
+          let ptr = get_null();
+          ptr !== null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let calloc = ffi('void *calloc(int, int)');
+          let free = ffi('void free(void *)');
+          let ptr = calloc(100, 1);
+          free(ptr);
+          ptr !== null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
           let set_byte = ffi('void ffi_set_byte(void *, int)');
           let calloc = ffi('void *calloc(int, int)');
           let free = ffi('void free(void *)');
