@@ -636,6 +636,7 @@ int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
 
+/* 3 arg, one double {{{ */
 int ffi_test_iiid(int a0, int a1, double d2) {
   return (d2 * a0 - a1) * 1000;
 }
@@ -649,6 +650,55 @@ bool ffi_test_biid(int a0, int a1, double d2) {
 double ffi_test_diid(int a0, int a1, double d2) {
   return d2 * a0 - a1;
 }
+/* }}} */
+
+/* 3 arg, two doubles {{{ */
+int ffi_test_iidd(int a0, double a1, double d2) {
+  return (d2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_bidd(int a0, double a1, double d2) {
+  (void) a0;
+  (void) a1;
+  return d2 > 10.0;
+}
+
+double ffi_test_didd(int a0, double a1, double d2) {
+  return d2 * a0 - a1;
+}
+/* }}} */
+
+/* 3 arg, one float {{{ */
+int ffi_test_iiif(int a0, int a1, float f2) {
+  return (f2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_biif(int a0, int a1, float f2) {
+  (void) a0;
+  (void) a1;
+  return f2 > 10.0;
+}
+
+float ffi_test_fiif(int a0, int a1, float f2) {
+  return f2 * a0 - a1;
+}
+/* }}} */
+
+/* 3 arg, two floats {{{ */
+int ffi_test_iiff(int a0, float a1, float f2) {
+  return (f2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_biff(int a0, float a1, float f2) {
+  (void) a0;
+  (void) a1;
+  return f2 > 10.0;
+}
+
+float ffi_test_fiff(int a0, float a1, float f2) {
+  return f2 * a0 - a1;
+}
+/* }}} */
 
 int ffi_test_iib(int a0, bool b) {
   return a0 - (b ? 10 : 20);
@@ -770,6 +820,15 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_iiid") == 0) return ffi_test_iiid;
   if (strcmp(name, "ffi_test_biid") == 0) return ffi_test_biid;
   if (strcmp(name, "ffi_test_diid") == 0) return ffi_test_diid;
+  if (strcmp(name, "ffi_test_iidd") == 0) return ffi_test_iidd;
+  if (strcmp(name, "ffi_test_bidd") == 0) return ffi_test_bidd;
+  if (strcmp(name, "ffi_test_didd") == 0) return ffi_test_didd;
+  if (strcmp(name, "ffi_test_iiif") == 0) return ffi_test_iiif;
+  if (strcmp(name, "ffi_test_biif") == 0) return ffi_test_biif;
+  if (strcmp(name, "ffi_test_fiif") == 0) return ffi_test_fiif;
+  if (strcmp(name, "ffi_test_iiff") == 0) return ffi_test_iiff;
+  if (strcmp(name, "ffi_test_biff") == 0) return ffi_test_biff;
+  if (strcmp(name, "ffi_test_fiff") == 0) return ffi_test_fiff;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
@@ -1073,6 +1132,7 @@ const char *test_call_ffi(struct mjs *mjs) {
     /* ASSERT_STREQ(p, "ab"); */
   }
 
+  /* 3 arg, one double {{{ */
   ASSERT_EXEC_OK(
       mjs_exec(mjs, "let ffi_test_iiid = ffi('int ffi_test_iiid(int, int, double)')",
         &res));
@@ -1096,6 +1156,85 @@ const char *test_call_ffi(struct mjs *mjs) {
 
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_biid(0, 0, 10.1)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
+
+  /* 3 arg, two doubles {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iidd = ffi('int ffi_test_iidd(int, double, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iidd(3, 2.1, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38100);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_didd = ffi('double ffi_test_didd(int, double, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_didd(3, 2.1, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.1);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_bidd = ffi('bool ffi_test_bidd(int, double, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_bidd(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_bidd(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
+
+  /* 3 arg, one float {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iiif = ffi('int ffi_test_iiif(int, int, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiif(3, 2, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38500);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_fiif = ffi('float ffi_test_fiif(int, int, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_fiif(3, 2, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.5);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_biif = ffi('bool ffi_test_biif(int, int, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biif(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biif(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
+
+  /* 3 arg, two floats {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iiff = ffi('int ffi_test_iiff(int, float, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiff(3, 2.0, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38500);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_fiff = ffi('float ffi_test_fiff(int, float, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_fiff(3, 2.0, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.5);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_biff = ffi('bool ffi_test_biff(int, float, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biff(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biff(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
 
   mjs_disown(mjs, &res);
 

@@ -54,6 +54,8 @@ static mjs_ffi_ctype_t parse_cval_type(struct mjs *mjs, const char *s,
     return MJS_FFI_CTYPE_BOOL;
   } else if (strncmp(s, "double", e - s) == 0) {
     return MJS_FFI_CTYPE_DOUBLE;
+  } else if (strncmp(s, "float", e - s) == 0) {
+    return MJS_FFI_CTYPE_FLOAT;
   } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
     return MJS_FFI_CTYPE_CHAR_PTR;
   } else if (strncmp(s, "void*", 5) == 0 || strncmp(s, "void *", 6) == 0) {
@@ -255,6 +257,7 @@ union ffi_cb_data_val {
   void *p;
   uintptr_t w;
   double d;
+  float f;
 };
 
 struct ffi_cb_data {
@@ -302,6 +305,9 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
         break;
       case MJS_FFI_CTYPE_DOUBLE:
         args[i] = mjs_mk_number(mjs, data->args[i].d);
+        break;
+      case MJS_FFI_CTYPE_FLOAT:
+        args[i] = mjs_mk_number(mjs, data->args[i].f);
         break;
       default:
         /* should never be here */
@@ -353,6 +359,9 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
       break;
     case MJS_FFI_CTYPE_DOUBLE:
       ret.d = mjs_get_double(mjs, res);
+      break;
+    case MJS_FFI_CTYPE_FLOAT:
+      ret.f = (float) mjs_get_double(mjs, res);
       break;
     default:
       /* should never be here */
@@ -456,6 +465,7 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
   if (sig->is_valid) {
     int i;
     int double_cnt = 0;
+    int float_cnt = 0;
     int userdata_idx = 0 /* not a valid value: index 0 means return value */;
 
     for (i = 1 /*0th item is a return value*/; i < MJS_CB_SIGNATURE_MAX_SIZE;
@@ -465,6 +475,9 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
         case MJS_FFI_CTYPE_DOUBLE:
           double_cnt++;
           break;
+        case MJS_FFI_CTYPE_FLOAT:
+          float_cnt++;
+          break;
         case MJS_FFI_CTYPE_USERDATA:
           assert(userdata_idx == 0); /* Otherwise is_valid should be 0 */
           userdata_idx = i;
@@ -472,6 +485,11 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
         default:
           break;
       }
+    }
+
+    if (float_cnt > 0) {
+      /* TODO(dfrank): add support for floats in callbacks */
+      return NULL;
     }
 
     assert(userdata_idx > 0); /* Otherwise is_valid should be 0 */
@@ -613,6 +631,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     case MJS_FFI_CTYPE_DOUBLE:
       res.ctype = FFI_CTYPE_DOUBLE;
       break;
+    case MJS_FFI_CTYPE_FLOAT:
+      res.ctype = FFI_CTYPE_FLOAT;
+      break;
     case MJS_FFI_CTYPE_BOOL:
       res.ctype = FFI_CTYPE_BOOL;
       break;
@@ -706,6 +727,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       } break;
       case MJS_FFI_CTYPE_DOUBLE:
         ffi_set_double(&args[i], mjs_get_double(mjs, arg));
+        break;
+      case MJS_FFI_CTYPE_FLOAT:
+        ffi_set_float(&args[i], (float) mjs_get_double(mjs, arg));
         break;
       case MJS_FFI_CTYPE_CHAR_PTR: {
         size_t s;
@@ -823,6 +847,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     case MJS_FFI_CTYPE_DOUBLE:
       resv = mjs_mk_number(mjs, res.v.d);
       break;
+    case MJS_FFI_CTYPE_FLOAT:
+      resv = mjs_mk_number(mjs, res.v.f);
+      break;
     default:
       resv = mjs_mk_undefined();
       break;
@@ -926,6 +953,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_INT &&
           sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR &&
           sig->val_types[0] != MJS_FFI_CTYPE_CHAR_PTR) {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
@@ -938,6 +966,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_INT &&
           sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR) {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
         goto clean;
@@ -974,6 +1003,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
       case MJS_FFI_CTYPE_VOID_PTR:
       case MJS_FFI_CTYPE_CHAR_PTR:
       case MJS_FFI_CTYPE_DOUBLE:
+      case MJS_FFI_CTYPE_FLOAT:
         /* Do nothing */
         break;
       case MJS_FFI_CTYPE_NONE:

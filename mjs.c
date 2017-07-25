@@ -1898,6 +1898,7 @@ typedef intptr_t ffi_word_t;
 enum ffi_ctype {
   FFI_CTYPE_WORD,
   FFI_CTYPE_BOOL,
+  FFI_CTYPE_FLOAT,
   FFI_CTYPE_DOUBLE,
 };
 
@@ -1906,6 +1907,7 @@ struct ffi_arg {
   union {
     uint64_t i;
     double d;
+    float f;
   } v;
 };
 
@@ -1916,6 +1918,7 @@ void ffi_set_word(struct ffi_arg *arg, ffi_word_t v);
 void ffi_set_bool(struct ffi_arg *arg, bool v);
 void ffi_set_ptr(struct ffi_arg *arg, void *v);
 void ffi_set_double(struct ffi_arg *arg, double v);
+void ffi_set_float(struct ffi_arg *arg, float v);
 
 #if defined(__cplusplus)
 }
@@ -2421,6 +2424,7 @@ enum mjs_ffi_ctype {
   MJS_FFI_CTYPE_INT,
   MJS_FFI_CTYPE_BOOL,
   MJS_FFI_CTYPE_DOUBLE,
+  MJS_FFI_CTYPE_FLOAT,
   MJS_FFI_CTYPE_CHAR_PTR,
   MJS_FFI_CTYPE_VOID_PTR,
   MJS_FFI_CTYPE_INVALID,
@@ -6037,9 +6041,11 @@ int json_scanf(const char *str, int len, const char *fmt, ...) {
 
 #define IS_W(arg) ((arg).ctype == FFI_CTYPE_WORD)
 #define IS_D(arg) ((arg).ctype == FFI_CTYPE_DOUBLE)
+#define IS_F(arg) ((arg).ctype == FFI_CTYPE_FLOAT)
 
 #define W(arg) ((ffi_word_t)(arg).v.i)
 #define D(arg) ((arg).v.d)
+#define F(arg) ((arg).v.f)
 
 void ffi_set_word(struct ffi_arg *arg, ffi_word_t v) {
   arg->ctype = FFI_CTYPE_WORD;
@@ -6058,6 +6064,11 @@ void ffi_set_ptr(struct ffi_arg *arg, void *v) {
 void ffi_set_double(struct ffi_arg *arg, double v) {
   arg->ctype = FFI_CTYPE_DOUBLE;
   arg->v.d = v;
+}
+
+void ffi_set_float(struct ffi_arg *arg, float v) {
+  arg->ctype = FFI_CTYPE_FLOAT;
+  arg->v.f = v;
 }
 
 /*
@@ -6113,6 +6124,18 @@ typedef ffi_word_t (*wdwd_t)(double, ffi_word_t, double);
 typedef ffi_word_t (*wddw_t)(double, double, ffi_word_t);
 typedef ffi_word_t (*wddd_t)(double, double, double);
 
+typedef ffi_word_t (*wfw_t)(float, ffi_word_t);
+typedef ffi_word_t (*wwf_t)(ffi_word_t, float);
+typedef ffi_word_t (*wff_t)(float, float);
+
+typedef ffi_word_t (*wwwf_t)(ffi_word_t, ffi_word_t, float);
+typedef ffi_word_t (*wwfw_t)(ffi_word_t, float, ffi_word_t);
+typedef ffi_word_t (*wwff_t)(ffi_word_t, float, float);
+typedef ffi_word_t (*wfww_t)(float, ffi_word_t, ffi_word_t);
+typedef ffi_word_t (*wfwf_t)(float, ffi_word_t, float);
+typedef ffi_word_t (*wffw_t)(float, float, ffi_word_t);
+typedef ffi_word_t (*wfff_t)(float, float, float);
+
 typedef bool (*b4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
 typedef bool (*b5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
                       ffi_word_t);
@@ -6129,6 +6152,18 @@ typedef bool (*bdww_t)(double, ffi_word_t, ffi_word_t);
 typedef bool (*bdwd_t)(double, ffi_word_t, double);
 typedef bool (*bddw_t)(double, double, ffi_word_t);
 typedef bool (*bddd_t)(double, double, double);
+
+typedef bool (*bfw_t)(float, ffi_word_t);
+typedef bool (*bwf_t)(ffi_word_t, float);
+typedef bool (*bff_t)(float, float);
+
+typedef bool (*bwwf_t)(ffi_word_t, ffi_word_t, float);
+typedef bool (*bwfw_t)(ffi_word_t, float, ffi_word_t);
+typedef bool (*bwff_t)(ffi_word_t, float, float);
+typedef bool (*bfww_t)(float, ffi_word_t, ffi_word_t);
+typedef bool (*bfwf_t)(float, ffi_word_t, float);
+typedef bool (*bffw_t)(float, float, ffi_word_t);
+typedef bool (*bfff_t)(float, float, float);
 
 typedef double (*d4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
 typedef double (*d5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
@@ -6147,21 +6182,46 @@ typedef double (*ddwd_t)(double, ffi_word_t, double);
 typedef double (*dddw_t)(double, double, ffi_word_t);
 typedef double (*dddd_t)(double, double, double);
 
+typedef float (*f4w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t);
+typedef float (*f5w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                       ffi_word_t);
+typedef float (*f6w_t)(ffi_word_t, ffi_word_t, ffi_word_t, ffi_word_t,
+                       ffi_word_t, ffi_word_t);
+typedef float (*ffw_t)(float, ffi_word_t);
+typedef float (*fwf_t)(ffi_word_t, float);
+typedef float (*fff_t)(float, float);
+
+typedef float (*fwwf_t)(ffi_word_t, ffi_word_t, float);
+typedef float (*fwfw_t)(ffi_word_t, float, ffi_word_t);
+typedef float (*fwff_t)(ffi_word_t, float, float);
+typedef float (*ffww_t)(float, ffi_word_t, ffi_word_t);
+typedef float (*ffwf_t)(float, ffi_word_t, float);
+typedef float (*fffw_t)(float, float, ffi_word_t);
+typedef float (*ffff_t)(float, float, float);
+
 int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
              struct ffi_arg *args) {
-  int i, doubles = 0;
+  int i, doubles = 0, floats = 0;
 
   if (nargs > 6) return -1;
   for (i = 0; i < nargs; i++) {
     doubles += (IS_D(args[i]));
+    floats += (IS_F(args[i]));
+  }
+
+  /* Doubles and floats are not supported together atm */
+  if (doubles > 0 && floats > 0) {
+    return -1;
   }
 
   switch (res->ctype) {
-    case FFI_CTYPE_WORD: {
+    case FFI_CTYPE_WORD: { /* {{{ */
       ffi_word_t r;
-      switch (doubles) {
-        case 0: {
-          /* No double args: we currently support up to 6 word-sized arguments
+      if (doubles == 0) {
+        if (floats == 0) {
+          /*
+           * No double and no float args: we currently support up to 6
+           * word-sized arguments
            */
           if (nargs <= 4) {
             w4w_t f = (w4w_t) func;
@@ -6176,44 +6236,46 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
           } else {
             abort();
           }
-          break;
-        }
-        case 1:
+        } else {
+          /* There are some floats */
           switch (nargs) {
             case 0:
             case 1:
             case 2:
-              if (IS_D(args[0])) {
-                wdw_t f = (wdw_t) func;
-                r = f(D(args[0]), W(args[1]));
+              if (IS_F(args[0]) && IS_F(args[1])) {
+                wff_t f = (wff_t) func;
+                r = f(F(args[0]), F(args[1]));
+              } else if (IS_F(args[0])) {
+                wfw_t f = (wfw_t) func;
+                r = f(F(args[0]), W(args[1]));
               } else {
-                wwd_t f = (wwd_t) func;
-                r = f(W(args[0]), D(args[1]));
+                wwf_t f = (wwf_t) func;
+                r = f(W(args[0]), F(args[1]));
               }
               break;
 
             case 3:
-              if (IS_W(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
-                wwwd_t f = (wwwd_t) func;
-                r = f(W(args[0]), W(args[1]), D(args[2]));
-              } else if (IS_W(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
-                wwdw_t f = (wwdw_t) func;
-                r = f(W(args[0]), D(args[1]), W(args[2]));
-              } else if (IS_W(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
-                wwdd_t f = (wwdd_t) func;
-                r = f(W(args[0]), D(args[1]), D(args[2]));
-              } else if (IS_D(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
-                wdww_t f = (wdww_t) func;
-                r = f(D(args[0]), W(args[1]), W(args[2]));
-              } else if (IS_D(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
-                wdwd_t f = (wdwd_t) func;
-                r = f(D(args[0]), W(args[1]), D(args[2]));
-              } else if (IS_D(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
-                wddw_t f = (wddw_t) func;
-                r = f(D(args[0]), D(args[1]), W(args[2]));
-              } else if (IS_D(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
-                wddd_t f = (wddd_t) func;
-                r = f(D(args[0]), D(args[1]), D(args[2]));
+              if (IS_W(args[0]) && IS_W(args[1]) && IS_F(args[2])) {
+                wwwf_t f = (wwwf_t) func;
+                r = f(W(args[0]), W(args[1]), F(args[2]));
+              } else if (IS_W(args[0]) && IS_F(args[1]) && IS_W(args[2])) {
+                wwfw_t f = (wwfw_t) func;
+                r = f(W(args[0]), F(args[1]), W(args[2]));
+              } else if (IS_W(args[0]) && IS_F(args[1]) && IS_F(args[2])) {
+                wwff_t f = (wwff_t) func;
+                r = f(W(args[0]), F(args[1]), F(args[2]));
+              } else if (IS_F(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
+                wfww_t f = (wfww_t) func;
+                r = f(F(args[0]), W(args[1]), W(args[2]));
+              } else if (IS_F(args[0]) && IS_W(args[1]) && IS_F(args[2])) {
+                wfwf_t f = (wfwf_t) func;
+                r = f(F(args[0]), W(args[1]), F(args[2]));
+              } else if (IS_F(args[0]) && IS_F(args[1]) && IS_W(args[2])) {
+                wffw_t f = (wffw_t) func;
+                r = f(F(args[0]), F(args[1]), W(args[2]));
+              } else if (IS_F(args[0]) && IS_F(args[1]) && IS_F(args[2])) {
+                wfff_t f = (wfff_t) func;
+                r = f(F(args[0]), F(args[1]), F(args[2]));
               } else {
                 // The above checks should be exhaustive
                 abort();
@@ -6222,21 +6284,65 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
             default:
               return -1;
           }
-          break;
-        case 2: {
-          wdd_t f = (wdd_t) func;
-          r = f(D(args[0]), D(args[1]));
-        } break;
-        default:
-          return -1;
+        }
+      } else {
+        /* There are some doubles */
+        switch (nargs) {
+          case 0:
+          case 1:
+          case 2:
+            if (IS_D(args[0]) && IS_D(args[1])) {
+              wdd_t f = (wdd_t) func;
+              r = f(D(args[0]), D(args[1]));
+            } else if (IS_D(args[0])) {
+              wdw_t f = (wdw_t) func;
+              r = f(D(args[0]), W(args[1]));
+            } else {
+              wwd_t f = (wwd_t) func;
+              r = f(W(args[0]), D(args[1]));
+            }
+            break;
+
+          case 3:
+            if (IS_W(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
+              wwwd_t f = (wwwd_t) func;
+              r = f(W(args[0]), W(args[1]), D(args[2]));
+            } else if (IS_W(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
+              wwdw_t f = (wwdw_t) func;
+              r = f(W(args[0]), D(args[1]), W(args[2]));
+            } else if (IS_W(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
+              wwdd_t f = (wwdd_t) func;
+              r = f(W(args[0]), D(args[1]), D(args[2]));
+            } else if (IS_D(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
+              wdww_t f = (wdww_t) func;
+              r = f(D(args[0]), W(args[1]), W(args[2]));
+            } else if (IS_D(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
+              wdwd_t f = (wdwd_t) func;
+              r = f(D(args[0]), W(args[1]), D(args[2]));
+            } else if (IS_D(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
+              wddw_t f = (wddw_t) func;
+              r = f(D(args[0]), D(args[1]), W(args[2]));
+            } else if (IS_D(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
+              wddd_t f = (wddd_t) func;
+              r = f(D(args[0]), D(args[1]), D(args[2]));
+            } else {
+              // The above checks should be exhaustive
+              abort();
+            }
+            break;
+          default:
+            return -1;
+        }
       }
       res->v.i = (uint64_t) r;
-    } break;
-    case FFI_CTYPE_BOOL: {
+    } break;               /* }}} */
+    case FFI_CTYPE_BOOL: { /* {{{ */
       ffi_word_t r;
-      switch (doubles) {
-        case 0: {
-          /* No double args: we currently support up to 6 word-sized arguments
+      if (doubles == 0) {
+        if (floats == 0) {
+          /*
+           * No double and no float args: we currently support up to 6
+           * word-sized arguments
            */
           if (nargs <= 4) {
             b4w_t f = (b4w_t) func;
@@ -6251,44 +6357,46 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
           } else {
             abort();
           }
-          break;
-        }
-        case 1: {
+        } else {
+          /* There are some floats */
           switch (nargs) {
             case 0:
             case 1:
             case 2:
-              if (IS_D(args[0])) {
-                bdw_t f = (bdw_t) func;
-                r = f(D(args[0]), W(args[1]));
+              if (IS_F(args[0]) && IS_F(args[1])) {
+                bff_t f = (bff_t) func;
+                r = f(F(args[0]), F(args[1]));
+              } else if (IS_F(args[0])) {
+                bfw_t f = (bfw_t) func;
+                r = f(F(args[0]), W(args[1]));
               } else {
-                bwd_t f = (bwd_t) func;
-                r = f(W(args[0]), D(args[1]));
+                bwf_t f = (bwf_t) func;
+                r = f(W(args[0]), F(args[1]));
               }
               break;
 
             case 3:
-              if (IS_W(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
-                bwwd_t f = (bwwd_t) func;
-                r = f(W(args[0]), W(args[1]), D(args[2]));
-              } else if (IS_W(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
-                bwdw_t f = (bwdw_t) func;
-                r = f(W(args[0]), D(args[1]), W(args[2]));
-              } else if (IS_W(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
-                bwdd_t f = (bwdd_t) func;
-                r = f(W(args[0]), D(args[1]), D(args[2]));
-              } else if (IS_D(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
-                bdww_t f = (bdww_t) func;
-                r = f(D(args[0]), W(args[1]), W(args[2]));
-              } else if (IS_D(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
-                bdwd_t f = (bdwd_t) func;
-                r = f(D(args[0]), W(args[1]), D(args[2]));
-              } else if (IS_D(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
-                bddw_t f = (bddw_t) func;
-                r = f(D(args[0]), D(args[1]), W(args[2]));
-              } else if (IS_D(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
-                bddd_t f = (bddd_t) func;
-                r = f(D(args[0]), D(args[1]), D(args[2]));
+              if (IS_W(args[0]) && IS_W(args[1]) && IS_F(args[2])) {
+                bwwf_t f = (bwwf_t) func;
+                r = f(W(args[0]), W(args[1]), F(args[2]));
+              } else if (IS_W(args[0]) && IS_F(args[1]) && IS_W(args[2])) {
+                bwfw_t f = (bwfw_t) func;
+                r = f(W(args[0]), F(args[1]), W(args[2]));
+              } else if (IS_W(args[0]) && IS_F(args[1]) && IS_F(args[2])) {
+                bwff_t f = (bwff_t) func;
+                r = f(W(args[0]), F(args[1]), F(args[2]));
+              } else if (IS_F(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
+                bfww_t f = (bfww_t) func;
+                r = f(F(args[0]), W(args[1]), W(args[2]));
+              } else if (IS_F(args[0]) && IS_W(args[1]) && IS_F(args[2])) {
+                bfwf_t f = (bfwf_t) func;
+                r = f(F(args[0]), W(args[1]), F(args[2]));
+              } else if (IS_F(args[0]) && IS_F(args[1]) && IS_W(args[2])) {
+                bffw_t f = (bffw_t) func;
+                r = f(F(args[0]), F(args[1]), W(args[2]));
+              } else if (IS_F(args[0]) && IS_F(args[1]) && IS_F(args[2])) {
+                bfff_t f = (bfff_t) func;
+                r = f(F(args[0]), F(args[1]), F(args[2]));
               } else {
                 // The above checks should be exhaustive
                 abort();
@@ -6297,93 +6405,195 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
             default:
               return -1;
           }
-          break;
         }
-        case 2: {
-          bdd_t f = (bdd_t) func;
-          r = f(D(args[0]), D(args[1]));
-        } break;
-        default:
-          return -1;
+      } else {
+        /* There are some doubles */
+        switch (nargs) {
+          case 0:
+          case 1:
+          case 2:
+            if (IS_D(args[0]) && IS_D(args[1])) {
+              bdd_t f = (bdd_t) func;
+              r = f(D(args[0]), D(args[1]));
+            } else if (IS_D(args[0])) {
+              bdw_t f = (bdw_t) func;
+              r = f(D(args[0]), W(args[1]));
+            } else {
+              bwd_t f = (bwd_t) func;
+              r = f(W(args[0]), D(args[1]));
+            }
+            break;
+
+          case 3:
+            if (IS_W(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
+              bwwd_t f = (bwwd_t) func;
+              r = f(W(args[0]), W(args[1]), D(args[2]));
+            } else if (IS_W(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
+              bwdw_t f = (bwdw_t) func;
+              r = f(W(args[0]), D(args[1]), W(args[2]));
+            } else if (IS_W(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
+              bwdd_t f = (bwdd_t) func;
+              r = f(W(args[0]), D(args[1]), D(args[2]));
+            } else if (IS_D(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
+              bdww_t f = (bdww_t) func;
+              r = f(D(args[0]), W(args[1]), W(args[2]));
+            } else if (IS_D(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
+              bdwd_t f = (bdwd_t) func;
+              r = f(D(args[0]), W(args[1]), D(args[2]));
+            } else if (IS_D(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
+              bddw_t f = (bddw_t) func;
+              r = f(D(args[0]), D(args[1]), W(args[2]));
+            } else if (IS_D(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
+              bddd_t f = (bddd_t) func;
+              r = f(D(args[0]), D(args[1]), D(args[2]));
+            } else {
+              // The above checks should be exhaustive
+              abort();
+            }
+            break;
+          default:
+            return -1;
+        }
       }
       res->v.i = (uint64_t) r;
-    } break;
-    case FFI_CTYPE_DOUBLE: {
+    } break;                 /* }}} */
+    case FFI_CTYPE_DOUBLE: { /* {{{ */
       double r;
-      switch (doubles) {
-        case 0: {
-          /* No double args: we currently support up to 6 word-sized arguments
-           */
-          if (nargs <= 4) {
-            d4w_t f = (d4w_t) func;
-            r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]));
-          } else if (nargs == 5) {
-            d5w_t f = (d5w_t) func;
-            r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]), W(args[4]));
-          } else if (nargs == 6) {
-            d6w_t f = (d6w_t) func;
-            r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]), W(args[4]),
-                  W(args[5]));
-          } else {
-            abort();
-          }
-          break;
+      if (doubles == 0) {
+        /* No double args: we currently support up to 6 word-sized arguments
+         */
+        if (nargs <= 4) {
+          d4w_t f = (d4w_t) func;
+          r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]));
+        } else if (nargs == 5) {
+          d5w_t f = (d5w_t) func;
+          r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]), W(args[4]));
+        } else if (nargs == 6) {
+          d6w_t f = (d6w_t) func;
+          r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]), W(args[4]),
+                W(args[5]));
+        } else {
+          abort();
         }
-        case 1: {
-          switch (nargs) {
-            case 0:
-            case 1:
-            case 2:
-              if (IS_D(args[0])) {
-                ddw_t f = (ddw_t) func;
-                r = f(D(args[0]), W(args[1]));
-              } else {
-                dwd_t f = (dwd_t) func;
-                r = f(W(args[0]), D(args[1]));
-              }
-              break;
+      } else {
+        switch (nargs) {
+          case 0:
+          case 1:
+          case 2:
+            if (IS_D(args[0]) && IS_D(args[1])) {
+              ddd_t f = (ddd_t) func;
+              r = f(D(args[0]), D(args[1]));
+            } else if (IS_D(args[0])) {
+              ddw_t f = (ddw_t) func;
+              r = f(D(args[0]), W(args[1]));
+            } else {
+              dwd_t f = (dwd_t) func;
+              r = f(W(args[0]), D(args[1]));
+            }
+            break;
 
-            case 3:
-              if (IS_W(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
-                dwwd_t f = (dwwd_t) func;
-                r = f(W(args[0]), W(args[1]), D(args[2]));
-              } else if (IS_W(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
-                dwdw_t f = (dwdw_t) func;
-                r = f(W(args[0]), D(args[1]), W(args[2]));
-              } else if (IS_W(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
-                dwdd_t f = (dwdd_t) func;
-                r = f(W(args[0]), D(args[1]), D(args[2]));
-              } else if (IS_D(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
-                ddww_t f = (ddww_t) func;
-                r = f(D(args[0]), W(args[1]), W(args[2]));
-              } else if (IS_D(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
-                ddwd_t f = (ddwd_t) func;
-                r = f(D(args[0]), W(args[1]), D(args[2]));
-              } else if (IS_D(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
-                dddw_t f = (dddw_t) func;
-                r = f(D(args[0]), D(args[1]), W(args[2]));
-              } else if (IS_D(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
-                dddd_t f = (dddd_t) func;
-                r = f(D(args[0]), D(args[1]), D(args[2]));
-              } else {
-                // The above checks should be exhaustive
-                abort();
-              }
-              break;
-            default:
-              return -1;
-          }
-          break;
+          case 3:
+            if (IS_W(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
+              dwwd_t f = (dwwd_t) func;
+              r = f(W(args[0]), W(args[1]), D(args[2]));
+            } else if (IS_W(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
+              dwdw_t f = (dwdw_t) func;
+              r = f(W(args[0]), D(args[1]), W(args[2]));
+            } else if (IS_W(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
+              dwdd_t f = (dwdd_t) func;
+              r = f(W(args[0]), D(args[1]), D(args[2]));
+            } else if (IS_D(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
+              ddww_t f = (ddww_t) func;
+              r = f(D(args[0]), W(args[1]), W(args[2]));
+            } else if (IS_D(args[0]) && IS_W(args[1]) && IS_D(args[2])) {
+              ddwd_t f = (ddwd_t) func;
+              r = f(D(args[0]), W(args[1]), D(args[2]));
+            } else if (IS_D(args[0]) && IS_D(args[1]) && IS_W(args[2])) {
+              dddw_t f = (dddw_t) func;
+              r = f(D(args[0]), D(args[1]), W(args[2]));
+            } else if (IS_D(args[0]) && IS_D(args[1]) && IS_D(args[2])) {
+              dddd_t f = (dddd_t) func;
+              r = f(D(args[0]), D(args[1]), D(args[2]));
+            } else {
+              // The above checks should be exhaustive
+              abort();
+            }
+            break;
+          default:
+            return -1;
         }
-        case 2: {
-          ddd_t f = (ddd_t) func;
-          r = f(D(args[0]), D(args[1]));
-        } break;
-        default:
-          return -1;
       }
       res->v.d = r;
-    } break;
+    } break;                /* }}} */
+    case FFI_CTYPE_FLOAT: { /* {{{ */
+      double r;
+      if (floats == 0) {
+        /* No float args: we currently support up to 6 word-sized arguments
+         */
+        if (nargs <= 4) {
+          f4w_t f = (f4w_t) func;
+          r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]));
+        } else if (nargs == 5) {
+          f5w_t f = (f5w_t) func;
+          r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]), W(args[4]));
+        } else if (nargs == 6) {
+          f6w_t f = (f6w_t) func;
+          r = f(W(args[0]), W(args[1]), W(args[2]), W(args[3]), W(args[4]),
+                W(args[5]));
+        } else {
+          abort();
+        }
+      } else {
+        /* There are some float args */
+        switch (nargs) {
+          case 0:
+          case 1:
+          case 2:
+            if (IS_F(args[0]) && IS_F(args[1])) {
+              fff_t f = (fff_t) func;
+              r = f(F(args[0]), F(args[1]));
+            } else if (IS_F(args[0])) {
+              ffw_t f = (ffw_t) func;
+              r = f(F(args[0]), W(args[1]));
+            } else {
+              fwf_t f = (fwf_t) func;
+              r = f(W(args[0]), F(args[1]));
+            }
+            break;
+
+          case 3:
+            if (IS_W(args[0]) && IS_W(args[1]) && IS_F(args[2])) {
+              fwwf_t f = (fwwf_t) func;
+              r = f(W(args[0]), W(args[1]), F(args[2]));
+            } else if (IS_W(args[0]) && IS_F(args[1]) && IS_W(args[2])) {
+              fwfw_t f = (fwfw_t) func;
+              r = f(W(args[0]), F(args[1]), W(args[2]));
+            } else if (IS_W(args[0]) && IS_F(args[1]) && IS_F(args[2])) {
+              fwff_t f = (fwff_t) func;
+              r = f(W(args[0]), F(args[1]), F(args[2]));
+            } else if (IS_F(args[0]) && IS_W(args[1]) && IS_W(args[2])) {
+              ffww_t f = (ffww_t) func;
+              r = f(F(args[0]), W(args[1]), W(args[2]));
+            } else if (IS_F(args[0]) && IS_W(args[1]) && IS_F(args[2])) {
+              ffwf_t f = (ffwf_t) func;
+              r = f(F(args[0]), W(args[1]), F(args[2]));
+            } else if (IS_F(args[0]) && IS_F(args[1]) && IS_W(args[2])) {
+              fffw_t f = (fffw_t) func;
+              r = f(F(args[0]), F(args[1]), W(args[2]));
+            } else if (IS_F(args[0]) && IS_F(args[1]) && IS_F(args[2])) {
+              ffff_t f = (ffff_t) func;
+              r = f(F(args[0]), F(args[1]), F(args[2]));
+            } else {
+              // The above checks should be exhaustive
+              abort();
+            }
+            break;
+          default:
+            return -1;
+        }
+      }
+      res->v.f = r;
+    } break; /* }}} */
   }
 
   return 0;
@@ -8598,6 +8808,8 @@ static mjs_ffi_ctype_t parse_cval_type(struct mjs *mjs, const char *s,
     return MJS_FFI_CTYPE_BOOL;
   } else if (strncmp(s, "double", e - s) == 0) {
     return MJS_FFI_CTYPE_DOUBLE;
+  } else if (strncmp(s, "float", e - s) == 0) {
+    return MJS_FFI_CTYPE_FLOAT;
   } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
     return MJS_FFI_CTYPE_CHAR_PTR;
   } else if (strncmp(s, "void*", 5) == 0 || strncmp(s, "void *", 6) == 0) {
@@ -8799,6 +9011,7 @@ union ffi_cb_data_val {
   void *p;
   uintptr_t w;
   double d;
+  float f;
 };
 
 struct ffi_cb_data {
@@ -8846,6 +9059,9 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
         break;
       case MJS_FFI_CTYPE_DOUBLE:
         args[i] = mjs_mk_number(mjs, data->args[i].d);
+        break;
+      case MJS_FFI_CTYPE_FLOAT:
+        args[i] = mjs_mk_number(mjs, data->args[i].f);
         break;
       default:
         /* should never be here */
@@ -8897,6 +9113,9 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
       break;
     case MJS_FFI_CTYPE_DOUBLE:
       ret.d = mjs_get_double(mjs, res);
+      break;
+    case MJS_FFI_CTYPE_FLOAT:
+      ret.f = (float) mjs_get_double(mjs, res);
       break;
     default:
       /* should never be here */
@@ -9000,6 +9219,7 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
   if (sig->is_valid) {
     int i;
     int double_cnt = 0;
+    int float_cnt = 0;
     int userdata_idx = 0 /* not a valid value: index 0 means return value */;
 
     for (i = 1 /*0th item is a return value*/; i < MJS_CB_SIGNATURE_MAX_SIZE;
@@ -9009,6 +9229,9 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
         case MJS_FFI_CTYPE_DOUBLE:
           double_cnt++;
           break;
+        case MJS_FFI_CTYPE_FLOAT:
+          float_cnt++;
+          break;
         case MJS_FFI_CTYPE_USERDATA:
           assert(userdata_idx == 0); /* Otherwise is_valid should be 0 */
           userdata_idx = i;
@@ -9016,6 +9239,11 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
         default:
           break;
       }
+    }
+
+    if (float_cnt > 0) {
+      /* TODO(dfrank): add support for floats in callbacks */
+      return NULL;
     }
 
     assert(userdata_idx > 0); /* Otherwise is_valid should be 0 */
@@ -9157,6 +9385,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     case MJS_FFI_CTYPE_DOUBLE:
       res.ctype = FFI_CTYPE_DOUBLE;
       break;
+    case MJS_FFI_CTYPE_FLOAT:
+      res.ctype = FFI_CTYPE_FLOAT;
+      break;
     case MJS_FFI_CTYPE_BOOL:
       res.ctype = FFI_CTYPE_BOOL;
       break;
@@ -9250,6 +9481,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       } break;
       case MJS_FFI_CTYPE_DOUBLE:
         ffi_set_double(&args[i], mjs_get_double(mjs, arg));
+        break;
+      case MJS_FFI_CTYPE_FLOAT:
+        ffi_set_float(&args[i], (float) mjs_get_double(mjs, arg));
         break;
       case MJS_FFI_CTYPE_CHAR_PTR: {
         size_t s;
@@ -9367,6 +9601,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
     case MJS_FFI_CTYPE_DOUBLE:
       resv = mjs_mk_number(mjs, res.v.d);
       break;
+    case MJS_FFI_CTYPE_FLOAT:
+      resv = mjs_mk_number(mjs, res.v.f);
+      break;
     default:
       resv = mjs_mk_undefined();
       break;
@@ -9470,6 +9707,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_INT &&
           sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR &&
           sig->val_types[0] != MJS_FFI_CTYPE_CHAR_PTR) {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
@@ -9482,6 +9720,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_INT &&
           sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR) {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
         goto clean;
@@ -9518,6 +9757,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
       case MJS_FFI_CTYPE_VOID_PTR:
       case MJS_FFI_CTYPE_CHAR_PTR:
       case MJS_FFI_CTYPE_DOUBLE:
+      case MJS_FFI_CTYPE_FLOAT:
         /* Do nothing */
         break;
       case MJS_FFI_CTYPE_NONE:
