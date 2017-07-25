@@ -151,4 +151,10 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
   mjs_set(mjs, obj, "Object", ~0, v);
+
+  /*
+   * Populate numeric stuff
+   */
+  mjs_set(mjs, obj, "NaN", ~0, MJS_TAG_NAN);
+  mjs_set(mjs, obj, "isNaN", ~0, mjs_mk_foreign(mjs, mjs_op_isnan));
 }

@@ -166,6 +166,49 @@ const char *test_arithmetic(struct mjs *mjs) {
   CHECK_NUMERIC("~10", -11);
   CHECK_NUMERIC("-100", -100);
   CHECK_NUMERIC("+100", 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN", &res));
+  ASSERT_EQ(!!isnan(mjs_get_double(mjs, res)), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === NaN", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN !== NaN", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === 0", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === 1", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === null", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === undefined", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === ''", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === {}", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === []", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN(NaN)", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN(NaN * 10)", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN(0)", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN('')", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
   mjs_disown(mjs, &res);
 
   return NULL;

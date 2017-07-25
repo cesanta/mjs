@@ -139,3 +139,12 @@ mjs_val_t mjs_mk_function(struct mjs *mjs, size_t off) {
 int mjs_is_function(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_FUNCTION;
 }
+
+MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t val = mjs_arg(mjs, 0);
+
+  ret = mjs_mk_boolean(mjs, val == MJS_TAG_NAN);
+
+  mjs_return(mjs, ret);
+}

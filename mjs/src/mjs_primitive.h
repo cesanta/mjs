@@ -29,6 +29,11 @@ MJS_PRIVATE mjs_val_t mjs_pointer_to_value(struct mjs *mjs, void *p);
  */
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
 
+/*
+ * Implementation for JS isNaN()
+ */
+MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */

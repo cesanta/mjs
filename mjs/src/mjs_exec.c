@@ -173,7 +173,9 @@ static void op_assign(struct mjs *mjs, int op) {
 
 static int check_equal(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
   int ret = 0;
-  if (a == b) {
+  if (a == MJS_TAG_NAN && b == MJS_TAG_NAN) {
+    ret = 0;
+  } else if (a == b) {
     ret = 1;
   } else if (mjs_is_number(a) && mjs_is_number(b)) {
     /*

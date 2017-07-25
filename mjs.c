@@ -3188,6 +3188,11 @@ MJS_PRIVATE mjs_val_t mjs_pointer_to_value(struct mjs *mjs, void *p);
  */
 MJS_PRIVATE void *get_ptr(mjs_val_t v);
 
+/*
+ * Implementation for JS isNaN()
+ */
+MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -7116,6 +7121,12 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   v = mjs_mk_object(mjs);
   mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
   mjs_set(mjs, obj, "Object", ~0, v);
+
+  /*
+   * Populate numeric stuff
+   */
+  mjs_set(mjs, obj, "NaN", ~0, MJS_TAG_NAN);
+  mjs_set(mjs, obj, "isNaN", ~0, mjs_mk_foreign(mjs, mjs_op_isnan));
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.c"
@@ -7853,7 +7864,9 @@ static void op_assign(struct mjs *mjs, int op) {
 
 static int check_equal(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
   int ret = 0;
-  if (a == b) {
+  if (a == MJS_TAG_NAN && b == MJS_TAG_NAN) {
+    ret = 0;
+  } else if (a == b) {
     ret = 1;
   } else if (mjs_is_number(a) && mjs_is_number(b)) {
     /*
@@ -12322,6 +12335,15 @@ mjs_val_t mjs_mk_function(struct mjs *mjs, size_t off) {
 
 int mjs_is_function(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_FUNCTION;
+}
+
+MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t val = mjs_arg(mjs, 0);
+
+  ret = mjs_mk_boolean(mjs, val == MJS_TAG_NAN);
+
+  mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_string.c"
