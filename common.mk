@@ -36,7 +36,7 @@ else
 endif
 
 format:
-	@echo "Formatting $$(basename $(CURDIR))"
+	@echo "Formatting $$(basename $(CURDIR)) $(REPO_ROOT)"
 	@test -d "$(REPO_ROOT)" && true || { echo "Define REPO_ROOT Makefile variable, REPO_ROOT/common.mk wants it." ; false ; }
 	@git --git-dir $(REPO_ABS_PATH)/.git --work-tree $(REPO_ROOT) \
 		ls-files --full-name $(FORMAT_FILES) | \

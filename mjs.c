@@ -528,9 +528,9 @@ typedef struct stat cs_stat_t;
 #ifndef MG_NET_IF
 #include <lwip/opt.h>
 #if LWIP_SOCKET /* RTOS SDK has LWIP sockets */
-#  define MG_NET_IF MG_NET_IF_SOCKET
+#define MG_NET_IF MG_NET_IF_SOCKET
 #else
-#  define MG_NET_IF MG_NET_IF_LWIP_LOW_LEVEL
+#define MG_NET_IF MG_NET_IF_LWIP_LOW_LEVEL
 #endif
 #endif
 
@@ -800,7 +800,7 @@ int stat(const char *pathname, struct stat *st);
 
 #include <simplelink.h>
 #include <netapp.h>
-#undef timeval 
+#undef timeval
 
 typedef int sock_t;
 #define INVALID_SOCKET (-1)
@@ -922,16 +922,16 @@ in_addr_t inet_addr(const char *cp);
 
 #define to64(x) strtoll(x, NULL, 10)
 
-#define MG_NET_IF             MG_NET_IF_LWIP_LOW_LEVEL
-#define MG_LWIP               1
-#define MG_ENABLE_IPV6        1
+#define MG_NET_IF MG_NET_IF_LWIP_LOW_LEVEL
+#define MG_LWIP 1
+#define MG_ENABLE_IPV6 1
 
 /*
  * For ARM C Compiler, make lwip to export `struct timeval`; for other
  * compilers, suppress it.
  */
 #if !defined(__ARMCC_VERSION)
-# define LWIP_TIMEVAL_PRIVATE  0
+#define LWIP_TIMEVAL_PRIVATE 0
 #else
 struct timeval;
 int gettimeofday(struct timeval *tp, void *tzp);
@@ -968,12 +968,12 @@ int gettimeofday(struct timeval *tp, void *tzp);
 
 #define to64(x) strtoll(x, NULL, 10)
 
-#define MG_NET_IF             MG_NET_IF_LWIP_LOW_LEVEL
-#define MG_LWIP               1
-#define MG_ENABLE_IPV6        1
+#define MG_NET_IF MG_NET_IF_LWIP_LOW_LEVEL
+#define MG_LWIP 1
+#define MG_ENABLE_IPV6 1
 
 #if !defined(ENOSPC)
-# define ENOSPC 28  /* No space left on device */
+#define ENOSPC 28 /* No space left on device */
 #endif
 
 /*
@@ -981,7 +981,7 @@ int gettimeofday(struct timeval *tp, void *tzp);
  * compilers, suppress it.
  */
 #if !defined(__ARMCC_VERSION)
-# define LWIP_TIMEVAL_PRIVATE  0
+#define LWIP_TIMEVAL_PRIVATE 0
 #endif
 
 #define INT64_FMT PRId64
@@ -1178,18 +1178,18 @@ typedef struct _stati64 {
 #endif
 
 #ifndef _UINTPTR_T_DEFINED
-typedef unsigned int* uintptr_t;
+typedef unsigned int *uintptr_t;
 #endif
 
 #define _S_IFREG 2
 #define _S_IFDIR 4
 
 #ifndef S_ISDIR
-#define S_ISDIR(x) (((x) & _S_IFDIR) != 0)
+#define S_ISDIR(x) (((x) &_S_IFDIR) != 0)
 #endif
 
 #ifndef S_ISREG
-#define S_ISREG(x) (((x) & _S_IFREG) != 0)
+#define S_ISREG(x) (((x) &_S_IFREG) != 0)
 #endif
 
 int open(const char *filename, int oflag, int pmode);
@@ -1226,7 +1226,8 @@ typedef struct stat cs_stat_t;
 #define MG_NET_IF MG_NET_IF_LWIP_LOW_LEVEL
 
 /*
- * LPCXpress comes with 3 C library implementations: Newlib, NewlibNano and Redlib.
+ * LPCXpress comes with 3 C library implementations: Newlib, NewlibNano and
+ *Redlib.
  * See https://community.nxp.com/message/630860 for more details.
  *
  * Redlib is the default and lacks certain things, so we provide them.
@@ -1322,7 +1323,7 @@ typedef TCP_SOCKET sock_t;
 #define CS_ENABLE_STDIO 1
 #endif
 
-char* inet_ntoa(struct in_addr in);
+char *inet_ntoa(struct in_addr in);
 
 #endif /* CS_PLATFORM == CS_P_PIC32 */
 
@@ -1498,7 +1499,7 @@ double cs_time(void);
 
 #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
+#endif
 
 /* Describes chunk of memory */
 struct mg_str {
@@ -1552,7 +1553,7 @@ const char *mg_strstr(const struct mg_str haystack, const struct mg_str needle);
 
 #ifdef __cplusplus
 }
-#endif /* __cplusplus */
+#endif
 
 #endif /* CS_COMMON_MG_STR_H_ */
 #ifdef MJS_MODULE_LINES
@@ -1850,6 +1851,10 @@ void mbuf_trim(struct mbuf *);
 #ifndef CS_COMMON_MG_MEM_H_
 #define CS_COMMON_MG_MEM_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef MG_MALLOC
 #define MG_MALLOC malloc
 #endif
@@ -1864,6 +1869,10 @@ void mbuf_trim(struct mbuf *);
 
 #ifndef MG_FREE
 #define MG_FREE free
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* CS_COMMON_MG_MEM_H_ */
@@ -4131,7 +4140,7 @@ int json_printf_array(struct json_out *, va_list *ap);
  * 1. Object keys in the format string may be not quoted, e.g. "{key: %d}"
  * 2. Order of keys in an object is irrelevant.
  * 3. Several extra format specifiers are supported:
- *    - %B: consumes `int *` (or 'char *', if sizeof(bool) == sizeof(char)), 
+ *    - %B: consumes `int *` (or 'char *', if sizeof(bool) == sizeof(char)),
  *       expects boolean `true` or `false`.
  *    - %Q: consumes `char **`, expects quoted, JSON-encoded string. Scanned
  *       string is malloc-ed, caller must free() the string.
