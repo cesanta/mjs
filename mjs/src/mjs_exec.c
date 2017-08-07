@@ -1033,6 +1033,11 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   int i;
   size_t addr = mjs_get_func_addr(func);
 
+  if ((int) addr == 0) {
+      mjs_set_errorf(mjs, MJS_REFERENCE_ERROR, "can't apply unexist function");
+      return mjs->error;
+  }
+
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 
   mjs_val_t prev_this_val = mjs->vals.this_obj;
