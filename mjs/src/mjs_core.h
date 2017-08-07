@@ -85,8 +85,32 @@ struct mjs_vals {
   mjs_val_t last_getprop_obj;
 };
 
+struct mjs_bcode_part {
+  /* Global index of the bcode part */
+  size_t start_idx;
+
+  /* Actual bcode data */
+  struct {
+    const char *p; /* Memory chunk pointer */
+    size_t len;    /* Memory chunk length */
+  } data;
+
+  /*
+   * Result of evaluation (not parsing: if there is an error during parsing,
+   * the bcode is not even committed). It is used to determine whether we
+   * need to evaluate the file: if file was already evaluated, and the result
+   * was MJS_OK, then we won't evaluate it again. Otherwise, we will.
+   */
+  mjs_err_t exec_res : 4;
+
+  /* If set, bcode data does not need to be freed */
+  unsigned in_rom : 1;
+};
+
 struct mjs {
-  struct mbuf bcode;
+  struct mbuf bcode_gen;
+  struct mbuf bcode_parts;
+  size_t bcode_len;
   struct mbuf stack;
   struct mbuf call_stack;
   struct mbuf arg_stack;
@@ -98,6 +122,7 @@ struct mjs {
   struct mbuf json_visited_stack;
   struct mjs_vals vals;
   char *error_msg;
+  char *stack_trace;
   enum mjs_err error;
   mjs_ffi_resolver_t *dlsym;  /* Symbol resolver function for FFI */
   ffi_cb_args_t *ffi_cb_args; /* List of FFI args descriptors */
@@ -109,6 +134,7 @@ struct mjs {
 
   unsigned inhibit_gc : 1;
   unsigned need_gc : 1;
+  unsigned generate_jsc : 1;
 };
 
 /*
@@ -136,16 +162,10 @@ MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t);
 MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
 
 /*
- * Returns offset of the bcode header (see enum mjs_header_items) which
- * contains given bcode offset, or -1 in case the offset is too large.
- */
-MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset);
-
-/*
  * Prints stack trace starting from the given bcode offset; other offsets
  * (if any) will be fetched from the call_stack.
  */
-MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset);
+MJS_PRIVATE void mjs_gen_stack_trace(struct mjs *mjs, size_t offset);
 
 MJS_PRIVATE mjs_val_t vtop(struct mbuf *m);
 MJS_PRIVATE size_t mjs_stack_size(const struct mbuf *m);

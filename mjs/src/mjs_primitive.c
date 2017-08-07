@@ -91,10 +91,22 @@ int mjs_is_boolean(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_BOOLEAN;
 }
 
-MJS_PRIVATE mjs_val_t pointer_to_value(void *p) {
+#define MJS_IS_POINTER_LEGIT(n) \
+  (((n) &MJS_TAG_MASK) == 0 || ((n) &MJS_TAG_MASK) == (~0 & MJS_TAG_MASK))
+
+MJS_PRIVATE mjs_val_t mjs_pointer_to_value(struct mjs *mjs, void *p) {
   uint64_t n = ((uint64_t)(uintptr_t) p);
 
-  assert((n & MJS_TAG_MASK) == 0 || (n & MJS_TAG_MASK) == (~0 & MJS_TAG_MASK));
+  if (!MJS_IS_POINTER_LEGIT(n)) {
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid pointer value: %p", p);
+  }
+  return n & ~MJS_TAG_MASK;
+}
+
+MJS_PRIVATE mjs_val_t mjs_legit_pointer_to_value(void *p) {
+  uint64_t n = ((uint64_t)(uintptr_t) p);
+
+  assert(MJS_IS_POINTER_LEGIT(n));
   return n & ~MJS_TAG_MASK;
 }
 
@@ -112,7 +124,7 @@ void *mjs_get_ptr(struct mjs *mjs, mjs_val_t v) {
 
 mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
   (void) mjs;
-  return pointer_to_value(p) | MJS_TAG_FOREIGN;
+  return mjs_pointer_to_value(mjs, p) | MJS_TAG_FOREIGN;
 }
 
 int mjs_is_foreign(mjs_val_t v) {
@@ -126,4 +138,13 @@ mjs_val_t mjs_mk_function(struct mjs *mjs, size_t off) {
 
 int mjs_is_function(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_FUNCTION;
+}
+
+MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t val = mjs_arg(mjs, 0);
+
+  ret = mjs_mk_boolean(mjs, val == MJS_TAG_NAN);
+
+  mjs_return(mjs, ret);
 }

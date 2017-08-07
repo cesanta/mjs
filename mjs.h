@@ -37,6 +37,22 @@
 #define MJS_MEMORY_STATS 0
 #endif
 
+/*
+ * MJS_GENERATE_JSC: if enabled, and if mmapping is also enabled (CS_MMAP),
+ * then execution of any .js file will result in creation of a .jsc file with
+ * precompiled bcode, and this .jsc file will be mmapped, instead of keeping
+ * bcode in RAM.
+ *
+ * By default it's enabled (provided that CS_MMAP is defined)
+ */
+#if !defined(MJS_GENERATE_JSC)
+#if defined(CS_MMAP)
+#define MJS_GENERATE_JSC 1
+#else
+#define MJS_GENERATE_JSC 0
+#endif
+#endif
+
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
@@ -50,6 +66,7 @@
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_features.h" */
@@ -110,6 +127,8 @@ typedef enum mjs_err {
   MJS_NOT_IMPLEMENTED_ERROR,
   MJS_FILE_READ_ERROR,
   MJS_BAD_ARGS_ERROR,
+
+  MJS_ERRS_CNT
 } mjs_err_t;
 struct mjs;
 
@@ -221,10 +240,27 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...);
 
 /*
+ * Print the last error details. If print_stack_trace is non-zero, also
+ * print stack trace. `msg` is the message which gets prepended to the actual
+ * error message, if it's NULL, then "MJS error" is used.
+ */
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace);
+
+/*
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
+
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
 
 #if defined(__cplusplus)
 }
@@ -295,6 +331,7 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
 /* Amalgamated: #include "mjs/src/mjs_features.h" */
@@ -355,6 +392,8 @@ typedef enum mjs_err {
   MJS_NOT_IMPLEMENTED_ERROR,
   MJS_FILE_READ_ERROR,
   MJS_BAD_ARGS_ERROR,
+
+  MJS_ERRS_CNT
 } mjs_err_t;
 struct mjs;
 
@@ -466,10 +505,27 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...);
 
 /*
+ * Print the last error details. If print_stack_trace is non-zero, also
+ * print stack trace. `msg` is the message which gets prepended to the actual
+ * error message, if it's NULL, then "MJS error" is used.
+ */
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace);
+
+/*
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
+
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
 
 #if defined(__cplusplus)
 }
@@ -496,6 +552,7 @@ extern "C" {
 
 mjs_err_t mjs_exec(struct mjs *, const char *src, mjs_val_t *res);
 mjs_err_t mjs_exec_buf(struct mjs *, const char *src, size_t, mjs_val_t *res);
+
 mjs_err_t mjs_exec_file(struct mjs *mjs, const char *path, mjs_val_t *res);
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args);
@@ -839,11 +896,12 @@ extern "C" {
 const char *mjs_typeof(mjs_val_t v);
 
 void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp);
+void mjs_sprintf(mjs_val_t v, struct mjs *mjs, char *buf, size_t buflen);
 
 #if MJS_ENABLE_DEBUG
 
-void mjs_disasm(const uint8_t *code, size_t len, FILE *fp);
-void mjs_dump(struct mjs *mjs, int do_disasm, FILE *fp);
+void mjs_disasm(const uint8_t *code, size_t len);
+void mjs_dump(struct mjs *mjs, int do_disasm);
 
 #endif
 

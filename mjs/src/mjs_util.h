@@ -13,8 +13,10 @@
 extern "C" {
 #endif /* __cplusplus */
 
+struct mjs_bcode_part;
+
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
-MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i, FILE *fp);
+MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i);
 MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
 
 /*
@@ -35,6 +37,9 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
  * as size + index.
  */
 MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
+
+MJS_PRIVATE const char *mjs_get_bcode_filename(struct mjs *mjs,
+                                               struct mjs_bcode_part *bp);
 
 #if defined(__cplusplus)
 }

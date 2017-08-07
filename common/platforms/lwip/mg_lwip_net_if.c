@@ -7,14 +7,30 @@
 
 #include "common/mg_mem.h"
 
+#include <lwip/init.h>
 #include <lwip/pbuf.h>
 #include <lwip/tcp.h>
-#if CS_PLATFORM != CS_P_STM32
+#include <lwip/tcpip.h>
+#if LWIP_VERSION >= 0x01050000
+#include <lwip/priv/tcp_priv.h> /* For tcp_seg */
+#else
 #include <lwip/tcp_impl.h>
 #endif
 #include <lwip/udp.h>
 
 #include "common/cs_dbg.h"
+
+/*
+ * Newest versions of LWIP have ip_2_ip4, older have ipX_2_ip,
+ * even older have nothing.
+ */
+#ifndef ip_2_ip4
+#ifdef ipX_2_ip
+#define ip_2_ip4(addr) ipX_2_ip(addr)
+#else
+#define ip_2_ip4(addr) (addr)
+#endif
+#endif
 
 /*
  * Depending on whether Mongoose is compiled with ipv6 support, use right
@@ -33,16 +49,12 @@
 #define TCP_BIND tcp_bind
 #define UDP_BIND udp_bind
 #define IPADDR_NTOA ipaddr_ntoa
-#define SET_ADDR(dst, src) (dst)->sin.sin_addr.s_addr = GET_IPV4(src)
+#define SET_ADDR(dst, src) (dst)->sin.sin_addr.s_addr = ip_2_ip4(src)->addr
 #endif
 
-/*
- * If lwip is compiled with ipv6 support, then API changes even for ipv4
- */
-#if !defined(LWIP_IPV6) || !LWIP_IPV6
-#define GET_IPV4(ipX_addr) ((ipX_addr)->addr)
-#else
-#define GET_IPV4(ipX_addr) ((ipX_addr)->ip4.addr)
+#if NO_SYS
+#define tcpip_callback(fn, arg) (fn)(arg)
+typedef void (*tcpip_callback_fn)(void *arg);
 #endif
 
 void mg_lwip_ssl_do_hs(struct mg_connection *nc);
@@ -122,7 +134,7 @@ static err_t mg_lwip_tcp_recv_cb(void *arg, struct tcp_pcb *tpcb,
   struct mg_connection *nc = (struct mg_connection *) arg;
   DBG(("%p %p %u %d", nc, tpcb, (p != NULL ? p->tot_len : 0), err));
   if (p == NULL) {
-    if (nc != NULL) {
+    if (nc != NULL && !(nc->flags & MG_F_CLOSE_IMMEDIATELY)) {
       mg_lwip_post_signal(MG_SIG_CLOSE_CONN, nc);
     } else {
       /* Tombstoned connection, do nothing. */
@@ -203,17 +215,26 @@ static void mg_lwip_handle_recv_tcp(struct mg_connection *nc) {
 static err_t mg_lwip_tcp_sent_cb(void *arg, struct tcp_pcb *tpcb,
                                  u16_t num_sent) {
   struct mg_connection *nc = (struct mg_connection *) arg;
-  DBG(("%p %p %u", nc, tpcb, num_sent));
+  DBG(("%p %p %u %p %p", nc, tpcb, num_sent, tpcb->unsent, tpcb->unacked));
   if (nc == NULL) return ERR_OK;
   if ((nc->flags & MG_F_SEND_AND_CLOSE) && !(nc->flags & MG_F_WANT_WRITE) &&
-      nc->send_mbuf.len == 0 && tpcb->unacked == 0) {
+      nc->send_mbuf.len == 0 && tpcb->unsent == NULL && tpcb->unacked == NULL) {
     mg_lwip_post_signal(MG_SIG_CLOSE_CONN, nc);
   }
   return ERR_OK;
 }
 
-void mg_lwip_if_connect_tcp(struct mg_connection *nc,
-                            const union socket_address *sa) {
+struct mg_lwip_if_connect_tcp_ctx {
+  struct mg_connection *nc;
+  const union socket_address *sa;
+};
+
+static void mg_lwip_if_connect_tcp_tcpip(void *arg) {
+  struct mg_lwip_if_connect_tcp_ctx *ctx =
+      (struct mg_lwip_if_connect_tcp_ctx *) arg;
+  struct mg_connection *nc = ctx->nc;
+  const union socket_address *sa = ctx->sa;
+
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
   struct tcp_pcb *tpcb = TCP_NEW();
   cs->pcb.tcp = tpcb;
@@ -237,12 +258,17 @@ void mg_lwip_if_connect_tcp(struct mg_connection *nc,
   }
 }
 
+void mg_lwip_if_connect_tcp(struct mg_connection *nc,
+                            const union socket_address *sa) {
+  struct mg_lwip_if_connect_tcp_ctx ctx = {.nc = nc, .sa = sa};
+  tcpip_callback(mg_lwip_if_connect_tcp_tcpip, &ctx);
+}
+
 /*
  * Lwip included in the SDKs for nRF5x chips has different type for the
  * callback of `udp_recv()`
  */
-#if CS_PLATFORM == CS_P_NRF51 || CS_PLATFORM == CS_P_NRF52 || \
-    CS_PLATFORM == CS_P_STM32
+#if LWIP_VERSION >= 0x01050000
 static void mg_lwip_udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
                                 const ip_addr_t *addr, u16_t port)
 #else
@@ -260,7 +286,11 @@ static void mg_lwip_udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
     return;
   }
   union socket_address *sa = (union socket_address *) sap->payload;
+#if LWIP_VERSION >= 0x01050000
+  sa->sin.sin_addr.s_addr = ip_2_ip4(addr)->addr;
+#else
   sa->sin.sin_addr.s_addr = addr->addr;
+#endif
   sa->sin.sin_port = htons(port);
   /* Logic in the recv handler requires that there be exactly one data pbuf. */
   p = pbuf_coalesce(p, PBUF_RAW);
@@ -309,7 +339,8 @@ static void mg_lwip_handle_recv_udp(struct mg_connection *nc) {
   }
 }
 
-void mg_lwip_if_connect_udp(struct mg_connection *nc) {
+static void mg_lwip_if_connect_udp_tcpip(void *arg) {
+  struct mg_connection *nc = (struct mg_connection *) arg;
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
   struct udp_pcb *upcb = udp_new();
   cs->err = UDP_BIND(upcb, IP_ADDR_ANY, 0 /* any port */);
@@ -323,11 +354,19 @@ void mg_lwip_if_connect_udp(struct mg_connection *nc) {
   mg_lwip_post_signal(MG_SIG_CONNECT_RESULT, nc);
 }
 
+void mg_lwip_if_connect_udp(struct mg_connection *nc) {
+  tcpip_callback(mg_lwip_if_connect_udp_tcpip, nc);
+}
+
 void mg_lwip_accept_conn(struct mg_connection *nc, struct tcp_pcb *tpcb) {
   union socket_address sa;
   SET_ADDR(&sa, &tpcb->remote_ip);
   sa.sin.sin_port = htons(tpcb->remote_port);
   mg_if_accept_tcp_cb(nc, &sa, sizeof(sa.sin));
+}
+
+static void tcp_close_tcpip(void *arg) {
+  tcp_close((struct tcp_pcb *) arg);
 }
 
 void mg_lwip_handle_accept(struct mg_connection *nc) {
@@ -336,7 +375,7 @@ void mg_lwip_handle_accept(struct mg_connection *nc) {
   if (cs->lc->flags & MG_F_SSL) {
     if (mg_ssl_if_conn_accept(nc, cs->lc) != MG_SSL_OK) {
       LOG(LL_ERROR, ("SSL error"));
-      tcp_close(cs->pcb.tcp);
+      tcpip_callback(tcp_close_tcpip, cs->pcb.tcp);
     }
   } else
 #endif
@@ -346,15 +385,27 @@ void mg_lwip_handle_accept(struct mg_connection *nc) {
 }
 
 static err_t mg_lwip_accept_cb(void *arg, struct tcp_pcb *newtpcb, err_t err) {
-  struct mg_connection *lc = (struct mg_connection *) arg;
-  DBG(("%p conn %p from %s:%u", lc, newtpcb,
+  struct mg_connection *lc = (struct mg_connection *) arg, *nc;
+  struct mg_lwip_conn_state *lcs, *cs;
+  struct tcp_pcb_listen *lpcb;
+  LOG(LL_DEBUG,
+      ("%p conn %p from %s:%u", lc, newtpcb,
        IPADDR_NTOA(ipX_2_ip(&newtpcb->remote_ip)), newtpcb->remote_port));
-  struct mg_connection *nc = mg_if_accept_new_conn(lc);
+  if (lc == NULL) {
+    tcp_abort(newtpcb);
+    return ERR_ABRT;
+  }
+  lcs = (struct mg_lwip_conn_state *) lc->sock;
+  lpcb = (struct tcp_pcb_listen *) lcs->pcb.tcp;
+#if TCP_LISTEN_BACKLOG
+  tcp_accepted(lpcb);
+#endif
+  nc = mg_if_accept_new_conn(lc);
   if (nc == NULL) {
     tcp_abort(newtpcb);
     return ERR_ABRT;
   }
-  struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
+  cs = (struct mg_lwip_conn_state *) nc->sock;
   cs->lc = lc;
   cs->pcb.tcp = newtpcb;
   /* We need to set up callbacks before returning because data may start
@@ -368,10 +419,20 @@ static err_t mg_lwip_accept_cb(void *arg, struct tcp_pcb *newtpcb, err_t err) {
 #endif
   mg_lwip_post_signal(MG_SIG_ACCEPT, nc);
   (void) err;
+  (void) lpcb;
   return ERR_OK;
 }
 
-int mg_lwip_if_listen_tcp(struct mg_connection *nc, union socket_address *sa) {
+struct mg_lwip_if_listen_ctx {
+  struct mg_connection *nc;
+  union socket_address *sa;
+  int ret;
+};
+
+static void mg_lwip_if_listen_tcp_tcpip(void *arg) {
+  struct mg_lwip_if_listen_ctx *ctx = (struct mg_lwip_if_listen_ctx *) arg;
+  struct mg_connection *nc = ctx->nc;
+  union socket_address *sa = ctx->sa;
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
   struct tcp_pcb *tpcb = TCP_NEW();
   ip_addr_t *ip = (ip_addr_t *) &sa->sin.sin_addr.s_addr;
@@ -380,16 +441,26 @@ int mg_lwip_if_listen_tcp(struct mg_connection *nc, union socket_address *sa) {
   DBG(("%p tcp_bind(%s:%u) = %d", nc, IPADDR_NTOA(ip), port, cs->err));
   if (cs->err != ERR_OK) {
     tcp_close(tpcb);
-    return -1;
+    ctx->ret = -1;
+    return;
   }
   tcp_arg(tpcb, nc);
   tpcb = tcp_listen(tpcb);
   cs->pcb.tcp = tpcb;
   tcp_accept(tpcb, mg_lwip_accept_cb);
-  return 0;
+  ctx->ret = 0;
 }
 
-int mg_lwip_if_listen_udp(struct mg_connection *nc, union socket_address *sa) {
+int mg_lwip_if_listen_tcp(struct mg_connection *nc, union socket_address *sa) {
+  struct mg_lwip_if_listen_ctx ctx = {.nc = nc, .sa = sa};
+  tcpip_callback(mg_lwip_if_listen_tcp_tcpip, &ctx);
+  return ctx.ret;
+}
+
+static void mg_lwip_if_listen_udp_tcpip(void *arg) {
+  struct mg_lwip_if_listen_ctx *ctx = (struct mg_lwip_if_listen_ctx *) arg;
+  struct mg_connection *nc = ctx->nc;
+  union socket_address *sa = ctx->sa;
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
   struct udp_pcb *upcb = udp_new();
   ip_addr_t *ip = (ip_addr_t *) &sa->sin.sin_addr.s_addr;
@@ -398,25 +469,47 @@ int mg_lwip_if_listen_udp(struct mg_connection *nc, union socket_address *sa) {
   DBG(("%p udb_bind(%s:%u) = %d", nc, IPADDR_NTOA(ip), port, cs->err));
   if (cs->err != ERR_OK) {
     udp_remove(upcb);
-    return -1;
+    ctx->ret = -1;
+  } else {
+    udp_recv(upcb, mg_lwip_udp_recv_cb, nc);
+    cs->pcb.udp = upcb;
+    ctx->ret = 0;
   }
-  udp_recv(upcb, mg_lwip_udp_recv_cb, nc);
-  cs->pcb.udp = upcb;
-  return 0;
 }
 
-int mg_lwip_tcp_write(struct mg_connection *nc, const void *data,
-                      uint16_t len) {
+int mg_lwip_if_listen_udp(struct mg_connection *nc, union socket_address *sa) {
+  struct mg_lwip_if_listen_ctx ctx = {.nc = nc, .sa = sa};
+  tcpip_callback(mg_lwip_if_listen_udp_tcpip, &ctx);
+  return ctx.ret;
+}
+
+struct mg_lwip_tcp_write_ctx {
+  struct mg_connection *nc;
+  const void *data;
+  uint16_t len;
+  int ret;
+};
+
+static void tcp_output_tcpip(void *arg) {
+  tcp_output((struct tcp_pcb *) arg);
+}
+
+static void mg_lwip_tcp_write_tcpip(void *arg) {
+  struct mg_lwip_tcp_write_ctx *ctx = (struct mg_lwip_tcp_write_ctx *) arg;
+  struct mg_connection *nc = ctx->nc;
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
   struct tcp_pcb *tpcb = cs->pcb.tcp;
-  if (tpcb == NULL) return -1;
-  len = MIN(tpcb->mss, MIN(len, tpcb->snd_buf));
+  size_t len = MIN(tpcb->mss, MIN(ctx->len, tpcb->snd_buf));
+  size_t unsent, unacked;
   if (len == 0) {
     DBG(("%p no buf avail %u %u %u %p %p", tpcb, tpcb->acked, tpcb->snd_buf,
          tpcb->snd_queuelen, tpcb->unsent, tpcb->unacked));
-    tcp_output(tpcb);
-    return 0;
+    tcpip_callback(tcp_output_tcpip, tpcb);
+    ctx->ret = 0;
+    return;
   }
+  unsent = (tpcb->unsent != NULL ? tpcb->unsent->len : 0);
+  unacked = (tpcb->unacked != NULL ? tpcb->unacked->len : 0);
 /*
  * On ESP8266 we only allow one TCP segment in flight at any given time.
  * This may increase latency and reduce efficiency of tcp windowing,
@@ -424,23 +517,50 @@ int mg_lwip_tcp_write(struct mg_connection *nc, const void *data,
  * reduce footprint.
  */
 #if CS_PLATFORM == CS_P_ESP8266
-  if (tpcb->unacked != NULL) {
-    return 0;
+  if (unacked > 0) {
+    ctx->ret = 0;
+    return;
   }
-  if (tpcb->unsent != NULL) {
-    len = MIN(len, (TCP_MSS - tpcb->unsent->len));
-  }
+  len = MIN(len, (TCP_MSS - unsent));
 #endif
-  cs->err = tcp_write(tpcb, data, len, TCP_WRITE_FLAG_COPY);
-  DBG(("%p tcp_write %u = %d", tpcb, len, cs->err));
+  cs->err = tcp_write(tpcb, ctx->data, len, TCP_WRITE_FLAG_COPY);
+  unsent = (tpcb->unsent != NULL ? tpcb->unsent->len : 0);
+  unacked = (tpcb->unacked != NULL ? tpcb->unacked->len : 0);
+  DBG(("%p tcp_write %u = %d, %u %u", tpcb, len, cs->err, unsent, unacked));
   if (cs->err != ERR_OK) {
     /*
      * We ignore ERR_MEM because memory will be freed up when the data is sent
      * and we'll retry.
      */
-    return (cs->err == ERR_MEM ? 0 : -1);
+    ctx->ret = (cs->err == ERR_MEM ? 0 : -1);
+    return;
   }
-  return len;
+  ctx->ret = len;
+}
+
+static int mg_lwip_tcp_write(struct mg_connection *nc, const void *data,
+                             uint16_t len) {
+  struct mg_lwip_tcp_write_ctx ctx = {.nc = nc, .data = data, .len = len};
+  struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
+  struct tcp_pcb *tpcb = cs->pcb.tcp;
+  if (tpcb == NULL) {
+    return -1;
+  }
+  tcpip_callback(mg_lwip_tcp_write_tcpip, &ctx);
+  return ctx.ret;
+}
+
+struct udp_sendto_ctx {
+  struct udp_pcb *upcb;
+  struct pbuf *p;
+  ip_addr_t *ip;
+  uint16_t port;
+  int ret;
+};
+
+static void udp_sendto_tcpip(void *arg) {
+  struct udp_sendto_ctx *ctx = (struct udp_sendto_ctx *) arg;
+  ctx->ret = udp_sendto(ctx->upcb, ctx->p, ctx->ip, ctx->port);
 }
 
 static int mg_lwip_udp_send(struct mg_connection *nc, const void *data,
@@ -457,15 +577,20 @@ static int mg_lwip_udp_send(struct mg_connection *nc, const void *data,
   }
   struct udp_pcb *upcb = cs->pcb.udp;
   struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
-  ip_addr_t *ip = (ip_addr_t *) &nc->sa.sin.sin_addr.s_addr;
+#if defined(LWIP_IPV4) && LWIP_IPV4 && defined(LWIP_IPV6) && LWIP_IPV6
+  ip_addr_t ip = {.u_addr.ip4.addr = nc->sa.sin.sin_addr.s_addr, .type = 0};
+#else
+  ip_addr_t ip = {.addr = nc->sa.sin.sin_addr.s_addr};
+#endif
   u16_t port = ntohs(nc->sa.sin.sin_port);
   if (p == NULL) {
     DBG(("OOM"));
     return 0;
   }
   memcpy(p->payload, data, len);
-  cs->err = udp_sendto(upcb, p, (ip_addr_t *) ip, port);
-  DBG(("%p udp_sendto = %d", nc, cs->err));
+  struct udp_sendto_ctx ctx = {.upcb = upcb, .p = p, .ip = &ip, .port = port};
+  tcpip_callback(udp_sendto_tcpip, &ctx);
+  cs->err = ctx.ret;
   pbuf_free(p);
   return (cs->err == ERR_OK ? len : -1);
 }
@@ -500,6 +625,16 @@ void mg_lwip_if_udp_send(struct mg_connection *nc, const void *buf,
   mg_lwip_mgr_schedule_poll(nc->mgr);
 }
 
+struct tcp_recved_ctx {
+  struct tcp_pcb *tpcb;
+  size_t len;
+};
+
+void tcp_recved_tcpip(void *arg) {
+  struct tcp_recved_ctx *ctx = (struct tcp_recved_ctx *) arg;
+  tcp_recved(ctx->tpcb, ctx->len);
+}
+
 void mg_lwip_if_recved(struct mg_connection *nc, size_t len) {
   if (nc->flags & MG_F_UDP) return;
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
@@ -508,14 +643,16 @@ void mg_lwip_if_recved(struct mg_connection *nc, size_t len) {
     return;
   }
   DBG(("%p %p %u", nc, cs->pcb.tcp, len));
-/* Currently SSL acknowledges data immediately.
- * TODO(rojer): Find a way to propagate mg_lwip_if_recved. */
+  struct tcp_recved_ctx ctx = {.tpcb = cs->pcb.tcp, .len = len};
 #if MG_ENABLE_SSL
   if (!(nc->flags & MG_F_SSL)) {
-    tcp_recved(cs->pcb.tcp, len);
+    tcpip_callback(tcp_recved_tcpip, &ctx);
+  } else {
+    /* Currently SSL acknowledges data immediately.
+     * TODO(rojer): Find a way to propagate mg_lwip_if_recved. */
   }
 #else
-  tcp_recved(cs->pcb.tcp, len);
+  tcpip_callback(tcp_recved_tcpip, &ctx);
 #endif
   mbuf_trim(&nc->recv_mbuf);
 }
@@ -529,6 +666,10 @@ int mg_lwip_if_create_conn(struct mg_connection *nc) {
   return 1;
 }
 
+static void udp_remove_tcpip(void *arg) {
+  udp_remove((struct udp_pcb *) arg);
+}
+
 void mg_lwip_if_destroy_conn(struct mg_connection *nc) {
   if (nc->sock == INVALID_SOCKET) return;
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
@@ -538,7 +679,7 @@ void mg_lwip_if_destroy_conn(struct mg_connection *nc) {
       tcp_arg(tpcb, NULL);
       DBG(("%p tcp_close %p", nc, tpcb));
       tcp_arg(tpcb, NULL);
-      tcp_close(tpcb);
+      tcpip_callback(tcp_close_tcpip, tpcb);
     }
     while (cs->rx_chain != NULL) {
       struct pbuf *seg = cs->rx_chain;
@@ -552,7 +693,7 @@ void mg_lwip_if_destroy_conn(struct mg_connection *nc) {
     struct udp_pcb *upcb = cs->pcb.udp;
     if (upcb != NULL) {
       DBG(("%p udp_remove %p", nc, upcb));
-      udp_remove(upcb);
+      tcpip_callback(udp_remove_tcpip, upcb);
     }
     memset(cs, 0, sizeof(*cs));
     MG_FREE(cs);

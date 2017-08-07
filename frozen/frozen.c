@@ -117,12 +117,11 @@ struct fstate {
 
 static int append_to_path(struct frozen *f, const char *str, int size) {
   int n = f->path_len;
-  f->path_len +=
-      snprintf(f->path + f->path_len, sizeof(f->path) - (f->path_len), "%.*s", size, str);
-  if (f->path_len > sizeof(f->path) - 1) {
-    f->path_len = sizeof(f->path) - 1;
-  }
-
+  int left = sizeof(f->path) - n - 1;
+  if (size > left) size = left;
+  memcpy(f->path + n, str, size);
+  f->path[n + size] = '\0';
+  f->path_len += size;
   return n;
 }
 
@@ -631,7 +630,7 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
          * TODO(dfrank): reimplement %s and %.*s in order to avoid that.
          */
 
-        const char *end_of_format_specifier = "sdfFgGlhuI.*-0123456789";
+        const char *end_of_format_specifier = "sdfFgGlhuIcx.*-0123456789";
         size_t n = strspn(fmt + 1, end_of_format_specifier);
         char *pbuf = buf;
         size_t need_len;
@@ -707,6 +706,7 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
       }
       len += out->printer(out, quote, 1);
     } else {
+      len += out->printer(out, fmt, 1);
       fmt++;
     }
   }
@@ -752,7 +752,8 @@ int json_printf_array(struct json_out *out, va_list *ap) {
 }
 
 #ifdef _WIN32
-int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap) WEAK;
+int cs_win_vsnprintf(char *str, size_t size, const char *format,
+                     va_list ap) WEAK;
 int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap) {
   int res = _vsnprintf(str, size, format, ap);
   va_end(ap);
@@ -859,6 +860,7 @@ static void json_scanf_cb(void *callback_data, const char *name,
                           size_t name_len, const char *path,
                           const struct json_token *token) {
   struct json_scanf_info *info = (struct json_scanf_info *) callback_data;
+  char buf[32]; /* Must be enough to hold numbers */
 
   (void) name;
   (void) name_len;
@@ -879,7 +881,7 @@ static void json_scanf_cb(void *callback_data, const char *name,
   switch (info->type) {
     case 'B':
       info->num_conversions++;
-      switch (sizeof(bool)){
+      switch (sizeof(bool)) {
         case sizeof(char):
           *(char *) info->target = (token->type == JSON_TYPE_TRUE ? 1 : 0);
           break;
@@ -944,7 +946,12 @@ static void json_scanf_cb(void *callback_data, const char *name,
       *(struct json_token *) info->target = *token;
       break;
     default:
-      info->num_conversions += sscanf(token->ptr, info->fmt, info->target);
+      /* Before scanf, copy into tmp buffer in order to 0-terminate it */
+      if (token->len < (int) sizeof(buf)) {
+        memcpy(buf, token->ptr, token->len);
+        buf[token->len] = '\0';
+        info->num_conversions += sscanf(buf, info->fmt, info->target);
+      }
       break;
   }
 }

@@ -18,14 +18,14 @@ SOURCES = $(COMMON)/cs_dbg.c \
           mjs_ffi.c \
           mjs_gc.c \
           mjs_json.c \
+          mjs_extension.c \
           mjs_main.c \
           mjs_object.c \
           mjs_parser.c \
           mjs_primitive.c \
           mjs_string.c \
           mjs_tok.c \
-          mjs_util.c \
-          mjs_extension.c
+          mjs_util.c
 
 HEADERS = $(COMMON)/mbuf.h \
           $(COMMON)/cs_dbg.h \

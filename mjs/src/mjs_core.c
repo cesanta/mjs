@@ -9,6 +9,7 @@
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_builtin.h"
 #include "mjs/src/mjs_core.h"
+#include "mjs/src/mjs_exec.h"
 #include "mjs/src/mjs_ffi.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_license.h"
@@ -38,7 +39,19 @@
 #endif
 
 void mjs_destroy(struct mjs *mjs) {
-  mbuf_free(&mjs->bcode);
+  {
+    int parts_cnt = mjs_bcode_parts_cnt(mjs);
+    int i;
+    for (i = 0; i < parts_cnt; i++) {
+      struct mjs_bcode_part *bp = mjs_bcode_part_get(mjs, i);
+      if (!bp->in_rom) {
+        free((void *) bp->data.p);
+      }
+    }
+  }
+
+  mbuf_free(&mjs->bcode_gen);
+  mbuf_free(&mjs->bcode_parts);
   mbuf_free(&mjs->stack);
   mbuf_free(&mjs->call_stack);
   mbuf_free(&mjs->arg_stack);
@@ -49,6 +62,7 @@ void mjs_destroy(struct mjs *mjs) {
   mbuf_free(&mjs->loop_addresses);
   mbuf_free(&mjs->json_visited_stack);
   free(mjs->error_msg);
+  free(mjs->stack_trace);
   mjs_ffi_args_free_list(mjs);
   gc_arena_destroy(mjs, &mjs->object_arena);
   gc_arena_destroy(mjs, &mjs->property_arena);
@@ -63,11 +77,14 @@ struct mjs *mjs_create(void) {
   mbuf_init(&mjs->arg_stack, 0);
   mbuf_init(&mjs->owned_strings, 0);
   mbuf_init(&mjs->foreign_strings, 0);
-  mbuf_init(&mjs->bcode, 0);
+  mbuf_init(&mjs->bcode_gen, 0);
+  mbuf_init(&mjs->bcode_parts, 0);
   mbuf_init(&mjs->owned_values, 0);
   mbuf_init(&mjs->scopes, 0);
   mbuf_init(&mjs->loop_addresses, 0);
   mbuf_init(&mjs->json_visited_stack, 0);
+
+  mjs->bcode_len = 0;
 
   /*
    * The compacting GC exploits the null terminator of the previous string as a
@@ -135,6 +152,19 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
     mjs->error_msg = new_error_msg;
   }
   return err;
+}
+
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace) {
+  if (print_stack_trace && mjs->stack_trace != NULL) {
+    fprintf(fp, "%s", mjs->stack_trace);
+  }
+
+  if (msg == NULL) {
+    msg = "MJS error";
+  }
+
+  fprintf(fp, "%s: %s\n", msg, mjs_strerror(mjs, mjs->error));
 }
 
 MJS_PRIVATE void mjs_die(struct mjs *mjs) {
@@ -206,35 +236,33 @@ mjs_val_t mjs_get_global(struct mjs *mjs) {
   return *vptr(&mjs->scopes, 0);
 }
 
-MJS_PRIVATE int mjs_get_bcode_header_offset(struct mjs *mjs, size_t offset) {
-  int32_t total_size, ret = -1, cur_idx = 0;
-
-  while ((size_t) cur_idx < mjs->bcode.len) {
-    assert(mjs->bcode.buf[cur_idx] == OP_BCODE_HEADER);
-    cur_idx++;
-    memcpy(&total_size, mjs->bcode.buf + cur_idx, sizeof(total_size));
-    if (offset < (size_t) cur_idx + total_size) {
-      ret = cur_idx;
-      break;
+static void mjs_append_stack_trace_line(struct mjs *mjs, size_t offset) {
+  if (offset != MJS_BCODE_OFFSET_EXIT) {
+    const char *filename = mjs_get_bcode_filename_by_offset(mjs, offset);
+    int line_no = mjs_get_lineno_by_offset(mjs, offset);
+    char *new_line = NULL;
+    const char *fmt = "  at %s:%d\n";
+    if (filename == NULL) {
+      fprintf(stderr,
+              "ERROR during stack trace generation: wrong bcode offset %d\n",
+              (int) offset);
+      filename = "<unknown-filename>";
     }
-    cur_idx += total_size;
-  }
+    mg_asprintf(&new_line, 0, fmt, filename, line_no);
 
-  return ret;
+    if (mjs->stack_trace != NULL) {
+      char *old = mjs->stack_trace;
+      mg_asprintf(&mjs->stack_trace, 0, "%s%s", mjs->stack_trace, new_line);
+      free(old);
+      free(new_line);
+    } else {
+      mjs->stack_trace = new_line;
+    }
+  }
 }
 
-static void mjs_print_stack_trace_line(struct mjs *mjs, size_t offset) {
-  const char *filename = mjs_get_bcode_filename_by_offset(mjs, offset);
-  int line_no = mjs_get_lineno_by_offset(mjs, offset);
-  if (filename == NULL) {
-    fprintf(stderr, "ERROR: wrong bcode offset %d\n", (int) offset);
-    filename = "<unknown-filename>";
-  }
-  fprintf(stderr, "  at %s:%d\n", filename, line_no);
-}
-
-MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset) {
-  mjs_print_stack_trace_line(mjs, offset);
+MJS_PRIVATE void mjs_gen_stack_trace(struct mjs *mjs, size_t offset) {
+  mjs_append_stack_trace_line(mjs, offset);
   while (mjs->call_stack.len >=
          sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT) {
     /* pop retval_stack_idx */
@@ -245,7 +273,7 @@ MJS_PRIVATE void mjs_print_stack_trace(struct mjs *mjs, size_t offset) {
     offset = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
     /* pop this object */
     mjs_pop_val(&mjs->call_stack);
-    mjs_print_stack_trace_line(mjs, offset);
+    mjs_append_stack_trace_line(mjs, offset);
   }
 }
 
@@ -348,4 +376,8 @@ MJS_PRIVATE mjs_val_t mjs_pop_val(struct mbuf *m) {
 
 MJS_PRIVATE void mjs_push(struct mjs *mjs, mjs_val_t v) {
   push_mjs_val(&mjs->stack, v);
+}
+
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc) {
+  mjs->generate_jsc = generate_jsc;
 }

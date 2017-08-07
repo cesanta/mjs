@@ -21,22 +21,31 @@ int main(int argc, char *argv[]) {
 
     mjs_init_local(mjs, mjs_get_global(mjs));
 
-  for (i = 1; i < argc && argv[i][0] == '-'; i++) {
+    for (i = 1; i < argc && argv[i][0] == '-'; i++) {
     if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
       cs_log_set_level(atoi(argv[++i]));
+    } else if (strcmp(argv[i], "-j") == 0) {
+      mjs_set_generate_jsc(mjs, 1);
     } else if (strcmp(argv[i], "-e") == 0 && i + 1 < argc) {
       err = mjs_exec(mjs, argv[++i], &res);
+    } else if (strcmp(argv[i], "-f") == 0 && i + 1 < argc) {
+      err = mjs_exec_file(mjs, argv[++i], &res);
     } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
       printf("mJS (c) Cesanta, built: " __DATE__ "\n");
-      printf("Usage:\n  ");
-      printf("%s [-l debug_level] [-e expression] js_file ...\n", argv[0]);
+      printf("Usage:\n");
+      printf("%s [OPTIONS] [js_file ...]\n", argv[0]);
+      printf("OPTIONS:\n");
+      printf("  -e string    - Execute JavaScript expression\n");
+      printf("  -j           - Enable code precompiling to .jsc files\n");
+      printf("  -f js_file   - Execute code from .js JavaScript file\n");
+      printf("  -l level     - Set debug level, from 0 to 5\n");
       return EXIT_SUCCESS;
     } else {
       fprintf(stderr, "Unknown flag: [%s]\n", argv[i]);
       return EXIT_FAILURE;
     }
   }
-  for (; i < argc; i++) {
+  for (; i < argc && err == MJS_OK; i++) {
     err = mjs_exec_file(mjs, argv[i], &res);
   }
 
@@ -44,7 +53,7 @@ int main(int argc, char *argv[]) {
     mjs_fprintf(res, mjs, stdout);
     putchar('\n');
   } else {
-    printf("Error: %s\n", mjs_strerror(mjs, mjs->error));
+    mjs_print_error(mjs, stdout, NULL, 1 /* print_stack_trace */);
   }
   mjs_destroy(mjs);
 

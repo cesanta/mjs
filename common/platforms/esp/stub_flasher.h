@@ -3,15 +3,6 @@
 
 enum stub_cmd {
   /*
-   * Erase a region of SPI flash.
-   *
-   * Args: addr, len; must be FLASH_SECTOR_SIZE-aligned.
-   * Input: None.
-   * Output: None.
-   */
-  CMD_FLASH_ERASE = 0,
-
-  /*
    * Write to the SPI flash.
    *
    * Args: addr, len, erase; addr and len must be SECTOR_SIZE-aligned.
@@ -91,6 +82,15 @@ enum stub_cmd {
    * Output: None.
    */
   CMD_REBOOT = 7,
+
+  /*
+   * Echo the arguments back to the host.
+   *
+   * Args: variable.
+   * Input: None.
+   * Output: arguments.
+   */
+  CMD_ECHO = 8,
 };
 
 #endif /* CS_COMMON_PLATFORMS_ESP8266_STUBS_STUB_FLASHER_H_ */

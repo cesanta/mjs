@@ -15,7 +15,7 @@ MFLAGS += -I. -I$(REPO_ROOT) -Isrc
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
 CFLAGS += -lm -W -Wall -g
 CFLAGS += $(MFLAGS) $(CFLAGS_EXTRA)
-COMMON_CFLAGS =
+COMMON_CFLAGS = -DCS_MMAP
 ASAN_CFLAGS = -fsanitize=address
 
 VERBOSE ?=
@@ -34,6 +34,10 @@ endif
 ifeq ($(UNAME_S),Linux)
   COMMON_CFLAGS += -Wl,--no-as-needed -ldl
   ASAN_CFLAGS += -fsanitize=leak
+endif
+
+ifeq ($(UNAME_S),Darwin)
+  MFLAGS += -D_DARWIN_C_SOURCE
 endif
 
 PROG = $(BUILD_DIR)/mjs
@@ -222,3 +226,8 @@ $(BUILD_DIR)/unit_test.exe: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DI
 wtest: $(BUILD_DIR)/unit_test.exe
 	wine $(BUILD_DIR)/unit_test.exe
 
+difftest:
+	@TMP=`mktemp -t checkout-diff.XXXXXX`; \
+	git diff  >$$TMP ; \
+	if [ -s "$$TMP" ]; then echo found diffs in checkout:; git status -s; head -n 50 "$$TMP"; exit 1; fi; \
+	rm $$TMP

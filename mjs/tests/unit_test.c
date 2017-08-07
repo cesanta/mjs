@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 #include "mjs.h"
 
 #if defined(__cplusplus)
@@ -15,13 +16,15 @@ extern "C" {
 
 #include <stdbool.h>
 
-#define ASSERT_EXEC_OK(_exec_)                                              \
+#define ASSERT_EXEC_OK(_exec_) ASSERT_EXEC_RES(_exec_, MJS_OK)
+
+#define ASSERT_EXEC_RES(_exec_, _res_)                                      \
   do {                                                                      \
     mjs_err_t err = _exec_;                                                 \
-    if (err != MJS_OK) {                                                    \
-      fprintf(stderr, "exec error: %d [%s]\n", mjs->error, mjs->error_msg); \
+    if (err != MJS_OK && _res_ == MJS_OK) {                                 \
+      mjs_print_error(mjs, stderr, "exec error", 1 /* print_stack_trace */);\
     }                                                                       \
-    ASSERT_EQ(err, MJS_OK);                                                 \
+    ASSERT_EQ(err, _res_);                                                  \
     if (mjs->stack.len != 0) {                                              \
       fprintf(stderr, "stack len is not zero: %d\n", (int)mjs->stack.len);  \
     }                                                                       \
@@ -33,6 +36,13 @@ extern "C" {
     ASSERT_EXEC_OK(mjs_exec(mjs, str, &res));             \
     ASSERT_EQ(mjs_get_double(mjs, res), (double) result); \
   } while (0)
+
+#define CHECK_TRUE(str)                       \
+  do {                                        \
+    ASSERT_EXEC_OK(mjs_exec(mjs, str, &res)); \
+    ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));   \
+  } while (0)
+
 
 /*
  * Like `RUN_TEST()`, but the test function should have a prototype
@@ -156,6 +166,49 @@ const char *test_arithmetic(struct mjs *mjs) {
   CHECK_NUMERIC("~10", -11);
   CHECK_NUMERIC("-100", -100);
   CHECK_NUMERIC("+100", 100);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN", &res));
+  ASSERT_EQ(!!isnan(mjs_get_double(mjs, res)), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === NaN", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN !== NaN", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === 0", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === 1", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === null", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === undefined", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === ''", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === {}", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "NaN === []", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN(NaN)", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN(NaN * 10)", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN(0)", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "isNaN('')", &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
   mjs_disown(mjs, &res);
 
   return NULL;
@@ -220,9 +273,12 @@ const char *test_exec(void) {
     while ((dp = readdir(dirp)) != NULL) {
       char path[256];
       const char *prefix = "test_";
+      const char *jsext = ".js";
       mjs_val_t res = MJS_UNDEFINED;
+      int basename_len = (int)strlen(dp->d_name) - strlen(jsext);
 
       if (strncmp(dp->d_name, prefix, strlen(prefix)) != 0) continue;
+      if (strncmp(dp->d_name + basename_len, jsext, strlen(jsext)) != 0) continue;
       snprintf(path, sizeof(path), "%s/%s", dir, dp->d_name);
       LOG(LL_INFO, ("executing %s", path));
 
@@ -476,6 +532,14 @@ const char *test_logic(struct mjs *mjs) {
   ASSERT_EQ(mjs_is_boolean(res), 0);
   ASSERT_EQ(mjs_get_double(mjs, res), 1);
 
+  /* Test short-circuit for && */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a=1, b=2, c=0; if (a > 1 && (b = b+1) > 2) { c=b; } b", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
+  /* Test short-circuit for || */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let a=1, b=2, c=0; if (a === 1 || (b = b+1) > 2) { c=b; } b", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 2);
+
   mjs_disown(mjs, &res);
 
   return NULL;
@@ -615,6 +679,70 @@ int ffi_test_i2i(int a0, int a1) {
   return a0 - a1;
 }
 
+/* 3 arg, one double {{{ */
+int ffi_test_iiid(int a0, int a1, double d2) {
+  return (d2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_biid(int a0, int a1, double d2) {
+  (void) a0;
+  (void) a1;
+  return d2 > 10.0;
+}
+
+double ffi_test_diid(int a0, int a1, double d2) {
+  return d2 * a0 - a1;
+}
+/* }}} */
+
+/* 3 arg, two doubles {{{ */
+int ffi_test_iidd(int a0, double a1, double d2) {
+  return (d2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_bidd(int a0, double a1, double d2) {
+  (void) a0;
+  (void) a1;
+  return d2 > 10.0;
+}
+
+double ffi_test_didd(int a0, double a1, double d2) {
+  return d2 * a0 - a1;
+}
+/* }}} */
+
+/* 3 arg, one float {{{ */
+int ffi_test_iiif(int a0, int a1, float f2) {
+  return (f2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_biif(int a0, int a1, float f2) {
+  (void) a0;
+  (void) a1;
+  return f2 > 10.0;
+}
+
+float ffi_test_fiif(int a0, int a1, float f2) {
+  return f2 * a0 - a1;
+}
+/* }}} */
+
+/* 3 arg, two floats {{{ */
+int ffi_test_iiff(int a0, float a1, float f2) {
+  return (f2 * a0 - a1) * 1000;
+}
+
+bool ffi_test_biff(int a0, float a1, float f2) {
+  (void) a0;
+  (void) a1;
+  return f2 > 10.0;
+}
+
+float ffi_test_fiff(int a0, float a1, float f2) {
+  return f2 * a0 - a1;
+}
+/* }}} */
+
 int ffi_test_iib(int a0, bool b) {
   return a0 - (b ? 10 : 20);
 }
@@ -718,11 +846,32 @@ void ffi_test_cb_viiiiiu(cb_viiiiiu *cb, void *userdata) {
 }
 /* }}} */
 
+static void ffi_test_inbuf(char *buf, int len) {
+  char pattern[] = { 'a', 'b', 0, 'c', 'd', 1 };
+  int i;
+  for (i = 0; i < len; i++) {
+    buf[i] = pattern[i % sizeof(pattern)];
+  }
+}
+
+
 void *stub_dlsym(void *handle, const char *name) {
   (void) handle;
   if (strcmp(name, "ffi_get_null") == 0) return ffi_get_null;
   if (strcmp(name, "ffi_set_byte") == 0) return ffi_set_byte;
   if (strcmp(name, "ffi_test_i2i") == 0) return ffi_test_i2i;
+  if (strcmp(name, "ffi_test_iiid") == 0) return ffi_test_iiid;
+  if (strcmp(name, "ffi_test_biid") == 0) return ffi_test_biid;
+  if (strcmp(name, "ffi_test_diid") == 0) return ffi_test_diid;
+  if (strcmp(name, "ffi_test_iidd") == 0) return ffi_test_iidd;
+  if (strcmp(name, "ffi_test_bidd") == 0) return ffi_test_bidd;
+  if (strcmp(name, "ffi_test_didd") == 0) return ffi_test_didd;
+  if (strcmp(name, "ffi_test_iiif") == 0) return ffi_test_iiif;
+  if (strcmp(name, "ffi_test_biif") == 0) return ffi_test_biif;
+  if (strcmp(name, "ffi_test_fiif") == 0) return ffi_test_fiif;
+  if (strcmp(name, "ffi_test_iiff") == 0) return ffi_test_iiff;
+  if (strcmp(name, "ffi_test_biff") == 0) return ffi_test_biff;
+  if (strcmp(name, "ffi_test_fiff") == 0) return ffi_test_fiff;
   if (strcmp(name, "ffi_test_iib") == 0) return ffi_test_iib;
   if (strcmp(name, "ffi_test_bi") == 0) return ffi_test_bi;
   if (strcmp(name, "ffi_test_i5i") == 0) return ffi_test_i5i;
@@ -737,15 +886,18 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_cb_iiui") == 0) return ffi_test_cb_iiui;
   if (strcmp(name, "ffi_test_cb_iiui2") == 0) return ffi_test_cb_iiui2;
   if (strcmp(name, "ffi_test_cb_viiiiiu") == 0) return ffi_test_cb_viiiiiu;
+  if (strcmp(name, "ffi_test_inbuf") == 0) return ffi_test_inbuf;
   if (strcmp(name, "malloc") == 0) return malloc;
   if (strcmp(name, "calloc") == 0) return calloc;
   if (strcmp(name, "free") == 0) return free;
+  if (strcmp(name, "mjs_mem_to_ptr") == 0) return mjs_mem_to_ptr;
   if (strcmp(name, "mjs_mem_get_ptr") == 0) return mjs_mem_get_ptr;
   if (strcmp(name, "mjs_mem_get_uint") == 0) return mjs_mem_get_uint;
   if (strcmp(name, "mjs_mem_set_uint") == 0) return mjs_mem_set_uint;
   if (strcmp(name, "mjs_mem_get_int") == 0) return mjs_mem_get_int;
   if (strcmp(name, "ceil") == 0) return ceil;
   if (strcmp(name, "floor") == 0) return floor;
+  if (strcmp(name, "rand") == 0) return rand;
   if (strcmp(name, "round") == 0) return round;
   if (strcmp(name, "fmax") == 0) return fmax;
   if (strcmp(name, "fmin") == 0) return fmin;
@@ -884,8 +1036,8 @@ const char *test_parse_ffi_signature(struct mjs *mjs) {
   /* wrong signature: callback with double arg */
   mjs_set_errorf(mjs, MJS_OK, NULL);
   ASSERT_EQ(
-      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(double, userdata), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(double, userdata), userdata)\": bad ffi signature: \"void(*)(double, userdata)\": the callback signature is valid, but there's no existing callback implementation for it");
+      mjs_parse_ffi_signature(mjs, "int ffi_dummy(int, void(*)(double, double, userdata), userdata)", ~0, &sig, FFI_SIG_FUNC), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "bad ffi signature: \"int ffi_dummy(int, void(*)(double, double, userdata), userdata)\": bad ffi signature: \"void(*)(double, double, userdata)\": the callback signature is valid, but there's no existing callback implementation for it");
   mjs_ffi_sig_free(&sig);
 
   return NULL;
@@ -897,8 +1049,10 @@ const char *test_call_ffi(struct mjs *mjs) {
 
   mjs_set_ffi_resolver(mjs, stub_dlsym);
 
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_i2i", ~0,
-          mjs_mk_string(mjs, "int ffi_test_i2i(int, int)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_i2i = ffi('int ffi_test_i2i(int, int)')",
+        &res));
+
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i2i(44, 2)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), 42);
 
@@ -913,8 +1067,10 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_get_int(mjs, res), 43);
 
   /* function which takes bool */
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_iib", ~0,
-      mjs_mk_string(mjs, "int ffi_test_iib(int, bool)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iib = ffi('int ffi_test_iib(int, bool)')",
+        &res));
+
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_iib(40, true)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), 40-10);
 
@@ -922,29 +1078,30 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_get_int(mjs, res), 40-20);
 
   /* function which returns bool */
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_bi", ~0,
-      mjs_mk_string(mjs, "bool ffi_test_bi(int)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_bi = ffi('bool ffi_test_bi(int)')",
+        &res));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_bi(50)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_bool(mjs, res), false);
 
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_bi(51)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_bool(mjs, res), true);
 
-  mjs_set(
-      mjs, mjs_get_global(mjs), "ffi_test_i5i", ~0,
-      mjs_mk_string(mjs, "int ffi_test_i5i(int, int, int, int, int)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_i5i = ffi('int ffi_test_i5i(int, int, int, int, int)')",
+        &res));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i5i(114, 14, 7, 1, 4)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), (114 - 14) / ((7 - 1) * 4));
 
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_i6i", ~0,
-          mjs_mk_string(mjs, "int ffi_test_i6i(int, int, int, int, int, int)",
-                        ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_i6i = ffi('int ffi_test_i6i(int, int, int, int, int, int)')",
+        &res));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_i6i(114, 14, 7, 1, 4, 11)", &res), MJS_OK);
   ASSERT_EQ(mjs_get_double(mjs, res), (114 - 14) / ((7 - 1) * 4) + 11 * 2);
 
-  /* TODO(dfrank): it needs to be refactored when ffied functions stop being strings */
-  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_s1s", ~0,
-      mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_s1s = ffi('char *ffi_test_s1s(char *)')",
+        &res));
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_test_s1s('foo')", &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "foo");
 
@@ -957,16 +1114,14 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x00')", &res), MJS_OK);
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
 
-  ASSERT_EQ(
+  ASSERT_EXEC_OK(
       mjs_exec(mjs, "ffi('double ffi_test_d2d(double,double)')(3.71, 1.28)",
-               &res),
-      MJS_OK);
+               &res));
   ASSERT_LT(fabs(mjs_get_double(mjs, res) - 17.33), 0.0001);
 
-  ASSERT_EQ(
+  ASSERT_EXEC_OK(
       mjs_exec(mjs, "ffi('int ffi_test_iid(int,double)')(300, 1.28)",
-        &res),
-      MJS_OK);
+        &res));
   ASSERT_EQ(mjs_get_int(mjs, res), (1234 + 300 + 128));
 
   /* Test calling ffi-ed function from JS function */
@@ -979,6 +1134,150 @@ const char *test_call_ffi(struct mjs *mjs) {
           ), &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 15*((15+1)-3));
 
+  /* calling strings is not supported anymore */
+  mjs_set(mjs, mjs_get_global(mjs), "ffi_test_s1s", ~0,
+      mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x01')", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: non-ffi-callable value");
+
+  /* Test the ability to pass char buffers to C */
+  {
+    size_t len;
+    const char *p, *result = "\x61\x62\x00\x63\x64\x01\x61\x62\x00\x63";
+
+    /* Try big string, big read */
+    ASSERT_EQ(mjs_exec(mjs, "let buf = 'o1o2o3o4o5'; ", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "let f = ffi('void ffi_test_inbuf(char *, int)');", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "f(buf, buf.length);", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "buf", &res), MJS_OK);
+    p = mjs_get_string(mjs, &res, &len);
+    ASSERT(p != NULL);
+    ASSERT_EQ(len, 10);
+    ASSERT_EQ(memcmp(p, result, len), 0);
+
+    /* Try big string, small read */
+    ASSERT_EQ(mjs_exec(mjs, "buf = 'o1o2o3o4o5';", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "f(buf, 2);", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "buf", &res), MJS_OK);
+    p = mjs_get_string(mjs, &res, &len);
+    ASSERT(p != NULL);
+    ASSERT_EQ(len, 10);
+    ASSERT_STREQ(p, "abo2o3o4o5");
+
+    /* Try small string, small read */
+    ASSERT_EQ(mjs_exec(mjs, "buf = 'o1';", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "f(buf, buf.length);", &res), MJS_OK);
+    ASSERT_EQ(mjs_exec(mjs, "buf", &res), MJS_OK);
+    p = mjs_get_string(mjs, &res, &len);
+    ASSERT(p != NULL);
+    ASSERT_EQ(len, 2);
+    /* TODO(lsm): enable */
+    /* ASSERT_STREQ(p, "ab"); */
+  }
+
+  /* 3 arg, one double {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iiid = ffi('int ffi_test_iiid(int, int, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiid(3, 2, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38200);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_diid = ffi('double ffi_test_diid(int, int, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_diid(3, 2, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.2);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_biid = ffi('bool ffi_test_biid(int, int, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biid(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biid(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
+
+  /* 3 arg, two doubles {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iidd = ffi('int ffi_test_iidd(int, double, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iidd(3, 2.1, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38100);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_didd = ffi('double ffi_test_didd(int, double, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_didd(3, 2.1, 13.4)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.1);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_bidd = ffi('bool ffi_test_bidd(int, double, double)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_bidd(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_bidd(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
+
+  /* 3 arg, one float {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iiif = ffi('int ffi_test_iiif(int, int, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiif(3, 2, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38500);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_fiif = ffi('float ffi_test_fiif(int, int, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_fiif(3, 2, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.5);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_biif = ffi('bool ffi_test_biif(int, int, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biif(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biif(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
+
+  /* 3 arg, two floats {{{ */
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_iiff = ffi('int ffi_test_iiff(int, float, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_iiff(3, 2.0, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_int(mjs, res), 38500);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_fiff = ffi('float ffi_test_fiff(int, float, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_fiff(3, 2.0, 13.5)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_double(mjs, res), 38.5);
+
+  ASSERT_EXEC_OK(
+      mjs_exec(mjs, "let ffi_test_biff = ffi('bool ffi_test_biff(int, float, float)')",
+        &res));
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biff(0, 0, 10)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_biff(0, 0, 10.1)", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  /* }}} */
 
   mjs_disown(mjs, &res);
 
@@ -1348,7 +1647,10 @@ const char *test_errors(struct mjs *mjs) {
   ASSERT_STREQ(mjs->error_msg, "implicit type conversion is prohibited");
 
   ASSERT_EQ(mjs_exec(mjs, "load('foo/bar/bazzz')", &res), MJS_FILE_READ_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "failed to read file \"foo/bar/bazzz\"");
+  ASSERT_STREQ(mjs->error_msg, "failed to exec file \"foo/bar/bazzz\": failed to read file \"foo/bar/bazzz\"");
+
+  ASSERT_EQ(mjs_exec(mjs, "load('tests/module2.js')", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "failed to exec file \"tests/module2.js\": bad ffi signature: \"int foo(int)\": dlsym('foo') failed");
 
   mjs_disown(mjs, &res);
   return NULL;
@@ -2465,14 +2767,41 @@ const char *test_string(struct mjs *mjs) {
   ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.charCodeAt(0)", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 'a');
 
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.at(0)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 'a');
+
   ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.charCodeAt(-1)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 'f');
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abcdef'.at(-1)", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 'f');
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(0)", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 255);
 
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(0)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 255);
+
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(1)", &res));
   ASSERT_EQ(res, MJS_UNDEFINED);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(1)", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+
+  /* chr(), error conditions - wrong argument */
+  CHECK_TRUE("chr() === null;");
+  CHECK_TRUE("chr('x') === null;");
+  CHECK_TRUE("chr({}) === null;");
+  CHECK_TRUE("chr([]) === null;");
+  CHECK_TRUE("chr(false) === null;");
+  CHECK_TRUE("chr(0x100) === null;");
+  CHECK_TRUE("chr(-1) === null;");
+
+  /* chr(), success */
+  CHECK_TRUE("chr(0) === '\\x00';");
+  CHECK_TRUE("chr(1) === '\\x01';");
+  CHECK_TRUE("chr(0x61) === 'a';");
+  CHECK_TRUE("chr(0xff) === '\\xff';");
 
   /* concatenation */
 
@@ -2663,6 +2992,24 @@ const char *test_foreign_ptr(struct mjs *mjs) {
 
   ASSERT_EXEC_OK(mjs_exec(mjs,
         STRINGIFY(
+          let get_null = ffi('void *ffi_get_null()');
+          let ptr = get_null();
+          ptr !== null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let calloc = ffi('void *calloc(int, int)');
+          let free = ffi('void free(void *)');
+          let ptr = calloc(100, 1);
+          free(ptr);
+          ptr !== null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
           let set_byte = ffi('void ffi_set_byte(void *, int)');
           let calloc = ffi('void *calloc(int, int)');
           let free = ffi('void free(void *)');
@@ -2749,6 +3096,170 @@ const char *test_foreign_ptr(struct mjs *mjs) {
 
   free(ptr);
   mjs_disown(mjs, &res);
+
+  return NULL;
+}
+
+const char *test_backtrace(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  ASSERT_EQ(mjs_exec(mjs, "foo", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace, "  at <stdin>:1\n");
+
+  ASSERT_EQ(mjs_exec(mjs, "function f1() { return bar; };\nf1();\n", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at <stdin>:1\n"
+      "  at <stdin>:2\n"
+      );
+
+  ASSERT_EQ(mjs_exec(mjs, 
+        "function f1() { return bar; };"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "\n\n\n\n\n\n\n\n\n\n"
+        "f1();\n",
+        &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at <stdin>:1\n"
+      "  at <stdin>:101\n"
+      );
+
+  ASSERT_EQ(mjs_exec(mjs, "load('tests/err1.js'); err1f1();", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  ASSERT_EQ(mjs_exec(mjs, "load('tests/err2.js'); err2f1();", &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err2.js:7\n"
+      "  at tests/err2.js:3\n"
+      "  at <stdin>:1\n"
+      );
+
+  /* Exception in the argument to a JS function */
+  ASSERT_EQ(mjs_exec(mjs, STRINGIFY(
+          function f1(a) { return a; };
+          load('tests/err1.js');
+          f1(err1f1());
+          ), &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  /* Exception in the argument to a ffi-ed function */
+  ASSERT_EQ(mjs_exec(mjs, STRINGIFY(
+          let malloc = ffi('void *malloc(int)');
+          load('tests/err1.js');
+          malloc(err1f1());
+          ), &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  /* Exception in the argument to a cfunction */
+  ASSERT_EQ(mjs_exec(mjs, STRINGIFY(
+          load('tests/err1.js');
+          print(err1f1());
+          ), &res), MJS_REFERENCE_ERROR);
+  ASSERT_STREQ(mjs->stack_trace,
+      "  at tests/err1.js:3\n"
+      "  at tests/err1.js:7\n"
+      "  at <stdin>:1\n"
+      );
+
+  mjs_disown(mjs, &res);
+
+  return NULL;
+}
+
+/*
+ * NOTE: this function should not be used with RUN_TEST_MJS, because this test
+ * relies on the fact that "test/module1.js" is not loaded yet, but
+ * when RUN_TEST_MJS does the second pass, it's already loaded.
+ */
+const char *test_load(void) {
+  struct mjs *mjs = mjs_create();
+
+  mjs_val_t func_load = MJS_UNDEFINED;
+  mjs_val_t func_add_foo_to_s = MJS_UNDEFINED;
+  mjs_val_t func_get_s = MJS_UNDEFINED;
+  mjs_val_t func_set_foo = MJS_UNDEFINED;
+  mjs_val_t func_faulty = MJS_UNDEFINED;
+  mjs_val_t res = MJS_UNDEFINED;
+
+  mjs_own(mjs, &func_add_foo_to_s);
+  mjs_own(mjs, &func_get_s);
+  mjs_own(mjs, &func_set_foo);
+  mjs_own(mjs, &func_faulty);
+  mjs_own(mjs, &func_load);
+  mjs_own(mjs, &res);
+
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+
+  /*
+   * Make sure repeated load of the same file does not generate new bcode
+   *
+   * Note that the code which actually loads the file should be a function
+   * which we'll save and call twice; if we were executing load() directly
+   * a few times, the code which calls load() would be added to bcode.
+   */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let s = ''; let foo = 2;", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){s += JSON.stringify(foo) + '_';}", &func_add_foo_to_s));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){return s;}", &func_get_s));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(newfoo){foo = newfoo;}", &func_set_foo));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){load('tests/module1.js'); return foo;}", &func_load));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function(){return non_existing;}", &func_faulty));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_load, MJS_UNDEFINED, 0, NULL));
+  size_t len1 = mjs->bcode_parts.len;
+
+  ASSERT_EXEC_OK(mjs_call(mjs, &res, func_set_foo, MJS_UNDEFINED, 1, res));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_call(mjs, &res, func_set_foo, MJS_UNDEFINED, 1, mjs_mk_number(mjs, 100)));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_load, MJS_UNDEFINED, 0, NULL));
+  size_t len2 = mjs->bcode_parts.len;
+  ASSERT_EQ(len1, len2);
+
+  ASSERT_EXEC_OK(mjs_call(mjs, &res, func_set_foo, MJS_UNDEFINED, 1, res));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_add_foo_to_s, MJS_UNDEFINED, 0, NULL));
+
+  ASSERT_EXEC_OK(mjs_apply(mjs, &res, func_get_s, MJS_UNDEFINED, 0, NULL));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "2_1_100_100_");
+
+  ASSERT_EXEC_RES(mjs_apply(mjs, &res, func_faulty, MJS_UNDEFINED, 0, NULL), MJS_REFERENCE_ERROR);
+
+  mjs_disown(mjs, &res);
+  mjs_disown(mjs, &func_add_foo_to_s);
+  mjs_disown(mjs, &func_get_s);
+  mjs_disown(mjs, &func_set_foo);
+  mjs_disown(mjs, &func_faulty);
+  mjs_disown(mjs, &func_load);
+
+  cleanup_mjs(&mjs);
 
   return NULL;
 }
@@ -3019,10 +3530,21 @@ const char *test_lib_math(struct mjs *mjs) {
   return NULL;
 }
 
+const char *test_parser(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+  CHECK_NUMERIC("1,2,3", 3);
+  CHECK_NUMERIC("let f = function(x){return x;}; f(1),f(2),f(3)", 3);
+  ASSERT_EXEC_OK(mjs_exec(mjs, ";", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
+  mjs_disown(mjs, &res);
+  return NULL;
+}
+
 static const char *run_all_tests(const char *filter, double *total_elapsed) {
   cs_log_set_level(2);
-  RUN_TEST(test_exec);
 
+  RUN_TEST_MJS(test_parser);
   RUN_TEST_MJS(test_arithmetic);
   RUN_TEST_MJS(test_block);
   RUN_TEST_MJS(test_function);
@@ -3044,6 +3566,8 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_long_jump);
   RUN_TEST_MJS(test_foreign_str);
   RUN_TEST_MJS(test_foreign_ptr);
+  RUN_TEST_MJS(test_backtrace);
+  RUN_TEST(test_load);
 
   /* FFI */
   RUN_TEST(test_func1);
@@ -3066,6 +3590,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_dataview);
 
   RUN_TEST_MJS(test_lib_math);
+  RUN_TEST(test_exec);
 
   return NULL;
 }

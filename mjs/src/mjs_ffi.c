@@ -54,6 +54,8 @@ static mjs_ffi_ctype_t parse_cval_type(struct mjs *mjs, const char *s,
     return MJS_FFI_CTYPE_BOOL;
   } else if (strncmp(s, "double", e - s) == 0) {
     return MJS_FFI_CTYPE_DOUBLE;
+  } else if (strncmp(s, "float", e - s) == 0) {
+    return MJS_FFI_CTYPE_FLOAT;
   } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
     return MJS_FFI_CTYPE_CHAR_PTR;
   } else if (strncmp(s, "void*", 5) == 0 || strncmp(s, "void *", 6) == 0) {
@@ -255,6 +257,7 @@ union ffi_cb_data_val {
   void *p;
   uintptr_t w;
   double d;
+  float f;
 };
 
 struct ffi_cb_data {
@@ -267,8 +270,11 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   mjs_val_t res = MJS_UNDEFINED;
   union ffi_cb_data_val ret;
   int i;
+  struct mjs *mjs = cbargs->mjs;
+  mjs_ffi_ctype_t return_ctype = MJS_FFI_CTYPE_NONE;
+
   memset(&ret, 0, sizeof(ret));
-  mjs_own(cbargs->mjs, &res);
+  mjs_own(mjs, &res);
 
   /* There must be at least one argument: a userdata */
   assert(cbargs->sig.args_cnt > 0);
@@ -283,22 +289,25 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
         args[i] = cbargs->userdata;
         break;
       case MJS_FFI_CTYPE_INT:
-        args[i] = mjs_mk_number(cbargs->mjs, data->args[i].w);
+        args[i] = mjs_mk_number(mjs, data->args[i].w);
         break;
       case MJS_FFI_CTYPE_BOOL:
-        args[i] = mjs_mk_boolean(cbargs->mjs, !!data->args[i].w);
+        args[i] = mjs_mk_boolean(mjs, !!data->args[i].w);
         break;
       case MJS_FFI_CTYPE_CHAR_PTR: {
         const char *s = (char *) data->args[i].w;
         if (s == NULL) s = "";
-        args[i] = mjs_mk_string(cbargs->mjs, s, ~0, 1);
+        args[i] = mjs_mk_string(mjs, s, ~0, 1);
         break;
       }
       case MJS_FFI_CTYPE_VOID_PTR:
-        args[i] = mjs_mk_foreign(cbargs->mjs, (void *) data->args[i].w);
+        args[i] = mjs_mk_foreign(mjs, (void *) data->args[i].w);
         break;
       case MJS_FFI_CTYPE_DOUBLE:
-        args[i] = mjs_mk_number(cbargs->mjs, data->args[i].d);
+        args[i] = mjs_mk_number(mjs, data->args[i].d);
+        break;
+      case MJS_FFI_CTYPE_FLOAT:
+        args[i] = mjs_mk_number(mjs, data->args[i].f);
         break;
       default:
         /* should never be here */
@@ -307,47 +316,62 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
     }
   }
 
+  /*
+   * save return ctype outside of `cbargs` before calling the callback, because
+   * callback might call `ffi_cb_free()`, which will effectively invalidate
+   * `cbargs`
+   */
+  return_ctype = cbargs->sig.val_types[0];
+
   /* Call JS function */
   LOG(LL_VERBOSE_DEBUG, ("calling JS callback void-void %d from C",
-                         mjs_get_int(cbargs->mjs, cbargs->func)));
-  mjs_err_t err = mjs_apply(cbargs->mjs, &res, cbargs->func, MJS_UNDEFINED,
+                         mjs_get_int(mjs, cbargs->func)));
+  mjs_err_t err = mjs_apply(mjs, &res, cbargs->func, MJS_UNDEFINED,
                             cbargs->sig.args_cnt, args);
+  /*
+   * cbargs might be invalidated by the callback (if it called ffi_cb_free), so
+   * null it out
+   */
+  cbargs = NULL;
   if (err != MJS_OK) {
     /*
      * There's not much we can do about the error here; let's at least print it
      */
-    fprintf(stderr, "MJS callback error: %s\n", mjs_strerror(cbargs->mjs, err));
+    mjs_print_error(mjs, stderr, "MJS callback error",
+                    1 /* print_stack_trace */);
 
     goto clean;
   }
 
   /* Get return value, if needed */
-  switch (cbargs->sig.val_types[0]) {
+  switch (return_ctype) {
     case MJS_FFI_CTYPE_NONE:
       /* do nothing */
       break;
     case MJS_FFI_CTYPE_INT:
-      ret.w = mjs_get_int(cbargs->mjs, res);
+      ret.w = mjs_get_int(mjs, res);
       break;
     case MJS_FFI_CTYPE_BOOL:
-      ret.w = mjs_get_bool(cbargs->mjs, res);
+      ret.w = mjs_get_bool(mjs, res);
       break;
     case MJS_FFI_CTYPE_VOID_PTR:
-      ret.p = mjs_get_ptr(cbargs->mjs, res);
+      ret.p = mjs_get_ptr(mjs, res);
       break;
     case MJS_FFI_CTYPE_DOUBLE:
-      ret.d = mjs_get_double(cbargs->mjs, res);
+      ret.d = mjs_get_double(mjs, res);
+      break;
+    case MJS_FFI_CTYPE_FLOAT:
+      ret.f = (float) mjs_get_double(mjs, res);
       break;
     default:
       /* should never be here */
-      LOG(LL_ERROR,
-          ("unexpected return val type %d\n", cbargs->sig.val_types[0]));
+      LOG(LL_ERROR, ("unexpected return val type %d\n", return_ctype));
       abort();
   }
 
 clean:
   free(args);
-  mjs_disown(cbargs->mjs, &res);
+  mjs_disown(mjs, &res);
   return ret;
 }
 
@@ -404,6 +428,26 @@ static uintptr_t ffi_cb_impl_wwwwwwp(uintptr_t w0, uintptr_t w1, uintptr_t w2,
   ffi_init_cb_data_wwww(&data, w0, w1, w2, w3, w4, w5);
   return ffi_cb_impl_generic((void *) w5, &data).w;
 }
+
+static uintptr_t ffi_cb_impl_wpd(uintptr_t w0, double d1) {
+  struct ffi_cb_data data;
+
+  memset(&data, 0, sizeof(data));
+  data.args[0].w = w0;
+  data.args[1].d = d1;
+
+  return ffi_cb_impl_generic((void *) w0, &data).w;
+}
+
+static uintptr_t ffi_cb_impl_wdp(double d0, uintptr_t w1) {
+  struct ffi_cb_data data;
+
+  memset(&data, 0, sizeof(data));
+  data.args[0].d = d0;
+  data.args[1].w = w1;
+
+  return ffi_cb_impl_generic((void *) w1, &data).w;
+}
 /* }}} */
 
 static struct mjs_ffi_cb_args **ffi_get_matching(struct mjs_ffi_cb_args **plist,
@@ -421,6 +465,7 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
   if (sig->is_valid) {
     int i;
     int double_cnt = 0;
+    int float_cnt = 0;
     int userdata_idx = 0 /* not a valid value: index 0 means return value */;
 
     for (i = 1 /*0th item is a return value*/; i < MJS_CB_SIGNATURE_MAX_SIZE;
@@ -429,6 +474,9 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
       switch (type) {
         case MJS_FFI_CTYPE_DOUBLE:
           double_cnt++;
+          break;
+        case MJS_FFI_CTYPE_FLOAT:
+          float_cnt++;
           break;
         case MJS_FFI_CTYPE_USERDATA:
           assert(userdata_idx == 0); /* Otherwise is_valid should be 0 */
@@ -439,30 +487,46 @@ static ffi_fn_t *get_cb_impl_by_signature(const mjs_ffi_sig_t *sig) {
       }
     }
 
+    if (float_cnt > 0) {
+      /* TODO(dfrank): add support for floats in callbacks */
+      return NULL;
+    }
+
     assert(userdata_idx > 0); /* Otherwise is_valid should be 0 */
 
     if (sig->args_cnt <= MJS_CB_ARGS_MAX_CNT) {
       if (mjs_ffi_is_regular_word_or_void(sig->val_types[0])) {
         /* Return type is a word or void */
-        if (double_cnt == 0) {
-          /* No double arguments */
-          switch (userdata_idx) {
-            case 1:
-              return (ffi_fn_t *) ffi_cb_impl_wpwwwww;
-            case 2:
-              return (ffi_fn_t *) ffi_cb_impl_wwpwwww;
-            case 3:
-              return (ffi_fn_t *) ffi_cb_impl_wwwpwww;
-            case 4:
-              return (ffi_fn_t *) ffi_cb_impl_wwwwpww;
-            case 5:
-              return (ffi_fn_t *) ffi_cb_impl_wwwwwpw;
-            case 6:
-              return (ffi_fn_t *) ffi_cb_impl_wwwwwwp;
-            default:
-              /* should never be here */
-              abort();
-          }
+        switch (double_cnt) {
+          case 0:
+            /* No double arguments */
+            switch (userdata_idx) {
+              case 1:
+                return (ffi_fn_t *) ffi_cb_impl_wpwwwww;
+              case 2:
+                return (ffi_fn_t *) ffi_cb_impl_wwpwwww;
+              case 3:
+                return (ffi_fn_t *) ffi_cb_impl_wwwpwww;
+              case 4:
+                return (ffi_fn_t *) ffi_cb_impl_wwwwpww;
+              case 5:
+                return (ffi_fn_t *) ffi_cb_impl_wwwwwpw;
+              case 6:
+                return (ffi_fn_t *) ffi_cb_impl_wwwwwwp;
+              default:
+                /* should never be here */
+                abort();
+            }
+            break;
+          case 1:
+            /* 1 double argument */
+            switch (userdata_idx) {
+              case 1:
+                return (ffi_fn_t *) ffi_cb_impl_wpd;
+              case 2:
+                return (ffi_fn_t *) ffi_cb_impl_wdp;
+            }
+            break;
         }
       }
     } else {
@@ -478,7 +542,7 @@ MJS_PRIVATE mjs_val_t mjs_ffi_sig_to_value(struct mjs_ffi_sig *psig) {
   if (psig == NULL) {
     return MJS_NULL;
   } else {
-    return pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
+    return mjs_legit_pointer_to_value(psig) | MJS_TAG_FUNCTION_FFI;
   }
 }
 
@@ -532,7 +596,6 @@ clean:
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   mjs_err_t ret = MJS_OK;
   mjs_ffi_sig_t *psig = NULL;
-  int need_free = 0;
   mjs_ffi_ctype_t rtype;
   mjs_val_t sig_v = *vptr(&mjs->stack, mjs_getretvalpos(mjs));
 
@@ -543,18 +606,15 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
 
   /* TODO(dfrank): support multiple callbacks */
   mjs_val_t resv = mjs_mk_undefined();
+
+  /*
+   * String arguments, needed to support short strings which are packed into
+   * mjs_val_t itself
+   */
   mjs_val_t argvs[FFI_MAX_ARGS_CNT];
 
   if (mjs_is_ffi_sig(sig_v)) {
     psig = mjs_get_ffi_sig_struct(sig_v);
-  } else if (mjs_is_string(sig_v)) {
-    psig = calloc(sizeof(*psig), 1);
-    need_free = 1;
-    const char *s = mjs_get_cstring(mjs, &sig_v);
-    ret = mjs_parse_ffi_signature(mjs, s, ~0, psig, FFI_SIG_FUNC);
-    if (ret != MJS_OK) {
-      goto clean;
-    }
   } else {
     ret = MJS_TYPE_ERROR;
     mjs_prepend_errorf(mjs, ret, "non-ffi-callable value");
@@ -570,6 +630,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   switch (rtype) {
     case MJS_FFI_CTYPE_DOUBLE:
       res.ctype = FFI_CTYPE_DOUBLE;
+      break;
+    case MJS_FFI_CTYPE_FLOAT:
+      res.ctype = FFI_CTYPE_FLOAT;
       break;
     case MJS_FFI_CTYPE_BOOL:
       res.ctype = FFI_CTYPE_BOOL;
@@ -665,6 +728,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       case MJS_FFI_CTYPE_DOUBLE:
         ffi_set_double(&args[i], mjs_get_double(mjs, arg));
         break;
+      case MJS_FFI_CTYPE_FLOAT:
+        ffi_set_float(&args[i], (float) mjs_get_double(mjs, arg));
+        break;
       case MJS_FFI_CTYPE_CHAR_PTR: {
         size_t s;
         if (!mjs_is_string(arg)) {
@@ -674,6 +740,10 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
               i, mjs_typeof(arg));
           goto clean;
         }
+        /*
+         * String argument should be saved separately in order to support
+         * short strings (which are packed into mjs_val_t itself)
+         */
         argvs[i] = arg;
         ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
       } break;
@@ -685,7 +755,12 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
         }
         if (mjs_is_string(arg)) {
           size_t n;
-          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &arg, &n));
+          /*
+           * String argument should be saved separately in order to support
+           * short strings (which are packed into mjs_val_t itself)
+           */
+          argvs[i] = arg;
+          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &n));
         } else {
           ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
         }
@@ -753,7 +828,11 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
   switch (rtype) {
     case MJS_FFI_CTYPE_CHAR_PTR: {
       const char *s = (const char *) (uintptr_t) res.v.i;
-      resv = mjs_mk_string(mjs, s, ~0, 1);
+      if (s != NULL) {
+        resv = mjs_mk_string(mjs, s, ~0, 1);
+      } else {
+        resv = MJS_NULL;
+      }
       break;
     }
     case MJS_FFI_CTYPE_VOID_PTR:
@@ -767,6 +846,9 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       break;
     case MJS_FFI_CTYPE_DOUBLE:
       resv = mjs_mk_number(mjs, res.v.d);
+      break;
+    case MJS_FFI_CTYPE_FLOAT:
+      resv = mjs_mk_number(mjs, res.v.f);
       break;
     default:
       resv = mjs_mk_undefined();
@@ -783,11 +865,6 @@ clean:
     /* TODO(dfrank) stringify mjs_ffi_sig_t in some human-readable format */
   }
   mjs_return(mjs, resv);
-
-  if (need_free) {
-    mjs_ffi_sig_free(psig);
-    free(psig);
-  }
 
   return ret;
 }
@@ -876,6 +953,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_INT &&
           sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR &&
           sig->val_types[0] != MJS_FFI_CTYPE_CHAR_PTR) {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
@@ -888,6 +966,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_INT &&
           sig->val_types[0] != MJS_FFI_CTYPE_BOOL &&
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
+          sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR) {
         mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
         goto clean;
@@ -924,6 +1003,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
       case MJS_FFI_CTYPE_VOID_PTR:
       case MJS_FFI_CTYPE_CHAR_PTR:
       case MJS_FFI_CTYPE_DOUBLE:
+      case MJS_FFI_CTYPE_FLOAT:
         /* Do nothing */
         break;
       case MJS_FFI_CTYPE_NONE:

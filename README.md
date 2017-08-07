@@ -63,6 +63,15 @@ where it enables scripting for IoT devices.
   <dd>Return a substring between two indices. Example:
   		<tt>'abcdef'.slice(1,3) === 'bc';</tt></dd>
 
+  <dt><tt>'abc'.at(0);</tt></dt>
+  <dd>Return numeric byte value at given string index. Example:
+      <tt>'abc'.at(0) === 0x61;</tt></dd>
+
+  <dt><tt>chr(n);</tt></dt>
+  <dd>Return 1-byte string whose ASCII code is the integer `n`. If `n` is
+    not numeric or outside of `0-255` range, `null` is returned. Example:
+      <tt>chr(0x61) === 'a';</tt></dd>
+
   <dt><tt>let a = [1,2,3,4,5]; a.splice(start, deleteCount, ...);</tt></dt>
   <dd>Change the contents of an array by removing existing elements and/or
     adding new elements. Example:
@@ -75,6 +84,9 @@ where it enables scripting for IoT devices.
 
   <dt><tt>let f = ffi('int foo(int)');</tt></dt>
   <dd>Import C function into mJS. See next section.</dd>
+
+  <dt><tt>gc(full);</tt></dt>
+  <dd>Perform garbage collection. If `full` is `true`, reclaim RAM to OS.</dd>
 </dl>
 
 # C/C++ interoperability

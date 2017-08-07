@@ -7,6 +7,7 @@
 #define MJS_CORE_PUBLIC_H_
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stddef.h>
 #include "mjs/src/mjs_license.h"
 #include "mjs/src/mjs_features.h"
@@ -67,6 +68,8 @@ typedef enum mjs_err {
   MJS_NOT_IMPLEMENTED_ERROR,
   MJS_FILE_READ_ERROR,
   MJS_BAD_ARGS_ERROR,
+
+  MJS_ERRS_CNT
 } mjs_err_t;
 struct mjs;
 
@@ -178,10 +181,27 @@ mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...);
 
 /*
+ * Print the last error details. If print_stack_trace is non-zero, also
+ * print stack trace. `msg` is the message which gets prepended to the actual
+ * error message, if it's NULL, then "MJS error" is used.
+ */
+void mjs_print_error(struct mjs *mjs, FILE *fp, const char *msg,
+                     int print_stack_trace);
+
+/*
  * return a string representation of an error.
  * the error string might be overwritten by calls to `mjs_set_errorf`.
  */
 const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
+
+/*
+ * Sets whether *.jsc files are generated when *.js file is executed. By
+ * default it's 0.
+ *
+ * If either `MJS_GENERATE_JSC` or `CS_MMAP` is off, then this function has no
+ * effect.
+ */
+void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
 
 #if defined(__cplusplus)
 }

@@ -26,6 +26,7 @@ typedef intptr_t ffi_word_t;
 enum ffi_ctype {
   FFI_CTYPE_WORD,
   FFI_CTYPE_BOOL,
+  FFI_CTYPE_FLOAT,
   FFI_CTYPE_DOUBLE,
 };
 
@@ -34,6 +35,7 @@ struct ffi_arg {
   union {
     uint64_t i;
     double d;
+    float f;
   } v;
 };
 
@@ -44,6 +46,7 @@ void ffi_set_word(struct ffi_arg *arg, ffi_word_t v);
 void ffi_set_bool(struct ffi_arg *arg, bool v);
 void ffi_set_ptr(struct ffi_arg *arg, void *v);
 void ffi_set_double(struct ffi_arg *arg, double v);
+void ffi_set_float(struct ffi_arg *arg, float v);
 
 #if defined(__cplusplus)
 }

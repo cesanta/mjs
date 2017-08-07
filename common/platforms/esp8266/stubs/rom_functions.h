@@ -3,6 +3,9 @@
 
 #include <inttypes.h>
 
+#include "/opt/Espressif/ESP8266_NONOS_SDK/include/c_types.h"
+#include "/opt/Espressif/ESP8266_NONOS_SDK/include/spi_flash.h"
+
 int uart_rx_one_char(uint8_t *ch);
 uint8_t uart_rx_one_char_block();
 int uart_tx_one_char(char ch);
@@ -24,9 +27,23 @@ uint32_t SPIWrite(uint32_t addr, const uint32_t *src, uint32_t size);
 uint32_t SPIEraseChip();
 uint32_t SPIEraseBlock(uint32_t block_num);
 uint32_t SPIEraseSector(uint32_t sector_num);
-uint32_t SPI_read_status();
-uint32_t Wait_SPI_Idle();
+
+extern SpiFlashChip *flashchip;
+uint32_t Wait_SPI_Idle(SpiFlashChip *spi);
+uint32_t SPI_chip_erase(SpiFlashChip *spi);
+uint32_t SPI_read_status(SpiFlashChip *spi);
+uint32_t SPI_write_enable(SpiFlashChip *spi);
+
 void spi_flash_attach();
+
+/* ESP32 API compatibility */
+#define esp_rom_spiflash_unlock SPIUnlock
+#define esp_rom_spiflash_erase_sector SPIEraseSector
+#define esp_rom_spiflash_erase_block SPIEraseBlock
+#define esp_rom_spiflash_erase_chip SPIEraseChip
+#define esp_rom_spiflash_read SPIRead
+#define esp_rom_spiflash_write SPIWrite
+#define esp_rom_spiflash_config_param SPIParamCfg
 
 void SelectSpiFunction();
 void SPIFlashModeConfig(uint32_t a, uint32_t b);
@@ -42,8 +59,7 @@ void ets_delay_us(uint32_t delay_micros);
 void ets_isr_mask(uint32_t ints);
 void ets_isr_unmask(uint32_t ints);
 typedef void (*int_handler_t)(void *arg);
-int_handler_t ets_isr_attach(uint32_t int_num, int_handler_t handler,
-                             void *arg);
+
 void ets_intr_lock();
 void ets_intr_unlock();
 void ets_set_user_start(void (*user_start_fn)());

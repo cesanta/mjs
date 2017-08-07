@@ -87,7 +87,7 @@ void mg_ev_mgr_lwip_process_signals(struct mg_mgr *mgr) {
 }
 
 void mg_lwip_if_init(struct mg_iface *iface) {
-  LOG(LL_INFO, ("%p Mongoose init"));
+  LOG(LL_INFO, ("%p Mongoose init", iface));
   iface->data = MG_CALLOC(1, sizeof(struct mg_ev_mgr_lwip_data));
 }
 
@@ -165,7 +165,7 @@ time_t mg_lwip_if_poll(struct mg_iface *iface, int timeout_ms) {
     if (nc->sock != INVALID_SOCKET &&
         !(nc->flags & (MG_F_UDP | MG_F_LISTENING)) && cs->pcb.tcp != NULL &&
         cs->pcb.tcp->unsent != NULL) {
-      tcp_output(cs->pcb.tcp);
+      tcpip_callback(tcp_output_tcpip, cs->pcb.tcp);
     }
     if (nc->ev_timer_time > 0) {
       if (num_timers == 0 || nc->ev_timer_time < min_timer) {
@@ -185,7 +185,7 @@ time_t mg_lwip_if_poll(struct mg_iface *iface, int timeout_ms) {
 
 uint32_t mg_lwip_get_poll_delay_ms(struct mg_mgr *mgr) {
   struct mg_connection *nc;
-  double now = mg_time();
+  double now;
   double min_timer = 0;
   int num_timers = 0;
   mg_ev_mgr_lwip_process_signals(mgr);
@@ -197,7 +197,11 @@ uint32_t mg_lwip_get_poll_delay_ms(struct mg_mgr *mgr) {
       }
       num_timers++;
     }
-    if (nc->send_mbuf.len > 0) {
+    if (nc->send_mbuf.len > 0
+#if MG_ENABLE_SSL
+        || (nc->flags & MG_F_WANT_WRITE)
+#endif
+            ) {
       int can_send = 0;
       /* We have stuff to send, but can we? */
       if (nc->flags & MG_F_UDP) {
@@ -211,7 +215,10 @@ uint32_t mg_lwip_get_poll_delay_ms(struct mg_mgr *mgr) {
     }
   }
   uint32_t timeout_ms = ~0;
+  now = mg_time();
   if (num_timers > 0) {
+    /* If we have a timer that is past due, do a poll ASAP. */
+    if (min_timer < now) return 0;
     double timer_timeout_ms = (min_timer - now) * 1000 + 1 /* rounding */;
     if (timer_timeout_ms < timeout_ms) {
       timeout_ms = timer_timeout_ms;

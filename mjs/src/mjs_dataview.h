@@ -15,6 +15,7 @@ extern "C" {
  * These are supposed to be FFI-ed and used from the JS environment.
  */
 
+void *mjs_mem_to_ptr(unsigned int val);
 void *mjs_mem_get_ptr(void *base, int offset);
 void mjs_mem_set_ptr(void *ptr, void *val);
 double mjs_mem_get_dbl(void *ptr);

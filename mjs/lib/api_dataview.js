@@ -137,8 +137,9 @@ let DataView = {
       return false;
     }
     return true;
-  }
+  },
 
+  _p: ffi('void *mjs_mem_to_ptr(int)'),
   _pk: ffi('void *mjs_mem_get_ptr(void *, int)'),
   _getu: ffi('double mjs_mem_get_uint(void *, int, int)'),
   _gets: ffi('double mjs_mem_get_int(void *, int, int)'),
