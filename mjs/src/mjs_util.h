@@ -6,6 +6,7 @@
 #ifndef MJS_UTIL_H_
 #define MJS_UTIL_H_
 
+#include "frozen/frozen.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_util_public.h"
 
@@ -40,6 +41,9 @@ MJS_PRIVATE int mjs_normalize_idx(int idx, int size);
 
 MJS_PRIVATE const char *mjs_get_bcode_filename(struct mjs *mjs,
                                                struct mjs_bcode_part *bp);
+
+/* Print JS value `v` to the JSON stream `out`. */
+void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out);
 
 #if defined(__cplusplus)
 }

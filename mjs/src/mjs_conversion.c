@@ -7,6 +7,7 @@
 #include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
+#include "mjs/src/mjs_util.h"
 
 MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
                                     size_t *sizep, int *need_free) {
@@ -19,17 +20,15 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
   if (mjs_is_string(*v)) {
     *p = (char *) mjs_get_string(mjs, v, sizep);
   } else if (mjs_is_number(*v)) {
-    double num = mjs_get_double(mjs, *v);
-    const char *fmt = num > 1e10 ? "%.21g" : "%.10g";
-    (void) num;
-    (void) fmt;
-    *sizep = snprintf(NULL, 0, fmt, num);
-    *p = malloc(*sizep + 1 /*null term*/);
+    char buf[50] = "";
+    struct json_out out = JSON_OUT_BUF(buf, sizeof(buf));
+    mjs_jprintf(*v, mjs, &out);
+    *sizep = strlen(buf);
+    *p = strdup(buf);
     if (*p == NULL) {
       ret = MJS_OUT_OF_MEMORY;
       goto clean;
     }
-    snprintf(*p, *sizep + 1, fmt, num);
     *need_free = 1;
   } else if (mjs_is_boolean(*v)) {
     if (mjs_get_bool(mjs, *v)) {
