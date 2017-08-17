@@ -766,13 +766,21 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
         }
         break;
       case MJS_FFI_CTYPE_CALLBACK:
-        /*
-         * Current argument is a callback function pointer: remember the given
-         * JS
-         * function and the argument index
-         */
-        cbdata.func = arg;
-        cbdata.func_idx = i;
+        if (mjs_is_function(arg) || mjs_is_foreign(arg) ||
+            mjs_is_ffi_sig(arg)) {
+          /*
+           * Current argument is a callback function pointer: remember the given
+           * JS function and the argument index
+           */
+          cbdata.func = arg;
+          cbdata.func_idx = i;
+        } else {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(mjs, ret,
+                             "actual arg #%d is not a function, but %s", i,
+                             mjs_stringify_type(arg));
+          goto clean;
+        }
         break;
       case MJS_FFI_CTYPE_INVALID:
         /* parse_cval_type() has already set a more detailed error */
