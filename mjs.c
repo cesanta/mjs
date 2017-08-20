@@ -12412,6 +12412,15 @@ int mjs_is_string(mjs_val_t v) {
 }
 
 mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
+  if (len == 0) {
+    /*
+     * Zero length for foreign string has a special meaning (that the foreign
+     * string is not inlined into mjs_val_t), so when creating a zero-length
+     * string, we always assume it'll be owned. Since the length is zero, it
+     * doesn't matter anyway.
+     */
+    copy = 1;
+  }
   struct mbuf *m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
   mjs_val_t offset = m->len, tag = MJS_TAG_STRING_F;
 
