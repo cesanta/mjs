@@ -25,6 +25,10 @@ let File = {
   // on success, non-0 on failure.
   remove: ffi('int remove(char *)'),
 
+  // **`File.rename(old, new)`**
+  // Rename file `old` to `new`. Return 0 on success, non-0 on failure.
+  rename: ffi('int rename(char *, char *)'),
+
   // **`File.write(str, name, mode)`**
   // Write string `str` into file `name`.
   //
