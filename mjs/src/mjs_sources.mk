@@ -5,6 +5,7 @@ SOURCES = $(COMMON)/cs_dbg.c \
           $(COMMON)/cs_file.c \
           $(COMMON)/cs_varint.c \
           $(COMMON)/mbuf.c \
+          $(COMMON)/mg_str.c \
           $(COMMON)/str_util.c \
           $(FROZEN)/frozen.c \
           ffi/ffi.c \
