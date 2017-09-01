@@ -9869,7 +9869,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
           ret = MJS_TYPE_ERROR;
           mjs_prepend_errorf(mjs, ret,
                              "actual arg #%d is not a function, but %s", i,
-                             mjs_stringify_type(arg));
+                             mjs_stringify_type((enum mjs_type) arg));
           goto clean;
         }
         break;
