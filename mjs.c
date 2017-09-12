@@ -1644,6 +1644,8 @@ void cs_log_printf(const char *fmt, ...)
 #ifndef CS_COMMON_CS_TIME_H_
 #define CS_COMMON_CS_TIME_H_
 
+#include <time.h>
+
 /* Amalgamated: #include "common/platform.h" */
 
 #ifdef __cplusplus
@@ -1652,6 +1654,12 @@ extern "C" {
 
 /* Sub-second granularity time(). */
 double cs_time(void);
+
+/*
+ * Similar to (non-standard) timegm, converts broken-down time into the number
+ * of seconds since Unix Epoch.
+ */
+double cs_timegm(const struct tm *tm);
 
 #ifdef __cplusplus
 }
