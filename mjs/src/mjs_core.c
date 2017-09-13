@@ -311,14 +311,14 @@ MJS_PRIVATE int mjs_getretvalpos(struct mjs *mjs) {
   return pos;
 }
 
-MJS_PRIVATE int mjs_nargs(struct mjs *mjs) {
+int mjs_nargs(struct mjs *mjs) {
   int top = mjs_stack_size(&mjs->stack);
   int pos = mjs_getretvalpos(mjs) + 1;
   // LOG(LL_INFO, ("top: %d pos: %d", top, pos));
   return pos > 0 && pos < top ? top - pos : 0;
 }
 
-MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index) {
+mjs_val_t mjs_arg(struct mjs *mjs, int arg_index) {
   mjs_val_t res = MJS_UNDEFINED;
   int top = mjs_stack_size(&mjs->stack);
   int pos = mjs_getretvalpos(mjs) + 1;
@@ -329,7 +329,7 @@ MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index) {
   return res;
 }
 
-MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t v) {
+void mjs_return(struct mjs *mjs, mjs_val_t v) {
   int pos = mjs_getretvalpos(mjs);
   // LOG(LL_INFO, ("pos: %d", pos));
   mjs->stack.len = sizeof(mjs_val_t) * pos;
