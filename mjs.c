@@ -3639,6 +3639,7 @@ typedef void (*json_walk_callback_t)(void *callback_data, const char *name,
 /*
  * Parse `json_string`, invoking `callback` in a way similar to SAX parsers;
  * see `json_walk_callback_t`.
+ * Return number of processed bytes, or a negative error code.
  */
 int json_walk(const char *json_string, int json_string_length,
               json_walk_callback_t callback, void *callback_data);
@@ -3790,6 +3791,19 @@ int json_setf(const char *s, int len, struct json_out *out,
 
 int json_vsetf(const char *s, int len, struct json_out *out,
                const char *json_path, const char *json_fmt, va_list ap);
+
+/*
+ * Pretty-print JSON string `s,len` into `out`.
+ * Return number of processed bytes in `s`.
+ */
+int json_prettify(const char *s, int len, struct json_out *out);
+
+/*
+ * Prettify JSON file `file_name`.
+ * Return number of processed bytes, or negative number of error.
+ * On error, file content is not modified.
+ */
+int json_prettify_file(const char *file_name);
 
 #ifdef __cplusplus
 }
@@ -6582,6 +6596,100 @@ int json_setf(const char *s, int len, struct json_out *out,
   result = json_vsetf(s, len, out, json_path, json_fmt, ap);
   va_end(ap);
   return result;
+}
+
+struct prettify_data {
+  struct json_out *out;
+  int level;
+  int last_token;
+};
+
+static void indent(struct json_out *out, int level) {
+  while (level-- > 0) out->printer(out, "  ", 2);
+}
+
+static void print_key(struct prettify_data *pd, const char *path,
+                      const char *name, int name_len) {
+  if (pd->last_token != JSON_TYPE_INVALID &&
+      pd->last_token != JSON_TYPE_ARRAY_START &&
+      pd->last_token != JSON_TYPE_OBJECT_START) {
+    pd->out->printer(pd->out, ",", 1);
+  }
+  if (path[0] != '\0') pd->out->printer(pd->out, "\n", 1);
+  indent(pd->out, pd->level);
+  if (path[0] != '\0' && path[strlen(path) - 1] != ']') {
+    pd->out->printer(pd->out, "\"", 1);
+    pd->out->printer(pd->out, name, (int) name_len);
+    pd->out->printer(pd->out, "\"", 1);
+    pd->out->printer(pd->out, ": ", 2);
+  }
+}
+
+static void prettify_cb(void *userdata, const char *name, size_t name_len,
+                        const char *path, const struct json_token *t) {
+  struct prettify_data *pd = (struct prettify_data *) userdata;
+  switch (t->type) {
+    case JSON_TYPE_OBJECT_START:
+    case JSON_TYPE_ARRAY_START:
+      print_key(pd, path, name, name_len);
+      pd->out->printer(pd->out, t->type == JSON_TYPE_ARRAY_START ? "[" : "{",
+                       1);
+      pd->level++;
+      break;
+    case JSON_TYPE_OBJECT_END:
+    case JSON_TYPE_ARRAY_END:
+      pd->level--;
+      if (pd->last_token != JSON_TYPE_INVALID &&
+          pd->last_token != JSON_TYPE_ARRAY_START &&
+          pd->last_token != JSON_TYPE_OBJECT_START) {
+        pd->out->printer(pd->out, "\n", 1);
+        indent(pd->out, pd->level);
+      }
+      pd->out->printer(pd->out, t->type == JSON_TYPE_ARRAY_END ? "]" : "}", 1);
+      break;
+    case JSON_TYPE_NUMBER:
+    case JSON_TYPE_NULL:
+    case JSON_TYPE_TRUE:
+    case JSON_TYPE_FALSE:
+    case JSON_TYPE_STRING:
+      print_key(pd, path, name, name_len);
+      if (t->type == JSON_TYPE_STRING) pd->out->printer(pd->out, "\"", 1);
+      pd->out->printer(pd->out, t->ptr, t->len);
+      if (t->type == JSON_TYPE_STRING) pd->out->printer(pd->out, "\"", 1);
+      break;
+    default:
+      break;
+  }
+  pd->last_token = t->type;
+}
+
+int json_prettify(const char *s, int len, struct json_out *out) WEAK;
+int json_prettify(const char *s, int len, struct json_out *out) {
+  struct prettify_data pd = { out, 0, JSON_TYPE_INVALID };
+  return json_walk(s, len, prettify_cb, &pd);
+}
+
+int json_prettify_file(const char *file_name) WEAK;
+int json_prettify_file(const char *file_name) {
+  int res = -1;
+  char *s = json_fread(file_name);
+  FILE *fp;
+  if (s != NULL && (fp = fopen(file_name, "w")) != NULL) {
+    struct json_out out = JSON_OUT_FILE(fp);
+    res = json_prettify(s, strlen(s), &out);
+    if (res < 0) {
+      /* On error, restore the old content */
+      fclose(fp);
+      fp = fopen(file_name, "w");
+      fseek(fp, 0, SEEK_SET);
+      fwrite(s, 1, strlen(s), fp);
+    } else {
+      fputc('\n', fp);
+    }
+    fclose(fp);
+  }
+  free(s);
+  return res;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/ffi/ffi.c"
