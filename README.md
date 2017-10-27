@@ -12,7 +12,7 @@ implements a strict subset of ES6 (JavaScript version 6):
 - Any valid mJS code is a valid ES6 code.
 - Any valid ES6 code is not necessarily a valid mJS code.
 
-On 32-bit ARM mJS engine takes about 25k of flash memory, and less than 1k
+On 32-bit ARM mJS engine takes about 50k of flash memory, and less than 1k
 of RAM (see [intro article](http://goo.gl/zJYyWF)).
 mJS is part of [MongooseOS](https://mongoose-os.com), 
 where it enables scripting for IoT devices.

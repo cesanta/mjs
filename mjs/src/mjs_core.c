@@ -71,6 +71,7 @@ void mjs_destroy(struct mjs *mjs) {
 }
 
 struct mjs *mjs_create(void) {
+  mjs_val_t global_object;
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   mbuf_init(&mjs->stack, 0);
   mbuf_init(&mjs->call_stack, 0);
@@ -103,7 +104,7 @@ struct mjs *mjs_create(void) {
                 MJS_FUNC_FFI_ARENA_SIZE, MJS_FUNC_FFI_ARENA_INC_SIZE);
   mjs->ffi_sig_arena.destructor = mjs_ffi_sig_destructor;
 
-  mjs_val_t global_object = mjs_mk_object(mjs);
+  global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);
   mjs_set_ffi_resolver(mjs, dlsym);
   push_mjs_val(&mjs->scopes, global_object);
@@ -128,14 +129,14 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
 
 mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
+  char *old_error_msg = mjs->error_msg;
+  char *new_error_msg = NULL;
   va_list ap;
   va_start(ap, fmt);
 
   /* err should never be MJS_OK here */
   assert(err != MJS_OK);
 
-  char *old_error_msg = mjs->error_msg;
-  char *new_error_msg = NULL;
   mjs->error_msg = NULL;
   /* set error if only it wasn't already set to some error */
   if (mjs->error == MJS_OK) {

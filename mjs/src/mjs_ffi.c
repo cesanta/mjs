@@ -79,6 +79,7 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
     sig_len = strlen(s);
   }
 
+  fflush(stdout);
   mjs_ffi_sig_init(sig);
 
   /* Parse return value type {{{ */
@@ -95,6 +96,7 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
   }
   mjs_ffi_sig_set_val_type(sig, vtidx++, val_type);
   /* }}} */
+  fflush(stdout);
 
   /* Parse function name (if any) {{{ */
   /*
@@ -150,9 +152,9 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
 
   /* Parse all args {{{ */
   while (*tmp_e && *tmp_e != ')') {
-    tmp_e = cur;
     int level = 0; /* nested parens level */
     int is_fp = 0; /* set to 1 is current arg is a callback function ptr */
+    tmp_e = cur;
 
     /* Advance tmp_e until the next arg separator */
     while (*tmp_e && (level > 0 || (*tmp_e != ',' && *tmp_e != ')'))) {
@@ -267,11 +269,12 @@ struct ffi_cb_data {
 static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
                                                  struct ffi_cb_data *data) {
   struct mjs_ffi_cb_args *cbargs = (struct mjs_ffi_cb_args *) param;
-  mjs_val_t res = MJS_UNDEFINED;
+  mjs_val_t *args, res = MJS_UNDEFINED;
   union ffi_cb_data_val ret;
   int i;
   struct mjs *mjs = cbargs->mjs;
   mjs_ffi_ctype_t return_ctype = MJS_FFI_CTYPE_NONE;
+  mjs_err_t err;
 
   memset(&ret, 0, sizeof(ret));
   mjs_own(mjs, &res);
@@ -280,7 +283,7 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   assert(cbargs->sig.args_cnt > 0);
 
   /* Create JS arguments */
-  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.args_cnt);
+  args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.args_cnt);
   for (i = 0; i < cbargs->sig.args_cnt; i++) {
     mjs_ffi_ctype_t val_type =
         cbargs->sig.val_types[i + 1 /* first val_type is return value type */];
@@ -289,7 +292,7 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
         args[i] = cbargs->userdata;
         break;
       case MJS_FFI_CTYPE_INT:
-        args[i] = mjs_mk_number(mjs, data->args[i].w);
+        args[i] = mjs_mk_number(mjs, (double) data->args[i].w);
         break;
       case MJS_FFI_CTYPE_BOOL:
         args[i] = mjs_mk_boolean(mjs, !!data->args[i].w);
@@ -326,8 +329,8 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   /* Call JS function */
   LOG(LL_VERBOSE_DEBUG, ("calling JS callback void-void %d from C",
                          mjs_get_int(mjs, cbargs->func)));
-  mjs_err_t err = mjs_apply(mjs, &res, cbargs->func, MJS_UNDEFINED,
-                            cbargs->sig.args_cnt, args);
+  err = mjs_apply(mjs, &res, cbargs->func, MJS_UNDEFINED, cbargs->sig.args_cnt,
+                  args);
   /*
    * cbargs might be invalidated by the callback (if it called ffi_cb_free), so
    * null it out
@@ -558,20 +561,18 @@ MJS_PRIVATE struct mjs_ffi_sig *mjs_get_ffi_sig_struct(mjs_val_t v) {
 }
 
 MJS_PRIVATE mjs_val_t mjs_mk_ffi_sig(struct mjs *mjs) {
-  (void) mjs;
-
   struct mjs_ffi_sig *psig = new_ffi_sig(mjs);
   mjs_ffi_sig_init(psig);
   return mjs_ffi_sig_to_value(psig);
 }
 
 MJS_PRIVATE void mjs_ffi_sig_destructor(struct mjs *mjs, void *psig) {
-  (void) mjs;
   mjs_ffi_sig_free((mjs_ffi_sig_t *) psig);
+  (void) mjs;
 }
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
-  mjs_err_t rcode = MJS_OK;
+  mjs_err_t e = MJS_OK;
   const char *sig_str = NULL;
   mjs_val_t sig_str_v = mjs_arg(mjs, 0);
   mjs_val_t ret_v = MJS_UNDEFINED;
@@ -579,18 +580,13 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
   size_t sig_str_len;
 
   sig_str = mjs_get_string(mjs, &sig_str_v, &sig_str_len);
-
-  rcode =
-      mjs_parse_ffi_signature(mjs, sig_str, sig_str_len, psig, FFI_SIG_FUNC);
-  if (rcode != MJS_OK) {
-    goto clean;
-  }
-
+  e = mjs_parse_ffi_signature(mjs, sig_str, sig_str_len, psig, FFI_SIG_FUNC);
+  if (e != MJS_OK) goto clean;
   ret_v = mjs_ffi_sig_to_value(psig);
 
 clean:
   mjs_return(mjs, ret_v);
-  return rcode;
+  return e;
 }
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
@@ -1071,7 +1067,13 @@ MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(mjs_ffi_ctype_t type) {
 
 #ifdef _WIN32
 void *dlsym(void *handle, const char *name) {
-  return GetProcAddress(GetModuleHandle(NULL), name);
+  static HANDLE msvcrt_dll;
+  void *sym = NULL;
+  if (msvcrt_dll == NULL) msvcrt_dll = GetModuleHandle("msvcrt.dll");
+  if ((sym = GetProcAddress(GetModuleHandle(NULL), name)) == NULL) {
+    sym = GetProcAddress(msvcrt_dll, name);
+  }
+  return sym;
 }
 #elif !defined(__unix__) && !defined(__APPLE__)
 void *dlsym(void *handle, const char *name) {

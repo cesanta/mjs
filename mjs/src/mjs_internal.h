@@ -72,7 +72,6 @@ typedef unsigned long uintptr_t;
 #define CS_DEFINE_DIRENT
 #include <windows.h>
 #else
-#include <dirent.h>
 #if defined(__unix__) || defined(__APPLE__)
 #include <dlfcn.h>
 #endif

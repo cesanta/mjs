@@ -71,7 +71,7 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out) {
     json_printf(out, "%s", "<object>");
   } else if (mjs_is_foreign(v)) {
     json_printf(out, "%s%lx%s", "<foreign_ptr@",
-                (unsigned long) mjs_get_ptr(mjs, v), ">");
+                (unsigned long) (uintptr_t) mjs_get_ptr(mjs, v), ">");
   } else if (mjs_is_function(v)) {
     json_printf(out, "%s%d%s", "<function@", (int) mjs_get_func_addr(v), ">");
   } else if (mjs_is_null(v)) {
@@ -238,6 +238,9 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
       i += strlen((char *) (code + i + 1)) + 1;
       break;
     }
+    default:
+      LOG(LL_VERBOSE_DEBUG, ("%s", buf));
+      break;
   }
   return i - start_i;
 }
@@ -300,6 +303,7 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
                               const char *arg_name, enum mjs_type expected_type,
                               mjs_val_t *parg) {
   mjs_val_t arg = MJS_UNDEFINED;
+  enum mjs_type actual_type;
 
   if (arg_num >= 0) {
     int nargs = mjs_nargs(mjs);
@@ -314,7 +318,7 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
     arg = mjs->vals.this_obj;
   }
 
-  enum mjs_type actual_type = mjs_get_type(arg);
+  actual_type = mjs_get_type(arg);
   if (actual_type != expected_type) {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "%s should be a %s, %s given",
                        arg_name, mjs_stringify_type(expected_type),
@@ -359,15 +363,15 @@ const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
 }
 
 int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
-  int ret = 1;
+  int llen, map_len, prev_line_no, ret = 1;
   struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
+  uint8_t *p, *pe;
   if (bp != NULL) {
-    mjs_header_item_t map_offset;
+    mjs_header_item_t map_offset, bcode_offset;
     memcpy(&map_offset, bp->data.p + 1 /* OP_BCODE_HEADER */ +
                             sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
            sizeof(map_offset));
 
-    mjs_header_item_t bcode_offset;
     memcpy(&bcode_offset,
            bp->data.p + 1 /* OP_BCODE_HEADER */ +
                sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
@@ -376,18 +380,17 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
     offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset) + bp->start_idx;
 
     /* get pointer to the length of the map followed by the map itself */
-    uint8_t *p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
+    p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
 
-    int llen, map_len = cs_varint_decode(p, &llen);
+    map_len = cs_varint_decode(p, &llen);
     p += llen;
-    uint8_t *pe = p + map_len;
+    pe = p + map_len;
 
-    int prev_line_no = 1;
+    prev_line_no = 1;
     while (p < pe) {
-      int llen;
-      int cur_offset = cs_varint_decode(p, &llen);
+      int llen, line_no, cur_offset = cs_varint_decode(p, &llen);
       p += llen;
-      int line_no = cs_varint_decode(p, &llen);
+      line_no = cs_varint_decode(p, &llen);
       p += llen;
 
       if (cur_offset >= offset) {

@@ -6,7 +6,6 @@
 #ifndef MJS_FFI_FFI_H_
 #define MJS_FFI_FFI_H_
 
-#include <stdbool.h>
 #include "common/platform.h"
 
 #if defined(__cplusplus)

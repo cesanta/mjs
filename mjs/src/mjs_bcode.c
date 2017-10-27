@@ -40,18 +40,18 @@ MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte) {
 }
 
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
-  add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode_gen;
   size_t llen = cs_varint_llen(n);
+  add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen);
   cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
   pstate->cur_idx += llen;
 }
 
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
-  add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode_gen;
   size_t llen = cs_varint_llen(len);
+  add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
   cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
   memcpy(b->buf + pstate->cur_idx + llen, ptr, len);
@@ -60,9 +60,9 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
 
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v) {
-  assert(offset < mjs->bcode_gen.len);
   int llen = cs_varint_llen(v);
   int diff = llen - MJS_INIT_OFFSET_SIZE;
+  assert(offset < mjs->bcode_gen.len);
   if (diff > 0) {
     mbuf_resize(&mjs->bcode_gen, mjs->bcode_gen.size + diff);
   }

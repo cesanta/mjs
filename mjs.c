@@ -178,6 +178,12 @@
 #include <windows.h>
 #include <process.h>
 
+#if _MSC_VER < 1700
+typedef int bool;
+#else
+#include <stdbool.h>
+#endif
+
 #if defined(_MSC_VER) && _MSC_VER >= 1800
 #define strdup _strdup
 #endif
@@ -291,8 +297,15 @@ typedef struct _stati64 cs_stat_t;
 #define MG_NET_IF MG_NET_IF_SOCKET
 #endif
 
-int rmdir(const char *dirname);
 unsigned int sleep(unsigned int seconds);
+
+/* https://stackoverflow.com/questions/16647819/timegm-cross-platform */
+#define timegm _mkgmtime
+
+#define gmtime_r(a, b) \
+  do {                 \
+    *(b) = *gmtime(a); \
+  } while (0)
 
 #endif /* CS_PLATFORM == CS_P_WINDOWS */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_WINDOWS_H_ */
@@ -342,6 +355,7 @@ unsigned int sleep(unsigned int seconds);
 #include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -461,6 +475,7 @@ typedef struct stat cs_stat_t;
 #include <fcntl.h>
 #include <inttypes.h>
 #include <machine/endian.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -504,6 +519,7 @@ typedef struct stat cs_stat_t;
 #include <fcntl.h>
 #include <inttypes.h>
 #include <machine/endian.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -777,6 +793,7 @@ int slfs_open(const unsigned char *fname, uint32_t flags);
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
@@ -901,6 +918,7 @@ int stat(const char *pathname, struct stat *st);
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
@@ -1919,32 +1937,6 @@ char *cs_mmap_file(const char *path, size_t *size);
 
 #endif /* CS_COMMON_CS_FILE_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_varint.h"
-#endif
-/*
- * Copyright (c) 2014-2017 Cesanta Software Limited
- * All rights reserved
- */
-
-#ifndef CS_COMMON_CS_VARINT_H_
-#define CS_COMMON_CS_VARINT_H_
-
-#include <stdint.h>
-
-#if defined(__cplusplus)
-extern "C" {
-#endif /* __cplusplus */
-
-int cs_varint_encode(uint64_t num, uint8_t *to);
-uint64_t cs_varint_decode(const uint8_t *from, int *llen);
-int cs_varint_llen(uint64_t num);
-
-#if defined(__cplusplus)
-}
-#endif /* __cplusplus */
-
-#endif /* CS_COMMON_CS_VARINT_H_ */
-#ifdef MJS_MODULE_LINES
 #line 1 "common/mbuf.h"
 #endif
 /*
@@ -2073,7 +2065,6 @@ extern "C" {
 #ifndef MJS_FFI_FFI_H_
 #define MJS_FFI_FFI_H_
 
-#include <stdbool.h>
 /* Amalgamated: #include "common/platform.h" */
 
 #if defined(__cplusplus)
@@ -2197,7 +2188,6 @@ typedef unsigned long uintptr_t;
 #define CS_DEFINE_DIRENT
 #include <windows.h>
 #else
-#include <dirent.h>
 #if defined(__unix__) || defined(__APPLE__)
 #include <dlfcn.h>
 #endif
@@ -2281,7 +2271,13 @@ typedef unsigned long uintptr_t;
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1700
 #include <stdint.h>
+#else
+typedef unsigned __int64 uint64_t;
+typedef int int32_t;
+typedef unsigned char uint8_t;
+#endif
 #include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
@@ -3567,8 +3563,9 @@ extern "C" {
 #include <stddef.h>
 #include <stdio.h>
 
-#ifdef _WIN32
+#if defined(_WIN32) && _MSC_VER < 1700
 typedef int bool;
+enum { false = 0, true = 1 };
 #else
 #include <stdbool.h>
 #endif
@@ -3824,7 +3821,6 @@ int json_prettify_file(const char *file_name);
 void *json_next_key(const char *s, int len, void *handle, const char *path,
                     struct json_token *key, struct json_token *val);
 
-
 /*
  * Iterate over an array at given JSON `path`.
  * Similar to `json_next_key`, but fills array index `idx` instead of `key`.
@@ -3945,6 +3941,39 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out);
 #endif /* __cplusplus */
 
 #endif /* MJS_UTIL_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "common/cs_varint.h"
+#endif
+/*
+ * Copyright (c) 2014-2017 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef CS_COMMON_CS_VARINT_H_
+#define CS_COMMON_CS_VARINT_H_
+
+#include <stdio.h>
+
+#if defined(_WIN32) && _MSC_VER < 1700
+typedef unsigned char uint8_t;
+typedef unsigned __int64 uint64_t;
+#else
+#include <stdint.h>
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+int cs_varint_encode(uint64_t num, uint8_t *to);
+uint64_t cs_varint_decode(const uint8_t *from, int *llen);
+int cs_varint_llen(uint64_t num);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* CS_COMMON_CS_VARINT_H_ */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_bcode.h"
 #endif
@@ -4132,7 +4161,6 @@ typedef unsigned long uintptr_t;
 #define CS_DEFINE_DIRENT
 #include <windows.h>
 #else
-#include <dirent.h>
 #if defined(__unix__) || defined(__APPLE__)
 #include <dlfcn.h>
 #endif
@@ -4639,9 +4667,7 @@ char *cs_mmap_file(const char *path, size_t *size) {
  * All rights reserved
  */
 
-/* Amalgamated: #include "common/cs_varint.h" */
-
-#include <stdio.h>
+/* Amalgamated: #include "cs_varint.h" */
 
 /*
  * Strings in AST are encoded as tuples (length, string).
@@ -5308,12 +5334,24 @@ int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap) {
     *buf = NULL; /* LCOV_EXCL_START */
     while (len < 0) {
       MG_FREE(*buf);
+      if (size == 0) {
+        size = 5;
+      }
       size *= 2;
-      if ((*buf = (char *) MG_MALLOC(size)) == NULL) break;
+      if ((*buf = (char *) MG_MALLOC(size)) == NULL) {
+        len = -1;
+        break;
+      }
       va_copy(ap_copy, ap);
-      len = vsnprintf(*buf, size, fmt, ap_copy);
+      len = vsnprintf(*buf, size - 1, fmt, ap_copy);
       va_end(ap_copy);
     }
+
+    /*
+     * Microsoft version of vsnprintf() is not always null-terminated, so put
+     * the terminator manually
+     */
+    (*buf)[len] = 0;
     /* LCOV_EXCL_STOP */
   } else if (len >= (int) size) {
     /* Standard-compliant code path. Allocate a buffer that is large enough. */
@@ -5473,6 +5511,8 @@ int mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 #endif
 
 #ifdef _WIN32
+#undef snprintf
+#undef vsnprintf
 #define snprintf cs_win_snprintf
 #define vsnprintf cs_win_vsnprintf
 int cs_win_snprintf(char *str, size_t size, const char *format, ...);
@@ -5485,26 +5525,20 @@ typedef unsigned _int64 uint64_t;
 #endif
 #define PRId64 "I64d"
 #define PRIu64 "I64u"
-#if !defined(SIZE_T_FMT)
-#if _MSC_VER >= 1310
-#define SIZE_T_FMT "Iu"
-#else
-#define SIZE_T_FMT "u"
-#endif
-#endif
 #else /* _WIN32 */
 /* <inttypes.h> wants this for C++ */
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
-#if !defined(SIZE_T_FMT)
-#define SIZE_T_FMT "zu"
-#endif
 #endif /* _WIN32 */
 
+#ifndef INT64_FMT
 #define INT64_FMT PRId64
+#endif
+#ifndef UINT64_FMT
 #define UINT64_FMT PRIu64
+#endif
 
 #ifndef va_copy
 #define va_copy(x, y) x = y
@@ -5940,7 +5974,7 @@ static int b64rev(int c) {
   }
 }
 
-static uint8_t hexdec(const char *s) {
+static unsigned char hexdec(const char *s) {
 #define HEXTOI(x) (x >= '0' && x <= '9' ? x - '0' : x - 'W')
   int a = tolower(*(const unsigned char *) s);
   int b = tolower(*(const unsigned char *) (s + 1));
@@ -6004,7 +6038,7 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
         skip += 2;
       } else if (fmt[1] == 'z' && fmt[2] == 'u') {
         size_t val = va_arg(ap, size_t);
-        snprintf(buf, sizeof(buf), "%" SIZE_T_FMT, val);
+        snprintf(buf, sizeof(buf), "%lu", (unsigned long) val);
         len += out->printer(out, buf, strlen(buf));
         skip += 1;
       } else if (fmt[1] == 'M') {
@@ -6064,29 +6098,47 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
          */
 
         const char *end_of_format_specifier = "sdfFgGlhuIcx.*-0123456789";
-        size_t n = strspn(fmt + 1, end_of_format_specifier);
+        int n = strspn(fmt + 1, end_of_format_specifier);
         char *pbuf = buf;
-        size_t need_len;
+        int need_len, size = sizeof(buf);
         char fmt2[20];
-        va_list sub_ap;
-        strncpy(fmt2, fmt, n + 1 > sizeof(fmt2) ? sizeof(fmt2) : n + 1);
+        va_list ap_copy;
+        strncpy(fmt2, fmt,
+                n + 1 > (int) sizeof(fmt2) ? sizeof(fmt2) : (size_t) n + 1);
         fmt2[n + 1] = '\0';
 
-        va_copy(sub_ap, ap);
-        need_len =
-            vsnprintf(buf, sizeof(buf), fmt2, sub_ap) + 1 /* null-term */;
-        /*
-         * TODO(lsm): Fix windows & eCos code path here. Their vsnprintf
-         * implementation returns -1 on overflow rather needed size.
-         */
-        if (need_len > sizeof(buf)) {
+        va_copy(ap_copy, ap);
+        need_len = vsnprintf(pbuf, size, fmt2, ap_copy);
+        va_end(ap_copy);
+
+        if (need_len < 0) {
+          /*
+           * Windows & eCos vsnprintf implementation return -1 on overflow
+           * instead of needed size.
+           */
+          pbuf = NULL;
+          while (need_len < 0) {
+            free(pbuf);
+            size *= 2;
+            if ((pbuf = (char *) malloc(size)) == NULL) break;
+            va_copy(ap_copy, ap);
+            need_len = vsnprintf(pbuf, size, fmt2, ap_copy);
+            va_end(ap_copy);
+          }
+        } else if (need_len >= (int) sizeof(buf)) {
           /*
            * resulting string doesn't fit into a stack-allocated buffer `buf`,
            * so we need to allocate a new buffer from heap and use it
            */
-          pbuf = (char *) malloc(need_len);
-          va_copy(sub_ap, ap);
-          vsnprintf(pbuf, need_len, fmt2, sub_ap);
+          if ((pbuf = (char *) malloc(need_len + 1)) != NULL) {
+            va_copy(ap_copy, ap);
+            vsnprintf(pbuf, need_len + 1, fmt2, ap_copy);
+            va_end(ap_copy);
+          }
+        }
+        if (pbuf == NULL) {
+          buf[0] = '\0';
+          pbuf = buf;
         }
 
         /*
@@ -6453,7 +6505,7 @@ int json_scanf(const char *str, int len, const char *fmt, ...) {
 int json_vfprintf(const char *file_name, const char *fmt, va_list ap) WEAK;
 int json_vfprintf(const char *file_name, const char *fmt, va_list ap) {
   int res = -1;
-  FILE *fp = fopen(file_name, "w");
+  FILE *fp = fopen(file_name, "wb");
   if (fp != NULL) {
     struct json_out out = JSON_OUT_FILE(fp);
     res = json_vprintf(&out, fmt, ap);
@@ -6701,13 +6753,13 @@ int json_prettify_file(const char *file_name) {
   int res = -1;
   char *s = json_fread(file_name);
   FILE *fp;
-  if (s != NULL && (fp = fopen(file_name, "w")) != NULL) {
+  if (s != NULL && (fp = fopen(file_name, "wb")) != NULL) {
     struct json_out out = JSON_OUT_FILE(fp);
     res = json_prettify(s, strlen(s), &out);
     if (res < 0) {
       /* On error, restore the old content */
       fclose(fp);
-      fp = fopen(file_name, "w");
+      fp = fopen(file_name, "wb");
       fseek(fp, 0, SEEK_SET);
       fwrite(s, 1, strlen(s), fp);
     } else {
@@ -7622,18 +7674,18 @@ MJS_PRIVATE void emit_byte(struct pstate *pstate, uint8_t byte) {
 }
 
 MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
-  add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode_gen;
   size_t llen = cs_varint_llen(n);
+  add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen);
   cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
   pstate->cur_idx += llen;
 }
 
 MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
-  add_lineno_map_item(pstate);
   struct mbuf *b = &pstate->mjs->bcode_gen;
   size_t llen = cs_varint_llen(len);
+  add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
   cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
   memcpy(b->buf + pstate->cur_idx + llen, ptr, len);
@@ -7642,9 +7694,9 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
 
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v) {
-  assert(offset < mjs->bcode_gen.len);
   int llen = cs_varint_llen(v);
   int diff = llen - MJS_INIT_OFFSET_SIZE;
+  assert(offset < mjs->bcode_gen.len);
   if (diff > 0) {
     mbuf_resize(&mjs->bcode_gen, mjs->bcode_gen.size + diff);
   }
@@ -7787,6 +7839,7 @@ static void mjs_load(struct mjs *mjs) {
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
     struct mjs_bcode_part *bp = NULL;
+    mjs_err_t ret;
 
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
@@ -7795,7 +7848,6 @@ static void mjs_load(struct mjs *mjs) {
       custom_global = 1;
       *bottom = arg1;
     }
-    mjs_err_t ret;
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */
@@ -8047,6 +8099,7 @@ void mjs_destroy(struct mjs *mjs) {
 }
 
 struct mjs *mjs_create(void) {
+  mjs_val_t global_object;
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   mbuf_init(&mjs->stack, 0);
   mbuf_init(&mjs->call_stack, 0);
@@ -8079,7 +8132,7 @@ struct mjs *mjs_create(void) {
                 MJS_FUNC_FFI_ARENA_SIZE, MJS_FUNC_FFI_ARENA_INC_SIZE);
   mjs->ffi_sig_arena.destructor = mjs_ffi_sig_destructor;
 
-  mjs_val_t global_object = mjs_mk_object(mjs);
+  global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);
   mjs_set_ffi_resolver(mjs, dlsym);
   push_mjs_val(&mjs->scopes, global_object);
@@ -8104,14 +8157,14 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
 
 mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
+  char *old_error_msg = mjs->error_msg;
+  char *new_error_msg = NULL;
   va_list ap;
   va_start(ap, fmt);
 
   /* err should never be MJS_OK here */
   assert(err != MJS_OK);
 
-  char *old_error_msg = mjs->error_msg;
-  char *new_error_msg = NULL;
   mjs->error_msg = NULL;
   /* set error if only it wasn't already set to some error */
   if (mjs->error == MJS_OK) {
@@ -8372,7 +8425,7 @@ void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc) {
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 void *mjs_mem_to_ptr(unsigned val) {
-  return (void *) (unsigned long) val;
+  return (void *) (uintptr_t) val;
 }
 
 void *mjs_mem_get_ptr(void *base, int offset) {
@@ -8485,9 +8538,9 @@ static void call_stack_push_frame(struct mjs *mjs, size_t offset,
   push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
   mjs->vals.this_obj = this_obj;
 
-  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, offset));
+  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, (double) offset));
   push_mjs_val(&mjs->call_stack,
-               mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+               mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
   push_mjs_val(&mjs->call_stack, retval_stack_idx);
 }
 
@@ -8542,20 +8595,20 @@ static double do_arith_op(double da, double db, int op) {
         return da / db;
       } else {
         /* TODO(dfrank): add support for Infinity and return it here */
-        return MJS_TAG_NAN;
+        return (double) MJS_TAG_NAN;
       }
     case TOK_REM:
       if (db != 0) {
-        return (int64_t) da % (int64_t) db;
+        return (double) ((int64_t) da % (int64_t) db);
       } else {
-        return MJS_TAG_NAN;
+        return (double) MJS_TAG_NAN;
       }
-    case TOK_AND:     return (int64_t) da & (int64_t) db;
-    case TOK_OR:      return (int64_t) da | (int64_t) db;
-    case TOK_XOR:     return (int64_t) da ^ (int64_t) db;
-    case TOK_LSHIFT:  return (int64_t) da << (int64_t) db;
-    case TOK_RSHIFT:  return (int64_t) da >> (int64_t) db;
-    case TOK_URSHIFT: return (uint32_t) da >> (uint32_t) db;
+    case TOK_AND:     return (double) ((int64_t) da & (int64_t) db);
+    case TOK_OR:      return (double) ((int64_t) da | (int64_t) db);
+    case TOK_XOR:     return (double) ((int64_t) da ^ (int64_t) db);
+    case TOK_LSHIFT:  return (double) ((int64_t) da << (int64_t) db);
+    case TOK_RSHIFT:  return (double) ((int64_t) da >> (int64_t) db);
+    case TOK_URSHIFT: return (double) ((uint32_t) da >> (uint32_t) db);
   }
   /* clang-format on */
   return (int64_t) MJS_TAG_NAN;
@@ -8571,6 +8624,7 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
   if ((mjs_is_foreign(a) || mjs_is_number(a)) &&
       (mjs_is_foreign(b) || mjs_is_number(b))) {
     int is_result_ptr = 0;
+    double da, db, result;
 
     if (mjs_is_foreign(a) && mjs_is_foreign(b)) {
       /* When two operands are pointers, only subtraction is supported */
@@ -8587,13 +8641,11 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
       }
       is_result_ptr = 1;
     }
-
-    double da, db;
     da = mjs_is_number(a) ? mjs_get_double(mjs, a)
                           : (double) (uintptr_t) mjs_get_ptr(mjs, a);
     db = mjs_is_number(b) ? mjs_get_double(mjs, b)
                           : (double) (uintptr_t) mjs_get_ptr(mjs, b);
-    double result = do_arith_op(da, db, op);
+    result = do_arith_op(da, db, op);
 
     /*
      * If at least one of the operands was a pointer, result should also be
@@ -8678,7 +8730,7 @@ static void exec_expr(struct mjs *mjs, int op) {
     }
     case TOK_TILDA: {
       double a = mjs_get_double(mjs, mjs_pop(mjs));
-      mjs_push(mjs, mjs_mk_number(mjs, ~(int64_t) a));
+      mjs_push(mjs, mjs_mk_number(mjs, (double) (~(int64_t) a)));
       break;
     }
     case TOK_UNARY_PLUS:
@@ -8848,7 +8900,7 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
   if (strcmp(name, "length") == 0) {
     size_t val_len;
     mjs_get_string(mjs, &val, &val_len);
-    *res = mjs_mk_number(mjs, val_len);
+    *res = mjs_mk_number(mjs, (double) val_len);
     return 1;
 
   } else if (strcmp(name, "slice") == 0) {
@@ -8933,11 +8985,6 @@ static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
 
 MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   size_t i;
-
-  mjs_set_errorf(mjs, MJS_OK, NULL);
-  free(mjs->stack_trace);
-  mjs->stack_trace = NULL;
-
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
 
@@ -8949,8 +8996,14 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   int arg_stack_len = mjs->arg_stack.len;
   int scopes_len = mjs->scopes.len;
   size_t start_off = off;
+  const uint8_t *code;
 
   struct mjs_bcode_part bp = *mjs_bcode_part_get_by_offset(mjs, off);
+
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  free(mjs->stack_trace);
+  mjs->stack_trace = NULL;
+
   off -= bp.start_idx;
 
   for (i = off; i < bp.data.len; i++) {
@@ -8965,7 +9018,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
     maybe_gc(mjs);
 #endif
 
-    const uint8_t *code = (const uint8_t *) bp.data.p;
+    code = (const uint8_t *) bp.data.p;
     mjs_disasm_single(code, i);
     prev_opcode = opcode;
     opcode = code[i];
@@ -9114,7 +9167,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       case OP_PUSH_INT: {
         int llen;
         int64_t n = cs_varint_decode(&code[i + 1], &llen);
-        mjs_push(mjs, mjs_mk_number(mjs, n));
+        mjs_push(mjs, mjs_mk_number(mjs, (double) n));
         i += llen;
         break;
       }
@@ -9180,27 +9233,30 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
          * properly
          */
         push_mjs_val(&mjs->arg_stack,
-                     mjs_mk_number(mjs, mjs_stack_size(&mjs->stack)));
+                     mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->stack)));
         break;
       }
       case OP_CALL: {
         // LOG(LL_INFO, ("BEFORE CALL"));
         // mjs_dump(mjs, 0, stdout);
+        int func_pos;
+        mjs_val_t *func;
         mjs_val_t retval_stack_idx = vtop(&mjs->arg_stack);
-        int func_pos = mjs_get_int(mjs, retval_stack_idx) - 1;
-        mjs_val_t *func = vptr(&mjs->stack, func_pos);
+        func_pos = mjs_get_int(mjs, retval_stack_idx) - 1;
+        func = vptr(&mjs->stack, func_pos);
 
         /* Drop data stack size (pushed by OP_ARGS) */
         mjs_pop_val(&mjs->arg_stack);
 
         if (mjs_is_function(*func)) {
+          size_t off_call;
           call_stack_push_frame(mjs, bp.start_idx + i, retval_stack_idx);
 
           /*
            * Function offset is a global bcode offset, so we need to convert it
            * to the local offset
            */
-          size_t off_call = mjs_get_func_addr(*func) - 1;
+          off_call = mjs_get_func_addr(*func) - 1;
           bp = *mjs_bcode_part_get_by_offset(mjs, off_call);
           code = (const uint8_t *) bp.data.p;
           i = off_call - bp.start_idx;
@@ -9232,11 +9288,11 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       }
       case OP_SET_ARG: {
         int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
+        mjs_val_t obj, key, v;
         n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
-        mjs_val_t key =
-            mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
-        mjs_val_t obj = vtop(&mjs->scopes);
-        mjs_val_t v = mjs_arg(mjs, arg_no);
+        key = mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
+        obj = vtop(&mjs->scopes);
+        v = mjs_arg(mjs, arg_no);
         mjs_set_v(mjs, obj, key, v);
         i += llen1 + llen2 + n;
         break;
@@ -9277,16 +9333,18 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
         /* push scope index */
         push_mjs_val(&mjs->loop_addresses,
-                     mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+                     mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
 
         /* push break offset */
-        push_mjs_val(&mjs->loop_addresses,
-                     mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
+        push_mjs_val(
+            &mjs->loop_addresses,
+            mjs_mk_number(mjs, (double) (i + 1 /* OP_LOOP */ + l1 + off)));
         off = cs_varint_decode(&code[i + 1 + l1], &l2);
 
         /* push continue offset */
-        push_mjs_val(&mjs->loop_addresses,
-                     mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
+        push_mjs_val(
+            &mjs->loop_addresses,
+            mjs_mk_number(mjs, (double) (i + 1 /* OP_LOOP*/ + l1 + l2 + off)));
         i += l1 + l2;
         break;
       }
@@ -9300,6 +9358,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
       } break;
       case OP_BREAK: {
+        size_t scopes_len;
         /* drop "continue" address */
         mjs_pop_val(&mjs->loop_addresses);
 
@@ -9307,7 +9366,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
 
         /* restore scope index */
-        size_t scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
+        scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
         assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
         mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
 
@@ -9462,11 +9521,12 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   va_list ap;
   int i;
   mjs_err_t ret;
-  va_start(ap, nargs);
   mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * nargs);
+  va_start(ap, nargs);
   for (i = 0; i < nargs; i++) {
     args[i] = va_arg(ap, mjs_val_t);
   }
+  va_end(ap);
 
   ret = mjs_apply(mjs, res, func, this_val, nargs, args);
   /*
@@ -9480,19 +9540,19 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args) {
-  mjs_val_t r;
+  mjs_val_t r, prev_this_val, retval_stack_idx;
   int i;
   size_t addr = mjs_get_func_addr(func);
 
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 
-  mjs_val_t prev_this_val = mjs->vals.this_obj;
+  prev_this_val = mjs->vals.this_obj;
 
   /* Push undefined which will be later replaced with the return value */
   mjs_push(mjs, MJS_UNDEFINED);
 
   /* Remember index by which return value should be written */
-  mjs_val_t retval_stack_idx = mjs_mk_number(mjs, mjs_stack_size(&mjs->stack));
+  retval_stack_idx = mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->stack));
 
   // Push all arguments
   for (i = 0; i < nargs; i++) {
@@ -9606,6 +9666,7 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
     sig_len = strlen(s);
   }
 
+  fflush(stdout);
   mjs_ffi_sig_init(sig);
 
   /* Parse return value type {{{ */
@@ -9622,6 +9683,7 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
   }
   mjs_ffi_sig_set_val_type(sig, vtidx++, val_type);
   /* }}} */
+  fflush(stdout);
 
   /* Parse function name (if any) {{{ */
   /*
@@ -9677,9 +9739,9 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
 
   /* Parse all args {{{ */
   while (*tmp_e && *tmp_e != ')') {
-    tmp_e = cur;
     int level = 0; /* nested parens level */
     int is_fp = 0; /* set to 1 is current arg is a callback function ptr */
+    tmp_e = cur;
 
     /* Advance tmp_e until the next arg separator */
     while (*tmp_e && (level > 0 || (*tmp_e != ',' && *tmp_e != ')'))) {
@@ -9794,11 +9856,12 @@ struct ffi_cb_data {
 static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
                                                  struct ffi_cb_data *data) {
   struct mjs_ffi_cb_args *cbargs = (struct mjs_ffi_cb_args *) param;
-  mjs_val_t res = MJS_UNDEFINED;
+  mjs_val_t *args, res = MJS_UNDEFINED;
   union ffi_cb_data_val ret;
   int i;
   struct mjs *mjs = cbargs->mjs;
   mjs_ffi_ctype_t return_ctype = MJS_FFI_CTYPE_NONE;
+  mjs_err_t err;
 
   memset(&ret, 0, sizeof(ret));
   mjs_own(mjs, &res);
@@ -9807,7 +9870,7 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   assert(cbargs->sig.args_cnt > 0);
 
   /* Create JS arguments */
-  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.args_cnt);
+  args = calloc(1, sizeof(mjs_val_t) * cbargs->sig.args_cnt);
   for (i = 0; i < cbargs->sig.args_cnt; i++) {
     mjs_ffi_ctype_t val_type =
         cbargs->sig.val_types[i + 1 /* first val_type is return value type */];
@@ -9816,7 +9879,7 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
         args[i] = cbargs->userdata;
         break;
       case MJS_FFI_CTYPE_INT:
-        args[i] = mjs_mk_number(mjs, data->args[i].w);
+        args[i] = mjs_mk_number(mjs, (double) data->args[i].w);
         break;
       case MJS_FFI_CTYPE_BOOL:
         args[i] = mjs_mk_boolean(mjs, !!data->args[i].w);
@@ -9853,8 +9916,8 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
   /* Call JS function */
   LOG(LL_VERBOSE_DEBUG, ("calling JS callback void-void %d from C",
                          mjs_get_int(mjs, cbargs->func)));
-  mjs_err_t err = mjs_apply(mjs, &res, cbargs->func, MJS_UNDEFINED,
-                            cbargs->sig.args_cnt, args);
+  err = mjs_apply(mjs, &res, cbargs->func, MJS_UNDEFINED, cbargs->sig.args_cnt,
+                  args);
   /*
    * cbargs might be invalidated by the callback (if it called ffi_cb_free), so
    * null it out
@@ -10085,20 +10148,18 @@ MJS_PRIVATE struct mjs_ffi_sig *mjs_get_ffi_sig_struct(mjs_val_t v) {
 }
 
 MJS_PRIVATE mjs_val_t mjs_mk_ffi_sig(struct mjs *mjs) {
-  (void) mjs;
-
   struct mjs_ffi_sig *psig = new_ffi_sig(mjs);
   mjs_ffi_sig_init(psig);
   return mjs_ffi_sig_to_value(psig);
 }
 
 MJS_PRIVATE void mjs_ffi_sig_destructor(struct mjs *mjs, void *psig) {
-  (void) mjs;
   mjs_ffi_sig_free((mjs_ffi_sig_t *) psig);
+  (void) mjs;
 }
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
-  mjs_err_t rcode = MJS_OK;
+  mjs_err_t e = MJS_OK;
   const char *sig_str = NULL;
   mjs_val_t sig_str_v = mjs_arg(mjs, 0);
   mjs_val_t ret_v = MJS_UNDEFINED;
@@ -10106,18 +10167,13 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call(struct mjs *mjs) {
   size_t sig_str_len;
 
   sig_str = mjs_get_string(mjs, &sig_str_v, &sig_str_len);
-
-  rcode =
-      mjs_parse_ffi_signature(mjs, sig_str, sig_str_len, psig, FFI_SIG_FUNC);
-  if (rcode != MJS_OK) {
-    goto clean;
-  }
-
+  e = mjs_parse_ffi_signature(mjs, sig_str, sig_str_len, psig, FFI_SIG_FUNC);
+  if (e != MJS_OK) goto clean;
   ret_v = mjs_ffi_sig_to_value(psig);
 
 clean:
   mjs_return(mjs, ret_v);
-  return rcode;
+  return e;
 }
 
 MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
@@ -10598,7 +10654,13 @@ MJS_PRIVATE int mjs_ffi_is_regular_word_or_void(mjs_ffi_ctype_t type) {
 
 #ifdef _WIN32
 void *dlsym(void *handle, const char *name) {
-  return GetProcAddress(GetModuleHandle(NULL), name);
+  static HANDLE msvcrt_dll;
+  void *sym = NULL;
+  if (msvcrt_dll == NULL) msvcrt_dll = GetModuleHandle("msvcrt.dll");
+  if ((sym = GetProcAddress(GetModuleHandle(NULL), name)) == NULL) {
+    sym = GetProcAddress(msvcrt_dll, name);
+  }
+  return sym;
 }
 #elif !defined(__unix__) && !defined(__APPLE__)
 void *dlsym(void *handle, const char *name) {
@@ -12059,39 +12121,40 @@ static int findtok(int *toks, int tok) {
 static void emit_op(struct pstate *pstate, int tok) {
   assert(tok >= 0 && tok <= 255);
   emit_byte(pstate, OP_EXPR);
-  emit_byte(pstate, tok);
+  emit_byte(pstate, (uint8_t) tok);
 }
 
 // Intentionally left as macro rather than a function, to let the
 // compiler to inline calls and mimimize runtime stack usage.
-#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                             \
-  do {                                                                       \
-    mjs_err_t res = MJS_OK;                                                  \
-    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res;                        \
-    if (prev_op != TOK_EOF) emit_op(p, prev_op);                             \
-    if (findtok(ops, p->tok.tok) != TOK_EOF) {                               \
-      int op = p->tok.tok;                                                   \
-      size_t off_if = 0;                                                     \
-      /* For AND/OR, implement short-circuit evaluation */                   \
-      if (ops[0] == TOK_LOGICAL_AND || ops[0] == TOK_LOGICAL_OR) {           \
-        emit_byte(p, ops[0] == TOK_LOGICAL_AND ? OP_JMP_NEUTRAL_FALSE        \
-                                               : OP_JMP_NEUTRAL_TRUE);       \
-        off_if = p->cur_idx;                                                 \
-        emit_init_offset(p);                                                 \
-        /* No need to emit TOK_LOGICAL_AND and TOK_LOGICAL_OR: */            \
-        /* Just drop the first value, and evaluate the second one. */        \
-        emit_byte(p, OP_DROP);                                               \
-        op = TOK_EOF;                                                        \
-      }                                                                      \
-      pnext1(p);                                                             \
-      if ((res = f2(p, op)) != MJS_OK) return res;                           \
-                                                                             \
-      if (off_if != 0) {                                                     \
-        mjs_bcode_insert_offset(p, p->mjs, off_if,                           \
-                                p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE); \
-      }                                                                      \
-    }                                                                        \
-    return res;                                                              \
+#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                               \
+  do {                                                                         \
+    mjs_err_t res = MJS_OK;                                                    \
+    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res;                          \
+    if (prev_op != TOK_EOF) emit_op(p, prev_op);                               \
+    if (findtok(ops, p->tok.tok) != TOK_EOF) {                                 \
+      int op = p->tok.tok;                                                     \
+      size_t off_if = 0;                                                       \
+      /* For AND/OR, implement short-circuit evaluation */                     \
+      if (ops[0] == TOK_LOGICAL_AND || ops[0] == TOK_LOGICAL_OR) {             \
+        emit_byte(p,                                                           \
+                  (uint8_t)(ops[0] == TOK_LOGICAL_AND ? OP_JMP_NEUTRAL_FALSE   \
+                                                      : OP_JMP_NEUTRAL_TRUE)); \
+        off_if = p->cur_idx;                                                   \
+        emit_init_offset(p);                                                   \
+        /* No need to emit TOK_LOGICAL_AND and TOK_LOGICAL_OR: */              \
+        /* Just drop the first value, and evaluate the second one. */          \
+        emit_byte(p, (uint8_t) OP_DROP);                                       \
+        op = TOK_EOF;                                                          \
+      }                                                                        \
+      pnext1(p);                                                               \
+      if ((res = f2(p, op)) != MJS_OK) return res;                             \
+                                                                               \
+      if (off_if != 0) {                                                       \
+        mjs_bcode_insert_offset(p, p->mjs, off_if,                             \
+                                p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE);   \
+      }                                                                        \
+    }                                                                          \
+    return res;                                                                \
   } while (0)
 
 #define PARSE_RTL_BINOP(p, f1, f2, ops, prev_op)        \
@@ -12258,7 +12321,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
       int next_tok = ptest(p);
       emit_byte(p, OP_PUSH_STR);
       emit_str(p, t->ptr, t->len);
-      emit_byte(p, prev_tok == TOK_DOT ? OP_SWAP : OP_FIND_SCOPE);
+      emit_byte(p, (uint8_t)(prev_tok == TOK_DOT ? OP_SWAP : OP_FIND_SCOPE));
       if (!findtok(s_assign_ops, next_tok) &&
           !findtok(s_postfix_ops, next_tok) &&
           /* TODO(dfrank): fix: it doesn't work for prefix ops */
@@ -12281,8 +12344,9 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
       break;
     }
     case TOK_STR: {
+      size_t oldlen;
       emit_byte(p, OP_PUSH_STR);
-      size_t oldlen = bcode_gen->len;
+      oldlen = bcode_gen->len;
       embed_string(bcode_gen, p->cur_idx, t->ptr, t->len, EMBSTR_UNESCAPE);
       p->cur_idx += bcode_gen->len - oldlen;
     } break;
@@ -12594,6 +12658,9 @@ static int check_for_in(struct pstate *p) {
 
 static mjs_err_t parse_for(struct pstate *p) {
   mjs_err_t res = MJS_OK;
+  size_t off_b, off_c, off_init_end;
+  size_t off_incr_begin, off_cond_begin, off_cond_end;
+  int buf_cur_idx;
 
   LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_FOR);
@@ -12624,9 +12691,9 @@ static mjs_err_t parse_for(struct pstate *p) {
 
   /* Before parsing condition statement, push break/continue offsets  */
   emit_byte(p, OP_LOOP);
-  size_t off_b = p->cur_idx;
+  off_b = p->cur_idx;
   emit_init_offset(p);
-  size_t off_c = p->cur_idx;
+  off_c = p->cur_idx;
   emit_init_offset(p);
 
   /* Parse init statement */
@@ -12639,11 +12706,11 @@ static mjs_err_t parse_for(struct pstate *p) {
   emit_byte(p, OP_DROP);
 
   emit_byte(p, OP_JMP);
-  size_t off_init_end = p->cur_idx;
+  off_init_end = p->cur_idx;
   emit_init_offset(p);
 
-  size_t off_incr_begin = p->cur_idx;
-  size_t off_cond_begin = p->cur_idx;
+  off_incr_begin = p->cur_idx;
+  off_cond_begin = p->cur_idx;
 
   /* Parse cond statement */
   if ((res = parse_expr(p)) != MJS_OK) return res;
@@ -12651,7 +12718,7 @@ static mjs_err_t parse_for(struct pstate *p) {
 
   /* Parse incr statement */
   /* Incr statement should be placed before cond, so, adjust cur_idx */
-  int buf_cur_idx = p->cur_idx;
+  buf_cur_idx = p->cur_idx;
   p->cur_idx = off_incr_begin;
 
   if ((res = parse_expr(p)) != MJS_OK) return res;
@@ -12671,7 +12738,7 @@ static mjs_err_t parse_for(struct pstate *p) {
   /* p->cur_idx is now at the end of "cond" */
   /* Exit the loop if false */
   emit_byte(p, OP_JMP_FALSE);
-  size_t off_cond_end = p->cur_idx;
+  off_cond_end = p->cur_idx;
   emit_init_offset(p);
 
   /* Parse loop body */
@@ -12894,6 +12961,10 @@ MJS_PRIVATE mjs_err_t
 mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   mjs_err_t res = MJS_OK;
   struct pstate p;
+  size_t start_idx, llen;
+  int map_len;
+  mjs_header_item_t bcode_offset, map_offset, total_size;
+
   pinit(path, buf, &p);
   p.mjs = mjs;
   p.cur_idx = p.mjs->bcode_gen.len;
@@ -12905,14 +12976,14 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
    */
 
   /* Remember starting bcode position, and reserve the room for bcode header */
-  size_t start_idx = p.mjs->bcode_gen.len;
+  start_idx = p.mjs->bcode_gen.len;
   mbuf_append(&p.mjs->bcode_gen, NULL,
               sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT);
 
   /* Append NULL-terminated filename */
   mbuf_append(&p.mjs->bcode_gen, path, strlen(path) + 1 /* null-terminate */);
 
-  mjs_header_item_t bcode_offset = p.mjs->bcode_gen.len - start_idx;
+  bcode_offset = p.mjs->bcode_gen.len - start_idx;
   memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
          &bcode_offset, sizeof(mjs_header_item_t));
@@ -12924,14 +12995,14 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   emit_byte(&p, OP_EXIT);
 
   /* remember map offset */
-  mjs_header_item_t map_offset = p.mjs->bcode_gen.len - start_idx;
+  map_offset = p.mjs->bcode_gen.len - start_idx;
   memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
          &map_offset, sizeof(mjs_header_item_t));
 
   /* put map length varint */
-  int map_len = p.offset_lineno_map.len;
-  size_t llen = cs_varint_llen(map_len);
+  map_len = p.offset_lineno_map.len;
+  llen = cs_varint_llen(map_len);
   mbuf_resize(&p.mjs->bcode_gen, p.mjs->bcode_gen.size + llen);
   cs_varint_encode(map_len,
                    (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len);
@@ -12941,7 +13012,7 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   mbuf_append(&p.mjs->bcode_gen, p.offset_lineno_map.buf,
               p.offset_lineno_map.len);
 
-  mjs_header_item_t total_size = p.mjs->bcode_gen.len - start_idx;
+  total_size = p.mjs->bcode_gen.len - start_idx;
   memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_TOTAL_SIZE,
          &total_size, sizeof(mjs_header_item_t));
@@ -13159,6 +13230,8 @@ int mjs_is_string(mjs_val_t v) {
 }
 
 mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
+  struct mbuf *m;
+  mjs_val_t offset, tag = MJS_TAG_STRING_F;
   if (len == 0) {
     /*
      * Zero length for foreign string has a special meaning (that the foreign
@@ -13168,8 +13241,8 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
      */
     copy = 1;
   }
-  struct mbuf *m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
-  mjs_val_t offset = m->len, tag = MJS_TAG_STRING_F;
+  m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
+  offset = m->len;
 
   if (len == ~((size_t) 0)) len = strlen(p);
 
@@ -13285,7 +13358,7 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
       char *s = mjs->foreign_strings.buf + offset;
 
       size = cs_varint_decode((uint8_t *) s, &llen);
-      memcpy(&p, s + llen, sizeof(p));
+      memcpy((char **) &p, s + llen, sizeof(p));
     }
   } else {
     assert(0);
@@ -13966,7 +14039,7 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out) {
     json_printf(out, "%s", "<object>");
   } else if (mjs_is_foreign(v)) {
     json_printf(out, "%s%lx%s", "<foreign_ptr@",
-                (unsigned long) mjs_get_ptr(mjs, v), ">");
+                (unsigned long) (uintptr_t) mjs_get_ptr(mjs, v), ">");
   } else if (mjs_is_function(v)) {
     json_printf(out, "%s%d%s", "<function@", (int) mjs_get_func_addr(v), ">");
   } else if (mjs_is_null(v)) {
@@ -14133,6 +14206,9 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
       i += strlen((char *) (code + i + 1)) + 1;
       break;
     }
+    default:
+      LOG(LL_VERBOSE_DEBUG, ("%s", buf));
+      break;
   }
   return i - start_i;
 }
@@ -14195,6 +14271,7 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
                               const char *arg_name, enum mjs_type expected_type,
                               mjs_val_t *parg) {
   mjs_val_t arg = MJS_UNDEFINED;
+  enum mjs_type actual_type;
 
   if (arg_num >= 0) {
     int nargs = mjs_nargs(mjs);
@@ -14209,7 +14286,7 @@ MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
     arg = mjs->vals.this_obj;
   }
 
-  enum mjs_type actual_type = mjs_get_type(arg);
+  actual_type = mjs_get_type(arg);
   if (actual_type != expected_type) {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "%s should be a %s, %s given",
                        arg_name, mjs_stringify_type(expected_type),
@@ -14254,15 +14331,15 @@ const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
 }
 
 int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
-  int ret = 1;
+  int llen, map_len, prev_line_no, ret = 1;
   struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
+  uint8_t *p, *pe;
   if (bp != NULL) {
-    mjs_header_item_t map_offset;
+    mjs_header_item_t map_offset, bcode_offset;
     memcpy(&map_offset, bp->data.p + 1 /* OP_BCODE_HEADER */ +
                             sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
            sizeof(map_offset));
 
-    mjs_header_item_t bcode_offset;
     memcpy(&bcode_offset,
            bp->data.p + 1 /* OP_BCODE_HEADER */ +
                sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
@@ -14271,18 +14348,17 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
     offset -= (1 /* OP_BCODE_HEADER */ + bcode_offset) + bp->start_idx;
 
     /* get pointer to the length of the map followed by the map itself */
-    uint8_t *p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
+    p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
 
-    int llen, map_len = cs_varint_decode(p, &llen);
+    map_len = cs_varint_decode(p, &llen);
     p += llen;
-    uint8_t *pe = p + map_len;
+    pe = p + map_len;
 
-    int prev_line_no = 1;
+    prev_line_no = 1;
     while (p < pe) {
-      int llen;
-      int cur_offset = cs_varint_decode(p, &llen);
+      int llen, line_no, cur_offset = cs_varint_decode(p, &llen);
       p += llen;
-      int line_no = cs_varint_decode(p, &llen);
+      line_no = cs_varint_decode(p, &llen);
       p += llen;
 
       if (cur_offset >= offset) {

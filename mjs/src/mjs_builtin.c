@@ -56,6 +56,7 @@ static void mjs_load(struct mjs *mjs) {
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
     struct mjs_bcode_part *bp = NULL;
+    mjs_err_t ret;
 
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
@@ -64,7 +65,6 @@ static void mjs_load(struct mjs *mjs) {
       custom_global = 1;
       *bottom = arg1;
     }
-    mjs_err_t ret;
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */

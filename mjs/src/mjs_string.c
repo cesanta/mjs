@@ -41,6 +41,8 @@ int mjs_is_string(mjs_val_t v) {
 }
 
 mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
+  struct mbuf *m;
+  mjs_val_t offset, tag = MJS_TAG_STRING_F;
   if (len == 0) {
     /*
      * Zero length for foreign string has a special meaning (that the foreign
@@ -50,8 +52,8 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
      */
     copy = 1;
   }
-  struct mbuf *m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
-  mjs_val_t offset = m->len, tag = MJS_TAG_STRING_F;
+  m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
+  offset = m->len;
 
   if (len == ~((size_t) 0)) len = strlen(p);
 
@@ -167,7 +169,7 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
       char *s = mjs->foreign_strings.buf + offset;
 
       size = cs_varint_decode((uint8_t *) s, &llen);
-      memcpy(&p, s + llen, sizeof(p));
+      memcpy((char **) &p, s + llen, sizeof(p));
     }
   } else {
     assert(0);
