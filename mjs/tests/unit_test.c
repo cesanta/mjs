@@ -899,6 +899,7 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_test_cb_iiui2") == 0) return (void *) ffi_test_cb_iiui2;
   if (strcmp(name, "ffi_test_cb_viiiiiu") == 0) return (void *) ffi_test_cb_viiiiiu;
   if (strcmp(name, "ffi_test_inbuf") == 0) return (void *) ffi_test_inbuf;
+  if (strcmp(name, "mg_vcasecmp") == 0) return (void *) mg_vcasecmp;
   if (strcmp(name, "malloc") == 0) return (void *) malloc;
   if (strcmp(name, "calloc") == 0) return (void *) calloc;
   if (strcmp(name, "free") == 0) return (void *) free;
@@ -1173,6 +1174,15 @@ const char *test_call_ffi(struct mjs *mjs) {
       mjs_mk_string(mjs, "char *ffi_test_s1s(char *)", ~0, 1));
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x01')", &res), MJS_TYPE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "failed to call FFIed function: non-ffi-callable value");
+
+  /* Test struct mg_str * FFI, long and short strings */
+  ASSERT_EQ(mjs_exec(mjs, "let mg_vcasecmp = ffi('int mg_vcasecmp(struct mg_str *, char *)');", &res), MJS_OK);
+  ASSERT_EQ(mjs_exec(mjs, "mg_vcasecmp('foobar', 'FooBar') === 0;", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  ASSERT_EQ(mjs_exec(mjs, "mg_vcasecmp('foobar', 'Foo') !== 0;", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+  ASSERT_EQ(mjs_exec(mjs, "mg_vcasecmp('a', 'A') === 0;", &res), MJS_OK);
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
 
   /* Test the ability to pass char buffers to C */
   {

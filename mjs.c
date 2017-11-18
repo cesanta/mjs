@@ -2613,8 +2613,8 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #define MJS_FFI_H_
 
 /* Amalgamated: #include "mjs/src/ffi/ffi.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -2635,6 +2635,7 @@ enum mjs_ffi_ctype {
   MJS_FFI_CTYPE_FLOAT,
   MJS_FFI_CTYPE_CHAR_PTR,
   MJS_FFI_CTYPE_VOID_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR_PTR,
   MJS_FFI_CTYPE_INVALID,
 };
 typedef uint8_t mjs_ffi_ctype_t;
@@ -9590,13 +9591,15 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
  * All rights reserved
  */
 
+/* Amalgamated: #include "common/mg_str.h" */
+
+/* Amalgamated: #include "mjs/src/ffi/ffi.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_exec.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
-/* Amalgamated: #include "mjs/src/ffi/ffi.h" */
 
 /*
  * on linux this is enabled only if __USE_GNU is defined, but we cannot set it
@@ -9643,6 +9646,9 @@ static mjs_ffi_ctype_t parse_cval_type(struct mjs *mjs, const char *s,
     return MJS_FFI_CTYPE_DOUBLE;
   } else if (strncmp(s, "float", e - s) == 0) {
     return MJS_FFI_CTYPE_FLOAT;
+  } else if (strncmp(s, "struct mg_str *", e - s) == 0 ||
+             strncmp(s, "struct mg_str*", e - s) == 0) {
+    return MJS_FFI_CTYPE_STRUCT_MG_STR_PTR;
   } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
     return MJS_FFI_CTYPE_CHAR_PTR;
   } else if (strncmp(s, "void*", 5) == 0 || strncmp(s, "void *", 6) == 0) {
@@ -9899,6 +9905,11 @@ static union ffi_cb_data_val ffi_cb_impl_generic(void *param,
       case MJS_FFI_CTYPE_FLOAT:
         args[i] = mjs_mk_number(mjs, data->args[i].f);
         break;
+      case MJS_FFI_CTYPE_STRUCT_MG_STR_PTR: {
+        struct mg_str *s = (struct mg_str *) (void *) data->args[i].w;
+        args[i] = mjs_mk_string(mjs, s->p, s->len, 1);
+        break;
+      }
       default:
         /* should never be here */
         LOG(LL_ERROR, ("unexpected val type for arg #%d: %d\n", i, val_type));
@@ -10195,6 +10206,7 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
    * mjs_val_t itself
    */
   mjs_val_t argvs[FFI_MAX_ARGS_CNT];
+  struct mg_str argvmgstr[FFI_MAX_ARGS_CNT];
 
   if (mjs_is_ffi_sig(sig_v)) {
     psig = mjs_get_ffi_sig_struct(sig_v);
@@ -10294,6 +10306,23 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
         }
         ffi_set_word(&args[i], intval);
       } break;
+      case MJS_FFI_CTYPE_STRUCT_MG_STR_PTR: {
+        if (!mjs_is_string(arg)) {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(
+              mjs, ret, "actual arg #%d is not a string (the type idx is: %s)",
+              i, mjs_typeof(arg));
+          goto clean;
+        }
+        argvs[i] = arg;
+        argvmgstr[i].p = mjs_get_string(mjs, &argvs[i], &argvmgstr[i].len);
+        /*
+         * String argument should be saved separately in order to support
+         * short strings (which are packed into mjs_val_t itself)
+         */
+        ffi_set_ptr(&args[i], (void *) &argvmgstr[i]);
+        break;
+      }
       case MJS_FFI_CTYPE_BOOL: {
         int intval = 0;
         if (mjs_is_number(arg)) {
@@ -10593,6 +10622,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
       case MJS_FFI_CTYPE_BOOL:
       case MJS_FFI_CTYPE_VOID_PTR:
       case MJS_FFI_CTYPE_CHAR_PTR:
+      case MJS_FFI_CTYPE_STRUCT_MG_STR_PTR:
       case MJS_FFI_CTYPE_DOUBLE:
       case MJS_FFI_CTYPE_FLOAT:
         /* Do nothing */

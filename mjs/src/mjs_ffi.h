@@ -7,8 +7,8 @@
 #define MJS_FFI_H_
 
 #include "mjs/src/ffi/ffi.h"
-#include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_ffi_public.h"
+#include "mjs/src/mjs_internal.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -29,6 +29,7 @@ enum mjs_ffi_ctype {
   MJS_FFI_CTYPE_FLOAT,
   MJS_FFI_CTYPE_CHAR_PTR,
   MJS_FFI_CTYPE_VOID_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR_PTR,
   MJS_FFI_CTYPE_INVALID,
 };
 typedef uint8_t mjs_ffi_ctype_t;
