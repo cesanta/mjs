@@ -131,7 +131,7 @@ TEST_VARIANTS =
 define compile_test
 $(BUILD_DIR)/unit_test_$1: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
 	@echo BUILDING $$@ with $2[$3], flags: "'$4'"
-	$(RD) --entrypoint $3 $2 $$(COMMON_TEST_FLAGS) $4 -lm -o $$@
+	$(RD) --entrypoint $3 $2 $$(COMMON_TEST_FLAGS) $4 -ldl -lm -o $$@
 	$(RD) --entrypoint ./$$@ $2
 
 TEST_VARIANTS += $(BUILD_DIR)/unit_test_$1

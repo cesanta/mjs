@@ -35,6 +35,7 @@ struct pstate {
 
 enum {
   TOK_EOF,
+  TOK_INVALID,
 
   TOK_COLON,
   TOK_SEMICOLON,

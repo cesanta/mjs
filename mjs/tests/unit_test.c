@@ -3602,6 +3602,8 @@ const char *test_lib_math(struct mjs *mjs) {
 const char *test_parser(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
+  CHECK_NUMERIC("\f\v\r\n\t1", 1);
+  ASSERT_EQ(mjs_exec(mjs, "\a1", &res), MJS_SYNTAX_ERROR);
   CHECK_NUMERIC("1,2,3", 3);
   CHECK_NUMERIC("let f = function(x){return x;}; f(1),f(2),f(3)", 3);
   ASSERT_EXEC_OK(mjs_exec(mjs, ";", &res));
