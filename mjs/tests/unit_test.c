@@ -135,6 +135,7 @@ const char *test_arithmetic(struct mjs *mjs) {
   CHECK_NUMERIC("200*50", 10000);
   CHECK_NUMERIC("200/50", 4);
   CHECK_NUMERIC("200 % 21", 11);
+  CHECK_NUMERIC("200 % 0.999", MJS_TAG_NAN);
   CHECK_NUMERIC("100 << 3", 800);
   CHECK_NUMERIC("(0-14) >> 2", -4);
   CHECK_NUMERIC("(0-14) >>> 2", 1073741820);

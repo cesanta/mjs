@@ -8614,6 +8614,11 @@ static double do_arith_op(double da, double db, int op) {
         return (double) MJS_TAG_NAN;
       }
     case TOK_REM:
+      /*
+       * TODO(dfrank): probably support remainder operation as it is in JS
+       * (which works with non-integer divisor).
+       */
+      db = (int) db;
       if (db != 0) {
         return (double) ((int64_t) da % (int64_t) db);
       } else {
