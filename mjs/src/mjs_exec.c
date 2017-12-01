@@ -690,11 +690,16 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
          */
         mjs_val_t *iterator = vptr(&mjs->stack, -1);
         mjs_val_t obj = *vptr(&mjs->stack, -2);
-        mjs_val_t var_name = *vptr(&mjs->stack, -3);
-        mjs_val_t key = mjs_next(mjs, obj, iterator);
-        if (key != MJS_UNDEFINED) {
-          mjs_val_t scope = mjs_find_scope(mjs, var_name);
-          mjs_set_v(mjs, scope, var_name, key);
+        if (mjs_is_object(obj)) {
+          mjs_val_t var_name = *vptr(&mjs->stack, -3);
+          mjs_val_t key = mjs_next(mjs, obj, iterator);
+          if (key != MJS_UNDEFINED) {
+            mjs_val_t scope = mjs_find_scope(mjs, var_name);
+            mjs_set_v(mjs, scope, var_name, key);
+          }
+        } else {
+          mjs_set_errorf(mjs, MJS_TYPE_ERROR,
+                         "can't iterate over non-object value");
         }
         break;
       }

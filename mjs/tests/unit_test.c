@@ -1727,6 +1727,9 @@ const char *test_errors(struct mjs *mjs) {
     ASSERT_STREQ(mjs->error_msg, rs);
   }
 
+  ASSERT_EQ(mjs_exec(mjs, "for (let i in 0) {}", &res), MJS_TYPE_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "can't iterate over non-object value");
+
   mjs_disown(mjs, &res);
   return NULL;
 }
