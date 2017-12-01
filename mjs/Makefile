@@ -22,6 +22,8 @@ CFLAGS += -lm -W -Wall -g $(MFLAGS)
 COMMON_CFLAGS = -DCS_MMAP
 ASAN_CFLAGS = -fsanitize=address
 
+.PHONY: all test test_full difftest ci-test
+
 VERBOSE ?=
 ifeq ($(VERBOSE),1)
 Q :=
