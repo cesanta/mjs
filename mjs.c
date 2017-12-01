@@ -9370,28 +9370,35 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_CONTINUE: {
-        /* restore scope index */
-        size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
-        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
-        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+        if (mjs_stack_size(&mjs->loop_addresses) >= 3) {
+          size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
+          assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+          mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
 
-        /* jump to "continue" address */
-        i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
+          /* jump to "continue" address */
+          i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
+        } else {
+          mjs_set_errorf(mjs, MJS_SYNTAX_ERROR, "misplaced 'continue'");
+        }
       } break;
       case OP_BREAK: {
-        size_t scopes_len;
-        /* drop "continue" address */
-        mjs_pop_val(&mjs->loop_addresses);
+        if (mjs_stack_size(&mjs->loop_addresses) >= 3) {
+          size_t scopes_len;
+          /* drop "continue" address */
+          mjs_pop_val(&mjs->loop_addresses);
 
-        /* pop "break" address and jump to it */
-        i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
+          /* pop "break" address and jump to it */
+          i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
 
-        /* restore scope index */
-        scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
-        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
-        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+          /* restore scope index */
+          scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
+          assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+          mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
 
-        LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
+          LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
+        } else {
+          mjs_set_errorf(mjs, MJS_SYNTAX_ERROR, "misplaced 'break'");
+        }
       } break;
       case OP_NOP:
         break;
