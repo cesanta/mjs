@@ -1659,20 +1659,6 @@ const char *test_call_ffi_cb_err(struct mjs *mjs) {
   return NULL;
 }
 
-const char *test_misplaced_loop_constructs(struct mjs *mjs) {
-  mjs_val_t res = MJS_UNDEFINED;
-  mjs_own(mjs, &res);
-
-  ASSERT_EQ(mjs_exec(mjs, "continue;", &res), MJS_SYNTAX_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "misplaced 'continue'");
-
-  ASSERT_EQ(mjs_exec(mjs, "break;", &res), MJS_SYNTAX_ERROR);
-  ASSERT_STREQ(mjs->error_msg, "misplaced 'break'");
-
-  mjs_disown(mjs, &res);
-  return NULL;
-}
-
 const char *test_errors(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
@@ -1722,6 +1708,12 @@ const char *test_errors(struct mjs *mjs) {
 
   ASSERT_EQ(mjs_exec(mjs, "let s = 'foo'; s += 12", &res), MJS_TYPE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "implicit type conversion is prohibited");
+
+  ASSERT_EQ(mjs_exec(mjs, "continue;", &res), MJS_SYNTAX_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "misplaced 'continue'");
+
+  ASSERT_EQ(mjs_exec(mjs, "break;", &res), MJS_SYNTAX_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "misplaced 'break'");
 
   ASSERT_EQ(mjs_exec(mjs, "load('foo/bar/bazzz')", &res), MJS_FILE_READ_ERROR);
   {
@@ -3639,7 +3631,6 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_comparison);
   RUN_TEST_MJS(test_logic);
   RUN_TEST_MJS(test_errors);
-  RUN_TEST_MJS(test_misplaced_loop_constructs);
   RUN_TEST_MJS(test_this);
   RUN_TEST_MJS(test_while);
   RUN_TEST_MJS(test_for_loop);

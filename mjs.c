@@ -9016,6 +9016,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   int call_stack_len = mjs->call_stack.len;
   int arg_stack_len = mjs->arg_stack.len;
   int scopes_len = mjs->scopes.len;
+  int loop_addresses_len = mjs->loop_addresses.len;
   size_t start_off = off;
   const uint8_t *code;
 
@@ -9422,6 +9423,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       mjs->call_stack.len = call_stack_len;
       mjs->arg_stack.len = arg_stack_len;
       mjs->scopes.len = scopes_len;
+      mjs->loop_addresses.len = loop_addresses_len;
 
       /* script will evaluate to `undefined` */
       mjs_push(mjs, MJS_UNDEFINED);
