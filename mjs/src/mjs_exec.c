@@ -1075,7 +1075,13 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args) {
   mjs_val_t r, prev_this_val, retval_stack_idx;
   int i;
-  size_t addr = mjs_get_func_addr(func);
+  size_t addr;
+
+  if (!mjs_is_function(func)) {
+    return mjs_set_errorf(mjs, MJS_TYPE_ERROR, "calling non-callable");
+  }
+
+  addr = mjs_get_func_addr(func);
 
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 

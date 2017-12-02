@@ -2993,6 +2993,10 @@ const char *test_call_api(struct mjs *mjs) {
   ASSERT_EQ(mjs_call(mjs, &res, func, obj, 0), MJS_OK);
   ASSERT_EQ(mjs_get_int(mjs, res), 100);
 
+  /* test calling non-callable */
+  ASSERT_EQ(mjs_call(mjs, &res, MJS_UNDEFINED, MJS_UNDEFINED, 0), MJS_TYPE_ERROR);
+  ASSERT_EQ(mjs_apply(mjs, &res, MJS_UNDEFINED, MJS_UNDEFINED, 0, NULL), MJS_TYPE_ERROR);
+
   mjs_disown(mjs, &obj);
   mjs_disown(mjs, &res);
   mjs_disown(mjs, &func);
