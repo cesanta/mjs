@@ -245,6 +245,15 @@ const char *test_function(struct mjs *mjs) {
   CHECK_NUMERIC("function f(){}; f ? 1 : 2", 1);
   CHECK_NUMERIC("function f(x){return x ? {x:x} : 0}; f(f).x(0);", 0);
 
+  /* Test return without a value */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          function foo() {
+            return;
+          }
+          foo();
+        ), &res));
+
   mjs_disown(mjs, &res);
   return NULL;
 }

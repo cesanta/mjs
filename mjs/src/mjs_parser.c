@@ -841,7 +841,9 @@ static mjs_err_t parse_if(struct pstate *p) {
 
 static mjs_err_t parse_return(struct pstate *p) {
   EXPECT(p, TOK_KEYWORD_RETURN);
-  parse_expr(p);
+  if (parse_expr(p) != MJS_OK) {
+    emit_byte(p, OP_PUSH_UNDEF);
+  }
   emit_byte(p, OP_SETRETVAL);
   emit_byte(p, OP_RETURN);
   return MJS_OK;
