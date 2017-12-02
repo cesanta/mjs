@@ -31,12 +31,19 @@ static void call_stack_push_frame(struct mjs *mjs, size_t offset,
                                   mjs_val_t retval_stack_idx) {
   /* Pop `this` value, and apply it */
   mjs_val_t this_obj = mjs_pop_val(&mjs->arg_stack);
+
+  /*
+   * NOTE: the layout is described by enum mjs_call_stack_frame_item
+   */
   push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
   mjs->vals.this_obj = this_obj;
 
   push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, (double) offset));
   push_mjs_val(&mjs->call_stack,
                mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
+  push_mjs_val(
+      &mjs->call_stack,
+      mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->loop_addresses)));
   push_mjs_val(&mjs->call_stack, retval_stack_idx);
 }
 
@@ -44,23 +51,32 @@ static void call_stack_push_frame(struct mjs *mjs, size_t offset,
  * Restores call stack frame. Returns the return address.
  */
 static size_t call_stack_restore_frame(struct mjs *mjs) {
-  size_t retval_stack_idx, return_address, scope_index;
+  size_t retval_stack_idx, return_address, scope_index, loop_addr_index;
   assert(mjs_stack_size(&mjs->call_stack) >= CALL_STACK_FRAME_ITEMS_CNT);
 
+  /*
+   * NOTE: the layout is described by enum mjs_call_stack_frame_item
+   */
   retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+  loop_addr_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
   scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
   return_address = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
   mjs->vals.this_obj = mjs_pop_val(&mjs->call_stack);
 
-  // Remove created scopes
+  /* Remove created scopes */
   while (mjs_stack_size(&mjs->scopes) > scope_index) {
     mjs_pop_val(&mjs->scopes);
   }
 
-  // Shrink stack, leave return value on top
+  /* Remove loop addresses */
+  while (mjs_stack_size(&mjs->loop_addresses) > loop_addr_index) {
+    mjs_pop_val(&mjs->loop_addresses);
+  }
+
+  /* Shrink stack, leave return value on top */
   mjs->stack.len = retval_stack_idx * sizeof(mjs_val_t);
 
-  // Jump to the return address
+  /* Jump to the return address */
   return return_address;
 }
 
@@ -808,7 +824,9 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         if (mjs_stack_size(&mjs->call_stack) < CALL_STACK_FRAME_ITEMS_CNT) {
           mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "cannot return");
         } else {
-          size_t retval_pos = mjs_get_int(mjs, *vptr(&mjs->call_stack, -1));
+          size_t retval_pos = mjs_get_int(
+              mjs, *vptr(&mjs->call_stack,
+                         -1 - CALL_STACK_FRAME_ITEM_RETVAL_STACK_IDX));
           *vptr(&mjs->stack, retval_pos - 1) = mjs_pop(mjs);
         }
         // LOG(LL_INFO, ("AFTER SETRETVAL"));

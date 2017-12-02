@@ -2170,6 +2170,19 @@ const char *test_for_loop(struct mjs *mjs) {
         ), &res));
         ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_0:|-4|-3.....|-1|0_1:|-3|-2.....|0|1_3:|-1|0.....|2|3_4:|0|1.....|3|4_5:|1|2.....|4|5_6:|2|3.....|5|6_7:|3|4.....|6|7_8:|4|5.....|7|8_9:|5|6.....|8|9");
 
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          function foo() {
+            for (i = 0; i < 10; i++) {
+              if (i === 2) {
+                return true;
+              }
+            }
+          }
+          foo();
+        ), &res));
+  ASSERT_EQ(mjs->loop_addresses.len, 0);
+
   mjs_disown(mjs, &res);
 
   return NULL;
@@ -2208,6 +2221,19 @@ const char *test_for_in_loop(struct mjs *mjs) {
         ), &res));
   //ASSERT_STREQ(mjs_get_cstring(mjs, &res), "_five:5_baz:3_bar:2");
 #endif
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          function foo() {
+            let o = ({foo: 1, bar: 2, baz: 3, four: 4, five: 5}); let s="";
+            for (let k in o) {
+              return true;
+            }
+          }
+          foo();
+        ), &res));
+  ASSERT_EQ(mjs->loop_addresses.len, 0);
+
 
   mjs_disown(mjs, &res);
 

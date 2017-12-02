@@ -266,14 +266,17 @@ MJS_PRIVATE void mjs_gen_stack_trace(struct mjs *mjs, size_t offset) {
   mjs_append_stack_trace_line(mjs, offset);
   while (mjs->call_stack.len >=
          sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT) {
-    /* pop retval_stack_idx */
-    mjs_pop_val(&mjs->call_stack);
-    /* pop scope_index */
-    mjs_pop_val(&mjs->call_stack);
-    /* pop return_address and set current offset to it */
-    offset = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
-    /* pop this object */
-    mjs_pop_val(&mjs->call_stack);
+    int i;
+
+    /* set current offset to it to the offset stored in the frame */
+    offset = mjs_get_int(
+        mjs, *vptr(&mjs->call_stack, -1 - CALL_STACK_FRAME_ITEM_RETURN_ADDR));
+
+    /* pop frame from the call stack */
+    for (i = 0; i < CALL_STACK_FRAME_ITEMS_CNT; i++) {
+      mjs_pop_val(&mjs->call_stack);
+    }
+
     mjs_append_stack_trace_line(mjs, offset);
   }
 }
