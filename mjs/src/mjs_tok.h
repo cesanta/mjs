@@ -31,6 +31,7 @@ struct pstate {
   int start_bcode_idx; /* Index in mjs->bcode at which parsing was started */
   int cur_idx; /* Index in mjs->bcode at which newly generated code is inserted
                   */
+  int depth;
 };
 
 enum {

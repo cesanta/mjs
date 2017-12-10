@@ -70,12 +70,21 @@ static void emit_op(struct pstate *pstate, int tok) {
   emit_byte(pstate, (uint8_t) tok);
 }
 
+#define BINOP_STACK_FRAME_SIZE 16
+#define STACK_LIMIT 8192
+
 // Intentionally left as macro rather than a function, to let the
 // compiler to inline calls and mimimize runtime stack usage.
 #define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                               \
   do {                                                                         \
     mjs_err_t res = MJS_OK;                                                    \
-    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res;                          \
+    p->depth++;                                                                \
+    if (p->depth > (STACK_LIMIT / BINOP_STACK_FRAME_SIZE)) {                   \
+      mjs_set_errorf(p->mjs, MJS_SYNTAX_ERROR, "parser stack overflow");       \
+      res = MJS_SYNTAX_ERROR;                                                  \
+      goto binop_clean;                                                        \
+    }                                                                          \
+    if ((res = f1(p, TOK_EOF)) != MJS_OK) goto binop_clean;                    \
     if (prev_op != TOK_EOF) emit_op(p, prev_op);                               \
     if (findtok(ops, p->tok.tok) != TOK_EOF) {                                 \
       int op = p->tok.tok;                                                     \
@@ -93,13 +102,15 @@ static void emit_op(struct pstate *pstate, int tok) {
         op = TOK_EOF;                                                          \
       }                                                                        \
       pnext1(p);                                                               \
-      if ((res = f2(p, op)) != MJS_OK) return res;                             \
+      if ((res = f2(p, op)) != MJS_OK) goto binop_clean;                       \
                                                                                \
       if (off_if != 0) {                                                       \
         mjs_bcode_insert_offset(p, p->mjs, off_if,                             \
                                 p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE);   \
       }                                                                        \
     }                                                                          \
+  binop_clean:                                                                 \
+    p->depth--;                                                                \
     return res;                                                                \
   } while (0)
 

@@ -3657,6 +3657,20 @@ const char *test_parser(struct mjs *mjs) {
   CHECK_NUMERIC("let f = function(x){return x;}; f(1),f(2),f(3)", 3);
   ASSERT_EXEC_OK(mjs_exec(mjs, ";", &res));
   ASSERT_EQ(res, MJS_UNDEFINED);
+
+  /* 51 []s is ok */
+  ASSERT_EQ(mjs_exec(mjs,
+        "let a = [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]];"
+        "let b = [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]];"
+        , &res), MJS_OK);
+
+  /* 52 []s is not ok */
+  ASSERT_EQ(mjs_exec(mjs,
+        "let a = [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]];"
+        "let b = [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]];"
+        , &res), MJS_SYNTAX_ERROR);
+  ASSERT_STREQ(mjs->error_msg, "parser stack overflow");
+
   mjs_disown(mjs, &res);
   return NULL;
 }
