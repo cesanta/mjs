@@ -3557,7 +3557,7 @@ MJS_PRIVATE mjs_val_t s_concat(struct mjs *mjs, mjs_val_t a, mjs_val_t b);
 MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
                               size_t len, uint8_t /*enum embstr_flags*/ flags);
 
-MJS_PRIVATE void mjs_fstr(struct mjs *mjs);
+MJS_PRIVATE void mjs_mkstr(struct mjs *mjs);
 
 MJS_PRIVATE void mjs_string_slice(struct mjs *mjs);
 MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
@@ -7956,7 +7956,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "print", ~0, mjs_mk_foreign(mjs, mjs_print));
   mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
-  mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
+  mjs_set(mjs, obj, "mkstr", ~0, mjs_mk_foreign(mjs, mjs_mkstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
   mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
   mjs_set(mjs, obj, "gc", ~0, mjs_mk_foreign(mjs, mjs_do_gc));
@@ -13652,17 +13652,19 @@ clean:
   mjs_return(mjs, ret);
 }
 
-MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
+MJS_PRIVATE void mjs_mkstr(struct mjs *mjs) {
   int nargs = mjs_nargs(mjs);
   mjs_val_t ret = MJS_UNDEFINED;
 
   char *ptr = NULL;
   int offset = 0;
   int len = 0;
+  int copy = 0;
 
   mjs_val_t ptr_v = MJS_UNDEFINED;
   mjs_val_t offset_v = MJS_UNDEFINED;
   mjs_val_t len_v = MJS_UNDEFINED;
+  mjs_val_t copy_v = MJS_UNDEFINED;
 
   if (nargs == 2) {
     ptr_v = mjs_arg(mjs, 0);
@@ -13671,10 +13673,15 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
     ptr_v = mjs_arg(mjs, 0);
     offset_v = mjs_arg(mjs, 1);
     len_v = mjs_arg(mjs, 2);
+  } else if (nargs == 4) {
+    ptr_v = mjs_arg(mjs, 0);
+    offset_v = mjs_arg(mjs, 1);
+    len_v = mjs_arg(mjs, 2);
+    copy_v = mjs_arg(mjs, 3);
   } else {
-    mjs_prepend_errorf(
-        mjs, MJS_TYPE_ERROR,
-        "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                       "mkstr takes 2, 3 or 4 arguments: (ptr, len), (ptr, "
+                       "offset, len) or (ptr, offset, len, copy)");
     goto clean;
   }
 
@@ -13693,6 +13700,8 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
     goto clean;
   }
 
+  copy = mjs_is_truthy(mjs, copy_v);
+
   /* all arguments are fine */
 
   ptr = (char *) mjs_get_ptr(mjs, ptr_v);
@@ -13701,7 +13710,7 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
   }
   len = mjs_get_int(mjs, len_v);
 
-  ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
+  ret = mjs_mk_string(mjs, ptr + offset, len, copy);
 
 clean:
   mjs_return(mjs, ret);

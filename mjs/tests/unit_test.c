@@ -3051,7 +3051,7 @@ const char *test_foreign_str(struct mjs *mjs) {
         STRINGIFY(
           let calloc = ffi('void *calloc(int, int)');
           let ptr = calloc(100, 1);
-          let str = fstr(ptr, 3);
+          let str = mkstr(ptr, 3);
           ptr
           ), &res));
   ptr = (unsigned char *)mjs_get_ptr(mjs, res);
@@ -3071,7 +3071,7 @@ const char *test_foreign_str(struct mjs *mjs) {
   ASSERT_EXEC_OK(mjs_exec(mjs, "str === 'a\\x00b'", &res));
   ASSERT_EQ(mjs_get_bool(mjs, res), 1);
 
-  ASSERT_EXEC_OK(mjs_exec(mjs, "let str2 = fstr(ptr, 2, 10); str2", &res));
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let str2 = mkstr(ptr, 2, 10); str2", &res));
   ASSERT_EXEC_OK(mjs_exec(mjs, "str2 === 'b\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'", &res));
   ASSERT_EQ(mjs_get_bool(mjs, res), 1);
 

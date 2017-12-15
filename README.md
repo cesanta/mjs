@@ -77,10 +77,15 @@ where it enables scripting for IoT devices.
     adding new elements. Example:
   <tt>let a = [1,2,3,4,5]; a.splice(1, 2, 100, 101, 102); a === [1,100,101,102,4,5];</tt></dd>
 
-  <dt><tt>let s = fstr(ptrVar, offset, length);</tt></dt>
+  <dt><tt>let s = mkstr(ptrVar, length);</tt></dt>
   <dd>Create a string backed by a C memory chunk. A string <tt>s</tt> starts
-  at memory location <tt>ptrVar + offset</tt>, and is <tt>length</tt> bytes long.
-  Short form is also available: <tt>fstr(ptrVar, length)</tt>.</dd>
+  at memory location <tt>ptrVar</tt>, and is <tt>length</tt> bytes long.</dd>
+
+  <dt><tt>let s = mkstr(ptrVar, offset, length, copy = false);</tt></dt>
+  <dd>Like `mkstr(ptrVar, length)`, but string <tt>s</tt> starts
+  at memory location <tt>ptrVar + offset</tt>, and the caller can specify
+  whether the string needs to be copied to the internal mjs buffer. By default
+  it's not copied.</dd>
 
   <dt><tt>let f = ffi('int foo(int)');</tt></dt>
   <dd>Import C function into mJS. See next section.</dd>
