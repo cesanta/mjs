@@ -3,13 +3,15 @@
  * All rights reserved
  */
 
+#include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_conversion.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_internal.h"
-#include "mjs/src/mjs_object.h"
 #include "mjs/src/mjs_primitive.h"
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_util.h"
+
+#include "common/mg_str.h"
 
 MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
@@ -276,4 +278,54 @@ MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs) {
 
 clean:
   mjs_return(mjs, ret);
+}
+
+mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
+                            const struct mjs_c_struct_member *def) {
+  mjs_val_t obj = mjs_mk_object(mjs);
+  for (; def->name != NULL; def++) {
+    const char *ptr = (const char *) base + def->offset;
+    switch (def->type) {
+      case MJS_FFI_CTYPE_INT: {
+        double value = (double) (*(int *) ptr);
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, value));
+        break;
+      }
+      case MJS_FFI_CTYPE_CHAR_PTR: {
+        const char *value = *(const char **) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, value, ~0, 1));
+        break;
+      }
+      case MJS_FFI_CTYPE_DOUBLE: {
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, *(double *) ptr));
+        break;
+      }
+      case MJS_FFI_CTYPE_STRUCT_MG_STR: {
+        const struct mg_str *s = (const struct mg_str *) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, s->p, s->len, 1));
+        break;
+      }
+      case MJS_FFI_CTYPE_STRUCT_MG_STR_PTR: {
+        const struct mg_str *s = *(const struct mg_str **) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, s->p, s->len, 1));
+        break;
+      }
+      case MJS_FFI_CTYPE_FLOAT: {
+        float value = *(float *) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, value));
+        break;
+      }
+      case MJS_FFI_CTYPE_VOID_PTR: {
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_foreign(mjs, *(void **) ptr));
+        break;
+      }
+      case MJS_FFI_CTYPE_BOOL: {
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_boolean(mjs, *(bool *) ptr));
+        break;
+      }
+      default:
+        return MJS_UNDEFINED;
+    }
+  }
+  return obj;
 }

@@ -6,8 +6,9 @@
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
 
-#include "mjs/src/mjs_core_public.h"
 #include <stddef.h>
+#include "mjs/src/mjs_core_public.h"
+#include "mjs/src/mjs_ffi_public.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -20,6 +21,17 @@ int mjs_is_object(mjs_val_t v);
 
 /* Make an empty object */
 mjs_val_t mjs_mk_object(struct mjs *mjs);
+
+/* C structure layout descriptor - needed by mjs_struct_to_obj */
+struct mjs_c_struct_member {
+  const char *name;
+  size_t offset;
+  enum mjs_ffi_ctype type;
+};
+
+/* Create flat JS object from a C memory descriptor */
+mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
+                            const struct mjs_c_struct_member *members);
 
 /*
  * Lookup property `name` in object `obj`. If `obj` holds no such property,

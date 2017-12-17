@@ -2721,6 +2721,21 @@ MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs);
 extern "C" {
 #endif /* __cplusplus */
 
+enum mjs_ffi_ctype {
+  MJS_FFI_CTYPE_NONE,
+  MJS_FFI_CTYPE_USERDATA,
+  MJS_FFI_CTYPE_CALLBACK,
+  MJS_FFI_CTYPE_INT,
+  MJS_FFI_CTYPE_BOOL,
+  MJS_FFI_CTYPE_DOUBLE,
+  MJS_FFI_CTYPE_FLOAT,
+  MJS_FFI_CTYPE_CHAR_PTR,
+  MJS_FFI_CTYPE_VOID_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR,
+  MJS_FFI_CTYPE_INVALID,
+};
+
 typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
 
 void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
@@ -2754,19 +2769,6 @@ mjs_ffi_resolver_t dlsym;
 #define MJS_CB_ARGS_MAX_CNT 6
 #define MJS_CB_SIGNATURE_MAX_SIZE (MJS_CB_ARGS_MAX_CNT + 1 /* return type */)
 
-enum mjs_ffi_ctype {
-  MJS_FFI_CTYPE_NONE,
-  MJS_FFI_CTYPE_USERDATA,
-  MJS_FFI_CTYPE_CALLBACK,
-  MJS_FFI_CTYPE_INT,
-  MJS_FFI_CTYPE_BOOL,
-  MJS_FFI_CTYPE_DOUBLE,
-  MJS_FFI_CTYPE_FLOAT,
-  MJS_FFI_CTYPE_CHAR_PTR,
-  MJS_FFI_CTYPE_VOID_PTR,
-  MJS_FFI_CTYPE_STRUCT_MG_STR_PTR,
-  MJS_FFI_CTYPE_INVALID,
-};
 typedef uint8_t mjs_ffi_ctype_t;
 
 enum ffi_sig_type {
@@ -3237,8 +3239,9 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stddef.h>
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3251,6 +3254,17 @@ int mjs_is_object(mjs_val_t v);
 
 /* Make an empty object */
 mjs_val_t mjs_mk_object(struct mjs *mjs);
+
+/* C structure layout descriptor - needed by mjs_struct_to_obj */
+struct mjs_c_struct_member {
+  const char *name;
+  size_t offset;
+  enum mjs_ffi_ctype type;
+};
+
+/* Create flat JS object from a C memory descriptor */
+mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
+                            const struct mjs_c_struct_member *members);
 
 /*
  * Lookup property `name` in object `obj`. If `obj` holds no such property,
@@ -12014,13 +12028,15 @@ int main(int argc, char *argv[]) {
  * All rights reserved
  */
 
+/* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_conversion.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
+
+/* Amalgamated: #include "common/mg_str.h" */
 
 MJS_PRIVATE mjs_val_t mjs_object_to_value(struct mjs_object *o) {
   if (o == NULL) {
@@ -12287,6 +12303,56 @@ MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs) {
 
 clean:
   mjs_return(mjs, ret);
+}
+
+mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
+                            const struct mjs_c_struct_member *def) {
+  mjs_val_t obj = mjs_mk_object(mjs);
+  for (; def->name != NULL; def++) {
+    const char *ptr = (const char *) base + def->offset;
+    switch (def->type) {
+      case MJS_FFI_CTYPE_INT: {
+        double value = (double) (*(int *) ptr);
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, value));
+        break;
+      }
+      case MJS_FFI_CTYPE_CHAR_PTR: {
+        const char *value = *(const char **) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, value, ~0, 1));
+        break;
+      }
+      case MJS_FFI_CTYPE_DOUBLE: {
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, *(double *) ptr));
+        break;
+      }
+      case MJS_FFI_CTYPE_STRUCT_MG_STR: {
+        const struct mg_str *s = (const struct mg_str *) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, s->p, s->len, 1));
+        break;
+      }
+      case MJS_FFI_CTYPE_STRUCT_MG_STR_PTR: {
+        const struct mg_str *s = *(const struct mg_str **) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, s->p, s->len, 1));
+        break;
+      }
+      case MJS_FFI_CTYPE_FLOAT: {
+        float value = *(float *) ptr;
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, value));
+        break;
+      }
+      case MJS_FFI_CTYPE_VOID_PTR: {
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_foreign(mjs, *(void **) ptr));
+        break;
+      }
+      case MJS_FFI_CTYPE_BOOL: {
+        mjs_set(mjs, obj, def->name, ~0, mjs_mk_boolean(mjs, *(bool *) ptr));
+        break;
+      }
+      default:
+        return MJS_UNDEFINED;
+    }
+  }
+  return obj;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_parser.c"
@@ -13444,11 +13510,12 @@ MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs) {
  * All rights reserved
  */
 
+/* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "common/cs_varint.h" */
+/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
 /* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 // No UTF

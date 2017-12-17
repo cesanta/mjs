@@ -2623,6 +2623,45 @@ const char *test_objects(struct mjs *mjs) {
       "p_foo:3_o1_foo:2_o2_foo:3_"
       );
 
+  {
+    struct mg_str dummy = mg_mk_str("baz");
+    struct my {
+      int a;
+      const char *b;
+      double c;
+      struct mg_str d;
+      struct mg_str *e;
+      float f;
+      bool g;
+    } s = {17, "foo", 12.34, {"bar", 3}, &dummy, 45.67f, true};
+    const struct mjs_c_struct_member def[] = {
+      {"a", offsetof(struct my, a), MJS_FFI_CTYPE_INT},
+      {"b", offsetof(struct my, b), MJS_FFI_CTYPE_CHAR_PTR},
+      {"c", offsetof(struct my, c), MJS_FFI_CTYPE_DOUBLE},
+      {"d", offsetof(struct my, d), MJS_FFI_CTYPE_STRUCT_MG_STR},
+      {"e", offsetof(struct my, e), MJS_FFI_CTYPE_STRUCT_MG_STR_PTR},
+      {"f", offsetof(struct my, f), MJS_FFI_CTYPE_FLOAT},
+      {"g", offsetof(struct my, g), MJS_FFI_CTYPE_BOOL},
+      {NULL, 0, MJS_FFI_CTYPE_NONE},
+    };
+    mjs_val_t v = mjs_struct_to_obj(mjs, &s, def);
+    mjs_set(mjs, mjs_get_global(mjs), "my", ~0, v);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.a", &res));
+    ASSERT_EQ(mjs_get_int(mjs, res), 17);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.b", &res));
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "foo");
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.c", &res));
+    ASSERT_EQ(mjs_get_double(mjs, res), 12.34);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.d", &res));
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "bar");
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.e", &res));
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "baz");
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.f", &res));
+    ASSERT_EQ(mjs_get_double(mjs, res), 45.67f);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "my.g", &res));
+    ASSERT_EQ(mjs_get_bool(mjs, res), true);
+  }
+
   mjs_disown(mjs, &res);
 
   return NULL;
