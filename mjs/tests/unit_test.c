@@ -2747,6 +2747,22 @@ const char *test_arrays(struct mjs *mjs) {
           ), &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "[]___[1,7,2,3]");
 
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([1, 2, 3]);
+          let ret=a.push(10,20,30);
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "6___[1,2,3,10,20,30]");
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let a=([]);
+          let ret=a.push();
+          JSON.stringify(ret) + '___' + JSON.stringify(a)
+          ), &res));
+  ASSERT_STREQ(mjs_get_cstring(mjs, &res), "0___[]");
+
   mjs_disown(mjs, &res);
 
   return NULL;

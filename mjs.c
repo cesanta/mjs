@@ -2697,6 +2697,8 @@ mjs_array_get2(struct mjs *mjs, mjs_val_t arr, unsigned long index, int *has);
 
 MJS_PRIVATE void mjs_array_splice(struct mjs *mjs);
 
+MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -7667,6 +7669,34 @@ mjs_err_t mjs_array_push(struct mjs *mjs, mjs_val_t arr, mjs_val_t v) {
   return mjs_array_set(mjs, arr, mjs_array_length(mjs, arr), v);
 }
 
+MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs) {
+  mjs_err_t rcode = MJS_OK;
+  mjs_val_t ret = MJS_UNDEFINED;
+  int nargs = mjs_nargs(mjs);
+  int i;
+
+  /* Make sure that `this` is an array */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_OBJECT_ARRAY, NULL)) {
+    goto clean;
+  }
+
+  /* Push all args */
+  for (i = 0; i < nargs; i++) {
+    rcode = mjs_array_push(mjs, mjs->vals.this_obj, mjs_arg(mjs, i));
+    if (rcode != MJS_OK) {
+      mjs_prepend_errorf(mjs, rcode, "");
+      goto clean;
+    }
+  }
+
+  /* Return the new array length */
+  ret = mjs_mk_number(mjs, mjs_array_length(mjs, mjs->vals.this_obj));
+
+clean:
+  mjs_return(mjs, ret);
+  return;
+}
+
 static void move_item(struct mjs *mjs, mjs_val_t arr, unsigned long from,
                       unsigned long to) {
   mjs_val_t cur = mjs_array_get(mjs, arr, from);
@@ -9086,6 +9116,9 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
                                  mjs_val_t *res) {
   if (strcmp(name, "splice") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_array_splice);
+    return 1;
+  } else if (strcmp(name, "push") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_array_push_internal);
     return 1;
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));

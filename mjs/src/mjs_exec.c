@@ -449,6 +449,9 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
   if (strcmp(name, "splice") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_array_splice);
     return 1;
+  } else if (strcmp(name, "push") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_array_push_internal);
+    return 1;
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
     return 1;
