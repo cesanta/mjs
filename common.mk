@@ -1,6 +1,4 @@
-GO_PACKAGES = $(shell go list cesanta.com/cloud/... | grep -v vendor) \
-             cesanta.com/clubby/... \
-             cesanta.com/common/... \
+GO_PACKAGES = cesanta.com/common/... \
              cesanta.com/fw/... \
              cesanta.com/mos/... \
              cesanta.com/ourci/... \
