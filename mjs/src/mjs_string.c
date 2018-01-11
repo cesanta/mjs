@@ -334,6 +334,35 @@ clean:
   mjs_return(mjs, ret);
 }
 
+MJS_PRIVATE void mjs_string_indexof(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t idx_v = MJS_UNDEFINED;
+  size_t size;
+  const char *s = NULL;
+
+  /* get string from `this` */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
+    goto clean;
+  }
+  s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
+
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_STRING, &idx_v)) {
+    goto clean;
+  }
+
+  size_t tok_size;
+  const char *tok = mjs_get_string(mjs, &idx_v, &tok_size);
+  if (tok) {
+      char *pos = strstr(s, tok);
+      if (pos) ret = mjs_mk_number(mjs, pos - s);
+      else ret = mjs_mk_number(mjs, -1);
+  } else ret = mjs_mk_number(mjs, -1);
+
+clean:
+  mjs_return(mjs, ret);
+}
+
 MJS_PRIVATE void mjs_mkstr(struct mjs *mjs) {
   int nargs = mjs_nargs(mjs);
   mjs_val_t ret = MJS_UNDEFINED;
