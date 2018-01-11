@@ -204,7 +204,7 @@ test: $(firstword $(TEST_VARIANTS))
 #	$<
 
 clean:
-	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h _CL_*
+	rm -rf $(BUILD_DIR) $(TOP_OBJECTS) *.obj mjs.c mjs.h _CL_*
 
 print_sources:
 	@echo $(TOP_SOURCES) $(TOP_HEADERS)
