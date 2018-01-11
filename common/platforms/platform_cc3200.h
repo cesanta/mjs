@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
@@ -92,8 +93,10 @@ int stat(const char *pathname, struct stat *st);
 #define S_ISDIR(mode) __S_ISTYPE((mode), __S_IFDIR)
 #define S_ISREG(mode) __S_ISTYPE((mode), __S_IFREG)
 
-/* As of 5.2.7, TI compiler does not support va_copy() yet. */
+/* 5.x series compilers don't have va_copy, 16.x do. */
+#if __TI_COMPILER_VERSION__ < 16000000
 #define va_copy(apc, ap) ((apc) = (ap))
+#endif
 
 #endif /* __TI_COMPILER_VERSION__ */
 

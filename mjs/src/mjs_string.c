@@ -3,11 +3,12 @@
  * All rights reserved
  */
 
+#include "mjs/src/mjs_string.h"
 #include "common/cs_varint.h"
+#include "mjs/src/mjs_conversion.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_primitive.h"
-#include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_util.h"
 
 // No UTF
@@ -41,8 +42,19 @@ int mjs_is_string(mjs_val_t v) {
 }
 
 mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
-  struct mbuf *m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
-  mjs_val_t offset = m->len, tag = MJS_TAG_STRING_F;
+  struct mbuf *m;
+  mjs_val_t offset, tag = MJS_TAG_STRING_F;
+  if (len == 0) {
+    /*
+     * Zero length for foreign string has a special meaning (that the foreign
+     * string is not inlined into mjs_val_t), so when creating a zero-length
+     * string, we always assume it'll be owned. Since the length is zero, it
+     * doesn't matter anyway.
+     */
+    copy = 1;
+  }
+  m = copy ? &mjs->owned_strings : &mjs->foreign_strings;
+  offset = m->len;
 
   if (len == ~((size_t) 0)) len = strlen(p);
 
@@ -158,7 +170,7 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
       char *s = mjs->foreign_strings.buf + offset;
 
       size = cs_varint_decode((uint8_t *) s, &llen);
-      memcpy(&p, s + llen, sizeof(p));
+      memcpy((char **) &p, s + llen, sizeof(p));
     }
   } else {
     assert(0);
@@ -322,46 +334,19 @@ clean:
   mjs_return(mjs, ret);
 }
 
-MJS_PRIVATE void mjs_string_indexof(struct mjs *mjs) {
-  mjs_val_t ret = MJS_UNDEFINED;
-  mjs_val_t idx_v = MJS_UNDEFINED;
-  size_t size;
-  const char *s = NULL;
-
-  /* get string from `this` */
-  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
-    goto clean;
-  }
-  s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
-
-  /* get idx from arg 0 */
-  if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_STRING, &idx_v)) {
-    goto clean;
-  }
-
-  size_t tok_size;
-  const char *tok = mjs_get_string(mjs, &idx_v, &tok_size);
-  if (tok) {
-      char *pos = strstr(s, tok);
-      if (pos) ret = mjs_mk_number(mjs, pos - s);
-      else ret = mjs_mk_number(mjs, -1);
-  } else ret = mjs_mk_number(mjs, -1);
-
-clean:
-  mjs_return(mjs, ret);
-}
-
-MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
+MJS_PRIVATE void mjs_mkstr(struct mjs *mjs) {
   int nargs = mjs_nargs(mjs);
   mjs_val_t ret = MJS_UNDEFINED;
 
   char *ptr = NULL;
   int offset = 0;
   int len = 0;
+  int copy = 0;
 
   mjs_val_t ptr_v = MJS_UNDEFINED;
   mjs_val_t offset_v = MJS_UNDEFINED;
   mjs_val_t len_v = MJS_UNDEFINED;
+  mjs_val_t copy_v = MJS_UNDEFINED;
 
   if (nargs == 2) {
     ptr_v = mjs_arg(mjs, 0);
@@ -370,10 +355,15 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
     ptr_v = mjs_arg(mjs, 0);
     offset_v = mjs_arg(mjs, 1);
     len_v = mjs_arg(mjs, 2);
+  } else if (nargs == 4) {
+    ptr_v = mjs_arg(mjs, 0);
+    offset_v = mjs_arg(mjs, 1);
+    len_v = mjs_arg(mjs, 2);
+    copy_v = mjs_arg(mjs, 3);
   } else {
-    mjs_prepend_errorf(
-        mjs, MJS_TYPE_ERROR,
-        "fstr takes 2 or 3 arguments: (ptr, len) or (ptr, offset, len)");
+    mjs_prepend_errorf(mjs, MJS_TYPE_ERROR,
+                       "mkstr takes 2, 3 or 4 arguments: (ptr, len), (ptr, "
+                       "offset, len) or (ptr, offset, len, copy)");
     goto clean;
   }
 
@@ -392,6 +382,8 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
     goto clean;
   }
 
+  copy = mjs_is_truthy(mjs, copy_v);
+
   /* all arguments are fine */
 
   ptr = (char *) mjs_get_ptr(mjs, ptr_v);
@@ -400,7 +392,7 @@ MJS_PRIVATE void mjs_fstr(struct mjs *mjs) {
   }
   len = mjs_get_int(mjs, len_v);
 
-  ret = mjs_mk_string(mjs, ptr + offset, len, 0 /* don't copy */);
+  ret = mjs_mk_string(mjs, ptr + offset, len, copy);
 
 clean:
   mjs_return(mjs, ret);

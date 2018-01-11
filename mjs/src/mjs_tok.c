@@ -22,7 +22,7 @@ MJS_PRIVATE void pinit(const char *file_name, const char *buf,
 // We're not relying on the target libc ctype, as it may incorrectly
 // handle negative arguments, e.g. isspace(-1).
 static int mjs_is_space(int c) {
-  return c == ' ' || c == '\r' || c == '\n' || c == '\t';
+  return c == ' ' || c == '\r' || c == '\n' || c == '\t' || c == '\f' || c == '\v';
 }
 
 MJS_PRIVATE int mjs_is_digit(int c) {
@@ -206,13 +206,15 @@ static int ptranslate(int tok) {
 }
 
 MJS_PRIVATE int pnext(struct pstate *p) {
-  int tmp, tok = TOK_EOF;
+  int tmp, tok = TOK_INVALID;
 
   skip_spaces_and_comments(p);
   p->tok.ptr = p->pos;
   p->tok.len = 1;
 
-  if (mjs_is_digit(p->pos[0])) {
+  if (p->pos[0] == '\0') {
+    tok = TOK_EOF;
+  } if (mjs_is_digit(p->pos[0])) {
     tok = getnum(p);
   } else if (p->pos[0] == '\'' || p->pos[0] == '"') {
     tok = getstr(p);
@@ -244,7 +246,7 @@ MJS_PRIVATE int pnext(struct pstate *p) {
     tok = tmp;
   }
   if (p->pos[0] != '\0') p->pos++;
-  LOG(LL_VERBOSE_DEBUG, ("  --> [%.*s]", p->tok.len, p->tok.ptr));
+  LOG(LL_VERBOSE_DEBUG, ("  --> %d [%.*s]", tok, p->tok.len, p->tok.ptr));
   p->prev_tok = p->tok.tok;
   p->tok.tok = ptranslate(tok);
   return p->tok.tok;

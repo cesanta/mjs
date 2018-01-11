@@ -71,6 +71,7 @@ void mjs_destroy(struct mjs *mjs) {
 }
 
 struct mjs *mjs_create(void) {
+  mjs_val_t global_object;
   struct mjs *mjs = calloc(1, sizeof(*mjs));
   mbuf_init(&mjs->stack, 0);
   mbuf_init(&mjs->call_stack, 0);
@@ -103,7 +104,7 @@ struct mjs *mjs_create(void) {
                 MJS_FUNC_FFI_ARENA_SIZE, MJS_FUNC_FFI_ARENA_INC_SIZE);
   mjs->ffi_sig_arena.destructor = mjs_ffi_sig_destructor;
 
-  mjs_val_t global_object = mjs_mk_object(mjs);
+  global_object = mjs_mk_object(mjs);
   mjs_init_builtin(mjs, global_object);
   mjs_set_ffi_resolver(mjs, dlsym);
   push_mjs_val(&mjs->scopes, global_object);
@@ -128,14 +129,14 @@ mjs_err_t mjs_set_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt, ...) {
 
 mjs_err_t mjs_prepend_errorf(struct mjs *mjs, mjs_err_t err, const char *fmt,
                              ...) {
+  char *old_error_msg = mjs->error_msg;
+  char *new_error_msg = NULL;
   va_list ap;
   va_start(ap, fmt);
 
   /* err should never be MJS_OK here */
   assert(err != MJS_OK);
 
-  char *old_error_msg = mjs->error_msg;
-  char *new_error_msg = NULL;
   mjs->error_msg = NULL;
   /* set error if only it wasn't already set to some error */
   if (mjs->error == MJS_OK) {
@@ -265,14 +266,17 @@ MJS_PRIVATE void mjs_gen_stack_trace(struct mjs *mjs, size_t offset) {
   mjs_append_stack_trace_line(mjs, offset);
   while (mjs->call_stack.len >=
          sizeof(mjs_val_t) * CALL_STACK_FRAME_ITEMS_CNT) {
-    /* pop retval_stack_idx */
-    mjs_pop_val(&mjs->call_stack);
-    /* pop scope_index */
-    mjs_pop_val(&mjs->call_stack);
-    /* pop return_address and set current offset to it */
-    offset = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
-    /* pop this object */
-    mjs_pop_val(&mjs->call_stack);
+    int i;
+
+    /* set current offset to it to the offset stored in the frame */
+    offset = mjs_get_int(
+        mjs, *vptr(&mjs->call_stack, -1 - CALL_STACK_FRAME_ITEM_RETURN_ADDR));
+
+    /* pop frame from the call stack */
+    for (i = 0; i < CALL_STACK_FRAME_ITEMS_CNT; i++) {
+      mjs_pop_val(&mjs->call_stack);
+    }
+
     mjs_append_stack_trace_line(mjs, offset);
   }
 }
@@ -311,14 +315,14 @@ MJS_PRIVATE int mjs_getretvalpos(struct mjs *mjs) {
   return pos;
 }
 
-MJS_PRIVATE int mjs_nargs(struct mjs *mjs) {
+int mjs_nargs(struct mjs *mjs) {
   int top = mjs_stack_size(&mjs->stack);
   int pos = mjs_getretvalpos(mjs) + 1;
   // LOG(LL_INFO, ("top: %d pos: %d", top, pos));
   return pos > 0 && pos < top ? top - pos : 0;
 }
 
-MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index) {
+mjs_val_t mjs_arg(struct mjs *mjs, int arg_index) {
   mjs_val_t res = MJS_UNDEFINED;
   int top = mjs_stack_size(&mjs->stack);
   int pos = mjs_getretvalpos(mjs) + 1;
@@ -329,7 +333,7 @@ MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index) {
   return res;
 }
 
-MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t v) {
+void mjs_return(struct mjs *mjs, mjs_val_t v) {
   int pos = mjs_getretvalpos(mjs);
   // LOG(LL_INFO, ("pos: %d", pos));
   mjs->stack.len = sizeof(mjs_val_t) * pos;

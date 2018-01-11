@@ -31,12 +31,19 @@ static void call_stack_push_frame(struct mjs *mjs, size_t offset,
                                   mjs_val_t retval_stack_idx) {
   /* Pop `this` value, and apply it */
   mjs_val_t this_obj = mjs_pop_val(&mjs->arg_stack);
+
+  /*
+   * NOTE: the layout is described by enum mjs_call_stack_frame_item
+   */
   push_mjs_val(&mjs->call_stack, mjs->vals.this_obj);
   mjs->vals.this_obj = this_obj;
 
-  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, offset));
+  push_mjs_val(&mjs->call_stack, mjs_mk_number(mjs, (double) offset));
   push_mjs_val(&mjs->call_stack,
-               mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+               mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
+  push_mjs_val(
+      &mjs->call_stack,
+      mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->loop_addresses)));
   push_mjs_val(&mjs->call_stack, retval_stack_idx);
 }
 
@@ -44,23 +51,32 @@ static void call_stack_push_frame(struct mjs *mjs, size_t offset,
  * Restores call stack frame. Returns the return address.
  */
 static size_t call_stack_restore_frame(struct mjs *mjs) {
-  size_t retval_stack_idx, return_address, scope_index;
+  size_t retval_stack_idx, return_address, scope_index, loop_addr_index;
   assert(mjs_stack_size(&mjs->call_stack) >= CALL_STACK_FRAME_ITEMS_CNT);
 
+  /*
+   * NOTE: the layout is described by enum mjs_call_stack_frame_item
+   */
   retval_stack_idx = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
+  loop_addr_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
   scope_index = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
   return_address = mjs_get_int(mjs, mjs_pop_val(&mjs->call_stack));
   mjs->vals.this_obj = mjs_pop_val(&mjs->call_stack);
 
-  // Remove created scopes
+  /* Remove created scopes */
   while (mjs_stack_size(&mjs->scopes) > scope_index) {
     mjs_pop_val(&mjs->scopes);
   }
 
-  // Shrink stack, leave return value on top
+  /* Remove loop addresses */
+  while (mjs_stack_size(&mjs->loop_addresses) > loop_addr_index) {
+    mjs_pop_val(&mjs->loop_addresses);
+  }
+
+  /* Shrink stack, leave return value on top */
   mjs->stack.len = retval_stack_idx * sizeof(mjs_val_t);
 
-  // Jump to the return address
+  /* Jump to the return address */
   return return_address;
 }
 
@@ -91,20 +107,25 @@ static double do_arith_op(double da, double db, int op) {
         return da / db;
       } else {
         /* TODO(dfrank): add support for Infinity and return it here */
-        return MJS_TAG_NAN;
+        return (double) MJS_TAG_NAN;
       }
     case TOK_REM:
+      /*
+       * TODO(dfrank): probably support remainder operation as it is in JS
+       * (which works with non-integer divisor).
+       */
+      db = (int) db;
       if (db != 0) {
-        return (int64_t) da % (int64_t) db;
+        return (double) ((int64_t) da % (int64_t) db);
       } else {
-        return MJS_TAG_NAN;
+        return (double) MJS_TAG_NAN;
       }
-    case TOK_AND:     return (int64_t) da & (int64_t) db;
-    case TOK_OR:      return (int64_t) da | (int64_t) db;
-    case TOK_XOR:     return (int64_t) da ^ (int64_t) db;
-    case TOK_LSHIFT:  return (int64_t) da << (int64_t) db;
-    case TOK_RSHIFT:  return (int64_t) da >> (int64_t) db;
-    case TOK_URSHIFT: return (uint32_t) da >> (uint32_t) db;
+    case TOK_AND:     return (double) ((int64_t) da & (int64_t) db);
+    case TOK_OR:      return (double) ((int64_t) da | (int64_t) db);
+    case TOK_XOR:     return (double) ((int64_t) da ^ (int64_t) db);
+    case TOK_LSHIFT:  return (double) ((int64_t) da << (int64_t) db);
+    case TOK_RSHIFT:  return (double) ((int64_t) da >> (int64_t) db);
+    case TOK_URSHIFT: return (double) ((uint32_t) da >> (uint32_t) db);
   }
   /* clang-format on */
   return (int64_t) MJS_TAG_NAN;
@@ -120,6 +141,7 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
   if ((mjs_is_foreign(a) || mjs_is_number(a)) &&
       (mjs_is_foreign(b) || mjs_is_number(b))) {
     int is_result_ptr = 0;
+    double da, db, result;
 
     if (mjs_is_foreign(a) && mjs_is_foreign(b)) {
       /* When two operands are pointers, only subtraction is supported */
@@ -136,13 +158,11 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
       }
       is_result_ptr = 1;
     }
-
-    double da, db;
     da = mjs_is_number(a) ? mjs_get_double(mjs, a)
                           : (double) (uintptr_t) mjs_get_ptr(mjs, a);
     db = mjs_is_number(b) ? mjs_get_double(mjs, b)
                           : (double) (uintptr_t) mjs_get_ptr(mjs, b);
-    double result = do_arith_op(da, db, op);
+    result = do_arith_op(da, db, op);
 
     /*
      * If at least one of the operands was a pointer, result should also be
@@ -248,7 +268,7 @@ static void exec_expr(struct mjs *mjs, int op) {
     }
     case TOK_TILDA: {
       double a = mjs_get_double(mjs, mjs_pop(mjs));
-      mjs_push(mjs, mjs_mk_number(mjs, ~(int64_t) a));
+      mjs_push(mjs, mjs_mk_number(mjs, (double) (~(int64_t) a)));
       break;
     }
     case TOK_UNARY_PLUS:
@@ -418,7 +438,7 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
   if (strcmp(name, "length") == 0) {
     size_t val_len;
     mjs_get_string(mjs, &val, &val_len);
-    *res = mjs_mk_number(mjs, val_len);
+    *res = mjs_mk_number(mjs, (double) val_len);
     return 1;
 
   } else if (strcmp(name, "slice") == 0) {
@@ -452,6 +472,9 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
                                  mjs_val_t *res) {
   if (strcmp(name, "splice") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_array_splice);
+    return 1;
+  } else if (strcmp(name, "push") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_array_push_internal);
     return 1;
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
@@ -506,11 +529,6 @@ static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
 
 MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   size_t i;
-
-  mjs_set_errorf(mjs, MJS_OK, NULL);
-  free(mjs->stack_trace);
-  mjs->stack_trace = NULL;
-
   uint8_t prev_opcode = OP_MAX;
   uint8_t opcode = OP_MAX;
 
@@ -521,9 +539,16 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
   int call_stack_len = mjs->call_stack.len;
   int arg_stack_len = mjs->arg_stack.len;
   int scopes_len = mjs->scopes.len;
+  int loop_addresses_len = mjs->loop_addresses.len;
   size_t start_off = off;
+  const uint8_t *code;
 
   struct mjs_bcode_part bp = *mjs_bcode_part_get_by_offset(mjs, off);
+
+  mjs_set_errorf(mjs, MJS_OK, NULL);
+  free(mjs->stack_trace);
+  mjs->stack_trace = NULL;
+
   off -= bp.start_idx;
 
   for (i = off; i < bp.data.len; i++) {
@@ -538,7 +563,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
     maybe_gc(mjs);
 #endif
 
-    const uint8_t *code = (const uint8_t *) bp.data.p;
+    code = (const uint8_t *) bp.data.p;
     mjs_disasm_single(code, i);
     prev_opcode = opcode;
     opcode = code[i];
@@ -687,7 +712,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       case OP_PUSH_INT: {
         int llen;
         int64_t n = cs_varint_decode(&code[i + 1], &llen);
-        mjs_push(mjs, mjs_mk_number(mjs, n));
+        mjs_push(mjs, mjs_mk_number(mjs, (double) n));
         i += llen;
         break;
       }
@@ -708,11 +733,16 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
          */
         mjs_val_t *iterator = vptr(&mjs->stack, -1);
         mjs_val_t obj = *vptr(&mjs->stack, -2);
-        mjs_val_t var_name = *vptr(&mjs->stack, -3);
-        mjs_val_t key = mjs_next(mjs, obj, iterator);
-        if (key != MJS_UNDEFINED) {
-          mjs_val_t scope = mjs_find_scope(mjs, var_name);
-          mjs_set_v(mjs, scope, var_name, key);
+        if (mjs_is_object(obj)) {
+          mjs_val_t var_name = *vptr(&mjs->stack, -3);
+          mjs_val_t key = mjs_next(mjs, obj, iterator);
+          if (key != MJS_UNDEFINED) {
+            mjs_val_t scope = mjs_find_scope(mjs, var_name);
+            mjs_set_v(mjs, scope, var_name, key);
+          }
+        } else {
+          mjs_set_errorf(mjs, MJS_TYPE_ERROR,
+                         "can't iterate over non-object value");
         }
         break;
       }
@@ -753,27 +783,30 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
          * properly
          */
         push_mjs_val(&mjs->arg_stack,
-                     mjs_mk_number(mjs, mjs_stack_size(&mjs->stack)));
+                     mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->stack)));
         break;
       }
       case OP_CALL: {
         // LOG(LL_INFO, ("BEFORE CALL"));
         // mjs_dump(mjs, 0, stdout);
+        int func_pos;
+        mjs_val_t *func;
         mjs_val_t retval_stack_idx = vtop(&mjs->arg_stack);
-        int func_pos = mjs_get_int(mjs, retval_stack_idx) - 1;
-        mjs_val_t *func = vptr(&mjs->stack, func_pos);
+        func_pos = mjs_get_int(mjs, retval_stack_idx) - 1;
+        func = vptr(&mjs->stack, func_pos);
 
         /* Drop data stack size (pushed by OP_ARGS) */
         mjs_pop_val(&mjs->arg_stack);
 
         if (mjs_is_function(*func)) {
+          size_t off_call;
           call_stack_push_frame(mjs, bp.start_idx + i, retval_stack_idx);
 
           /*
            * Function offset is a global bcode offset, so we need to convert it
            * to the local offset
            */
-          size_t off_call = mjs_get_func_addr(*func) - 1;
+          off_call = mjs_get_func_addr(*func) - 1;
           bp = *mjs_bcode_part_get_by_offset(mjs, off_call);
           code = (const uint8_t *) bp.data.p;
           i = off_call - bp.start_idx;
@@ -805,11 +838,11 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       }
       case OP_SET_ARG: {
         int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
+        mjs_val_t obj, key, v;
         n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
-        mjs_val_t key =
-            mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
-        mjs_val_t obj = vtop(&mjs->scopes);
-        mjs_val_t v = mjs_arg(mjs, arg_no);
+        key = mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
+        obj = vtop(&mjs->scopes);
+        v = mjs_arg(mjs, arg_no);
         mjs_set_v(mjs, obj, key, v);
         i += llen1 + llen2 + n;
         break;
@@ -818,7 +851,9 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         if (mjs_stack_size(&mjs->call_stack) < CALL_STACK_FRAME_ITEMS_CNT) {
           mjs_set_errorf(mjs, MJS_INTERNAL_ERROR, "cannot return");
         } else {
-          size_t retval_pos = mjs_get_int(mjs, *vptr(&mjs->call_stack, -1));
+          size_t retval_pos = mjs_get_int(
+              mjs, *vptr(&mjs->call_stack,
+                         -1 - CALL_STACK_FRAME_ITEM_RETVAL_STACK_IDX));
           *vptr(&mjs->stack, retval_pos - 1) = mjs_pop(mjs);
         }
         // LOG(LL_INFO, ("AFTER SETRETVAL"));
@@ -850,41 +885,51 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
         /* push scope index */
         push_mjs_val(&mjs->loop_addresses,
-                     mjs_mk_number(mjs, mjs_stack_size(&mjs->scopes)));
+                     mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
 
         /* push break offset */
-        push_mjs_val(&mjs->loop_addresses,
-                     mjs_mk_number(mjs, i + 1 /* OP_LOOP */ + l1 + off));
+        push_mjs_val(
+            &mjs->loop_addresses,
+            mjs_mk_number(mjs, (double) (i + 1 /* OP_LOOP */ + l1 + off)));
         off = cs_varint_decode(&code[i + 1 + l1], &l2);
 
         /* push continue offset */
-        push_mjs_val(&mjs->loop_addresses,
-                     mjs_mk_number(mjs, i + 1 /* OP_LOOP*/ + l1 + l2 + off));
+        push_mjs_val(
+            &mjs->loop_addresses,
+            mjs_mk_number(mjs, (double) (i + 1 /* OP_LOOP*/ + l1 + l2 + off)));
         i += l1 + l2;
         break;
       }
       case OP_CONTINUE: {
-        /* restore scope index */
-        size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
-        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
-        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+        if (mjs_stack_size(&mjs->loop_addresses) >= 3) {
+          size_t scopes_len = mjs_get_int(mjs, *vptr(&mjs->loop_addresses, -3));
+          assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+          mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
 
-        /* jump to "continue" address */
-        i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
+          /* jump to "continue" address */
+          i = mjs_get_int(mjs, vtop(&mjs->loop_addresses)) - 1;
+        } else {
+          mjs_set_errorf(mjs, MJS_SYNTAX_ERROR, "misplaced 'continue'");
+        }
       } break;
       case OP_BREAK: {
-        /* drop "continue" address */
-        mjs_pop_val(&mjs->loop_addresses);
+        if (mjs_stack_size(&mjs->loop_addresses) >= 3) {
+          size_t scopes_len;
+          /* drop "continue" address */
+          mjs_pop_val(&mjs->loop_addresses);
 
-        /* pop "break" address and jump to it */
-        i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
+          /* pop "break" address and jump to it */
+          i = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses)) - 1;
 
-        /* restore scope index */
-        size_t scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
-        assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
-        mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
+          /* restore scope index */
+          scopes_len = mjs_get_int(mjs, mjs_pop_val(&mjs->loop_addresses));
+          assert(mjs_stack_size(&mjs->scopes) >= scopes_len);
+          mjs->scopes.len = scopes_len * sizeof(mjs_val_t);
 
-        LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
+          LOG(LL_VERBOSE_DEBUG, ("BREAKING TO %d", (int) i + 1));
+        } else {
+          mjs_set_errorf(mjs, MJS_SYNTAX_ERROR, "misplaced 'break'");
+        }
       } break;
       case OP_NOP:
         break;
@@ -908,6 +953,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
       mjs->call_stack.len = call_stack_len;
       mjs->arg_stack.len = arg_stack_len;
       mjs->scopes.len = scopes_len;
+      mjs->loop_addresses.len = loop_addresses_len;
 
       /* script will evaluate to `undefined` */
       mjs_push(mjs, MJS_UNDEFINED);
@@ -1035,11 +1081,12 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   va_list ap;
   int i;
   mjs_err_t ret;
-  va_start(ap, nargs);
   mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * nargs);
+  va_start(ap, nargs);
   for (i = 0; i < nargs; i++) {
     args[i] = va_arg(ap, mjs_val_t);
   }
+  va_end(ap);
 
   ret = mjs_apply(mjs, res, func, this_val, nargs, args);
   /*
@@ -1053,19 +1100,25 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args) {
-  mjs_val_t r;
+  mjs_val_t r, prev_this_val, retval_stack_idx;
   int i;
-  size_t addr = mjs_get_func_addr(func);
+  size_t addr;
+
+  if (!mjs_is_function(func)) {
+    return mjs_set_errorf(mjs, MJS_TYPE_ERROR, "calling non-callable");
+  }
+
+  addr = mjs_get_func_addr(func);
 
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 
-  mjs_val_t prev_this_val = mjs->vals.this_obj;
+  prev_this_val = mjs->vals.this_obj;
 
   /* Push undefined which will be later replaced with the return value */
   mjs_push(mjs, MJS_UNDEFINED);
 
   /* Remember index by which return value should be written */
-  mjs_val_t retval_stack_idx = mjs_mk_number(mjs, mjs_stack_size(&mjs->stack));
+  retval_stack_idx = mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->stack));
 
   // Push all arguments
   for (i = 0; i < nargs; i++) {

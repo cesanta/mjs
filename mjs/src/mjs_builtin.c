@@ -56,6 +56,7 @@ static void mjs_load(struct mjs *mjs) {
   if (mjs_is_string(arg0)) {
     const char *path = mjs_get_cstring(mjs, &arg0);
     struct mjs_bcode_part *bp = NULL;
+    mjs_err_t ret;
 
     mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
     mjs_own(mjs, &global);
@@ -64,7 +65,6 @@ static void mjs_load(struct mjs *mjs) {
       custom_global = 1;
       *bottom = arg1;
     }
-    mjs_err_t ret;
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
       /* File was not loaded before, so, load */
@@ -131,7 +131,7 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_set(mjs, obj, "print", ~0, mjs_mk_foreign(mjs, mjs_print));
   mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
   mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
-  mjs_set(mjs, obj, "fstr", ~0, mjs_mk_foreign(mjs, mjs_fstr));
+  mjs_set(mjs, obj, "mkstr", ~0, mjs_mk_foreign(mjs, mjs_mkstr));
   mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
   mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
   mjs_set(mjs, obj, "gc", ~0, mjs_mk_foreign(mjs, mjs_do_gc));

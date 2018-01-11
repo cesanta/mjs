@@ -6,7 +6,13 @@
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1700
 #include <stdint.h>
+#else
+typedef unsigned __int64 uint64_t;
+typedef int int32_t;
+typedef unsigned char uint8_t;
+#endif
 #include <stdio.h>
 #include <stddef.h>
 #include "mjs/src/mjs_license.h"
@@ -202,6 +208,23 @@ const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
  * effect.
  */
 void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
+
+/*
+ * When invoked from a cfunction, returns number of arguments passed to the
+ * current JS function call.
+ */
+int mjs_nargs(struct mjs *mjs);
+
+/*
+ * When invoked from a cfunction, returns n-th argument to the current JS
+ * function call.
+ */
+mjs_val_t mjs_arg(struct mjs *mjs, int n);
+
+/*
+ * Sets return value for the current JS function call.
+ */
+void mjs_return(struct mjs *mjs, mjs_val_t v);
 
 #if defined(__cplusplus)
 }

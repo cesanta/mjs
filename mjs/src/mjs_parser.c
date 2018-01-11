@@ -67,39 +67,51 @@ static int findtok(int *toks, int tok) {
 static void emit_op(struct pstate *pstate, int tok) {
   assert(tok >= 0 && tok <= 255);
   emit_byte(pstate, OP_EXPR);
-  emit_byte(pstate, tok);
+  emit_byte(pstate, (uint8_t) tok);
 }
+
+#define BINOP_STACK_FRAME_SIZE 16
+#define STACK_LIMIT 8192
 
 // Intentionally left as macro rather than a function, to let the
 // compiler to inline calls and mimimize runtime stack usage.
-#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                             \
-  do {                                                                       \
-    mjs_err_t res = MJS_OK;                                                  \
-    if ((res = f1(p, TOK_EOF)) != MJS_OK) return res;                        \
-    if (prev_op != TOK_EOF) emit_op(p, prev_op);                             \
-    if (findtok(ops, p->tok.tok) != TOK_EOF) {                               \
-      int op = p->tok.tok;                                                   \
-      size_t off_if = 0;                                                     \
-      /* For AND/OR, implement short-circuit evaluation */                   \
-      if (ops[0] == TOK_LOGICAL_AND || ops[0] == TOK_LOGICAL_OR) {           \
-        emit_byte(p, ops[0] == TOK_LOGICAL_AND ? OP_JMP_NEUTRAL_FALSE        \
-                                               : OP_JMP_NEUTRAL_TRUE);       \
-        off_if = p->cur_idx;                                                 \
-        emit_init_offset(p);                                                 \
-        /* No need to emit TOK_LOGICAL_AND and TOK_LOGICAL_OR: */            \
-        /* Just drop the first value, and evaluate the second one. */        \
-        emit_byte(p, OP_DROP);                                               \
-        op = TOK_EOF;                                                        \
-      }                                                                      \
-      pnext1(p);                                                             \
-      if ((res = f2(p, op)) != MJS_OK) return res;                           \
-                                                                             \
-      if (off_if != 0) {                                                     \
-        mjs_bcode_insert_offset(p, p->mjs, off_if,                           \
-                                p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE); \
-      }                                                                      \
-    }                                                                        \
-    return res;                                                              \
+#define PARSE_LTR_BINOP(p, f1, f2, ops, prev_op)                               \
+  do {                                                                         \
+    mjs_err_t res = MJS_OK;                                                    \
+    p->depth++;                                                                \
+    if (p->depth > (STACK_LIMIT / BINOP_STACK_FRAME_SIZE)) {                   \
+      mjs_set_errorf(p->mjs, MJS_SYNTAX_ERROR, "parser stack overflow");       \
+      res = MJS_SYNTAX_ERROR;                                                  \
+      goto binop_clean;                                                        \
+    }                                                                          \
+    if ((res = f1(p, TOK_EOF)) != MJS_OK) goto binop_clean;                    \
+    if (prev_op != TOK_EOF) emit_op(p, prev_op);                               \
+    if (findtok(ops, p->tok.tok) != TOK_EOF) {                                 \
+      int op = p->tok.tok;                                                     \
+      size_t off_if = 0;                                                       \
+      /* For AND/OR, implement short-circuit evaluation */                     \
+      if (ops[0] == TOK_LOGICAL_AND || ops[0] == TOK_LOGICAL_OR) {             \
+        emit_byte(p,                                                           \
+                  (uint8_t)(ops[0] == TOK_LOGICAL_AND ? OP_JMP_NEUTRAL_FALSE   \
+                                                      : OP_JMP_NEUTRAL_TRUE)); \
+        off_if = p->cur_idx;                                                   \
+        emit_init_offset(p);                                                   \
+        /* No need to emit TOK_LOGICAL_AND and TOK_LOGICAL_OR: */              \
+        /* Just drop the first value, and evaluate the second one. */          \
+        emit_byte(p, (uint8_t) OP_DROP);                                       \
+        op = TOK_EOF;                                                          \
+      }                                                                        \
+      pnext1(p);                                                               \
+      if ((res = f2(p, op)) != MJS_OK) goto binop_clean;                       \
+                                                                               \
+      if (off_if != 0) {                                                       \
+        mjs_bcode_insert_offset(p, p->mjs, off_if,                             \
+                                p->cur_idx - off_if - MJS_INIT_OFFSET_SIZE);   \
+      }                                                                        \
+    }                                                                          \
+  binop_clean:                                                                 \
+    p->depth--;                                                                \
+    return res;                                                                \
   } while (0)
 
 #define PARSE_RTL_BINOP(p, f1, f2, ops, prev_op)        \
@@ -266,7 +278,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
       int next_tok = ptest(p);
       emit_byte(p, OP_PUSH_STR);
       emit_str(p, t->ptr, t->len);
-      emit_byte(p, prev_tok == TOK_DOT ? OP_SWAP : OP_FIND_SCOPE);
+      emit_byte(p, (uint8_t)(prev_tok == TOK_DOT ? OP_SWAP : OP_FIND_SCOPE));
       if (!findtok(s_assign_ops, next_tok) &&
           !findtok(s_postfix_ops, next_tok) &&
           /* TODO(dfrank): fix: it doesn't work for prefix ops */
@@ -289,8 +301,9 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
       break;
     }
     case TOK_STR: {
+      size_t oldlen;
       emit_byte(p, OP_PUSH_STR);
-      size_t oldlen = bcode_gen->len;
+      oldlen = bcode_gen->len;
       embed_string(bcode_gen, p->cur_idx, t->ptr, t->len, EMBSTR_UNESCAPE);
       p->cur_idx += bcode_gen->len - oldlen;
     } break;
@@ -602,6 +615,9 @@ static int check_for_in(struct pstate *p) {
 
 static mjs_err_t parse_for(struct pstate *p) {
   mjs_err_t res = MJS_OK;
+  size_t off_b, off_c, off_init_end;
+  size_t off_incr_begin, off_cond_begin, off_cond_end;
+  int buf_cur_idx;
 
   LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   EXPECT(p, TOK_KEYWORD_FOR);
@@ -632,9 +648,9 @@ static mjs_err_t parse_for(struct pstate *p) {
 
   /* Before parsing condition statement, push break/continue offsets  */
   emit_byte(p, OP_LOOP);
-  size_t off_b = p->cur_idx;
+  off_b = p->cur_idx;
   emit_init_offset(p);
-  size_t off_c = p->cur_idx;
+  off_c = p->cur_idx;
   emit_init_offset(p);
 
   /* Parse init statement */
@@ -647,11 +663,11 @@ static mjs_err_t parse_for(struct pstate *p) {
   emit_byte(p, OP_DROP);
 
   emit_byte(p, OP_JMP);
-  size_t off_init_end = p->cur_idx;
+  off_init_end = p->cur_idx;
   emit_init_offset(p);
 
-  size_t off_incr_begin = p->cur_idx;
-  size_t off_cond_begin = p->cur_idx;
+  off_incr_begin = p->cur_idx;
+  off_cond_begin = p->cur_idx;
 
   /* Parse cond statement */
   if ((res = parse_expr(p)) != MJS_OK) return res;
@@ -659,7 +675,7 @@ static mjs_err_t parse_for(struct pstate *p) {
 
   /* Parse incr statement */
   /* Incr statement should be placed before cond, so, adjust cur_idx */
-  int buf_cur_idx = p->cur_idx;
+  buf_cur_idx = p->cur_idx;
   p->cur_idx = off_incr_begin;
 
   if ((res = parse_expr(p)) != MJS_OK) return res;
@@ -679,7 +695,7 @@ static mjs_err_t parse_for(struct pstate *p) {
   /* p->cur_idx is now at the end of "cond" */
   /* Exit the loop if false */
   emit_byte(p, OP_JMP_FALSE);
-  size_t off_cond_end = p->cur_idx;
+  off_cond_end = p->cur_idx;
   emit_init_offset(p);
 
   /* Parse loop body */
@@ -836,7 +852,9 @@ static mjs_err_t parse_if(struct pstate *p) {
 
 static mjs_err_t parse_return(struct pstate *p) {
   EXPECT(p, TOK_KEYWORD_RETURN);
-  parse_expr(p);
+  if (parse_expr(p) != MJS_OK) {
+    emit_byte(p, OP_PUSH_UNDEF);
+  }
   emit_byte(p, OP_SETRETVAL);
   emit_byte(p, OP_RETURN);
   return MJS_OK;
@@ -902,6 +920,10 @@ MJS_PRIVATE mjs_err_t
 mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   mjs_err_t res = MJS_OK;
   struct pstate p;
+  size_t start_idx, llen;
+  int map_len;
+  mjs_header_item_t bcode_offset, map_offset, total_size;
+
   pinit(path, buf, &p);
   p.mjs = mjs;
   p.cur_idx = p.mjs->bcode_gen.len;
@@ -913,14 +935,14 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
    */
 
   /* Remember starting bcode position, and reserve the room for bcode header */
-  size_t start_idx = p.mjs->bcode_gen.len;
+  start_idx = p.mjs->bcode_gen.len;
   mbuf_append(&p.mjs->bcode_gen, NULL,
               sizeof(mjs_header_item_t) * MJS_HDR_ITEMS_CNT);
 
   /* Append NULL-terminated filename */
   mbuf_append(&p.mjs->bcode_gen, path, strlen(path) + 1 /* null-terminate */);
 
-  mjs_header_item_t bcode_offset = p.mjs->bcode_gen.len - start_idx;
+  bcode_offset = p.mjs->bcode_gen.len - start_idx;
   memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_BCODE_OFFSET,
          &bcode_offset, sizeof(mjs_header_item_t));
@@ -932,14 +954,14 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   emit_byte(&p, OP_EXIT);
 
   /* remember map offset */
-  mjs_header_item_t map_offset = p.mjs->bcode_gen.len - start_idx;
+  map_offset = p.mjs->bcode_gen.len - start_idx;
   memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_MAP_OFFSET,
          &map_offset, sizeof(mjs_header_item_t));
 
   /* put map length varint */
-  int map_len = p.offset_lineno_map.len;
-  size_t llen = cs_varint_llen(map_len);
+  map_len = p.offset_lineno_map.len;
+  llen = cs_varint_llen(map_len);
   mbuf_resize(&p.mjs->bcode_gen, p.mjs->bcode_gen.size + llen);
   cs_varint_encode(map_len,
                    (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len);
@@ -949,7 +971,7 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   mbuf_append(&p.mjs->bcode_gen, p.offset_lineno_map.buf,
               p.offset_lineno_map.len);
 
-  mjs_header_item_t total_size = p.mjs->bcode_gen.len - start_idx;
+  total_size = p.mjs->bcode_gen.len - start_idx;
   memcpy(p.mjs->bcode_gen.buf + start_idx +
              sizeof(mjs_header_item_t) * MJS_HDR_ITEM_TOTAL_SIZE,
          &total_size, sizeof(mjs_header_item_t));

@@ -38,6 +38,7 @@ enum mjs_type {
 
 enum mjs_call_stack_frame_item {
   CALL_STACK_FRAME_ITEM_RETVAL_STACK_IDX, /* TOS */
+  CALL_STACK_FRAME_ITEM_LOOP_ADDR_IDX,
   CALL_STACK_FRAME_ITEM_SCOPE_IDX,
   CALL_STACK_FRAME_ITEM_RETURN_ADDR,
   CALL_STACK_FRAME_ITEM_THIS,
@@ -155,9 +156,6 @@ enum mjs_header_items {
 MJS_PRIVATE size_t mjs_get_func_addr(mjs_val_t v);
 
 MJS_PRIVATE int mjs_getretvalpos(struct mjs *mjs);
-MJS_PRIVATE mjs_val_t mjs_arg(struct mjs *mjs, int arg_index);
-MJS_PRIVATE int mjs_nargs(struct mjs *mjs);
-MJS_PRIVATE void mjs_return(struct mjs *mjs, mjs_val_t);
 
 MJS_PRIVATE enum mjs_type mjs_get_type(mjs_val_t v);
 

@@ -65,7 +65,13 @@
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1700
 #include <stdint.h>
+#else
+typedef unsigned __int64 uint64_t;
+typedef int int32_t;
+typedef unsigned char uint8_t;
+#endif
 #include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
@@ -262,11 +268,69 @@ const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
  */
 void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
 
+/*
+ * When invoked from a cfunction, returns number of arguments passed to the
+ * current JS function call.
+ */
+int mjs_nargs(struct mjs *mjs);
+
+/*
+ * When invoked from a cfunction, returns n-th argument to the current JS
+ * function call.
+ */
+mjs_val_t mjs_arg(struct mjs *mjs, int n);
+
+/*
+ * Sets return value for the current JS function call.
+ */
+void mjs_return(struct mjs *mjs, mjs_val_t v);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
 
 #endif /* MJS_CORE_PUBLIC_H_ */
+#ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_ffi_public.h"
+#endif
+/*
+ * Copyright (c) 2016 Cesanta Software Limited
+ * All rights reserved
+ */
+
+#ifndef MJS_FFI_PUBLIC_H_
+#define MJS_FFI_PUBLIC_H_
+
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+enum mjs_ffi_ctype {
+  MJS_FFI_CTYPE_NONE,
+  MJS_FFI_CTYPE_USERDATA,
+  MJS_FFI_CTYPE_CALLBACK,
+  MJS_FFI_CTYPE_INT,
+  MJS_FFI_CTYPE_BOOL,
+  MJS_FFI_CTYPE_DOUBLE,
+  MJS_FFI_CTYPE_FLOAT,
+  MJS_FFI_CTYPE_CHAR_PTR,
+  MJS_FFI_CTYPE_VOID_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR,
+  MJS_FFI_CTYPE_INVALID,
+};
+
+typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
+
+void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* MJS_FFI_PUBLIC_H_ */
 #ifndef MJS_EXPORT_INTERNAL_HEADERS
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_array_public.h"
@@ -330,7 +394,13 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
 
+#if !defined(_MSC_VER) || _MSC_VER >= 1700
 #include <stdint.h>
+#else
+typedef unsigned __int64 uint64_t;
+typedef int int32_t;
+typedef unsigned char uint8_t;
+#endif
 #include <stdio.h>
 #include <stddef.h>
 /* Amalgamated: #include "mjs/src/mjs_license.h" */
@@ -527,6 +597,23 @@ const char *mjs_strerror(struct mjs *mjs, enum mjs_err err);
  */
 void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc);
 
+/*
+ * When invoked from a cfunction, returns number of arguments passed to the
+ * current JS function call.
+ */
+int mjs_nargs(struct mjs *mjs);
+
+/*
+ * When invoked from a cfunction, returns n-th argument to the current JS
+ * function call.
+ */
+mjs_val_t mjs_arg(struct mjs *mjs, int n);
+
+/*
+ * Sets return value for the current JS function call.
+ */
+void mjs_return(struct mjs *mjs, mjs_val_t v);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -582,6 +669,21 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 extern "C" {
 #endif /* __cplusplus */
 
+enum mjs_ffi_ctype {
+  MJS_FFI_CTYPE_NONE,
+  MJS_FFI_CTYPE_USERDATA,
+  MJS_FFI_CTYPE_CALLBACK,
+  MJS_FFI_CTYPE_INT,
+  MJS_FFI_CTYPE_BOOL,
+  MJS_FFI_CTYPE_DOUBLE,
+  MJS_FFI_CTYPE_FLOAT,
+  MJS_FFI_CTYPE_CHAR_PTR,
+  MJS_FFI_CTYPE_VOID_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR_PTR,
+  MJS_FFI_CTYPE_STRUCT_MG_STR,
+  MJS_FFI_CTYPE_INVALID,
+};
+
 typedef void *(mjs_ffi_resolver_t)(void *handle, const char *symbol);
 
 void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
@@ -602,8 +704,9 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
 #include <stddef.h>
+/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -616,6 +719,17 @@ int mjs_is_object(mjs_val_t v);
 
 /* Make an empty object */
 mjs_val_t mjs_mk_object(struct mjs *mjs);
+
+/* C structure layout descriptor - needed by mjs_struct_to_obj */
+struct mjs_c_struct_member {
+  const char *name;
+  size_t offset;
+  enum mjs_ffi_ctype type;
+};
+
+/* Create flat JS object from a C memory descriptor */
+mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
+                            const struct mjs_c_struct_member *members);
 
 /*
  * Lookup property `name` in object `obj`. If `obj` holds no such property,

@@ -3,6 +3,11 @@ SRCPATH = src
 VPATH = $(REPO_ROOT)/common $(REPO_ROOT)/frozen src
 BUILD_DIR = build
 
+R ?= $(abspath $(REPO_ROOT))
+RD ?= docker run -v $(R):$(R) -w $(CURDIR)
+DOCKER_GCC ?= $(RD) docker.cesanta.com/gcc
+DOCKER_CLANG ?= $(RD) docker.cesanta.com/clang
+
 include $(SRCPATH)/mjs_sources.mk
 
 TOP_SOURCES = $(addprefix $(SRCPATH)/, $(SOURCES))
@@ -13,10 +18,12 @@ TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 
 MFLAGS += -I. -I$(REPO_ROOT) -Isrc
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
-CFLAGS += -lm -W -Wall -g
-CFLAGS += $(MFLAGS) $(CFLAGS_EXTRA)
+MFLAGS += $(CFLAGS_EXTRA)
+CFLAGS += -lm -W -Wall -g $(MFLAGS)
 COMMON_CFLAGS = -DCS_MMAP
 ASAN_CFLAGS = -fsanitize=address
+
+.PHONY: all test test_full difftest ci-test
 
 VERBOSE ?=
 ifeq ($(VERBOSE),1)
@@ -68,7 +75,7 @@ CFLAGS += $(COMMON_CFLAGS)
 # NOTE: we compile straight from sources, not from the single amalgamated file,
 # in order to make sure that all sources include the right headers
 $(PROG): $(TOP_SOURCES) $(TOP_HEADERS) $(BUILD_DIR)
-	$(CLANG) $(CFLAGS) $(CPPFLAGS) $(TOP_SOURCES) -o $(PROG)
+	$(DOCKER_CLANG) $(CFLAGS) $(CPPFLAGS) $(TOP_SOURCES) -o $(PROG)
 
 $(LIBS): $(TOP_OBJECTS) $(BUILD_DIR)
 	@rm -rf $@
@@ -79,18 +86,6 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)/%.o: %.c $(TOP_HEADERS)
 	$(CLANG) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
-
-# On Windows and Mac, run container as root since volume sharing on those OSes
-# doesn't play nice with unprivileged user.
-#
-# On other OSes, run it as the current user.
-DOCKER_USER_ARG =
-ifneq ($(OS),Windows_NT)
-UNAME_S := $(shell uname -s)
-ifneq ($(UNAME_S),Darwin)
-DOCKER_USER_ARG = --user $$(id -u):$$(id -u)
-endif
-endif
 
 COMMON_TEST_FLAGS = -W -Wall -I. -I$(REPO_ROOT) -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES) -DMJS_MEMORY_STATS
 
@@ -138,12 +133,14 @@ TEST_VARIANTS =
 # params:
 #
 # 1: binary name component, e.g. "clang_O1_offset_4_whatever_else"
-# 2: compiler, like "clang" or "gcc"
-# 3: compiler flags
+# 2: docker image to run compiler and binary in
+# 3: full path to compiler, like "/usr/bin/clang-3.6" or "/usr/bin/gcc"
+# 4: compiler flags
 define compile_test
 $(BUILD_DIR)/unit_test_$1: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	@echo BUILDING $$@ with $2, flags: "'$3'"
-	$2 $$(COMMON_TEST_FLAGS) $3 -lm -o $$@
+	@echo BUILDING $$@ with $2[$3], flags: "'$4'"
+	$(RD) --entrypoint $3 $2 $$(COMMON_TEST_FLAGS) $4 -ldl -lm -o $$@
+	$(RD) --entrypoint ./$$@ $2
 
 TEST_VARIANTS += $(BUILD_DIR)/unit_test_$1
 endef
@@ -153,7 +150,7 @@ endef
 # 2: binary name component, typically the same as compiler: "clang" or "gcc"
 # 3: additional compiler flags
 define compile_test_with_compiler
-$(eval $(call compile_test,$2,$1,$3))
+$(eval $(call compile_test,$3,$1,$2,$4))
 endef
 
 # params:
@@ -161,9 +158,9 @@ endef
 # 2: binary name component, like "O0" or whatever
 # 3: additional compiler flags
 define compile_test_with_opt
-$(eval $(call compile_test_with_compiler,$(CLANG),clang_$2,$(ASAN_CFLAGS) $1 $3))
-$(eval $(call compile_test_with_compiler,$(CLANG),clang_32bit_$2,-m32 $1 $3))
-$(eval $(call compile_test_with_compiler,gcc,gcc_$2,$1 $3))
+$(eval $(call compile_test_with_compiler,docker.cesanta.com/gcc,/usr/bin/gcc,gcc_$2,$1 $3))
+$(eval $(call compile_test_with_compiler,docker.cesanta.com/clang,/usr/bin/clang-3.6,clang_$2,$(ASAN_CFLAGS) $1 $3))
+$(eval $(call compile_test_with_compiler,docker.cesanta.com/clang,/usr/bin/clang-3.6,clang_32bit_$2,-m32 $1 $3))
 endef
 
 # params:
@@ -197,17 +194,17 @@ $(eval $(call compile_test_all))
 
 # Run all tests from $(TEST_VARIANTS)
 test_full: $(TEST_VARIANTS) $(PROG)
-	for f in $(TEST_VARIANTS); do \
-    echo ; echo running $$f; \
-    $$f; \
-  done
+#	for f in $(TEST_VARIANTS); do \
+#    echo ; echo running $$f; \
+#    $$f; \
+#  done
 
 # Run just a single test (a first one from $(TEST_VARIANTS))
 test: $(firstword $(TEST_VARIANTS))
-	$<
+#	$<
 
 clean:
-	rm -rf $(BUILD_DIR) *.obj $(TOP_OBJECTS) mjs.c mjs.h
+	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h _CL_*
 
 print_sources:
 	@echo $(TOP_SOURCES) $(TOP_HEADERS)
@@ -215,19 +212,22 @@ print_sources:
 print_source_dirs:
 	@echo $(TOP_SOURCES_DIRS) $(TOP_HEADERS_DIRS)
 
-###################################  Windows targets for wine, with MSVC6
-
-$(PROG).exe: $(BUILD_DIR) $(TOP_HEADERS) mjs.c
-	wine cl $(MFLAGS) mjs.c -O1 -MD /Fe$@
-
-$(BUILD_DIR)/unit_test.exe: tests/unit_test.c mjs.c $(TESTUTIL_FILES) $(BUILD_DIR)
-	wine cl -I. -I$(REPO_ROOT) $< $(TESTUTIL_FILES) -o $@
-
-wtest: $(BUILD_DIR)/unit_test.exe
-	wine $(BUILD_DIR)/unit_test.exe
-
 difftest:
 	@TMP=`mktemp -t checkout-diff.XXXXXX`; \
 	git diff  >$$TMP ; \
 	if [ -s "$$TMP" ]; then echo found diffs in checkout:; git status -s; head -n 50 "$$TMP"; exit 1; fi; \
 	rm $$TMP
+
+###################################  Windows targets for wine, with MSVC6
+
+ci-test: $(BUILD_DIR) vc98 vc2017 test_full
+
+$(PROG).exe: $(BUILD_DIR) $(TOP_HEADERS) mjs.c
+	$(RD) docker.cesanta.com/vc98 wine cl mjs.c $(CLFLAGS) $(MFLAGS) /Fe$@
+
+TEST_SOURCES = tests/unit_test.c $(TESTUTIL_FILES)
+CLFLAGS = /DWIN32_LEAN_AND_MEAN /MD /O1 /TC /W2 /WX /I.. /I. /DNDEBUG /DMJS_MEMORY_STATS
+vc98 vc2017: mjs.c mjs.h
+	$(RD) docker.cesanta.com/$@ wine cl $(TEST_SOURCES) $(CLFLAGS) /Fe$@.exe
+	$(RD) docker.cesanta.com/$@ wine ./$@.exe
+

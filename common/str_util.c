@@ -384,12 +384,24 @@ int mg_avprintf(char **buf, size_t size, const char *fmt, va_list ap) {
     *buf = NULL; /* LCOV_EXCL_START */
     while (len < 0) {
       MG_FREE(*buf);
+      if (size == 0) {
+        size = 5;
+      }
       size *= 2;
-      if ((*buf = (char *) MG_MALLOC(size)) == NULL) break;
+      if ((*buf = (char *) MG_MALLOC(size)) == NULL) {
+        len = -1;
+        break;
+      }
       va_copy(ap_copy, ap);
-      len = vsnprintf(*buf, size, fmt, ap_copy);
+      len = vsnprintf(*buf, size - 1, fmt, ap_copy);
       va_end(ap_copy);
     }
+
+    /*
+     * Microsoft version of vsnprintf() is not always null-terminated, so put
+     * the terminator manually
+     */
+    (*buf)[len] = 0;
     /* LCOV_EXCL_STOP */
   } else if (len >= (int) size) {
     /* Standard-compliant code path. Allocate a buffer that is large enough. */
@@ -409,19 +421,30 @@ const char *mg_next_comma_list_entry(const char *, struct mg_str *,
                                      struct mg_str *) WEAK;
 const char *mg_next_comma_list_entry(const char *list, struct mg_str *val,
                                      struct mg_str *eq_val) {
-  if (list == NULL || *list == '\0') {
+  struct mg_str ret = mg_next_comma_list_entry_n(mg_mk_str(list), val, eq_val);
+  return ret.p;
+}
+
+struct mg_str mg_next_comma_list_entry_n(struct mg_str list, struct mg_str *val,
+                                         struct mg_str *eq_val) WEAK;
+struct mg_str mg_next_comma_list_entry_n(struct mg_str list, struct mg_str *val,
+                                         struct mg_str *eq_val) {
+  if (list.len == 0) {
     /* End of the list */
-    list = NULL;
+    list = mg_mk_str(NULL);
   } else {
-    val->p = list;
-    if ((list = strchr(val->p, ',')) != NULL) {
+    const char *chr = NULL;
+    *val = list;
+
+    if ((chr = mg_strchr(*val, ',')) != NULL) {
       /* Comma found. Store length and shift the list ptr */
-      val->len = list - val->p;
-      list++;
+      val->len = chr - val->p;
+      chr++;
+      list.len -= (chr - list.p);
+      list.p = chr;
     } else {
       /* This value is the last one */
-      list = val->p + strlen(val->p);
-      val->len = list - val->p;
+      list = mg_mk_str_n(list.p + list.len, 0);
     }
 
     if (eq_val != NULL) {

@@ -15,14 +15,6 @@
 #define MG_LWIP_SSL_IO_SIZE 1024
 #endif
 
-/*
- * Stop processing incoming SSL traffic when recv_mbuf.size is this big.
- * It'a a uick solution for SSL recv pushback.
- */
-#ifndef MG_LWIP_SSL_RECV_MBUF_LIMIT
-#define MG_LWIP_SSL_RECV_MBUF_LIMIT 3072
-#endif
-
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
@@ -103,7 +95,7 @@ void mg_lwip_ssl_recv(struct mg_connection *nc) {
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
   /* Don't deliver data before connect callback */
   if (nc->flags & MG_F_CONNECTING) return;
-  while (nc->recv_mbuf.len < MG_LWIP_SSL_RECV_MBUF_LIMIT) {
+  while (nc->recv_mbuf.len < nc->recv_mbuf_limit) {
     char *buf = (char *) MG_MALLOC(MG_LWIP_SSL_IO_SIZE);
     if (buf == NULL) return;
     int ret = mg_ssl_if_read(nc, buf, MG_LWIP_SSL_IO_SIZE);
@@ -183,6 +175,7 @@ int ssl_socket_recv(void *ctx, unsigned char *buf, size_t len) {
   }
   size_t seg_len = (seg->len - cs->rx_offset);
   DBG(("%u %u %u %u", len, cs->rx_chain->len, seg_len, cs->rx_chain->tot_len));
+  mgos_lock();
   len = MIN(len, seg_len);
   pbuf_copy_partial(seg, buf, len, cs->rx_offset);
   cs->rx_offset += len;
@@ -194,6 +187,7 @@ int ssl_socket_recv(void *ctx, unsigned char *buf, size_t len) {
     pbuf_free(seg);
     cs->rx_offset = 0;
   }
+  mgos_unlock();
   LOG(LL_DEBUG, ("%p <- %d", nc, (int) len));
   return len;
 }

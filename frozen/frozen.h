@@ -28,8 +28,9 @@ extern "C" {
 #include <stddef.h>
 #include <stdio.h>
 
-#ifdef _WIN32
+#if defined(_WIN32) && _MSC_VER < 1700
 typedef int bool;
+enum { false = 0, true = 1 };
 #else
 #include <stdbool.h>
 #endif
@@ -100,6 +101,7 @@ typedef void (*json_walk_callback_t)(void *callback_data, const char *name,
 /*
  * Parse `json_string`, invoking `callback` in a way similar to SAX parsers;
  * see `json_walk_callback_t`.
+ * Return number of processed bytes, or a negative error code.
  */
 int json_walk(const char *json_string, int json_string_length,
               json_walk_callback_t callback, void *callback_data);
@@ -133,7 +135,7 @@ extern int json_printer_file(struct json_out *, const char *, size_t);
 #define JSON_OUT_FILE(fp)   \
   {                         \
     json_printer_file, {    \
-      { (void *) fp, 0, 0 } \
+      { (char *) fp, 0, 0 } \
     }                       \
   }
 
@@ -158,6 +160,13 @@ int json_printf(struct json_out *, const char *fmt, ...);
 int json_vprintf(struct json_out *, const char *fmt, va_list ap);
 
 /*
+ * Same as json_printf, but prints to a file.
+ * File is created if does not exist. File is truncated if already exists.
+ */
+int json_fprintf(const char *file_name, const char *fmt, ...);
+int json_vfprintf(const char *file_name, const char *fmt, va_list ap);
+
+/*
  * Helper %M callback that prints contiguous C arrays.
  * Consumes void *array_ptr, size_t array_size, size_t elem_size, char *fmt
  * Return number of bytes printed.
@@ -171,7 +180,7 @@ int json_printf_array(struct json_out *, va_list *ap);
  * 1. Object keys in the format string may be not quoted, e.g. "{key: %d}"
  * 2. Order of keys in an object is irrelevant.
  * 3. Several extra format specifiers are supported:
- *    - %B: consumes `int *` (or 'char *', if sizeof(bool) == sizeof(char)),
+ *    - %B: consumes `int *` (or `char *`, if `sizeof(bool) == sizeof(char)`),
  *       expects boolean `true` or `false`.
  *    - %Q: consumes `char **`, expects quoted, JSON-encoded string. Scanned
  *       string is malloc-ed, caller must free() the string.
@@ -219,6 +228,70 @@ int json_unescape(const char *src, int slen, char *dst, int dlen);
  * Return the number of bytes printed.
  */
 int json_escape(struct json_out *out, const char *str, size_t str_len);
+
+/*
+ * Read the whole file in memory.
+ * Return malloc-ed file content, or NULL on error. The caller must free().
+ */
+char *json_fread(const char *file_name);
+
+/*
+ * Update given JSON string `s,len` by changing the value at given `json_path`.
+ * The result is saved to `out`. If `json_fmt` == NULL, that deletes the key.
+ * If path is not present, missing keys are added. Array path without an
+ * index pushes a value to the end of an array.
+ * Return 1 if the string was changed, 0 otherwise.
+ *
+ * Example:  s is a JSON string { "a": 1, "b": [ 2 ] }
+ *   json_setf(s, len, out, ".a", "7");     // { "a": 7, "b": [ 2 ] }
+ *   json_setf(s, len, out, ".b", "7");     // { "a": 1, "b": 7 }
+ *   json_setf(s, len, out, ".b[]", "7");   // { "a": 1, "b": [ 2,7 ] }
+ *   json_setf(s, len, out, ".b", NULL);    // { "a": 1 }
+ */
+int json_setf(const char *s, int len, struct json_out *out,
+              const char *json_path, const char *json_fmt, ...);
+
+int json_vsetf(const char *s, int len, struct json_out *out,
+               const char *json_path, const char *json_fmt, va_list ap);
+
+/*
+ * Pretty-print JSON string `s,len` into `out`.
+ * Return number of processed bytes in `s`.
+ */
+int json_prettify(const char *s, int len, struct json_out *out);
+
+/*
+ * Prettify JSON file `file_name`.
+ * Return number of processed bytes, or negative number of error.
+ * On error, file content is not modified.
+ */
+int json_prettify_file(const char *file_name);
+
+/*
+ * Iterate over an object at given JSON `path`.
+ * On each iteration, fill the `key` and `val` tokens. It is OK to pass NULL
+ * for `key`, or `val`, in which case they won't be populated.
+ * Return an opaque value suitable for the next iteration, or NULL when done.
+ *
+ * Example:
+ *
+ * ```c
+ * void *h = NULL;
+ * struct json_token key, val;
+ * while ((h = json_next_key(s, len, h, ".foo", &key, &val)) != NULL) {
+ *   printf("[%.*s] -> [%.*s]\n", key.len, key.ptr, val.len, val.ptr);
+ * }
+ * ```
+ */
+void *json_next_key(const char *s, int len, void *handle, const char *path,
+                    struct json_token *key, struct json_token *val);
+
+/*
+ * Iterate over an array at given JSON `path`.
+ * Similar to `json_next_key`, but fills array index `idx` instead of `key`.
+ */
+void *json_next_elem(const char *s, int len, void *handle, const char *path,
+                     int *idx, struct json_token *val);
 
 #ifdef __cplusplus
 }

@@ -11,7 +11,7 @@
 #include <lwip/pbuf.h>
 #include <lwip/tcp.h>
 #include <lwip/tcpip.h>
-#if LWIP_VERSION >= 0x01050000
+#if ((LWIP_VERSION_MAJOR << 8) | LWIP_VERSION_MINOR) >= 0x0105
 #include <lwip/priv/tcp_priv.h> /* For tcp_seg */
 #else
 #include <lwip/tcp_impl.h>
@@ -67,7 +67,7 @@ void mg_lwip_if_add_conn(struct mg_connection *nc);
 void mg_lwip_if_remove_conn(struct mg_connection *nc);
 time_t mg_lwip_if_poll(struct mg_iface *iface, int timeout_ms);
 
-#ifdef RTOS_SDK
+#if defined(RTOS_SDK) || defined(ESP_PLATFORM)
 extern void mgos_lock();
 extern void mgos_unlock();
 #else
@@ -135,7 +135,16 @@ static err_t mg_lwip_tcp_recv_cb(void *arg, struct tcp_pcb *tpcb,
   DBG(("%p %p %u %d", nc, tpcb, (p != NULL ? p->tot_len : 0), err));
   if (p == NULL) {
     if (nc != NULL && !(nc->flags & MG_F_CLOSE_IMMEDIATELY)) {
-      mg_lwip_post_signal(MG_SIG_CLOSE_CONN, nc);
+      struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
+      if (cs->rx_chain != NULL) {
+        /*
+         * rx_chain still contains non-consumed data, don't close the
+         * connection
+         */
+        cs->draining_rx_chain = 1;
+      } else {
+        mg_lwip_post_signal(MG_SIG_CLOSE_CONN, nc);
+      }
     } else {
       /* Tombstoned connection, do nothing. */
     }
@@ -153,6 +162,7 @@ static err_t mg_lwip_tcp_recv_cb(void *arg, struct tcp_pcb *tpcb,
     struct pbuf *q = p->next;
     for (; q != NULL; q = q->next) pbuf_ref(q);
   }
+  mgos_lock();
   if (cs->rx_chain == NULL) {
     cs->rx_offset = 0;
   } else if (pbuf_clen(cs->rx_chain) >= 4) {
@@ -166,28 +176,21 @@ static err_t mg_lwip_tcp_recv_cb(void *arg, struct tcp_pcb *tpcb,
       p = np;
     }
   }
+  mgos_unlock();
   mg_lwip_recv_common(nc, p);
   return ERR_OK;
 }
 
-static void mg_lwip_handle_recv_tcp(struct mg_connection *nc) {
+static void mg_lwip_consume_rx_chain_tcp(struct mg_connection *nc) {
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
-
-#if MG_ENABLE_SSL
-  if (nc->flags & MG_F_SSL) {
-    if (nc->flags & MG_F_SSL_HANDSHAKE_DONE) {
-      mg_lwip_ssl_recv(nc);
-    } else {
-      mg_lwip_ssl_do_hs(nc);
-    }
-    return;
-  }
-#endif
-
   mgos_lock();
-  while (cs->rx_chain != NULL) {
+  while (cs->rx_chain != NULL && nc->recv_mbuf.len < nc->recv_mbuf_limit) {
     struct pbuf *seg = cs->rx_chain;
-    size_t len = (seg->len - cs->rx_offset);
+
+    size_t seg_len = (seg->len - cs->rx_offset);
+    size_t buf_avail = (nc->recv_mbuf_limit - nc->recv_mbuf.len);
+    size_t len = MIN(seg_len, buf_avail);
+
     char *data = (char *) MG_MALLOC(len);
     if (data == NULL) {
       mgos_unlock();
@@ -206,6 +209,21 @@ static void mg_lwip_handle_recv_tcp(struct mg_connection *nc) {
     mgos_lock();
   }
   mgos_unlock();
+}
+
+static void mg_lwip_handle_recv_tcp(struct mg_connection *nc) {
+#if MG_ENABLE_SSL
+  if (nc->flags & MG_F_SSL) {
+    if (nc->flags & MG_F_SSL_HANDSHAKE_DONE) {
+      mg_lwip_ssl_recv(nc);
+    } else {
+      mg_lwip_ssl_do_hs(nc);
+    }
+    return;
+  }
+#endif
+
+  mg_lwip_consume_rx_chain_tcp(nc);
 
   if (nc->send_mbuf.len > 0) {
     mg_lwip_mgr_schedule_poll(nc->mgr);
@@ -268,7 +286,7 @@ void mg_lwip_if_connect_tcp(struct mg_connection *nc,
  * Lwip included in the SDKs for nRF5x chips has different type for the
  * callback of `udp_recv()`
  */
-#if LWIP_VERSION >= 0x01050000
+#if ((LWIP_VERSION_MAJOR << 8) | LWIP_VERSION_MINOR) >= 0x0105
 static void mg_lwip_udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
                                 const ip_addr_t *addr, u16_t port)
 #else
@@ -286,7 +304,7 @@ static void mg_lwip_udp_recv_cb(void *arg, struct udp_pcb *pcb, struct pbuf *p,
     return;
   }
   union socket_address *sa = (union socket_address *) sap->payload;
-#if LWIP_VERSION >= 0x01050000
+#if ((LWIP_VERSION_MAJOR << 8) | LWIP_VERSION_MINOR) >= 0x0105
   sa->sin.sin_addr.s_addr = ip_2_ip4(addr)->addr;
 #else
   sa->sin.sin_addr.s_addr = addr->addr;
@@ -371,6 +389,7 @@ static void tcp_close_tcpip(void *arg) {
 
 void mg_lwip_handle_accept(struct mg_connection *nc) {
   struct mg_lwip_conn_state *cs = (struct mg_lwip_conn_state *) nc->sock;
+  if (cs->pcb.tcp == NULL) return;
 #if MG_ENABLE_SSL
   if (cs->lc->flags & MG_F_SSL) {
     if (mg_ssl_if_conn_accept(nc, cs->lc) != MG_SSL_OK) {
@@ -502,8 +521,8 @@ static void mg_lwip_tcp_write_tcpip(void *arg) {
   size_t len = MIN(tpcb->mss, MIN(ctx->len, tpcb->snd_buf));
   size_t unsent, unacked;
   if (len == 0) {
-    DBG(("%p no buf avail %u %u %u %p %p", tpcb, tpcb->acked, tpcb->snd_buf,
-         tpcb->snd_queuelen, tpcb->unsent, tpcb->unacked));
+    DBG(("%p no buf avail %u %u %p %p", tpcb, tpcb->snd_buf, tpcb->snd_queuelen,
+         tpcb->unsent, tpcb->unacked));
     tcpip_callback(tcp_output_tcpip, tpcb);
     ctx->ret = 0;
     return;
@@ -642,7 +661,8 @@ void mg_lwip_if_recved(struct mg_connection *nc, size_t len) {
     DBG(("%p invalid socket", nc));
     return;
   }
-  DBG(("%p %p %u", nc, cs->pcb.tcp, len));
+  DBG(("%p %p %u %u", nc, cs->pcb.tcp, len,
+       (cs->rx_chain ? cs->rx_chain->tot_len : 0)));
   struct tcp_recved_ctx ctx = {.tpcb = cs->pcb.tcp, .len = len};
 #if MG_ENABLE_SSL
   if (!(nc->flags & MG_F_SSL)) {

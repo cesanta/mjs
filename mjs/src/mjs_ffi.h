@@ -7,8 +7,8 @@
 #define MJS_FFI_H_
 
 #include "mjs/src/ffi/ffi.h"
-#include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_ffi_public.h"
+#include "mjs/src/mjs_internal.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -19,18 +19,6 @@ mjs_ffi_resolver_t dlsym;
 #define MJS_CB_ARGS_MAX_CNT 6
 #define MJS_CB_SIGNATURE_MAX_SIZE (MJS_CB_ARGS_MAX_CNT + 1 /* return type */)
 
-enum mjs_ffi_ctype {
-  MJS_FFI_CTYPE_NONE,
-  MJS_FFI_CTYPE_USERDATA,
-  MJS_FFI_CTYPE_CALLBACK,
-  MJS_FFI_CTYPE_INT,
-  MJS_FFI_CTYPE_BOOL,
-  MJS_FFI_CTYPE_DOUBLE,
-  MJS_FFI_CTYPE_FLOAT,
-  MJS_FFI_CTYPE_CHAR_PTR,
-  MJS_FFI_CTYPE_VOID_PTR,
-  MJS_FFI_CTYPE_INVALID,
-};
 typedef uint8_t mjs_ffi_ctype_t;
 
 enum ffi_sig_type {
