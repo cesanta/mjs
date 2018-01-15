@@ -18,7 +18,7 @@ TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 MFLAGS += -I. -I$(REPO_ROOT) -Isrc
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
 MFLAGS += $(CFLAGS_EXTRA)
-CFLAGS += -lm -W -Wall -g $(MFLAGS)
+CFLAGS += -lm -std=c99 -Wall -Wextra -pedantic -g $(MFLAGS)
 COMMON_CFLAGS = -DCS_MMAP
 ASAN_CFLAGS = -fsanitize=address
 

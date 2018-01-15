@@ -3413,6 +3413,9 @@ extern "C" {
 /* JavaScript `undefined` value */
 #define MJS_UNDEFINED MJS_TAG_UNDEFINED
 
+/* Function pointer type used in `mjs_mk_foreign_func`. */
+typedef void (*mjs_func_ptr_t)(void);
+
 /*
  * Make `null` primitive value.
  *
@@ -3482,6 +3485,12 @@ int mjs_is_number(mjs_val_t v);
  * `sizeof(void*)` >= 8, please use byte arrays instead.
  */
 mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *ptr);
+
+/*
+ * Make JavaScript value that holds C/C++ function pointer, similarly to
+ * `mjs_mk_foreign`.
+ */
+mjs_val_t mjs_mk_foreign_func(struct mjs *mjs, mjs_func_ptr_t fn);
 
 /*
  * Returns `void *` pointer stored in `mjs_val_t`.
@@ -8086,36 +8095,49 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
 
   mjs_set(mjs, obj, "global", ~0, obj);
 
-  mjs_set(mjs, obj, "load", ~0, mjs_mk_foreign(mjs, mjs_load));
-  mjs_set(mjs, obj, "print", ~0, mjs_mk_foreign(mjs, mjs_print));
-  mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
-  mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
-  mjs_set(mjs, obj, "mkstr", ~0, mjs_mk_foreign(mjs, mjs_mkstr));
-  mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
-  mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
-  mjs_set(mjs, obj, "gc", ~0, mjs_mk_foreign(mjs, mjs_do_gc));
-  mjs_set(mjs, obj, "chr", ~0, mjs_mk_foreign(mjs, mjs_chr));
+  mjs_set(mjs, obj, "load", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_load));
+  mjs_set(mjs, obj, "print", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_print));
+  mjs_set(mjs, obj, "ffi", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_call));
+  mjs_set(mjs, obj, "ffi_cb_free", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_cb_free));
+  mjs_set(mjs, obj, "mkstr", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_mkstr));
+  mjs_set(mjs, obj, "getMJS", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_get_mjs));
+  mjs_set(mjs, obj, "die", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_die));
+  mjs_set(mjs, obj, "gc", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_do_gc));
+  mjs_set(mjs, obj, "chr", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_chr));
 
   /*
    * Populate JSON.parse() and JSON.stringify()
    */
   v = mjs_mk_object(mjs);
-  mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
-  mjs_set(mjs, v, "parse", ~0, mjs_mk_foreign(mjs, mjs_op_json_parse));
+  mjs_set(mjs, v, "stringify", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_stringify));
+  mjs_set(mjs, v, "parse", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_parse));
   mjs_set(mjs, obj, "JSON", ~0, v);
 
   /*
    * Populate Object.create()
    */
   v = mjs_mk_object(mjs);
-  mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
+  mjs_set(mjs, v, "create", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_create_object));
   mjs_set(mjs, obj, "Object", ~0, v);
 
   /*
    * Populate numeric stuff
    */
   mjs_set(mjs, obj, "NaN", ~0, MJS_TAG_NAN);
-  mjs_set(mjs, obj, "isNaN", ~0, mjs_mk_foreign(mjs, mjs_op_isnan));
+  mjs_set(mjs, obj, "isNaN", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_isnan));
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.c"
@@ -8146,11 +8168,12 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
     struct json_out out = JSON_OUT_BUF(buf, sizeof(buf));
     mjs_jprintf(*v, mjs, &out);
     *sizep = strlen(buf);
-    *p = strdup(buf);
+    *p = malloc(*sizep + 1);
     if (*p == NULL) {
       ret = MJS_OUT_OF_MEMORY;
       goto clean;
     }
+    memmove(*p, buf, *sizep+1);
     *need_free = 1;
   } else if (mjs_is_boolean(*v)) {
     if (mjs_get_bool(mjs, *v)) {
@@ -9104,10 +9127,10 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
     return 1;
 
   } else if (strcmp(name, "slice") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_string_slice);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_slice);
     return 1;
   } else if (strcmp(name, "at") == 0 || strcmp(name, "charCodeAt") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_char_code_at);
     return 1;
   } else if (isnum) {
     /*
@@ -9130,10 +9153,10 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
                                  const char *name, size_t name_len,
                                  mjs_val_t *res) {
   if (strcmp(name, "splice") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_array_splice);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_array_splice);
     return 1;
   } else if (strcmp(name, "push") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_array_push_internal);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_array_push_internal);
     return 1;
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
@@ -10655,7 +10678,11 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs = *pitem;
     }
 
-    ffi_set_ptr(&args[cbdata.func_idx], psig->cb_sig->fn);
+    union {
+      ffi_fn_t *fn;
+      void *p;
+    } u = {.fn = psig->cb_sig->fn};
+    ffi_set_ptr(&args[cbdata.func_idx], u.p);
     ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
   } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
     /*
@@ -13481,6 +13508,16 @@ mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
   (void) mjs;
   return mjs_pointer_to_value(mjs, p) | MJS_TAG_FOREIGN;
 }
+
+mjs_val_t mjs_mk_foreign_func(struct mjs *mjs, mjs_func_ptr_t fn) {
+  (void) mjs;
+  union {
+    mjs_func_ptr_t fn;
+    void *p;
+  } u = {.fn = fn};
+  return mjs_pointer_to_value(mjs, u.p) | MJS_TAG_FOREIGN;
+}
+
 
 int mjs_is_foreign(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_FOREIGN;

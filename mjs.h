@@ -816,6 +816,9 @@ extern "C" {
 /* JavaScript `undefined` value */
 #define MJS_UNDEFINED MJS_TAG_UNDEFINED
 
+/* Function pointer type used in `mjs_mk_foreign_func`. */
+typedef void (*mjs_func_ptr_t)(void);
+
 /*
  * Make `null` primitive value.
  *
@@ -885,6 +888,12 @@ int mjs_is_number(mjs_val_t v);
  * `sizeof(void*)` >= 8, please use byte arrays instead.
  */
 mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *ptr);
+
+/*
+ * Make JavaScript value that holds C/C++ function pointer, similarly to
+ * `mjs_mk_foreign`.
+ */
+mjs_val_t mjs_mk_foreign_func(struct mjs *mjs, mjs_func_ptr_t fn);
 
 /*
  * Returns `void *` pointer stored in `mjs_val_t`.

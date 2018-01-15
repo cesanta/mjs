@@ -421,10 +421,10 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
     return 1;
 
   } else if (strcmp(name, "slice") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_string_slice);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_slice);
     return 1;
   } else if (strcmp(name, "at") == 0 || strcmp(name, "charCodeAt") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_char_code_at);
     return 1;
   } else if (isnum) {
     /*
@@ -447,10 +447,10 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
                                  const char *name, size_t name_len,
                                  mjs_val_t *res) {
   if (strcmp(name, "splice") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_array_splice);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_array_splice);
     return 1;
   } else if (strcmp(name, "push") == 0) {
-    *res = mjs_mk_foreign(mjs, mjs_array_push_internal);
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_array_push_internal);
     return 1;
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));

@@ -127,34 +127,47 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
 
   mjs_set(mjs, obj, "global", ~0, obj);
 
-  mjs_set(mjs, obj, "load", ~0, mjs_mk_foreign(mjs, mjs_load));
-  mjs_set(mjs, obj, "print", ~0, mjs_mk_foreign(mjs, mjs_print));
-  mjs_set(mjs, obj, "ffi", ~0, mjs_mk_foreign(mjs, mjs_ffi_call));
-  mjs_set(mjs, obj, "ffi_cb_free", ~0, mjs_mk_foreign(mjs, mjs_ffi_cb_free));
-  mjs_set(mjs, obj, "mkstr", ~0, mjs_mk_foreign(mjs, mjs_mkstr));
-  mjs_set(mjs, obj, "getMJS", ~0, mjs_mk_foreign(mjs, mjs_get_mjs));
-  mjs_set(mjs, obj, "die", ~0, mjs_mk_foreign(mjs, mjs_die));
-  mjs_set(mjs, obj, "gc", ~0, mjs_mk_foreign(mjs, mjs_do_gc));
-  mjs_set(mjs, obj, "chr", ~0, mjs_mk_foreign(mjs, mjs_chr));
+  mjs_set(mjs, obj, "load", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_load));
+  mjs_set(mjs, obj, "print", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_print));
+  mjs_set(mjs, obj, "ffi", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_call));
+  mjs_set(mjs, obj, "ffi_cb_free", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_cb_free));
+  mjs_set(mjs, obj, "mkstr", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_mkstr));
+  mjs_set(mjs, obj, "getMJS", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_get_mjs));
+  mjs_set(mjs, obj, "die", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_die));
+  mjs_set(mjs, obj, "gc", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_do_gc));
+  mjs_set(mjs, obj, "chr", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_chr));
 
   /*
    * Populate JSON.parse() and JSON.stringify()
    */
   v = mjs_mk_object(mjs);
-  mjs_set(mjs, v, "stringify", ~0, mjs_mk_foreign(mjs, mjs_op_json_stringify));
-  mjs_set(mjs, v, "parse", ~0, mjs_mk_foreign(mjs, mjs_op_json_parse));
+  mjs_set(mjs, v, "stringify", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_stringify));
+  mjs_set(mjs, v, "parse", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_parse));
   mjs_set(mjs, obj, "JSON", ~0, v);
 
   /*
    * Populate Object.create()
    */
   v = mjs_mk_object(mjs);
-  mjs_set(mjs, v, "create", ~0, mjs_mk_foreign(mjs, mjs_op_create_object));
+  mjs_set(mjs, v, "create", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_create_object));
   mjs_set(mjs, obj, "Object", ~0, v);
 
   /*
    * Populate numeric stuff
    */
   mjs_set(mjs, obj, "NaN", ~0, MJS_TAG_NAN);
-  mjs_set(mjs, obj, "isNaN", ~0, mjs_mk_foreign(mjs, mjs_op_isnan));
+  mjs_set(mjs, obj, "isNaN", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_isnan));
 }

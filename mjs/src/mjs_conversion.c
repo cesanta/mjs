@@ -24,11 +24,12 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
     struct json_out out = JSON_OUT_BUF(buf, sizeof(buf));
     mjs_jprintf(*v, mjs, &out);
     *sizep = strlen(buf);
-    *p = strdup(buf);
+    *p = malloc(*sizep + 1);
     if (*p == NULL) {
       ret = MJS_OUT_OF_MEMORY;
       goto clean;
     }
+    memmove(*p, buf, *sizep+1);
     *need_free = 1;
   } else if (mjs_is_boolean(*v)) {
     if (mjs_get_bool(mjs, *v)) {
