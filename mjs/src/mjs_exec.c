@@ -175,10 +175,11 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
   } else if (op == TOK_PLUS) {
     char tok[32];
     if (mjs_is_number(a)) {
-      snprintf(tok, sizeof(tok), "%lf", mjs_get_double(mjs, a));
+        /* TODO int, float ? */
+      snprintf(tok, sizeof(tok), "%d", mjs_get_int(mjs, a));
       ret = s_concat(mjs, mjs_mk_string(mjs, tok, ~0, 0), b);
     } else {
-      snprintf(tok, sizeof(tok), "%lf", mjs_get_double(mjs, b));
+      snprintf(tok, sizeof(tok), "%d", mjs_get_int(mjs, b));
       ret = s_concat(mjs, a, mjs_mk_string(mjs, tok, ~0, 0));
     }
   } else {
