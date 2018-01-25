@@ -9,6 +9,8 @@
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_util.h"
 
+#include "reef.h"
+
 static void mjs_op_time_systime(struct mjs *jsm)
 {
     mjs_val_t ret = MJS_UNDEFINED;
@@ -94,6 +96,55 @@ static void mjs_op_sys_delete(struct mjs *jsm)
     mjs_return(jsm, ret);
 }
 
+static void mjs_op_sys_regMatch(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    if (mjs_nargs(jsm) < 2) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing argument");
+    } else {
+        mjs_val_t s = mjs_arg(jsm, 0);
+        mjs_val_t r = mjs_arg(jsm, 1);
+
+        if (!mjs_is_string(s) || !mjs_is_string(s)) {
+            mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "argument not string");
+            goto done;
+        }
+
+        const char *ps = mjs_get_cstring(jsm, &s);
+        const char *pr = mjs_get_cstring(jsm, &r);
+
+        mtc_mt_dbg("%s ===> %s", ps, pr);
+
+        ret = mjs_mk_array(jsm);
+
+        MRE *reo = mre_init();
+        MERR *err;
+        err = mre_compile(reo, pr);
+        if (err) {
+            mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "compile reg %s error %s", r, merr_meanful_desc(err));
+            merr_destroy(&err);
+            mre_destroy(&reo);
+            goto done;
+        }
+
+        if (mre_match(reo, ps, false)) {
+            for (uint32_t i = 1; i < mre_sub_count(reo, 0); i++) {
+                const char *sp, *ep;
+                if (mre_sub_get(reo, 0, i, &sp, &ep)) {
+                    mjs_val_t sub = mjs_mk_string(jsm, sp, (ep - sp), 1);
+                    mjs_array_push(jsm, ret, sub);
+                }
+            }
+        }
+
+        mre_destroy(&reo);
+    }
+
+done:
+    mjs_return(jsm, ret);
+}
+
 void mjs_init_local(struct mjs *jsm, mjs_val_t o)
 {
     mjs_val_t time = mjs_mk_object(jsm);
@@ -109,4 +160,5 @@ void mjs_init_local(struct mjs *jsm, mjs_val_t o)
     mjs_set(jsm, o, "SYS", ~0, sys);
     mjs_set(jsm, sys, "parseInt", ~0, mjs_mk_foreign(jsm, mjs_op_sys_parseInt));
     mjs_set(jsm, sys, "objDelete", ~0, mjs_mk_foreign(jsm, mjs_op_sys_delete));
+    mjs_set(jsm, sys, "regMatch", ~0, mjs_mk_foreign(jsm, mjs_op_sys_regMatch));
 }

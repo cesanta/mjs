@@ -14,6 +14,8 @@
 #include "mjs/src/mjs_string.h"
 #include "mjs/src/mjs_util.h"
 
+#include "reef.h"
+
 #define SPLICE_NEW_ITEM_IDX 2
 
 /* like c_snprintf but returns `size` if write is truncated */
@@ -139,6 +141,37 @@ MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs) {
   ret = mjs_mk_number(mjs, mjs_array_length(mjs, mjs->vals.this_obj));
 
 clean:
+  mjs_return(mjs, ret);
+  return;
+}
+
+MJS_PRIVATE void mjs_array_join(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+
+  MSTR str; mstr_init(&str);
+
+  /* Make sure that `this` is an array */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_OBJECT_ARRAY, NULL)) {
+    goto clean;
+  }
+
+  mjs_val_t s;
+  if (!mjs_check_arg(mjs, 0, "join", MJS_TYPE_STRING, &s)) goto clean;
+  const char *ps = mjs_get_cstring(mjs, &s);
+
+  int arr_len = mjs_array_length(mjs, mjs->vals.this_obj);
+  for (int i = 0; i < arr_len; i++) {
+    mjs_val_t cur = mjs_array_get(mjs, mjs->vals.this_obj, i);
+    if (mjs_is_string(cur) || mjs_is_number(cur)) {
+      if (i != 0) mstr_append(&str, ps);
+      if (mjs_is_string(cur)) mstr_append(&str, mjs_get_cstring(mjs, &cur));
+      else if (mjs_is_number(cur)) mstr_appendf(&str, "%d", mjs_get_int(mjs, cur));
+    }
+  }
+  ret = mjs_mk_string(mjs, str.buf, str.len, 1);
+
+clean:
+  mstr_clear(&str);
   mjs_return(mjs, ret);
   return;
 }

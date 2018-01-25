@@ -16,7 +16,7 @@ TOP_OBJECTS = $(patsubst %.c, %.o, $(TOP_SOURCES))
 TOP_SOURCES_DIRS = $(sort $(dir $(TOP_SOURCES)))
 TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 
-MFLAGS += -I. -I$(REPO_ROOT) -Isrc
+MFLAGS += -I. -I$(REPO_ROOT) -Isrc -I../../reef/include/
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
 MFLAGS += $(CFLAGS_EXTRA)
 CFLAGS += -lm -W -Wall -g $(MFLAGS)
@@ -70,7 +70,7 @@ mjs.h: $(TOP_HEADERS) $(TOP_SOURCES) Makefile
     --ignore mjs/mjs.h \
     --first mjs/src/license.h,common/platform.h $(filter %_public.h,$(TOP_HEADERS))) > $@
 
-CFLAGS += $(COMMON_CFLAGS)
+CFLAGS += $(COMMON_CFLAGS) -L../../reef/src -lreef
 
 # NOTE: we compile straight from sources, not from the single amalgamated file,
 # in order to make sure that all sources include the right headers
@@ -230,4 +230,3 @@ CLFLAGS = /DWIN32_LEAN_AND_MEAN /MD /O1 /TC /W2 /WX /I.. /I. /DNDEBUG /DMJS_MEMO
 vc98 vc2017: mjs.c mjs.h
 	$(RD) docker.cesanta.com/$@ wine cl $(TEST_SOURCES) $(CLFLAGS) /Fe$@.exe
 	$(RD) docker.cesanta.com/$@ wine ./$@.exe
-

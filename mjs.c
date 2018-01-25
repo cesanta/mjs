@@ -2699,6 +2699,8 @@ MJS_PRIVATE void mjs_array_splice(struct mjs *mjs);
 
 MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs);
 
+MJS_PRIVATE void mjs_array_join(struct mjs *mjs);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */
@@ -3651,7 +3653,7 @@ extern "C" {
  * Size of the extra space for strings mbuf that is needed to avoid frequent
  * reallocations
  */
-#define _MJS_STRING_BUF_RESERVE 100
+#define MJS_STRING_BUF_RESERVE 1048576
 
 MJS_PRIVATE unsigned long cstr_to_ulong(const char *s, size_t len, int *ok);
 MJS_PRIVATE mjs_err_t
@@ -3666,6 +3668,7 @@ MJS_PRIVATE void mjs_mkstr(struct mjs *mjs);
 
 MJS_PRIVATE void mjs_string_slice(struct mjs *mjs);
 MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
+MJS_PRIVATE void mjs_string_indexof(struct mjs *mjs);
 
 #define EMBSTR_ZERO_TERM 1
 #define EMBSTR_UNESCAPE 2
@@ -7582,6 +7585,8 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
+/* Amalgamated: #include "reef.h" */
+
 #define SPLICE_NEW_ITEM_IDX 2
 
 /* like c_snprintf but returns `size` if write is truncated */
@@ -7707,6 +7712,37 @@ MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs) {
   ret = mjs_mk_number(mjs, mjs_array_length(mjs, mjs->vals.this_obj));
 
 clean:
+  mjs_return(mjs, ret);
+  return;
+}
+
+MJS_PRIVATE void mjs_array_join(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+
+  MSTR str; mstr_init(&str);
+
+  /* Make sure that `this` is an array */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_OBJECT_ARRAY, NULL)) {
+    goto clean;
+  }
+
+  mjs_val_t s;
+  if (!mjs_check_arg(mjs, 0, "join", MJS_TYPE_STRING, &s)) goto clean;
+  const char *ps = mjs_get_cstring(mjs, &s);
+
+  int arr_len = mjs_array_length(mjs, mjs->vals.this_obj);
+  for (int i = 0; i < arr_len; i++) {
+    mjs_val_t cur = mjs_array_get(mjs, mjs->vals.this_obj, i);
+    if (mjs_is_string(cur) || mjs_is_number(cur)) {
+      if (i != 0) mstr_append(&str, ps);
+      if (mjs_is_string(cur)) mstr_append(&str, mjs_get_cstring(mjs, &cur));
+      else if (mjs_is_number(cur)) mstr_appendf(&str, "%d", mjs_get_int(mjs, cur));
+    }
+  }
+  ret = mjs_mk_string(mjs, str.buf, str.len, 1);
+
+clean:
+  mstr_clear(&str);
   mjs_return(mjs, ret);
   return;
 }
@@ -8222,20 +8258,20 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 /* Amalgamated: #include "mjs/src/mjs_util.h" */
 
 #ifndef MJS_OBJECT_ARENA_SIZE
-#define MJS_OBJECT_ARENA_SIZE 20
+#define MJS_OBJECT_ARENA_SIZE 1048576
 #endif
 #ifndef MJS_PROPERTY_ARENA_SIZE
-#define MJS_PROPERTY_ARENA_SIZE 20
+#define MJS_PROPERTY_ARENA_SIZE 1048576
 #endif
 #ifndef MJS_FUNC_FFI_ARENA_SIZE
 #define MJS_FUNC_FFI_ARENA_SIZE 20
 #endif
 
 #ifndef MJS_OBJECT_ARENA_INC_SIZE
-#define MJS_OBJECT_ARENA_INC_SIZE 10
+#define MJS_OBJECT_ARENA_INC_SIZE 524288
 #endif
 #ifndef MJS_PROPERTY_ARENA_INC_SIZE
-#define MJS_PROPERTY_ARENA_INC_SIZE 10
+#define MJS_PROPERTY_ARENA_INC_SIZE 524288
 #endif
 #ifndef MJS_FUNC_FFI_ARENA_INC_SIZE
 #define MJS_FUNC_FFI_ARENA_INC_SIZE 10
@@ -8854,6 +8890,16 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
                         : mjs_mk_number(mjs, result);
   } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
     ret = s_concat(mjs, a, b);
+  } else if (op == TOK_PLUS) {
+    char tok[32];
+    if (mjs_is_number(a)) {
+        /* TODO int, float ? */
+      snprintf(tok, sizeof(tok), "%d", mjs_get_int(mjs, a));
+      ret = s_concat(mjs, mjs_mk_string(mjs, tok, ~0, 0), b);
+    } else {
+      snprintf(tok, sizeof(tok), "%d", mjs_get_int(mjs, b));
+      ret = s_concat(mjs, a, mjs_mk_string(mjs, tok, ~0, 0));
+    }
   } else {
     set_no_autoconversion_error(mjs);
   }
@@ -8885,6 +8931,18 @@ static int check_equal(struct mjs *mjs, mjs_val_t a, mjs_val_t b) {
      * false
      */
     ret = 0;
+  } else if (mjs_is_number(a) && mjs_is_string(b)) {
+      const char *nums = mjs_get_string(mjs, &b, NULL);
+      int64_t num = 0;
+      if (nums) num = to64(nums);
+      if (num == mjs_get_double(mjs, a)) ret = 1;
+      else ret = 0;
+  } else if (mjs_is_number(b) && mjs_is_string(a)) {
+      const char *nums = mjs_get_string(mjs, &a, NULL);
+      int64_t num = 0;
+      if (nums) num = to64(nums);
+      if (num == mjs_get_double(mjs, b)) ret = 1;
+      else ret = 0;
   } else if (mjs_is_string(a) && mjs_is_string(b)) {
     ret = s_cmp(mjs, a, b) == 0;
   } else if (mjs_is_foreign(a) && b == MJS_NULL) {
@@ -9108,6 +9166,9 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
   } else if (strcmp(name, "at") == 0 || strcmp(name, "charCodeAt") == 0) {
     *res = mjs_mk_foreign(mjs, mjs_string_char_code_at);
     return 1;
+  } else if (strcmp(name, "indexOf") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_string_indexof);
+    return 1;
   } else if (isnum) {
     /*
      * string subscript: return a new one-byte string if the index
@@ -9136,6 +9197,9 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
     return 1;
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
+    return 1;
+  } else if (strcmp(name, "join") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_array_join);
     return 1;
   }
 
@@ -9767,6 +9831,11 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   }
 
   addr = mjs_get_func_addr(func);
+
+  if ((int) addr == 0) {
+      mjs_set_errorf(mjs, MJS_REFERENCE_ERROR, "can't apply unexist function");
+      return mjs->error;
+  }
 
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 
@@ -11050,7 +11119,11 @@ static int gc_arena_is_gc_needed(struct gc_arena *a) {
 
 MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs) {
   struct mbuf *m = &mjs->owned_strings;
-  return (double) m->len / (double) m->size > 0.9;
+  if ((double)(m->size - m->len) / (double)MJS_STRING_BUF_RESERVE < 0.1) {
+      mbuf_resize(m, m->size + MJS_STRING_BUF_RESERVE);
+      return 1;
+  }
+  return 0;
 }
 
 MJS_PRIVATE void *gc_alloc_cell(struct mjs *mjs, struct gc_arena *a) {
@@ -11433,10 +11506,10 @@ void mjs_gc(struct mjs *mjs, int full) {
   if (full) {
     /*
      * In case of full GC, we also resize strings buffer, but we still leave
-     * some extra space (at most, `_MJS_STRING_BUF_RESERVE`) in order to avoid
+     * some extra space (at most, `MJS_STRING_BUF_RESERVE`) in order to avoid
      * frequent reallocations
      */
-    size_t trimmed_size = mjs->owned_strings.len + _MJS_STRING_BUF_RESERVE;
+    size_t trimmed_size = mjs->owned_strings.len + MJS_STRING_BUF_RESERVE;
     if (trimmed_size < mjs->owned_strings.size) {
       mbuf_resize(&mjs->owned_strings, trimmed_size);
     }
@@ -11958,6 +12031,173 @@ MJS_PRIVATE void mjs_op_json_parse(struct mjs *mjs) {
   mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
+#line 1 "mjs/src/mjs_extension.c"
+#endif
+/* Amalgamated: #include "common/str_util.h" */
+/* Amalgamated: #include "frozen/frozen.h" */
+/* Amalgamated: #include "mjs/src/mjs_array.h" */
+/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
+/* Amalgamated: #include "mjs/src/mjs_core.h" */
+/* Amalgamated: #include "mjs/src/mjs_object.h" */
+/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
+/* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs/src/mjs_util.h" */
+
+/* Amalgamated: #include "reef.h" */
+
+static void mjs_op_time_systime(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    char timestr[25] = {0};
+    struct timeval tv;
+    struct tm *tm;
+
+    gettimeofday(&tv, NULL);
+    tm = localtime(&tv.tv_sec);
+    strftime(timestr, 25, "%Y-%m-%d %H:%M:%S", tm);
+    timestr[24] = '\0';
+
+    ret = mjs_mk_object(jsm);
+    mjs_set(jsm, ret, "localtime", ~0, mjs_mk_string(jsm, timestr, ~0, 1));
+    mjs_set(jsm, ret, "timestamp", ~0, mjs_mk_number(jsm, time(NULL)));
+
+    mjs_set(jsm, ret, "year", ~0, mjs_mk_number(jsm, tm->tm_year + 1900));
+    mjs_set(jsm, ret, "month", ~0, mjs_mk_number(jsm, tm->tm_mon + 1));
+    mjs_set(jsm, ret, "day", ~0, mjs_mk_number(jsm, tm->tm_mday));
+
+    mjs_set(jsm, ret, "hour", ~0, mjs_mk_number(jsm, tm->tm_hour));
+    mjs_set(jsm, ret, "minute", ~0, mjs_mk_number(jsm, tm->tm_min));
+    mjs_set(jsm, ret, "second", ~0, mjs_mk_number(jsm, tm->tm_sec));
+
+    mjs_return(jsm, ret);
+}
+
+static void mjs_op_os_usleep(struct mjs *jsm)
+{
+    if (mjs_nargs(jsm) < 1) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing a value to usleep");
+    } else {
+        int usec = 0;
+        mjs_val_t val = mjs_arg(jsm, 0);
+        if (mjs_is_number(val)) {
+            usec = mjs_get_int(jsm, val);
+            if (usec > 0) usleep(usec);
+        }
+    }
+
+    mjs_return(jsm, MJS_UNDEFINED);
+}
+
+static void mjs_op_sys_parseInt(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    if (mjs_nargs(jsm) < 1) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing a value");
+    } else {
+        mjs_val_t p = mjs_arg(jsm, 0);
+        if (mjs_is_number(p)) {
+            ret = mjs_mk_number(jsm, mjs_get_int(jsm, p));
+        } else if (mjs_is_string(p)) {
+            const char *nums = mjs_get_string(jsm, &p, NULL);
+            int64_t num = 0;
+            if (nums) num = to64(nums);
+            ret = mjs_mk_number(jsm, num);
+        }
+    }
+
+    mjs_return(jsm, ret);
+}
+
+static void mjs_op_sys_delete(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    if (mjs_nargs(jsm) < 2) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing argument");
+    } else {
+        mjs_val_t obj = mjs_arg(jsm, 0);
+        mjs_val_t prop = mjs_arg(jsm, 1);
+        if (mjs_is_object(obj) && mjs_is_string(prop)) {
+            ret = obj;
+            mjs_del(jsm, obj, mjs_get_string(jsm, &prop, NULL), ~0);
+        } else {
+            mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "type mismatch");
+        }
+    }
+
+    mjs_return(jsm, ret);
+}
+
+static void mjs_op_sys_regMatch(struct mjs *jsm)
+{
+    mjs_val_t ret = MJS_UNDEFINED;
+
+    if (mjs_nargs(jsm) < 2) {
+        mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "missing argument");
+    } else {
+        mjs_val_t s = mjs_arg(jsm, 0);
+        mjs_val_t r = mjs_arg(jsm, 1);
+
+        if (!mjs_is_string(s) || !mjs_is_string(s)) {
+            mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "argument not string");
+            goto done;
+        }
+
+        const char *ps = mjs_get_cstring(jsm, &s);
+        const char *pr = mjs_get_cstring(jsm, &r);
+
+        mtc_mt_dbg("%s ===> %s", ps, pr);
+
+        ret = mjs_mk_array(jsm);
+
+        MRE *reo = mre_init();
+        MERR *err;
+        err = mre_compile(reo, pr);
+        if (err) {
+            mjs_prepend_errorf(jsm, MJS_TYPE_ERROR, "compile reg %s error %s", r, merr_meanful_desc(err));
+            merr_destroy(&err);
+            mre_destroy(&reo);
+            goto done;
+        }
+
+        if (mre_match(reo, ps, false)) {
+            for (uint32_t i = 1; i < mre_sub_count(reo, 0); i++) {
+                const char *sp, *ep;
+                if (mre_sub_get(reo, 0, i, &sp, &ep)) {
+                    mjs_val_t sub = mjs_mk_string(jsm, sp, (ep - sp), 1);
+                    mjs_array_push(jsm, ret, sub);
+                }
+            }
+        }
+
+        mre_destroy(&reo);
+    }
+
+done:
+    mjs_return(jsm, ret);
+}
+
+void mjs_init_local(struct mjs *jsm, mjs_val_t o)
+{
+    mjs_val_t time = mjs_mk_object(jsm);
+    mjs_val_t os = mjs_mk_object(jsm);
+    mjs_val_t sys = mjs_mk_object(jsm);
+
+    mjs_set(jsm, o, "TIME", ~0, time);
+    mjs_set(jsm, time, "systime", ~0, mjs_mk_foreign(jsm, mjs_op_time_systime));
+
+    mjs_set(jsm, o, "OS", ~0, os);
+    mjs_set(jsm, os, "usleep", ~0, mjs_mk_foreign(jsm, mjs_op_os_usleep));
+
+    mjs_set(jsm, o, "SYS", ~0, sys);
+    mjs_set(jsm, sys, "parseInt", ~0, mjs_mk_foreign(jsm, mjs_op_sys_parseInt));
+    mjs_set(jsm, sys, "objDelete", ~0, mjs_mk_foreign(jsm, mjs_op_sys_delete));
+    mjs_set(jsm, sys, "regMatch", ~0, mjs_mk_foreign(jsm, mjs_op_sys_regMatch));
+}
+#ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_main.c"
 #endif
 /*
@@ -11981,7 +12221,9 @@ int main(int argc, char *argv[]) {
   mjs_err_t err = MJS_OK;
   int i;
 
-  for (i = 1; i < argc && argv[i][0] == '-' && err == MJS_OK; i++) {
+    mjs_init_local(mjs, mjs_get_global(mjs));
+
+    for (i = 1; i < argc && argv[i][0] == '-'; i++) {
     if (strcmp(argv[i], "-l") == 0 && i + 1 < argc) {
       cs_log_set_level(atoi(argv[++i]));
     } else if (strcmp(argv[i], "-j") == 0) {
@@ -13530,7 +13772,7 @@ static int runetochar(char *str, Rune *rune) {
 }
 
 #ifndef MJS_STRING_BUF_RESERVE
-#define MJS_STRING_BUF_RESERVE 100
+#define MJS_STRING_BUF_RESERVE 1048576
 #endif
 
 MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);
@@ -13836,6 +14078,35 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs) {
   if (idx >= 0 && idx < (int) size) {
     ret = mjs_mk_number(mjs, ((unsigned char *) s)[idx]);
   }
+
+clean:
+  mjs_return(mjs, ret);
+}
+
+MJS_PRIVATE void mjs_string_indexof(struct mjs *mjs) {
+  mjs_val_t ret = MJS_UNDEFINED;
+  mjs_val_t idx_v = MJS_UNDEFINED;
+  size_t size;
+  const char *s = NULL;
+
+  /* get string from `this` */
+  if (!mjs_check_arg(mjs, -1 /*this*/, "this", MJS_TYPE_STRING, NULL)) {
+    goto clean;
+  }
+  s = mjs_get_string(mjs, &mjs->vals.this_obj, &size);
+
+  /* get idx from arg 0 */
+  if (!mjs_check_arg(mjs, 0, "index", MJS_TYPE_STRING, &idx_v)) {
+    goto clean;
+  }
+
+  size_t tok_size;
+  const char *tok = mjs_get_string(mjs, &idx_v, &tok_size);
+  if (tok) {
+      char *pos = strstr(s, tok);
+      if (pos) ret = mjs_mk_number(mjs, pos - s);
+      else ret = mjs_mk_number(mjs, -1);
+  } else ret = mjs_mk_number(mjs, -1);
 
 clean:
   mjs_return(mjs, ret);

@@ -20,6 +20,8 @@ MJS_PRIVATE void mjs_array_splice(struct mjs *mjs);
 
 MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs);
 
+MJS_PRIVATE void mjs_array_join(struct mjs *mjs);
+
 #if defined(__cplusplus)
 }
 #endif /* __cplusplus */

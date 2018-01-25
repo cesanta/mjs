@@ -480,6 +480,9 @@ static int getprop_builtin_array(struct mjs *mjs, mjs_val_t val,
   } else if (strcmp(name, "length") == 0) {
     *res = mjs_mk_number(mjs, mjs_array_length(mjs, val));
     return 1;
+  } else if (strcmp(name, "join") == 0) {
+    *res = mjs_mk_foreign(mjs, mjs_array_join);
+    return 1;
   }
 
   (void) name_len;
