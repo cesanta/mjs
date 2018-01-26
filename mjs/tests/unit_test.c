@@ -3726,6 +3726,13 @@ const char *test_parser(struct mjs *mjs) {
         , &res), MJS_SYNTAX_ERROR);
   ASSERT_STREQ(mjs->error_msg, "parser stack overflow");
 
+  {
+    char *p = calloc(7000, 1);
+    memset(p, '{', 7000-1);
+    ASSERT_EQ(mjs_exec(mjs, p , &res), MJS_SYNTAX_ERROR);
+    free(p);
+  }
+
   mjs_disown(mjs, &res);
   return NULL;
 }

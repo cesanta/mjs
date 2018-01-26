@@ -156,6 +156,12 @@ static mjs_err_t parse_statement_list(struct pstate *p, int et) {
 
 static mjs_err_t parse_block(struct pstate *p, int mkscope) {
   mjs_err_t res = MJS_OK;
+  p->depth++;
+  if (p->depth > (STACK_LIMIT / BINOP_STACK_FRAME_SIZE)) {
+    mjs_set_errorf(p->mjs, MJS_SYNTAX_ERROR, "parser stack overflow");
+    res = MJS_SYNTAX_ERROR;
+    return res;
+  }
   LOG(LL_VERBOSE_DEBUG, ("[%.*s]", 10, p->tok.ptr));
   if (mkscope) emit_byte(p, OP_NEW_SCOPE);
   res = parse_statement_list(p, TOK_CLOSE_CURLY);
