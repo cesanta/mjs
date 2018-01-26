@@ -151,6 +151,14 @@ static mjs_err_t parse_statement_list(struct pstate *p, int et) {
     drop = 1;
     while (p->tok.tok == TOK_SEMICOLON) pnext1(p);
   }
+
+  /*
+   * Client code expects statement list to contain a value, so if the statement
+   * list was empty, push `undefined`.
+   */
+  if (!drop) {
+    emit_byte(p, OP_PUSH_UNDEF);
+  }
   return res;
 }
 

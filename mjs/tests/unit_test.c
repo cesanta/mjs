@@ -221,6 +221,8 @@ const char *test_block(struct mjs *mjs) {
   ASSERT_EQ(res, MJS_UNDEFINED);
   CHECK_NUMERIC("{let a = 42; }", 42);
   CHECK_NUMERIC("let a = 1, b = 2; { let a = 3; b += a; } b;", 5);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "{}", &res));
+  ASSERT_EQ(res, MJS_UNDEFINED);
 
   mjs_disown(mjs, &res);
   return NULL;
@@ -2194,6 +2196,11 @@ const char *test_for_loop(struct mjs *mjs) {
           foo();
         ), &res));
   ASSERT_EQ(mjs->loop_addresses.len, 0);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          for (i = 0; i < 10; i++) {}
+          ), &res));
 
   mjs_disown(mjs, &res);
 
