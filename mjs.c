@@ -13678,12 +13678,22 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
       /*
        * Before embedding new string, check if the reallocation is needed.  If
        * so, perform the reallocation by calling `mbuf_resize` manually, since
-       * we
-       * need to preallocate some extra space (`MJS_STRING_BUF_RESERVE`)
+       * we need to preallocate some extra space (`MJS_STRING_BUF_RESERVE`)
        */
       if ((m->len + len) > m->size) {
+        char *prev_buf = m->buf;
         mbuf_resize(m, m->len + len + MJS_STRING_BUF_RESERVE);
+
+        /*
+         * There is a corner case: when the source pointer is located within
+         * the mbuf. In this case, we should adjust the pointer, because it
+         * might have just been reallocated.
+         */
+        if (p >= prev_buf && p < (prev_buf + m->len)) {
+          p += (m->buf - prev_buf);
+        }
       }
+
       embed_string(m, m->len, p, len, EMBSTR_ZERO_TERM);
       tag = MJS_TAG_STRING_O;
     }
