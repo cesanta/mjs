@@ -96,7 +96,13 @@ mjs_val_t mjs_get_this(struct mjs *mjs) {
   return mjs->vals.this_obj;
 }
 
-static double do_arith_op(double da, double db, int op) {
+static double do_arith_op(double da, double db, int op, bool *resnan) {
+  *resnan = false;
+
+  if (isnan(da) || isnan(db)) {
+    *resnan = true;
+    return 0;
+  }
   /* clang-format off */
   switch (op) {
     case TOK_MINUS:   return da - db;
@@ -107,7 +113,8 @@ static double do_arith_op(double da, double db, int op) {
         return da / db;
       } else {
         /* TODO(dfrank): add support for Infinity and return it here */
-        return (double) MJS_TAG_NAN;
+        *resnan = true;
+        return 0;
       }
     case TOK_REM:
       /*
@@ -116,9 +123,22 @@ static double do_arith_op(double da, double db, int op) {
        */
       db = (int) db;
       if (db != 0) {
-        return (double) ((int64_t) da % (int64_t) db);
+        bool neg = false;
+        if (da < 0) {
+          neg = true;
+          da = -da;
+        }
+        if (db < 0) {
+          db = -db;
+        }
+        da = (double) ((int64_t) da % (int64_t) db);
+        if (neg) {
+          da = -da;
+        }
+        return da;
       } else {
-        return (double) MJS_TAG_NAN;
+        *resnan = true;
+        return 0;
       }
     case TOK_AND:     return (double) ((int64_t) da & (int64_t) db);
     case TOK_OR:      return (double) ((int64_t) da | (int64_t) db);
@@ -128,7 +148,8 @@ static double do_arith_op(double da, double db, int op) {
     case TOK_URSHIFT: return (double) ((uint32_t) da >> (uint32_t) db);
   }
   /* clang-format on */
-  return (int64_t) MJS_TAG_NAN;
+  *resnan = true;
+  return 0;
 }
 
 static void set_no_autoconversion_error(struct mjs *mjs) {
@@ -138,6 +159,7 @@ static void set_no_autoconversion_error(struct mjs *mjs) {
 
 static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
   mjs_val_t ret = MJS_UNDEFINED;
+  bool resnan = false;
   if ((mjs_is_foreign(a) || mjs_is_number(a)) &&
       (mjs_is_foreign(b) || mjs_is_number(b))) {
     int is_result_ptr = 0;
@@ -162,14 +184,17 @@ static mjs_val_t do_op(struct mjs *mjs, mjs_val_t a, mjs_val_t b, int op) {
                           : (double) (uintptr_t) mjs_get_ptr(mjs, a);
     db = mjs_is_number(b) ? mjs_get_double(mjs, b)
                           : (double) (uintptr_t) mjs_get_ptr(mjs, b);
-    result = do_arith_op(da, db, op);
-
-    /*
-     * If at least one of the operands was a pointer, result should also be
-     * a pointer
-     */
-    ret = is_result_ptr ? mjs_mk_foreign(mjs, (void *) (uintptr_t) result)
-                        : mjs_mk_number(mjs, result);
+    result = do_arith_op(da, db, op, &resnan);
+    if (resnan) {
+      ret = MJS_TAG_NAN;
+    } else {
+      /*
+       * If at least one of the operands was a pointer, result should also be
+       * a pointer
+       */
+      ret = is_result_ptr ? mjs_mk_foreign(mjs, (void *) (uintptr_t) result)
+                          : mjs_mk_number(mjs, result);
+    }
   } else if (mjs_is_string(a) && mjs_is_string(b) && (op == TOK_PLUS)) {
     ret = s_concat(mjs, a, b);
   } else {
