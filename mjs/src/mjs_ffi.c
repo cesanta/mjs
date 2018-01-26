@@ -843,12 +843,15 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs = *pitem;
     }
 
-    union {
-      ffi_fn_t *fn;
-      void *p;
-    } u = {.fn = psig->cb_sig->fn};
-    ffi_set_ptr(&args[cbdata.func_idx], u.p);
-    ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
+    {
+      union {
+        ffi_fn_t *fn;
+        void *p;
+      } u;
+      u.fn = psig->cb_sig->fn;
+      ffi_set_ptr(&args[cbdata.func_idx], u.p);
+      ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
+    }
   } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
     /*
      * incomplete signature: it contains either the function pointer or

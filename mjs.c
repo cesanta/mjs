@@ -10685,12 +10685,15 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
       cbargs = *pitem;
     }
 
-    union {
-      ffi_fn_t *fn;
-      void *p;
-    } u = {.fn = psig->cb_sig->fn};
-    ffi_set_ptr(&args[cbdata.func_idx], u.p);
-    ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
+    {
+      union {
+        ffi_fn_t *fn;
+        void *p;
+      } u;
+      u.fn = psig->cb_sig->fn;
+      ffi_set_ptr(&args[cbdata.func_idx], u.p);
+      ffi_set_ptr(&args[cbdata.userdata_idx], cbargs);
+    }
   } else if (!(cbdata.userdata_idx == -1 && cbdata.func_idx == -1)) {
     /*
      * incomplete signature: it contains either the function pointer or
@@ -13517,14 +13520,14 @@ mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
 }
 
 mjs_val_t mjs_mk_foreign_func(struct mjs *mjs, mjs_func_ptr_t fn) {
-  (void) mjs;
   union {
     mjs_func_ptr_t fn;
     void *p;
-  } u = {.fn = fn};
+  } u;
+  u.fn = fn;
+  (void) mjs;
   return mjs_pointer_to_value(mjs, u.p) | MJS_TAG_FOREIGN;
 }
-
 
 int mjs_is_foreign(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_FOREIGN;

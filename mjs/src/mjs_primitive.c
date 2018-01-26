@@ -128,14 +128,14 @@ mjs_val_t mjs_mk_foreign(struct mjs *mjs, void *p) {
 }
 
 mjs_val_t mjs_mk_foreign_func(struct mjs *mjs, mjs_func_ptr_t fn) {
-  (void) mjs;
   union {
     mjs_func_ptr_t fn;
     void *p;
-  } u = {.fn = fn};
+  } u;
+  u.fn = fn;
+  (void) mjs;
   return mjs_pointer_to_value(mjs, u.p) | MJS_TAG_FOREIGN;
 }
-
 
 int mjs_is_foreign(mjs_val_t v) {
   return (v & MJS_TAG_MASK) == MJS_TAG_FOREIGN;
