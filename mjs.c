@@ -13253,9 +13253,31 @@ static mjs_err_t parse_if(struct pstate *p) {
   return res;
 }
 
+static void pstate_revert(struct pstate *p, struct pstate *old,
+                          int old_bcode_gen_len) {
+  p->pos = old->pos;
+  p->line_no = old->line_no;
+  p->last_emitted_line_no = old->last_emitted_line_no;
+  p->offset_lineno_map.len = old->offset_lineno_map.len;
+  p->prev_tok = old->prev_tok;
+  p->tok = old->tok;
+  p->mjs->bcode_gen.len = old_bcode_gen_len;
+  p->cur_idx = old->cur_idx;
+  p->depth = old->depth;
+}
+
 static mjs_err_t parse_return(struct pstate *p) {
+  int old_bcode_gen_len;
+  struct pstate p_saved;
   EXPECT(p, TOK_KEYWORD_RETURN);
+  p_saved = *p;
+  old_bcode_gen_len = p->mjs->bcode_gen.len;
   if (parse_expr(p) != MJS_OK) {
+    /*
+     * Failed to parse an expression to return, so return the parser to the
+     * prior state and push undefined.
+     */
+    pstate_revert(p, &p_saved, old_bcode_gen_len);
     emit_byte(p, OP_PUSH_UNDEF);
   }
   emit_byte(p, OP_SETRETVAL);

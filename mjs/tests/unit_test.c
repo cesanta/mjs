@@ -254,6 +254,9 @@ const char *test_function(struct mjs *mjs) {
           foo();
         ), &res));
 
+  /* Invalid expression after "return" should result in a syntax error */
+  ASSERT_EQ(mjs_exec(mjs, "return function f(x)", &res), MJS_SYNTAX_ERROR);
+
   mjs_disown(mjs, &res);
   return NULL;
 }
