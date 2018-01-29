@@ -1162,6 +1162,7 @@ int gettimeofday(struct timeval *tp, void *tzp);
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
