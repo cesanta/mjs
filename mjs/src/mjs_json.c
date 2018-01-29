@@ -433,7 +433,21 @@ mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res) {
 
   mjs_own(mjs, &ctx->result);
 
-  json_res = json_walk(str, len, frozen_cb, ctx);
+  {
+    /*
+     * We have to reallocate the buffer before invoking json_walk, because
+     * frozen_cb can create new strings, which can result in the reallocation
+     * of mjs string mbuf, invalidating the `str` pointer.
+     */
+    char *stmp = malloc(len);
+    memcpy(stmp, str, len);
+    json_res = json_walk(stmp, len, frozen_cb, ctx);
+    free(stmp);
+    stmp = NULL;
+
+    /* str might have been invalidated, so null it out */
+    str = NULL;
+  }
 
   if (json_res >= 0) {
     /* Expression is parsed successfully */

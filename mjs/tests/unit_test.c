@@ -2827,6 +2827,22 @@ const char *test_json(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
 
+  /*
+   * Test parsing of object containing a lot of strings: this way, new strings
+   * will be allocated as we go, which should lead to the mjs string buffer
+   * reallocation, and if it's not handled correctly, we'll get the asan
+   * failure.
+   */
+  {
+    /* We have to use temp string var because of vc98 */
+    const char *is =
+      "let s = '{\"foo1\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo2\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo3\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo4\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo5\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo6\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo7\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\", \"foo8\": \"sdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdfsdf\"}'; "
+      "let o = JSON.parse(s);"
+      "1;"
+      ;
+    ASSERT_EXEC_OK(mjs_exec(mjs, is, &res));
+  }
+
   ASSERT_EXEC_OK(mjs_exec(mjs,
         "let o = {foo: 1, bar: 'hey', arr: [1, 2, {foo: 100,}], 'null': null, 'undefined': undefined}; "
         "JSON.stringify(o)",
