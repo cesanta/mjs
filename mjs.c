@@ -1165,6 +1165,7 @@ int gettimeofday(struct timeval *tp, void *tzp);
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 
 #define to64(x) strtoll(x, NULL, 10)
 
