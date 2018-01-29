@@ -304,6 +304,7 @@ struct json_parse_ctx {
   struct mjs *mjs;
   mjs_val_t result;
   struct json_parse_frame *frame;
+  enum mjs_err rcode;
 };
 
 /* Allocate JSON parse frame */
@@ -340,6 +341,10 @@ static void frozen_cb(void *data, const char *name, size_t name_len,
       char *dst;
       if (token->len > 0 && (dst = malloc(token->len)) != NULL) {
         int len = json_unescape(token->ptr, token->len, dst, token->len);
+        if (len < 0) {
+          mjs_prepend_errorf(ctx->mjs, MJS_TYPE_ERROR, "invalid JSON string");
+          break;
+        }
         v = mjs_mk_string(ctx->mjs, dst, len, 1 /* copy */);
         free(dst);
       } else {
@@ -430,6 +435,7 @@ mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res) {
   ctx->mjs = mjs;
   ctx->result = MJS_UNDEFINED;
   ctx->frame = NULL;
+  ctx->rcode = MJS_OK;
 
   mjs_own(mjs, &ctx->result);
 
@@ -449,17 +455,22 @@ mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res) {
     str = NULL;
   }
 
-  if (json_res >= 0) {
+  if (ctx->rcode != MJS_OK) {
+    rcode = ctx->rcode;
+    mjs_prepend_errorf(mjs, rcode, "invalid JSON string");
+  } else if (json_res < 0) {
+    /* There was an error during parsing */
+    rcode = MJS_TYPE_ERROR;
+    mjs_prepend_errorf(mjs, rcode, "invalid JSON string");
+  } else {
     /* Expression is parsed successfully */
     *res = ctx->result;
 
     /* There should be no allocated frames */
     assert(ctx->frame == NULL);
-  } else {
-    /* There was an error during parsing */
-    rcode = MJS_TYPE_ERROR;
-    mjs_prepend_errorf(mjs, rcode, "invalid JSON string");
+  }
 
+  if (rcode != MJS_OK) {
     /* There might be some allocated frames in case of malformed JSON */
     while (ctx->frame != NULL) {
       ctx->frame = free_json_frame(ctx, ctx->frame);

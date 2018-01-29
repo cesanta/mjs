@@ -2885,6 +2885,27 @@ const char *test_json(struct mjs *mjs) {
         &res));
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), json_val);
 
+  /* Test unicode escapes, valid and invalid */
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        "let s = '{\"foo\": \"\\u0025\"}'; "
+        "let o = JSON.parse(s);"
+        "JSON.stringify(o)",
+        &res));
+  {
+    /* We have to use temp string var because of vc98 */
+    const char *rs = "{\"foo\":\"%\"}";
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), rs);
+  }
+
+  /* Test unicode escapes, valid and invalid */
+  {
+    /* We have to use temp string var because of vc98 */
+    const char *is =
+      "let s = '{\"foo\": \"\\u002\"}'; "
+      "let o = JSON.parse(s);";
+    ASSERT_EQ(mjs_exec(mjs, is, &res), MJS_TYPE_ERROR);
+  }
+
   mjs_disown(mjs, &res);
 
   return NULL;
