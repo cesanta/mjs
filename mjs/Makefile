@@ -152,9 +152,9 @@ endef
 # 2: binary name component, like "O0" or whatever
 # 3: additional compiler flags
 define compile_test_with_opt
-$(eval $(call compile_test_with_compiler,docker.cesanta.com/gcc,/usr/bin/gcc,gcc_$2,$1 $3))
 $(eval $(call compile_test_with_compiler,docker.cesanta.com/clang,/usr/bin/clang-3.6,clang_$2,$(ASAN_CFLAGS) $1 $3))
 $(eval $(call compile_test_with_compiler,docker.cesanta.com/clang,/usr/bin/clang-3.6,clang_32bit_$2,-m32 $1 $3))
+$(eval $(call compile_test_with_compiler,docker.cesanta.com/gcc,/usr/bin/gcc,gcc_$2,$1 $3))
 endef
 
 # params:
