@@ -23,7 +23,7 @@ static int runetochar(char *str, Rune *rune) {
 }
 
 #ifndef MJS_STRING_BUF_RESERVE
-#define MJS_STRING_BUF_RESERVE 1048576
+#define MJS_STRING_BUF_RESERVE 52428800
 #endif
 
 MJS_PRIVATE size_t unescape(const char *s, size_t len, char *to);

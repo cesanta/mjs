@@ -17,7 +17,7 @@ extern "C" {
  * Size of the extra space for strings mbuf that is needed to avoid frequent
  * reallocations
  */
-#define MJS_STRING_BUF_RESERVE 1048576
+#define MJS_STRING_BUF_RESERVE 52428800
 
 MJS_PRIVATE unsigned long cstr_to_ulong(const char *s, size_t len, int *ok);
 MJS_PRIVATE mjs_err_t
