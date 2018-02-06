@@ -114,35 +114,38 @@ MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
   char buf[40];
   size_t start_i = i;
+  size_t llen;
+  uint64_t n;
 
   snprintf(buf, sizeof(buf), "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
 
   switch (code[i]) {
     case OP_PUSH_FUNC: {
-      int llen, n = cs_varint_decode(&code[i + 1], &llen);
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
       LOG(LL_VERBOSE_DEBUG, ("%s %04u", buf, (unsigned) (i - n)));
       i += llen;
       break;
     }
     case OP_PUSH_INT: {
-      int llen;
-      unsigned long n = cs_varint_decode(&code[i + 1], &llen);
-      LOG(LL_VERBOSE_DEBUG, ("%s\t%lu", buf, n));
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t%lu", buf, (unsigned long) n));
       i += llen;
       break;
     }
     case OP_SET_ARG: {
-      int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
-      n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
-      LOG(LL_VERBOSE_DEBUG,
-          ("%s\t[%.*s] %d", buf, n, code + i + 1 + llen1 + llen2, arg_no));
-      i += llen1 + llen2 + n;
+      size_t llen2;
+      uint64_t arg_no;
+      cs_varint_decode(&code[i + 1], ~0, &arg_no, &llen);
+      cs_varint_decode(&code[i + llen + 1], ~0, &n, &llen2);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s] %u", buf, (int) n,
+                             code + i + 1 + llen + llen2, (unsigned) arg_no));
+      i += llen + llen2 + n;
       break;
     }
     case OP_PUSH_STR:
     case OP_PUSH_DBL: {
-      int llen, n = cs_varint_decode(&code[i + 1], &llen);
-      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s]", buf, n, code + i + 1 + llen));
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s]", buf, (int) n, code + i + 1 + llen));
       i += llen + n;
       break;
     }
@@ -151,21 +154,23 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
     case OP_JMP_NEUTRAL_TRUE:
     case OP_JMP_FALSE:
     case OP_JMP_NEUTRAL_FALSE: {
-      int llen, n = cs_varint_decode(&code[i + 1], &llen);
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
       LOG(LL_VERBOSE_DEBUG,
           ("%s\t%u", buf,
-           (unsigned) i + n + llen +
-               1 /* becaue i will be incremented on the usual terms */));
+           (unsigned) (i + n + llen +
+                       1 /* becaue i will be incremented on the usual terms */)));
       i += llen;
       break;
     }
     case OP_LOOP: {
-      int l1, l2, n2, n1 = cs_varint_decode(&code[i + 1], &l1);
-      n2 = cs_varint_decode(&code[i + l1 + 1], &l2);
+      size_t l1, l2;
+      uint64_t n1, n2;
+      cs_varint_decode(&code[i + 1], ~0, &n1, &l1);
+      cs_varint_decode(&code[i + l1 + 1], ~0, &n2, &l2);
       LOG(LL_VERBOSE_DEBUG,
           ("%s\tB:%lu C:%lu (%d)", buf,
-           (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
-           (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i));
+           (unsigned long) (i + 1 /* OP_LOOP */ + l1 + n1),
+           (unsigned long) (i + 1 /* OP_LOOP */ + l1 + l2 + n2), (int) i));
       i += l1 + l2;
       break;
     }
@@ -363,7 +368,9 @@ const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
 }
 
 int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
-  int llen, map_len, prev_line_no, ret = 1;
+  size_t llen;
+  uint64_t map_len;
+  int prev_line_no, ret = 1;
   struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
   uint8_t *p, *pe;
   if (bp != NULL) {
@@ -382,18 +389,19 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
     /* get pointer to the length of the map followed by the map itself */
     p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
 
-    map_len = cs_varint_decode(p, &llen);
+    cs_varint_decode(p, ~0, &map_len, &llen);
     p += llen;
     pe = p + map_len;
 
     prev_line_no = 1;
     while (p < pe) {
-      int llen, line_no, cur_offset = cs_varint_decode(p, &llen);
+      uint64_t cur_offset, line_no;
+      cs_varint_decode(p, ~0, &cur_offset, &llen);
       p += llen;
-      line_no = cs_varint_decode(p, &llen);
+      cs_varint_decode(p, ~0, &line_no, &llen);
       p += llen;
 
-      if (cur_offset >= offset) {
+      if (cur_offset >= (uint64_t) offset) {
         ret = prev_line_no;
         break;
       }

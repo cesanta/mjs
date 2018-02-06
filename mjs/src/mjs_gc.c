@@ -414,7 +414,7 @@ void gc_compact_strings(struct mjs *mjs) {
        * the tail contains the first 6 bytes we stole from
        * the actual string.
        */
-      len = cs_varint_decode((unsigned char *) &h, &llen);
+      len = cs_varint_decode_unsafe((unsigned char *) &h, &llen);
       len += llen + 1;
 
       /*
@@ -431,7 +431,7 @@ void gc_compact_strings(struct mjs *mjs) {
       p += len;
       head += len;
     } else {
-      len = cs_varint_decode((unsigned char *) p, &llen);
+      len = cs_varint_decode_unsafe((unsigned char *) p, &llen);
       len += llen + 1;
 
       p += len;

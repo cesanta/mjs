@@ -20,13 +20,15 @@ static void add_lineno_map_item(struct pstate *pstate) {
 
     /* put offset */
     cs_varint_encode(offset, (uint8_t *) pstate->offset_lineno_map.buf +
-                                 pstate->offset_lineno_map.len);
+                                 pstate->offset_lineno_map.len,
+                     offset_llen);
     pstate->offset_lineno_map.len += offset_llen;
 
     /* put line_no */
     cs_varint_encode(pstate->line_no,
                      (uint8_t *) pstate->offset_lineno_map.buf +
-                         pstate->offset_lineno_map.len);
+                         pstate->offset_lineno_map.len,
+                     lineno_llen);
     pstate->offset_lineno_map.len += lineno_llen;
 
     pstate->last_emitted_line_no = pstate->line_no;
@@ -44,7 +46,7 @@ MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
   size_t llen = cs_varint_llen(n);
   add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen);
-  cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
+  cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx, llen);
   pstate->cur_idx += llen;
 }
 
@@ -53,14 +55,14 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
   size_t llen = cs_varint_llen(len);
   add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
-  cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
+  cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx, llen);
   memcpy(b->buf + pstate->cur_idx + llen, ptr, len);
   pstate->cur_idx += llen + len;
 }
 
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v) {
-  int llen = cs_varint_llen(v);
+  int llen = (int) cs_varint_llen(v);
   int diff = llen - MJS_INIT_OFFSET_SIZE;
   assert(offset < mjs->bcode_gen.len);
   if (diff > 0) {
@@ -74,7 +76,7 @@ MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
           mjs->bcode_gen.buf + offset + MJS_INIT_OFFSET_SIZE,
           mjs->bcode_gen.len - offset - MJS_INIT_OFFSET_SIZE);
   mjs->bcode_gen.len += diff;
-  cs_varint_encode(v, (uint8_t *) mjs->bcode_gen.buf + offset);
+  cs_varint_encode(v, (uint8_t *) mjs->bcode_gen.buf + offset, llen);
 
   /*
    * If current parsing index is after the offset at which we've inserted new

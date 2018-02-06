@@ -4107,26 +4107,43 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out);
 #ifndef CS_COMMON_CS_VARINT_H_
 #define CS_COMMON_CS_VARINT_H_
 
-#include <stdio.h>
-
 #if defined(_WIN32) && _MSC_VER < 1700
 typedef unsigned char uint8_t;
 typedef unsigned __int64 uint64_t;
 #else
+#include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #endif
 
-#if defined(__cplusplus)
+#ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */
+#endif
 
-int cs_varint_encode(uint64_t num, uint8_t *to);
-uint64_t cs_varint_decode(const uint8_t *from, int *llen);
-int cs_varint_llen(uint64_t num);
+/* Returns number of bytes required to encode `num`. */
+size_t cs_varint_llen(uint64_t num);
 
-#if defined(__cplusplus)
+/*
+ * Encodes `num` into `buf`.
+ * Returns number of bytes required to encode `num`.
+ * Note: return value may be greater than `buf_size` but the function will only
+ * write `buf_size` bytes.
+ */
+size_t cs_varint_encode(uint64_t num, uint8_t *buf, size_t buf_size);
+
+/*
+ * Decodes varint stored in `buf`.
+ * Stores the number of bytes consumed into `llen`.
+ * If there aren't enough bytes in `buf` to decode a number, returns false.
+ */
+bool cs_varint_decode(const uint8_t *buf, size_t buf_size, uint64_t *num,
+                      size_t *llen);
+
+uint64_t cs_varint_decode_unsafe(const uint8_t *buf, int *llen);
+
+#ifdef __cplusplus
 }
-#endif /* __cplusplus */
+#endif
 
 #endif /* CS_COMMON_CS_VARINT_H_ */
 #ifdef MJS_MODULE_LINES
@@ -4833,54 +4850,59 @@ char *cs_mmap_file(const char *path, size_t *size) {
 
 /* Amalgamated: #include "cs_varint.h" */
 
-/*
- * Strings in AST are encoded as tuples (length, string).
- * Length is variable-length: if high bit is set in a byte, next byte is used.
- * Small string length (less then 128 bytes) is encoded in 1 byte.
- */
-uint64_t cs_varint_decode(const uint8_t *p, int *llen) {
-  unsigned int i = 0;
-  unsigned int shift = 0;
-  uint64_t num = 0;
+size_t cs_varint_llen(uint64_t num) {
+  size_t llen = 0;
 
   do {
+    llen++;
+  } while (num >>= 7);
+
+  return llen;
+}
+
+size_t cs_varint_encode(uint64_t num, uint8_t *buf, size_t buf_size) {
+  size_t llen = 0;
+
+  do {
+    uint8_t byte = num & 0x7f;
+    num >>= 7;
+    if (num != 0) byte |= 0x80;
+    if (llen < buf_size) *buf++ = byte;
+    llen++;
+  } while (num != 0);
+
+  return llen;
+}
+
+bool cs_varint_decode(const uint8_t *buf, size_t buf_size, uint64_t *num,
+                      size_t *llen) {
+  size_t i = 0, shift = 0;
+  *num = 0;
+
+  do {
+    if (i == buf_size || i == (8 * sizeof(*num) / 7 + 1)) return false;
     /*
      * Each byte of varint contains 7 bits, in little endian order.
      * MSB is a continuation bit: it tells whether next byte is used.
      */
-    num |= ((uint64_t)(p[i] & 0x7f)) << shift;
+    *num |= ((uint64_t)(buf[i] & 0x7f)) << shift;
     /*
      * First we increment i, then check whether it is within boundary and
      * whether decoded byte had continuation bit set.
      */
-    i++;
+    *llen = ++i;
     shift += 7;
-  } while (shift < sizeof(uint64_t) * 8 && (p[i - 1] & 0x80));
-  *llen = i;
+  } while (shift < sizeof(uint64_t) * 8 && (buf[i - 1] & 0x80));
 
-  return num;
+  return true;
 }
 
-/* Return number of bytes to store length */
-int cs_varint_llen(uint64_t num) {
-  int n = 0;
-
-  do {
-    n++;
-  } while (num >>= 7);
-
-  return n;
-}
-
-int cs_varint_encode(uint64_t num, uint8_t *p) {
-  int i, llen = cs_varint_llen(num);
-
-  for (i = 0; i < llen; i++) {
-    p[i] = (num & 0x7f) | (i < llen - 1 ? 0x80 : 0);
-    num >>= 7;
-  }
-
-  return llen;
+uint64_t cs_varint_decode_unsafe(const uint8_t *buf, int *llen) {
+  uint64_t v;
+  size_t l;
+  cs_varint_decode(buf, ~0, &v, &l);
+  *llen = l;
+  return v;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mbuf.c"
@@ -7843,13 +7865,15 @@ static void add_lineno_map_item(struct pstate *pstate) {
 
     /* put offset */
     cs_varint_encode(offset, (uint8_t *) pstate->offset_lineno_map.buf +
-                                 pstate->offset_lineno_map.len);
+                                 pstate->offset_lineno_map.len,
+                     offset_llen);
     pstate->offset_lineno_map.len += offset_llen;
 
     /* put line_no */
     cs_varint_encode(pstate->line_no,
                      (uint8_t *) pstate->offset_lineno_map.buf +
-                         pstate->offset_lineno_map.len);
+                         pstate->offset_lineno_map.len,
+                     lineno_llen);
     pstate->offset_lineno_map.len += lineno_llen;
 
     pstate->last_emitted_line_no = pstate->line_no;
@@ -7867,7 +7891,7 @@ MJS_PRIVATE void emit_int(struct pstate *pstate, int64_t n) {
   size_t llen = cs_varint_llen(n);
   add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen);
-  cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx);
+  cs_varint_encode(n, (uint8_t *) b->buf + pstate->cur_idx, llen);
   pstate->cur_idx += llen;
 }
 
@@ -7876,14 +7900,14 @@ MJS_PRIVATE void emit_str(struct pstate *pstate, const char *ptr, size_t len) {
   size_t llen = cs_varint_llen(len);
   add_lineno_map_item(pstate);
   mbuf_insert(b, pstate->cur_idx, NULL, llen + len);
-  cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx);
+  cs_varint_encode(len, (uint8_t *) b->buf + pstate->cur_idx, llen);
   memcpy(b->buf + pstate->cur_idx + llen, ptr, len);
   pstate->cur_idx += llen + len;
 }
 
 MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
                                         size_t offset, size_t v) {
-  int llen = cs_varint_llen(v);
+  int llen = (int) cs_varint_llen(v);
   int diff = llen - MJS_INIT_OFFSET_SIZE;
   assert(offset < mjs->bcode_gen.len);
   if (diff > 0) {
@@ -7897,7 +7921,7 @@ MJS_PRIVATE int mjs_bcode_insert_offset(struct pstate *p, struct mjs *mjs,
           mjs->bcode_gen.buf + offset + MJS_INIT_OFFSET_SIZE,
           mjs->bcode_gen.len - offset - MJS_INIT_OFFSET_SIZE);
   mjs->bcode_gen.len += diff;
-  cs_varint_encode(v, (uint8_t *) mjs->bcode_gen.buf + offset);
+  cs_varint_encode(v, (uint8_t *) mjs->bcode_gen.buf + offset, llen);
 
   /*
    * If current parsing index is after the offset at which we've inserted new
@@ -9306,7 +9330,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         mjs_push(mjs, mjs_mk_array(mjs));
         break;
       case OP_PUSH_FUNC: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_function(mjs, bp.start_idx + i - n));
         i += llen;
         break;
@@ -9315,12 +9339,12 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         mjs_push(mjs, mjs->vals.this_obj);
         break;
       case OP_JMP: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += n + llen;
         break;
       }
       case OP_JMP_FALSE: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += llen;
         if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
@@ -9334,7 +9358,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
        * pointer if the TOS is truthy/falsy.
        */
       case OP_JMP_NEUTRAL_TRUE: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += llen;
         if (mjs_is_truthy(mjs, vtop(&mjs->stack))) {
           i += n;
@@ -9342,7 +9366,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_JMP_NEUTRAL_FALSE: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += llen;
         if (!mjs_is_truthy(mjs, vtop(&mjs->stack))) {
           i += n;
@@ -9415,20 +9439,20 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         mjs_push(mjs, vtop(&mjs->scopes));
         break;
       case OP_PUSH_STR: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_string(mjs, (char *) code + i + 1 + llen, n, 1));
         i += llen + n;
         break;
       }
       case OP_PUSH_INT: {
         int llen;
-        int64_t n = cs_varint_decode(&code[i + 1], &llen);
+        int64_t n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_number(mjs, (double) n));
         i += llen;
         break;
       }
       case OP_PUSH_DBL: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_number(
                           mjs, strtod((char *) code + i + 1 + llen, NULL)));
         i += llen + n;
@@ -9548,9 +9572,10 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_SET_ARG: {
-        int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
+        int llen1, llen2, n,
+            arg_no = cs_varint_decode_unsafe(&code[i + 1], &llen1);
         mjs_val_t obj, key, v;
-        n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
+        n = cs_varint_decode_unsafe(&code[i + llen1 + 1], &llen2);
         key = mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
         obj = vtop(&mjs->scopes);
         v = mjs_arg(mjs, arg_no);
@@ -9593,7 +9618,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_LOOP: {
-        int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
+        int l1, l2, off = cs_varint_decode_unsafe(&code[i + 1], &l1);
         /* push scope index */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
@@ -9602,7 +9627,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         push_mjs_val(
             &mjs->loop_addresses,
             mjs_mk_number(mjs, (double) (i + 1 /* OP_LOOP */ + l1 + off)));
-        off = cs_varint_decode(&code[i + 1 + l1], &l2);
+        off = cs_varint_decode_unsafe(&code[i + 1 + l1], &l2);
 
         /* push continue offset */
         push_mjs_val(
@@ -11401,7 +11426,7 @@ void gc_compact_strings(struct mjs *mjs) {
        * the tail contains the first 6 bytes we stole from
        * the actual string.
        */
-      len = cs_varint_decode((unsigned char *) &h, &llen);
+      len = cs_varint_decode_unsafe((unsigned char *) &h, &llen);
       len += llen + 1;
 
       /*
@@ -11418,7 +11443,7 @@ void gc_compact_strings(struct mjs *mjs) {
       p += len;
       head += len;
     } else {
-      len = cs_varint_decode((unsigned char *) p, &llen);
+      len = cs_varint_decode_unsafe((unsigned char *) p, &llen);
       len += llen + 1;
 
       p += len;
@@ -13443,8 +13468,8 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   map_len = p.offset_lineno_map.len;
   llen = cs_varint_llen(map_len);
   mbuf_resize(&p.mjs->bcode_gen, p.mjs->bcode_gen.size + llen);
-  cs_varint_encode(map_len,
-                   (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len);
+  cs_varint_encode(
+      map_len, (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len, llen);
   p.mjs->bcode_gen.len += llen;
 
   /* put the map itself */
@@ -13752,12 +13777,12 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
     } else {
       /* bigger strings need indirection that uses ram */
       size_t pos = m->len;
-      int llen = cs_varint_llen(len);
+      size_t llen = cs_varint_llen(len);
 
       /* allocate space for len and ptr */
       mbuf_insert(m, pos, NULL, llen + sizeof(p));
 
-      cs_varint_encode(len, (uint8_t *) (m->buf + pos));
+      cs_varint_encode(len, (uint8_t *) (m->buf + pos), llen);
       memcpy(m->buf + pos + llen, &p, sizeof(p));
     }
     tag = MJS_TAG_STRING_F;
@@ -13771,8 +13796,7 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
 const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
   uint64_t tag = v[0] & MJS_TAG_MASK;
   const char *p = NULL;
-  int llen;
-  size_t size = 0;
+  size_t size = 0, llen;
 
   if (!mjs_is_string(*v)) {
     goto clean;
@@ -13791,8 +13815,15 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
   } else if (tag == MJS_TAG_STRING_O) {
     size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
     char *s = mjs->owned_strings.buf + offset;
-    size = cs_varint_decode((uint8_t *) s, &llen);
-    p = s + llen;
+    uint64_t v = 0;
+    if (offset < mjs->owned_strings.len &&
+        cs_varint_decode((uint8_t *) s, mjs->owned_strings.len - offset, &v,
+                         &llen)) {
+      size = v;
+      p = s + llen;
+    } else {
+      goto clean;
+    }
   } else if (tag == MJS_TAG_STRING_F) {
     /*
      * short foreign strings on <=32-bit machines can be encoded in a compact
@@ -13816,9 +13847,15 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
     } else {
       size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
       char *s = mjs->foreign_strings.buf + offset;
-
-      size = cs_varint_decode((uint8_t *) s, &llen);
-      memcpy((char **) &p, s + llen, sizeof(p));
+      uint64_t v = 0;
+      if (offset < mjs->foreign_strings.len &&
+          cs_varint_decode((uint8_t *) s, mjs->foreign_strings.len - offset, &v,
+                           &llen)) {
+        size = v;
+        memcpy((char **) &p, s + llen, sizeof(p));
+      } else {
+        goto clean;
+      }
     }
   } else {
     assert(0);
@@ -14148,7 +14185,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   size_t n = (flags & EMBSTR_UNESCAPE) ? unescape(p, len, NULL) : len;
 
   /* Calculate how many bytes length takes */
-  int k = cs_varint_llen(n);
+  size_t k = cs_varint_llen(n);
 
   /* total length: varing length + string len + zero-term */
   size_t tot_len = k + n + !!(flags & EMBSTR_ZERO_TERM);
@@ -14162,7 +14199,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   }
 
   /* Write length */
-  cs_varint_encode(n, (unsigned char *) m->buf + offset);
+  cs_varint_encode(n, (unsigned char *) m->buf + offset, k);
 
   /* Write string */
   if (p != 0) {
@@ -14553,35 +14590,38 @@ MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
   char buf[40];
   size_t start_i = i;
+  size_t llen;
+  uint64_t n;
 
   snprintf(buf, sizeof(buf), "\t%-3u %-8s", (unsigned) i, opcodetostr(code[i]));
 
   switch (code[i]) {
     case OP_PUSH_FUNC: {
-      int llen, n = cs_varint_decode(&code[i + 1], &llen);
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
       LOG(LL_VERBOSE_DEBUG, ("%s %04u", buf, (unsigned) (i - n)));
       i += llen;
       break;
     }
     case OP_PUSH_INT: {
-      int llen;
-      unsigned long n = cs_varint_decode(&code[i + 1], &llen);
-      LOG(LL_VERBOSE_DEBUG, ("%s\t%lu", buf, n));
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t%lu", buf, (unsigned long) n));
       i += llen;
       break;
     }
     case OP_SET_ARG: {
-      int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
-      n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
-      LOG(LL_VERBOSE_DEBUG,
-          ("%s\t[%.*s] %d", buf, n, code + i + 1 + llen1 + llen2, arg_no));
-      i += llen1 + llen2 + n;
+      size_t llen2;
+      uint64_t arg_no;
+      cs_varint_decode(&code[i + 1], ~0, &arg_no, &llen);
+      cs_varint_decode(&code[i + llen + 1], ~0, &n, &llen2);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s] %u", buf, (int) n,
+                             code + i + 1 + llen + llen2, (unsigned) arg_no));
+      i += llen + llen2 + n;
       break;
     }
     case OP_PUSH_STR:
     case OP_PUSH_DBL: {
-      int llen, n = cs_varint_decode(&code[i + 1], &llen);
-      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s]", buf, n, code + i + 1 + llen));
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
+      LOG(LL_VERBOSE_DEBUG, ("%s\t[%.*s]", buf, (int) n, code + i + 1 + llen));
       i += llen + n;
       break;
     }
@@ -14590,21 +14630,23 @@ MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i) {
     case OP_JMP_NEUTRAL_TRUE:
     case OP_JMP_FALSE:
     case OP_JMP_NEUTRAL_FALSE: {
-      int llen, n = cs_varint_decode(&code[i + 1], &llen);
+      cs_varint_decode(&code[i + 1], ~0, &n, &llen);
       LOG(LL_VERBOSE_DEBUG,
           ("%s\t%u", buf,
-           (unsigned) i + n + llen +
-               1 /* becaue i will be incremented on the usual terms */));
+           (unsigned) (i + n + llen +
+                       1 /* becaue i will be incremented on the usual terms */)));
       i += llen;
       break;
     }
     case OP_LOOP: {
-      int l1, l2, n2, n1 = cs_varint_decode(&code[i + 1], &l1);
-      n2 = cs_varint_decode(&code[i + l1 + 1], &l2);
+      size_t l1, l2;
+      uint64_t n1, n2;
+      cs_varint_decode(&code[i + 1], ~0, &n1, &l1);
+      cs_varint_decode(&code[i + l1 + 1], ~0, &n2, &l2);
       LOG(LL_VERBOSE_DEBUG,
           ("%s\tB:%lu C:%lu (%d)", buf,
-           (unsigned long) i + 1 /* OP_LOOP */ + l1 + n1,
-           (unsigned long) i + 1 /* OP_LOOP */ + l1 + l2 + n2, (int) i));
+           (unsigned long) (i + 1 /* OP_LOOP */ + l1 + n1),
+           (unsigned long) (i + 1 /* OP_LOOP */ + l1 + l2 + n2), (int) i));
       i += l1 + l2;
       break;
     }
@@ -14802,7 +14844,9 @@ const char *mjs_get_bcode_filename_by_offset(struct mjs *mjs, int offset) {
 }
 
 int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
-  int llen, map_len, prev_line_no, ret = 1;
+  size_t llen;
+  uint64_t map_len;
+  int prev_line_no, ret = 1;
   struct mjs_bcode_part *bp = mjs_bcode_part_get_by_offset(mjs, offset);
   uint8_t *p, *pe;
   if (bp != NULL) {
@@ -14821,18 +14865,19 @@ int mjs_get_lineno_by_offset(struct mjs *mjs, int offset) {
     /* get pointer to the length of the map followed by the map itself */
     p = (uint8_t *) bp->data.p + 1 /* OP_BCODE_HEADER */ + map_offset;
 
-    map_len = cs_varint_decode(p, &llen);
+    cs_varint_decode(p, ~0, &map_len, &llen);
     p += llen;
     pe = p + map_len;
 
     prev_line_no = 1;
     while (p < pe) {
-      int llen, line_no, cur_offset = cs_varint_decode(p, &llen);
+      uint64_t cur_offset, line_no;
+      cs_varint_decode(p, ~0, &cur_offset, &llen);
       p += llen;
-      line_no = cs_varint_decode(p, &llen);
+      cs_varint_decode(p, ~0, &line_no, &llen);
       p += llen;
 
-      if (cur_offset >= offset) {
+      if (cur_offset >= (uint64_t) offset) {
         ret = prev_line_no;
         break;
       }

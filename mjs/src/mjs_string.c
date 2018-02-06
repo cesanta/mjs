@@ -114,12 +114,12 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
     } else {
       /* bigger strings need indirection that uses ram */
       size_t pos = m->len;
-      int llen = cs_varint_llen(len);
+      size_t llen = cs_varint_llen(len);
 
       /* allocate space for len and ptr */
       mbuf_insert(m, pos, NULL, llen + sizeof(p));
 
-      cs_varint_encode(len, (uint8_t *) (m->buf + pos));
+      cs_varint_encode(len, (uint8_t *) (m->buf + pos), llen);
       memcpy(m->buf + pos + llen, &p, sizeof(p));
     }
     tag = MJS_TAG_STRING_F;
@@ -133,8 +133,7 @@ mjs_val_t mjs_mk_string(struct mjs *mjs, const char *p, size_t len, int copy) {
 const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
   uint64_t tag = v[0] & MJS_TAG_MASK;
   const char *p = NULL;
-  int llen;
-  size_t size = 0;
+  size_t size = 0, llen;
 
   if (!mjs_is_string(*v)) {
     goto clean;
@@ -153,8 +152,15 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
   } else if (tag == MJS_TAG_STRING_O) {
     size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
     char *s = mjs->owned_strings.buf + offset;
-    size = cs_varint_decode((uint8_t *) s, &llen);
-    p = s + llen;
+    uint64_t v = 0;
+    if (offset < mjs->owned_strings.len &&
+        cs_varint_decode((uint8_t *) s, mjs->owned_strings.len - offset, &v,
+                         &llen)) {
+      size = v;
+      p = s + llen;
+    } else {
+      goto clean;
+    }
   } else if (tag == MJS_TAG_STRING_F) {
     /*
      * short foreign strings on <=32-bit machines can be encoded in a compact
@@ -178,9 +184,15 @@ const char *mjs_get_string(struct mjs *mjs, mjs_val_t *v, size_t *sizep) {
     } else {
       size_t offset = (size_t) gc_string_mjs_val_to_offset(*v);
       char *s = mjs->foreign_strings.buf + offset;
-
-      size = cs_varint_decode((uint8_t *) s, &llen);
-      memcpy((char **) &p, s + llen, sizeof(p));
+      uint64_t v = 0;
+      if (offset < mjs->foreign_strings.len &&
+          cs_varint_decode((uint8_t *) s, mjs->foreign_strings.len - offset, &v,
+                           &llen)) {
+        size = v;
+        memcpy((char **) &p, s + llen, sizeof(p));
+      } else {
+        goto clean;
+      }
     }
   } else {
     assert(0);
@@ -510,7 +522,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   size_t n = (flags & EMBSTR_UNESCAPE) ? unescape(p, len, NULL) : len;
 
   /* Calculate how many bytes length takes */
-  int k = cs_varint_llen(n);
+  size_t k = cs_varint_llen(n);
 
   /* total length: varing length + string len + zero-term */
   size_t tot_len = k + n + !!(flags & EMBSTR_ZERO_TERM);
@@ -524,7 +536,7 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   }
 
   /* Write length */
-  cs_varint_encode(n, (unsigned char *) m->buf + offset);
+  cs_varint_encode(n, (unsigned char *) m->buf + offset, k);
 
   /* Write string */
   if (p != 0) {

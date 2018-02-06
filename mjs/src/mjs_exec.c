@@ -596,7 +596,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         mjs_push(mjs, mjs_mk_array(mjs));
         break;
       case OP_PUSH_FUNC: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_function(mjs, bp.start_idx + i - n));
         i += llen;
         break;
@@ -605,12 +605,12 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         mjs_push(mjs, mjs->vals.this_obj);
         break;
       case OP_JMP: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += n + llen;
         break;
       }
       case OP_JMP_FALSE: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += llen;
         if (!mjs_is_truthy(mjs, mjs_pop(mjs))) {
           mjs_push(mjs, MJS_UNDEFINED);
@@ -624,7 +624,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
        * pointer if the TOS is truthy/falsy.
        */
       case OP_JMP_NEUTRAL_TRUE: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += llen;
         if (mjs_is_truthy(mjs, vtop(&mjs->stack))) {
           i += n;
@@ -632,7 +632,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_JMP_NEUTRAL_FALSE: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         i += llen;
         if (!mjs_is_truthy(mjs, vtop(&mjs->stack))) {
           i += n;
@@ -705,20 +705,20 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         mjs_push(mjs, vtop(&mjs->scopes));
         break;
       case OP_PUSH_STR: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_string(mjs, (char *) code + i + 1 + llen, n, 1));
         i += llen + n;
         break;
       }
       case OP_PUSH_INT: {
         int llen;
-        int64_t n = cs_varint_decode(&code[i + 1], &llen);
+        int64_t n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_number(mjs, (double) n));
         i += llen;
         break;
       }
       case OP_PUSH_DBL: {
-        int llen, n = cs_varint_decode(&code[i + 1], &llen);
+        int llen, n = cs_varint_decode_unsafe(&code[i + 1], &llen);
         mjs_push(mjs, mjs_mk_number(
                           mjs, strtod((char *) code + i + 1 + llen, NULL)));
         i += llen + n;
@@ -838,9 +838,10 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_SET_ARG: {
-        int llen1, llen2, n, arg_no = cs_varint_decode(&code[i + 1], &llen1);
+        int llen1, llen2, n,
+            arg_no = cs_varint_decode_unsafe(&code[i + 1], &llen1);
         mjs_val_t obj, key, v;
-        n = cs_varint_decode(&code[i + llen1 + 1], &llen2);
+        n = cs_varint_decode_unsafe(&code[i + llen1 + 1], &llen2);
         key = mjs_mk_string(mjs, (char *) code + i + 1 + llen1 + llen2, n, 1);
         obj = vtop(&mjs->scopes);
         v = mjs_arg(mjs, arg_no);
@@ -883,7 +884,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         break;
       }
       case OP_LOOP: {
-        int l1, l2, off = cs_varint_decode(&code[i + 1], &l1);
+        int l1, l2, off = cs_varint_decode_unsafe(&code[i + 1], &l1);
         /* push scope index */
         push_mjs_val(&mjs->loop_addresses,
                      mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->scopes)));
@@ -892,7 +893,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
         push_mjs_val(
             &mjs->loop_addresses,
             mjs_mk_number(mjs, (double) (i + 1 /* OP_LOOP */ + l1 + off)));
-        off = cs_varint_decode(&code[i + 1 + l1], &l2);
+        off = cs_varint_decode_unsafe(&code[i + 1 + l1], &l2);
 
         /* push continue offset */
         push_mjs_val(

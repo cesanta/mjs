@@ -1753,28 +1753,6 @@ const char *test_errors(struct mjs *mjs) {
   return NULL;
 }
 
-const char *test_varint(void) {
-#define TEST_VARINT_CASE(number, encoded_length)               \
-  do {                                                         \
-    unsigned char buf[100];                                          \
-    int llen;                                                  \
-    ASSERT_EQ(cs_varint_encode((number), buf), (encoded_length)); \
-    ASSERT_EQ(cs_varint_decode(buf, &llen), (number));            \
-    ASSERT_EQ(llen, (encoded_length));                         \
-  } while (0)
-
-  TEST_VARINT_CASE(0, 1);
-  TEST_VARINT_CASE(1, 1);
-  TEST_VARINT_CASE(127, 1);
-  TEST_VARINT_CASE(128, 2);
-  TEST_VARINT_CASE(0xffff, 3);
-  TEST_VARINT_CASE(0xffffff, 4);
-  TEST_VARINT_CASE(0xffffffff, 5);
-  TEST_VARINT_CASE(0xffffffffff, 6);
-
-  return NULL;
-};
-
 const char *test_this(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
@@ -3834,7 +3812,6 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   RUN_TEST_MJS(test_call_ffi_cb_iiui);
   RUN_TEST_MJS(test_call_ffi_cb_err);
 
-  RUN_TEST(test_varint);
   RUN_TEST_MJS(test_dataview);
 
   RUN_TEST_MJS(test_lib_math);

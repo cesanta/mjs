@@ -999,8 +999,8 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   map_len = p.offset_lineno_map.len;
   llen = cs_varint_llen(map_len);
   mbuf_resize(&p.mjs->bcode_gen, p.mjs->bcode_gen.size + llen);
-  cs_varint_encode(map_len,
-                   (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len);
+  cs_varint_encode(
+      map_len, (uint8_t *) p.mjs->bcode_gen.buf + p.mjs->bcode_gen.len, llen);
   p.mjs->bcode_gen.len += llen;
 
   /* put the map itself */
