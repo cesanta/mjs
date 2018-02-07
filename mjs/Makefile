@@ -51,7 +51,8 @@ PROG = $(BUILD_DIR)/mjs
 all: $(PROG)
 
 TESTUTIL_FILES = $(REPO_ROOT)/common/cs_dirent.c \
-                 $(REPO_ROOT)/common/cs_time.c \
+                 $(REPO_ROOT)/common/cs_time.c   \
+                 $(REPO_ROOT)/common/test_main.c \
                  $(REPO_ROOT)/common/test_util.c
 
 mjs.c: $(TOP_SOURCES) mjs.h Makefile

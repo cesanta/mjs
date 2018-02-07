@@ -11,6 +11,7 @@ extern "C" {
 #define STRINGIFY(x) #x
 #define MJS_ENABLE_DEBUG 1
 #include "common/cs_dirent.h"
+#include "common/test_main.h"
 #include "common/test_util.h"
 #include "mjs.c"
 
@@ -3767,9 +3768,10 @@ const char *test_parser(struct mjs *mjs) {
   return NULL;
 }
 
-static const char *run_all_tests(const char *filter, double *total_elapsed) {
-  cs_log_set_level(2);
+void tests_setup(void) {
+}
 
+const char *tests_run(const char *filter) {
   RUN_TEST_MJS(test_parser);
   RUN_TEST_MJS(test_arithmetic);
   RUN_TEST_MJS(test_block);
@@ -3820,11 +3822,7 @@ static const char *run_all_tests(const char *filter, double *total_elapsed) {
   return NULL;
 }
 
-int main(void) {
-  double seconds = 0.0;
-  const char *msg = run_all_tests("", &seconds);
-  printf("%s, run %d in %.3fs\n", msg ? "FAIL" : "PASS", num_tests, seconds);
-  return msg == NULL ? EXIT_SUCCESS : EXIT_FAILURE;
+void tests_teardown(void) {
 }
 
 #if defined(__cplusplus)
