@@ -3457,6 +3457,12 @@ const char *test_load(void) {
 
   ASSERT_EXEC_RES(mjs_apply(mjs, &res, func_faulty, MJS_UNDEFINED, 0, NULL), MJS_REFERENCE_ERROR);
 
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let o={}; load('tests/module1.js', o); o.foo", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs, "function test(){ let o={}; load('tests/module1.js', o); return o.foo; }; test()", &res));
+  ASSERT_EQ(mjs_get_double(mjs, res), 1);
+
   mjs_disown(mjs, &res);
   mjs_disown(mjs, &func_add_foo_to_s);
   mjs_disown(mjs, &func_get_s);

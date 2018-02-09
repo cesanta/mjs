@@ -8057,12 +8057,9 @@ static void mjs_load(struct mjs *mjs) {
     struct mjs_bcode_part *bp = NULL;
     mjs_err_t ret;
 
-    mjs_val_t *bottom = vptr(&mjs->scopes, 0), global = *bottom;
-    mjs_own(mjs, &global);
-
     if (mjs_is_object(arg1)) {
       custom_global = 1;
-      *bottom = arg1;
+      push_mjs_val(&mjs->scopes, arg1);
     }
     bp = mjs_get_loaded_file_bcode(mjs, path);
     if (bp == NULL) {
@@ -8093,10 +8090,11 @@ static void mjs_load(struct mjs *mjs) {
       mjs_prepend_errorf(mjs, ret, "failed to exec file \"%s\"", path);
       goto clean;
     }
-    if (mjs_is_object(arg1)) *bottom = global;
 
   clean:
-    mjs_disown(mjs, &global);
+    if (custom_global) {
+      mjs_pop_val(&mjs->scopes);
+    }
   }
   mjs_return(mjs, res);
 }
