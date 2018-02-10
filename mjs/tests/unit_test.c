@@ -39,7 +39,7 @@ extern "C" {
 #define CHECK_TRUE(str)                       \
   do {                                        \
     ASSERT_EXEC_OK(mjs_exec(mjs, str, &res)); \
-    ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));   \
+    ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));   \
   } while (0)
 
 
@@ -224,11 +224,11 @@ const char *test_block(struct mjs *mjs) {
 
   CHECK_NUMERIC("if (1) 2", 2);
   ASSERT_EXEC_OK(mjs_exec(mjs, "if (0) 2;", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
   CHECK_NUMERIC("{let a = 42; }", 42);
   CHECK_NUMERIC("let a = 1, b = 2; { let a = 3; b += a; } b;", 5);
   ASSERT_EXEC_OK(mjs_exec(mjs, "{}", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   mjs_disown(mjs, &res);
   return NULL;
@@ -245,7 +245,7 @@ const char *test_function(struct mjs *mjs) {
   CHECK_NUMERIC("let f = function(a,b){ return b; }; f(1,2);", 2);
   CHECK_NUMERIC("let f = function(a,b){ return b; }; f(1,2,3);", 2);
   ASSERT_EXEC_OK(mjs_exec(mjs, "let f = function(a,b){return b;};f(1);", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
   CHECK_NUMERIC("function foo(a,b){ return b; }; foo(1,2,3);", 2);
   CHECK_NUMERIC("let bar = function foo(a,b){ return b; }; foo(1,2,3) + bar(4,5);", 7);
 
@@ -437,46 +437,46 @@ const char *test_comparison(struct mjs *mjs) {
   ASSERT_EQ(mjs_get_bool(mjs, res), 1);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "0 === 0", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "0 !== 0", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 0));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "null === null", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "undefined === undefined", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "true === true", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "false === false", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' === 'foo'", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' === 'fo0'", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 0));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' === undefined", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 0));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' === null", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 0));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' !== undefined", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'foo' !== null", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o1={}, o2={}; o1===o2", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 0));
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o1={}, o2=o1; o1===o2", &res));
-  ASSERT_EQ(res, mjs_mk_boolean(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_boolean(mjs, 1));
 
   mjs_disown(mjs, &res);
   return NULL;
@@ -581,7 +581,7 @@ static const char *test_func1() {
 
   ffi_call((ffi_fn_t *) testfunc1, 4, &res, args);
 
-  ASSERT_EQ(res.v.i, 10);
+  ASSERT_EQ((int64_t) res.v.i, 10);
 
   return NULL;
 }
@@ -600,7 +600,7 @@ static const char *test_func2() {
 
   ffi_call((ffi_fn_t *) testfunc2, 2, &res, args);
 
-  ASSERT_EQ(res.v.i, 3);
+  ASSERT_EQ((int64_t) res.v.i, 3);
 
   return NULL;
 }
@@ -619,7 +619,7 @@ static const char *test_func3() {
 
   ffi_call((ffi_fn_t *) testfunc3, 2, &res, args);
 
-  ASSERT_EQ(res.v.i, 3);
+  ASSERT_EQ((int64_t) res.v.i, 3);
 
   return NULL;
 }
@@ -1003,7 +1003,7 @@ const char *test_parse_ffi_signature(struct mjs *mjs) {
   ASSERT_EQ(sig.val_types[2], MJS_FFI_CTYPE_CALLBACK);
   ASSERT_EQ(sig.val_types[3], MJS_FFI_CTYPE_USERDATA);
   ASSERT_EQ(sig.val_types[4], MJS_FFI_CTYPE_NONE);
-  ASSERT_PTRNEQ(sig.cb_sig, NULL);
+  ASSERT_PTRNE(sig.cb_sig, NULL);
   ASSERT_PTREQ(sig.fn, (ffi_fn_t *)ffi_dummy);
   ASSERT_EQ(sig.is_valid, 1);
   ASSERT_EQ(sig.args_cnt, 3);
@@ -1024,7 +1024,7 @@ const char *test_parse_ffi_signature(struct mjs *mjs) {
   ASSERT_EQ(sig.val_types[1], MJS_FFI_CTYPE_CALLBACK);
   ASSERT_EQ(sig.val_types[2], MJS_FFI_CTYPE_USERDATA);
   ASSERT_EQ(sig.val_types[3], MJS_FFI_CTYPE_NONE);
-  ASSERT_PTRNEQ(sig.cb_sig, NULL);
+  ASSERT_PTRNE(sig.cb_sig, NULL);
   ASSERT_PTREQ(sig.fn, (ffi_fn_t *)ffi_dummy);
   ASSERT_EQ(sig.is_valid, 1);
   ASSERT_EQ(sig.args_cnt, 2);
@@ -1390,26 +1390,26 @@ const char *test_call_ffi_cb_vu(struct mjs *mjs) {
 
   /* Try to free non-existing signature */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 3);", &res));
-  ASSERT_EQ(res, mjs_mk_number(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_number(mjs, 0));
 
   /* Free first sig */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 1);", &res));
-  ASSERT_EQ(res, mjs_mk_number(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_number(mjs, 1));
   ASSERT_EQ((uintptr_t)mjs->ffi_cb_args->next, (uintptr_t)NULL);
   ASSERT_EQ(mjs_get_int(mjs, mjs->ffi_cb_args->userdata), 2);
 
   /* Try to free it again */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 1);", &res));
-  ASSERT_EQ(res, mjs_mk_number(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_number(mjs, 0));
 
   /* Free second sig */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 2);", &res));
-  ASSERT_EQ(res, mjs_mk_number(mjs, 1));
+  ASSERT_EQ64(res, mjs_mk_number(mjs, 1));
   ASSERT_EQ((uintptr_t)mjs->ffi_cb_args, (uintptr_t)NULL);
 
   /* Try to free it again */
   ASSERT_EXEC_OK(mjs_exec(mjs, "ffi_cb_free(cb, 2);", &res));
-  ASSERT_EQ(res, mjs_mk_number(mjs, 0));
+  ASSERT_EQ64(res, mjs_mk_number(mjs, 0));
 
   mjs_disown(mjs, &res);
 
@@ -1686,7 +1686,7 @@ const char *test_errors(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec(mjs, "x", &res), MJS_REFERENCE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "[x] is not defined");
   ASSERT_EQ(mjs_exec(mjs, "let o = {}; o.a", &res), MJS_OK);
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
   ASSERT_EQ(mjs_exec(mjs, "let o = {}; o.a.b", &res), MJS_TYPE_ERROR);
   ASSERT_STREQ(mjs->error_msg, "type error");
 
@@ -1759,12 +1759,12 @@ const char *test_this(struct mjs *mjs) {
   mjs_own(mjs, &res);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "this", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs,
         "let f = function(){return this}; f()",
         &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs,
         "let f = function(){return this.foo};"
@@ -2260,10 +2260,10 @@ const char *test_objects(struct mjs *mjs) {
   mjs_own(mjs, &res);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o.b", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100}; o.b", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o.a + o.b;", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 102);
@@ -2321,10 +2321,10 @@ const char *test_objects(struct mjs *mjs) {
   /* test subscript syntax */
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {}; o['b']", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100}; o['b']", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let o = {a: 100, b: 2}; o['a'] + o['b'];", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 102);
@@ -2666,7 +2666,7 @@ const char *test_arrays(struct mjs *mjs) {
   mjs_own(mjs, &res);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let a = []; a.b", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "let a = [100, 40]; a[0] - a[1]", &res));
   ASSERT_EQ(mjs_get_int(mjs, res), 60);
@@ -2986,10 +2986,10 @@ const char *test_string(struct mjs *mjs) {
   ASSERT_EQ(mjs_get_int(mjs, res), 255);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.charCodeAt(1)", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(1)", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   /* chr(), error conditions - wrong argument */
   CHECK_TRUE("chr() === null;");
@@ -3748,7 +3748,7 @@ const char *test_parser(struct mjs *mjs) {
   CHECK_NUMERIC("1,2,3", 3);
   CHECK_NUMERIC("let f = function(x){return x;}; f(1),f(2),f(3)", 3);
   ASSERT_EXEC_OK(mjs_exec(mjs, ";", &res));
-  ASSERT_EQ(res, MJS_UNDEFINED);
+  ASSERT(res == MJS_UNDEFINED);
 
   /* 51 []s is ok */
   ASSERT_EQ(mjs_exec(mjs,
