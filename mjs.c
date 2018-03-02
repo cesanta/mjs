@@ -3899,7 +3899,7 @@ typedef void (*json_scanner_t)(const char *str, int len, void *user_data);
 /*
  * Helper function to scan array item with given path and index.
  * Fills `token` with the matched JSON token.
- * Return 0 if no array element found, otherwise non-0.
+ * Return -1 if no array element found, otherwise non-negative token length.
  */
 int json_scanf_array_elem(const char *s, int len, const char *path, int index,
                           struct json_token *token);
@@ -6463,6 +6463,7 @@ int json_walk(const char *json_string, int json_string_length,
 }
 
 struct scan_array_info {
+  int found;
   char path[JSON_MAX_PATH_LEN];
   struct json_token *token;
 };
@@ -6477,6 +6478,7 @@ static void json_scanf_array_elem_cb(void *callback_data, const char *name,
 
   if (strcmp(path, info->path) == 0) {
     *info->token = *token;
+    info->found = 1;
   }
 }
 
@@ -6486,10 +6488,11 @@ int json_scanf_array_elem(const char *s, int len, const char *path, int idx,
                           struct json_token *token) {
   struct scan_array_info info;
   info.token = token;
+  info.found = 0;
   memset(token, 0, sizeof(*token));
   snprintf(info.path, sizeof(info.path), "%s[%d]", path, idx);
   json_walk(s, len, json_scanf_array_elem_cb, &info);
-  return token->len;
+  return info.found ? token->len : -1;
 }
 
 struct json_scanf_info {
