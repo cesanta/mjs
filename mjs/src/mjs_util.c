@@ -4,7 +4,7 @@
  */
 
 #include "common/cs_varint.h"
-#include "frozen/frozen.h"
+#include "frozen.h"
 #include "mjs/src/mjs_array.h"
 #include "mjs/src/mjs_bcode.h"
 #include "mjs/src/mjs_core.h"

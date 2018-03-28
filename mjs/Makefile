@@ -16,7 +16,7 @@ TOP_SOURCES_DIRS = $(sort $(dir $(TOP_SOURCES)))
 TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
 
 MFLAGS += -I. -I$(REPO_ROOT) -Isrc
-MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG
+MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG -I../frozen
 MFLAGS += $(CFLAGS_EXTRA)
 CFLAGS += -lm -std=c99 -Wall -Wextra -pedantic -g $(MFLAGS)
 COMMON_CFLAGS = -DCS_MMAP
@@ -58,14 +58,14 @@ TESTUTIL_FILES = $(REPO_ROOT)/common/cs_dirent.c \
 mjs.c: $(TOP_SOURCES) mjs.h Makefile
 	@printf "AMALGAMATING\tmjs.c\n"
 	$(Q) (cd .. && tools/amalgam.py \
-	  --autoinc --exportable-headers -I mjs --prefix MJS \
+	  --autoinc --exportable-headers -I frozen -I mjs --prefix MJS \
     --public-header mjs.h --ignore mjs/mjs.h \
     --first mjs/src/license.h,mjs/src/internal.h,common/platform.h,common/platforms/platform_windows.h,common/platforms/platform_unix.h,common/platforms/platform_esp_lwip.h $(TOP_SOURCES)) > $@
 
 mjs.h: $(TOP_HEADERS) $(TOP_SOURCES) Makefile
 	@printf "AMALGAMATING\tmjs.h\n"
 	$(Q) (cd .. && tools/amalgam.py \
-	  --autoinc --exportable-headers -I mjs --prefix MJS \
+	  --autoinc --exportable-headers -I frozen -I mjs --prefix MJS \
     --ignore mjs/mjs.h \
     --first mjs/src/license.h,common/platform.h $(filter %_public.h,$(TOP_HEADERS))) > $@
 

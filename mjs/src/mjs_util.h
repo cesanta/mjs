@@ -6,7 +6,7 @@
 #ifndef MJS_UTIL_H_
 #define MJS_UTIL_H_
 
-#include "frozen/frozen.h"
+#include "frozen.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_util_public.h"
 

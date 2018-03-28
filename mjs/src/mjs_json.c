@@ -4,7 +4,7 @@
  */
 
 #include "common/str_util.h"
-#include "frozen/frozen.h"
+#include "frozen.h"
 #include "mjs/src/mjs_array.h"
 #include "mjs/src/mjs_internal.h"
 #include "mjs/src/mjs_conversion.h"
