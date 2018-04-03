@@ -27,6 +27,7 @@ else ifneq ("$(wildcard /usr/bin/clang-format-3.6)","")
 else
   CLANG_FORMAT = docker run --rm \
     -v $(REPO_ABS_PATH):$(REPO_ABS_PATH) \
+    -w $(REPO_ABS_PATH) \
     $(DOCKER_USER_ARG) \
     docker.cesanta.com/bob \
     /usr/bin/clang-format-3.6
