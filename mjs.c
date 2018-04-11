@@ -2603,6 +2603,20 @@ int json_fprintf(const char *file_name, const char *fmt, ...);
 int json_vfprintf(const char *file_name, const char *fmt, va_list ap);
 
 /*
+ * Print JSON into an allocated 0-terminated string.
+ * Return allocated string, or NULL on error.
+ * Example:
+ *
+ * ```c
+ *   char *str = json_sprintf("{a:%H}", 3, "abc");
+ *   printf("%s\n", str);  // Prints "616263"
+ *   free(str);
+ * ```
+ */
+char *json_asprintf(const char *fmt, ...);
+char *json_vasprintf(const char *fmt, va_list ap);
+
+/*
  * Helper %M callback that prints contiguous C arrays.
  * Consumes void *array_ptr, size_t array_size, size_t elem_size, char *fmt
  * Return number of bytes printed.
@@ -7378,6 +7392,37 @@ void *json_next_elem(const char *s, int len, void *handle, const char *path,
 void *json_next_elem(const char *s, int len, void *handle, const char *path,
                      int *idx, struct json_token *val) {
   return json_next(s, len, handle, path, NULL, val, idx);
+}
+
+static int json_sprinter(struct json_out *out, const char *str, size_t len) {
+  size_t old_len = out->u.buf.buf == NULL ? 0 : strlen(out->u.buf.buf);
+  size_t new_len = len + old_len;
+  char *p = (char *) realloc(out->u.buf.buf, new_len + 1);
+  if (p != NULL) {
+    memcpy(p + old_len, str, len);
+    p[new_len] = '\0';
+    out->u.buf.buf = p;
+  }
+  return len;
+}
+
+char *json_vasprintf(const char *fmt, va_list ap) WEAK;
+char *json_vasprintf(const char *fmt, va_list ap) {
+  struct json_out out;
+  memset(&out, 0, sizeof(out));
+  out.printer = json_sprinter;
+  json_vprintf(&out, fmt, ap);
+  return out.u.buf.buf;
+}
+
+char *json_asprintf(const char *fmt, ...) WEAK;
+char *json_asprintf(const char *fmt, ...) {
+  char *result = NULL;
+  va_list ap;
+  va_start(ap, fmt);
+  result = json_vasprintf(fmt, ap);
+  va_end(ap);
+  return result;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/ffi/ffi.c"
