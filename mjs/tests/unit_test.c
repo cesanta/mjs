@@ -2991,6 +2991,30 @@ const char *test_string(struct mjs *mjs) {
   ASSERT_EXEC_OK(mjs_exec(mjs, "'\\xff'.at(1)", &res));
   ASSERT(res == MJS_UNDEFINED);
 
+  /* indexOf */
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('foo')", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 0);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('bar')", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 4);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('baz')", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), -1);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('foo', 1)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), -1);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('bar', 4)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 4);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('bar', 5)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), -1);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('bar', 10)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), -1);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('')", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 0);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('', 5)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 5);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'foo bar'.indexOf('', 10)", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 7);
+  ASSERT_EXEC_OK(mjs_exec(mjs, "'abc'.indexOf('bc')", &res));
+  ASSERT_EQ(mjs_get_int(mjs, res), 1);
+
   /* chr(), error conditions - wrong argument */
   CHECK_TRUE("chr() === null;");
   CHECK_TRUE("chr('x') === null;");

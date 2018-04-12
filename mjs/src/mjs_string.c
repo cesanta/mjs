@@ -5,6 +5,7 @@
 
 #include "mjs/src/mjs_string.h"
 #include "common/cs_varint.h"
+#include "common/mg_str.h"
 #include "mjs/src/mjs_conversion.h"
 #include "mjs/src/mjs_core.h"
 #include "mjs/src/mjs_internal.h"
@@ -325,6 +326,48 @@ MJS_PRIVATE void mjs_string_slice(struct mjs *mjs) {
   }
 
   ret = mjs_mk_string(mjs, s + beginSlice, endSlice - beginSlice, 1);
+
+clean:
+  mjs_return(mjs, ret);
+}
+
+MJS_PRIVATE void mjs_string_index_of(struct mjs *mjs) {
+  mjs_val_t ret = mjs_mk_number(mjs, -1);
+  mjs_val_t substr_v = MJS_UNDEFINED;
+  mjs_val_t idx_v = MJS_UNDEFINED;
+  int idx = 0;
+  const char *str = NULL, *substr = NULL;
+  size_t str_len = 0, substr_len = 0;
+
+  if (!mjs_check_arg(mjs, -1 /* this */, "this", MJS_TYPE_STRING, NULL)) {
+    goto clean;
+  }
+  str = mjs_get_string(mjs, &mjs->vals.this_obj, &str_len);
+
+  if (!mjs_check_arg(mjs, 0, "searchValue", MJS_TYPE_STRING, &substr_v)) {
+    goto clean;
+  }
+  substr = mjs_get_string(mjs, &substr_v, &substr_len);
+  if (mjs_nargs(mjs) > 1) {
+    if (!mjs_check_arg(mjs, 1, "fromIndex", MJS_TYPE_NUMBER, &idx_v)) {
+      goto clean;
+    }
+    idx = mjs_get_int(mjs, idx_v);
+    if (idx < 0) idx = 0;
+    if ((size_t) idx > str_len) idx = str_len;
+  }
+  {
+    const char *substr_p;
+    struct mg_str mgstr, mgsubstr;
+    mgstr.p = str + idx;
+    mgstr.len = str_len - idx;
+    mgsubstr.p = substr;
+    mgsubstr.len = substr_len;
+    substr_p = mg_strstr(mgstr, mgsubstr);
+    if (substr_p != NULL) {
+      ret = mjs_mk_number(mjs, (int) (substr_p - str));
+    }
+  }
 
 clean:
   mjs_return(mjs, ret);

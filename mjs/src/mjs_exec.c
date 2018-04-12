@@ -444,12 +444,14 @@ static int getprop_builtin_string(struct mjs *mjs, mjs_val_t val,
     mjs_get_string(mjs, &val, &val_len);
     *res = mjs_mk_number(mjs, (double) val_len);
     return 1;
-
-  } else if (strcmp(name, "slice") == 0) {
-    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_slice);
-    return 1;
   } else if (strcmp(name, "at") == 0 || strcmp(name, "charCodeAt") == 0) {
     *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_char_code_at);
+    return 1;
+  } else if (strcmp(name, "indexOf") == 0) {
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_index_of);
+    return 1;
+  } else if (strcmp(name, "slice") == 0) {
+    *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_string_slice);
     return 1;
   } else if (isnum) {
     /*

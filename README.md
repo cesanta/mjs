@@ -61,11 +61,16 @@ where it enables scripting for IoT devices.
 
   <dt><tt>'some_string'.slice(start, end);</tt></dt>
   <dd>Return a substring between two indices. Example:
-  		<tt>'abcdef'.slice(1,3) === 'bc';</tt></dd>
+      <tt>'abcdef'.slice(1,3) === 'bc';</tt></dd>
 
   <dt><tt>'abc'.at(0);</tt></dt>
   <dd>Return numeric byte value at given string index. Example:
       <tt>'abc'.at(0) === 0x61;</tt></dd>
+
+  <dt><tt>'abc'.indexOf(substr[, fromIndex]);</tt></dt>
+  <dd>Return index of first occurence of substr within the string or `-1`
+  if not found.
+      <tt>'abc'.indexOf('bc') === 1;</tt></dd>
 
   <dt><tt>chr(n);</tt></dt>
   <dd>Return 1-byte string whose ASCII code is the integer `n`. If `n` is
