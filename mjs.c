@@ -1969,8 +1969,6 @@ double cs_timegm(const struct tm *tm);
 
 #include <stddef.h>
 
-/* Amalgamated: #include "common/platform.h" */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -5376,6 +5374,7 @@ void mbuf_remove(struct mbuf *mb, size_t n) {
 
 /* Amalgamated: #include "common/mg_mem.h" */
 /* Amalgamated: #include "common/mg_str.h" */
+/* Amalgamated: #include "common/platform.h" */
 
 #include <stdlib.h>
 #include <string.h>
