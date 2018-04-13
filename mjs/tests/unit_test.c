@@ -969,7 +969,7 @@ const char *test_parse_ffi_signature(struct mjs *mjs) {
     mjs_ffi_sig_t sig2;
     mjs_set_errorf(mjs, MJS_OK, NULL);
     ASSERT_EXEC_OK(
-        mjs_parse_ffi_signature(mjs, "void ffi_dummy (int, int)", ~0, &sig2, FFI_SIG_FUNC));
+        mjs_parse_ffi_signature(mjs, " \tvoid \t ffi_dummy (\tint, int)", ~0, &sig2, FFI_SIG_FUNC));
     ASSERT_EQ(memcmp(&sig, &sig2, sizeof(sig)), 0);
     mjs_ffi_sig_free(&sig);
   }
@@ -1104,7 +1104,6 @@ const char *test_call_ffi(struct mjs *mjs) {
   mjs_own(mjs, &res);
 
   mjs_set_ffi_resolver(mjs, stub_dlsym);
-
   ASSERT_EXEC_OK(
       mjs_exec(mjs, "let ffi_test_i2i = ffi('int ffi_test_i2i(int, int)')",
         &res));

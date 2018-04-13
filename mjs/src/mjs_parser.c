@@ -273,7 +273,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
   struct mbuf *bcode_gen = &p->mjs->bcode_gen;
   enum mjs_err res = MJS_OK;
   int tok = t->tok;
-  LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, (void *) &t));
   switch (t->tok) {
     case TOK_KEYWORD_FALSE:
       emit_byte(p, OP_PUSH_FALSE);

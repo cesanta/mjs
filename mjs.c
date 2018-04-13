@@ -10340,31 +10340,58 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym) {
 
 static mjs_ffi_ctype_t parse_cval_type(struct mjs *mjs, const char *s,
                                        const char *e) {
-  while (e > s && e[-1] == ' ') e--; /* Trim trailing spaces */
-  if (strncmp(s, "void", e - s) == 0) {
+  struct mg_str ms = MG_NULL_STR;
+  /* Trim leading and trailing whitespace */
+  while (s < e && isspace((int) *s)) s++;
+  while (e > s && isspace((int) e[-1])) e--;
+  ms.p = s;
+  ms.len = e - s;
+  if (mg_vcmp(&ms, "void") == 0) {
     return MJS_FFI_CTYPE_NONE;
-  } else if (strncmp(s, "userdata", e - s) == 0) {
+  } else if (mg_vcmp(&ms, "userdata") == 0) {
     return MJS_FFI_CTYPE_USERDATA;
-  } else if (strncmp(s, "int", e - s) == 0) {
+  } else if (mg_vcmp(&ms, "int") == 0) {
     return MJS_FFI_CTYPE_INT;
-  } else if (strncmp(s, "bool", e - s) == 0) {
+  } else if (mg_vcmp(&ms, "bool") == 0) {
     return MJS_FFI_CTYPE_BOOL;
-  } else if (strncmp(s, "double", e - s) == 0) {
+  } else if (mg_vcmp(&ms, "double") == 0) {
     return MJS_FFI_CTYPE_DOUBLE;
-  } else if (strncmp(s, "float", e - s) == 0) {
+  } else if (mg_vcmp(&ms, "float") == 0) {
     return MJS_FFI_CTYPE_FLOAT;
-  } else if (strncmp(s, "struct mg_str *", e - s) == 0 ||
-             strncmp(s, "struct mg_str*", e - s) == 0) {
-    return MJS_FFI_CTYPE_STRUCT_MG_STR_PTR;
-  } else if (strncmp(s, "char*", 5) == 0 || strncmp(s, "char *", 6) == 0) {
+  } else if (mg_vcmp(&ms, "char*") == 0 || mg_vcmp(&ms, "char *") == 0) {
     return MJS_FFI_CTYPE_CHAR_PTR;
-  } else if (strncmp(s, "void*", 5) == 0 || strncmp(s, "void *", 6) == 0) {
+  } else if (mg_vcmp(&ms, "void*") == 0 || mg_vcmp(&ms, "void *") == 0) {
     return MJS_FFI_CTYPE_VOID_PTR;
+  } else if (mg_vcmp(&ms, "struct mg_str") == 0) {
+    return MJS_FFI_CTYPE_STRUCT_MG_STR;
+  } else if (mg_vcmp(&ms, "struct mg_str *") == 0 ||
+             mg_vcmp(&ms, "struct mg_str*") == 0) {
+    return MJS_FFI_CTYPE_STRUCT_MG_STR_PTR;
   } else {
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "failed to parse val type \"%.*s\"",
-                       (e - s), s);
+                       (int) ms.len, ms.p);
     return MJS_FFI_CTYPE_INVALID;
   }
+}
+
+static const char *find_paren(const char *s, const char *e) {
+  for (; s < e; s++) {
+    if (*s == '(') return s;
+  }
+  return NULL;
+}
+
+static const char *find_closing_paren(const char *s, const char *e) {
+  int nesting = 1;
+  while (s < e) {
+    if (*s == '(') {
+      nesting++;
+    } else if (*s == ')') {
+      if (--nesting == 0) break;
+    }
+    s++;
+  }
+  return (s < e ? s : NULL);
 }
 
 MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
@@ -10372,43 +10399,82 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
                                               enum ffi_sig_type sig_type) {
   mjs_err_t ret = MJS_OK;
   int vtidx = 0;
-  const char *cur = s;
+  const char *cur, *e, *tmp_e, *tmp;
+  struct mg_str rt = MG_NULL_STR, fn = MG_NULL_STR, args = MG_NULL_STR;
   mjs_ffi_ctype_t val_type = MJS_FFI_CTYPE_INVALID;
-  const char *tmp_e = NULL;
   if (sig_len == ~0) {
     sig_len = strlen(s);
   }
+  e = s + sig_len;
 
-  fflush(stdout);
   mjs_ffi_sig_init(sig);
 
-  /* Parse return value type {{{ */
+  /* Skip leading spaces */
+  for (cur = s; cur < e && isspace((int) *cur); cur++)
+    ;
 
-  /* Skip type name */
-  for (tmp_e = cur; *tmp_e && *tmp_e >= 'a' && *tmp_e <= 'z';) tmp_e++;
-  /* Skip to function name */
-  while (*tmp_e == ' ' || *tmp_e == '*') tmp_e++;
+  /* FInd the first set of parens */
+  tmp_e = find_paren(cur, e);
+  if (tmp_e == NULL || tmp_e - s < 2) {
+    ret = MJS_TYPE_ERROR;
+    mjs_prepend_errorf(mjs, ret, "1");
+    goto clean;
+  }
+  tmp = find_closing_paren(tmp_e + 1, e);
+  if (tmp == NULL) {
+    ret = MJS_TYPE_ERROR;
+    mjs_prepend_errorf(mjs, ret, "2");
+    goto clean;
+  }
 
-  val_type = parse_cval_type(mjs, cur, tmp_e);
+  /* Now see if we have a second set of parens */
+  args.p = find_paren(tmp + 1, e);
+  if (args.p == NULL) {
+    /* We don't - it's a regular function signature */
+    fn.p = tmp_e - 1;
+    while (fn.p > cur && isspace((int) *fn.p)) fn.p--;
+    while (fn.p > cur && (isalnum((int) *fn.p) || *fn.p == '_')) {
+      fn.p--;
+      fn.len++;
+    }
+    fn.p++;
+    rt.p = cur;
+    rt.len = fn.p - rt.p;
+    /* Stuff inside parens is args */
+    args.p = tmp_e + 1;
+    args.len = tmp - args.p;
+  } else {
+    /* We do - it's a function pointer, like void (*foo)(...).
+     * Stuff inside the first pair of parens is the function name */
+    fn.p = tmp + 1;
+    fn.len = args.p - tmp;
+    rt.p = cur;
+    rt.len = tmp_e - rt.p;
+    args.p++;
+    tmp = find_closing_paren(args.p, e);
+    if (tmp == NULL) {
+      ret = MJS_TYPE_ERROR;
+      mjs_prepend_errorf(mjs, ret, "3");
+      goto clean;
+    }
+    args.len = tmp - args.p;
+    /*
+     * We ignore the name and leave sig->fn NULL here, but it will later be
+     * set to the appropriate callback implementation.
+     */
+    sig->is_callback = 1;
+  }
+
+  val_type = parse_cval_type(mjs, rt.p, rt.p + rt.len);
   if (val_type == MJS_FFI_CTYPE_INVALID) {
     ret = mjs->error;
     goto clean;
   }
   mjs_ffi_sig_set_val_type(sig, vtidx++, val_type);
-  /* }}} */
-  fflush(stdout);
 
-  /* Parse function name (if any) {{{ */
-  /*
-   * If the name is inside of the parentheses, the signature assumed to be a
-   * function pointer, and the name will be ignored.
-   */
-  if (*tmp_e != '(') {
-    /* Regular function name */
-
-    cur = tmp_e;
-    while (*tmp_e && *tmp_e != ' ' && *tmp_e != '(') tmp_e++;
-
+  /* Parse function name {{{ */
+  if (!sig->is_callback) {
+    char buf[100];
     if (mjs->dlsym == NULL) {
       ret = MJS_TYPE_ERROR;
       mjs_prepend_errorf(mjs, ret,
@@ -10416,24 +10482,14 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
       goto clean;
     }
 
-    {
-      char buf[100];
-      snprintf(buf, sizeof(buf), "%.*s", (int) (tmp_e - cur), cur);
-      sig->fn = (ffi_fn_t *) mjs->dlsym(RTLD_DEFAULT, buf);
-      if (sig->fn == NULL) {
-        ret = MJS_TYPE_ERROR;
-        mjs_prepend_errorf(mjs, ret, "dlsym('%s') failed", buf);
-        goto clean;
-      }
+    snprintf(buf, sizeof(buf), "%.*s", (int) fn.len, fn.p);
+    sig->fn = (ffi_fn_t *) mjs->dlsym(RTLD_DEFAULT, buf);
+    if (sig->fn == NULL) {
+      ret = MJS_TYPE_ERROR;
+      mjs_prepend_errorf(mjs, ret, "dlsym('%s') failed", buf);
+      goto clean;
     }
-
   } else {
-    /*
-     * Function pointer: ignore the name. Thus we leave sig->fn NULL here,
-     * but it will be later set to the appropriate callback implementation.
-     */
-    sig->is_callback = 1;
-
     tmp_e = strchr(tmp_e, ')');
     if (tmp_e == NULL) {
       ret = MJS_TYPE_ERROR;
@@ -10442,16 +10498,10 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
   }
 
   /* Advance cur to the beginning of the arg list */
-  tmp_e = strchr(tmp_e, '(');
-  if (tmp_e == NULL) {
-    ret = MJS_TYPE_ERROR;
-    goto clean;
-  }
-  cur = tmp_e + 1;
-  /* }}} */
+  cur = tmp_e = args.p;
 
   /* Parse all args {{{ */
-  while (*tmp_e && *tmp_e != ')') {
+  while (tmp_e - args.p < (ptrdiff_t) args.len) {
     int level = 0; /* nested parens level */
     int is_fp = 0; /* set to 1 is current arg is a callback function ptr */
     tmp_e = cur;
@@ -10473,6 +10523,8 @@ MJS_PRIVATE mjs_err_t mjs_parse_ffi_signature(struct mjs *mjs, const char *s,
       }
       tmp_e++;
     }
+
+    if (tmp_e == cur) break;
 
     /* Parse current arg */
     if (is_fp) {
@@ -13148,7 +13200,7 @@ static enum mjs_err parse_literal(struct pstate *p, const struct tok *t) {
   struct mbuf *bcode_gen = &p->mjs->bcode_gen;
   enum mjs_err res = MJS_OK;
   int tok = t->tok;
-  LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, &t));
+  LOG(LL_VERBOSE_DEBUG, ("[%.*s] %p", p->tok.len, p->tok.ptr, (void *) &t));
   switch (t->tok) {
     case TOK_KEYWORD_FALSE:
       emit_byte(p, OP_PUSH_FALSE);

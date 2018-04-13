@@ -19,7 +19,7 @@ MFLAGS += -I. -I$(REPO_ROOT) -Isrc
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG -I../frozen
 MFLAGS += $(CFLAGS_EXTRA)
 CFLAGS += -lm -std=c99 -Wall -Wextra -pedantic -g $(MFLAGS)
-COMMON_CFLAGS = -DCS_MMAP
+COMMON_CFLAGS = -DCS_MMAP -DMJS_MODULE_LINES
 ASAN_CFLAGS = -fsanitize=address
 
 .PHONY: all test test_full difftest ci-test
@@ -74,7 +74,7 @@ CFLAGS += $(COMMON_CFLAGS)
 # NOTE: we compile straight from sources, not from the single amalgamated file,
 # in order to make sure that all sources include the right headers
 $(PROG): $(TOP_SOURCES) $(TOP_HEADERS) $(BUILD_DIR)
-	$(DOCKER_CLANG) $(CFLAGS) $(CPPFLAGS) $(TOP_SOURCES) -o $(PROG)
+	$(DOCKER_CLANG) clang $(CFLAGS) $(CPPFLAGS) $(TOP_SOURCES) -o $(PROG)
 
 $(BUILD_DIR):
 	mkdir -p $@
