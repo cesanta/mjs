@@ -120,6 +120,13 @@ static void mjs_do_gc(struct mjs *mjs) {
   mjs_return(mjs, arg0);
 }
 
+static void mjs_s2o(struct mjs *mjs) {
+  mjs_return(mjs,
+             mjs_struct_to_obj(mjs, mjs_get_ptr(mjs, mjs_arg(mjs, 0)),
+                               (const struct mjs_c_struct_member *) mjs_get_ptr(
+                                   mjs, mjs_arg(mjs, 1))));
+}
+
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_val_t v;
 
@@ -143,6 +150,8 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
           mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_do_gc));
   mjs_set(mjs, obj, "chr", ~0,
           mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_chr));
+  mjs_set(mjs, obj, "s2o", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_s2o));
 
   /*
    * Populate JSON.parse() and JSON.stringify()

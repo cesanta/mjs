@@ -144,7 +144,52 @@ In order to make FFI work, mJS must be able to get the address of a C
 function by its name. On POSIX systems, `dlsym()` API can do that. On
 Windows, `GetProcAddress()`. On embedded systems, a system resolver should
 be either manually written, or be implemented with some aid from a firmware
-linker script. mJS resolver uses `dlsym`-compatible signature. 
+linker script. mJS resolver uses `dlsym`-compatible signature.
+
+## Converting structs to objects
+
+mJS provides a helper to facilitate coversion of C structs to JS objects.
+The functions is called `s2o` and takes two parameters: foreign pointer to
+the struct and foreign pointer to the struct's descriptor which specifies
+names and offsets of the struct's members. Here's an simple example:
+
+C/C++ side code:
+```c
+#include "mjs.h"
+
+struct my_struct {
+  int a;
+  const char *b;
+  double c;
+  struct mg_str d;
+  struct mg_str *e;
+  float f;
+  bool g;
+};
+
+static const struct mjs_c_struct_member my_struct_descr[] = {
+  {"a", offsetof(struct my_struct, a), MJS_FFI_CTYPE_INT},
+  {"b", offsetof(struct my_struct, b), MJS_FFI_CTYPE_CHAR_PTR},
+  {"c", offsetof(struct my_struct, c), MJS_FFI_CTYPE_DOUBLE},
+  {"d", offsetof(struct my_struct, d), MJS_FFI_CTYPE_STRUCT_MG_STR},
+  {"e", offsetof(struct my_struct, e), MJS_FFI_CTYPE_STRUCT_MG_STR_PTR},
+  {"f", offsetof(struct my_struct, f), MJS_FFI_CTYPE_FLOAT},
+  {"g", offsetof(struct my_struct, g), MJS_FFI_CTYPE_BOOL},
+  {NULL, 0, MJS_FFI_CTYPE_NONE},
+};
+
+const struct mjs_c_struct_member *get_my_struct_descr(void) {
+  return my_struct_descr;
+};
+```
+
+JS side code:
+```js
+// Assuming `s` is a foreign pointer to an instance of `my_struct`, obtained elsewhere.
+let sd = ffi('void *get_my_struct_descr(void)')();
+let o = s2o(s, sd);
+print(o.a, o.b);
+```
 
 # Complete embedding example
 

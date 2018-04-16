@@ -1047,7 +1047,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR &&
           sig->val_types[0] != MJS_FFI_CTYPE_CHAR_PTR) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid return value type");
         goto clean;
       }
       break;
@@ -1059,7 +1059,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
           sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid return value type");
         goto clean;
       }
   }

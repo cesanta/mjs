@@ -889,6 +889,9 @@ double fmin(double a, double b) {
 }
 #endif
 
+static const void *get_my_struct(void);
+static const struct mjs_c_struct_member *get_my_struct_descr(void);
+
 void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "ffi_get_null") == 0) return (void *) ffi_get_null;
   if (strcmp(name, "ffi_set_byte") == 0) return (void *) ffi_set_byte;
@@ -942,6 +945,10 @@ void *stub_dlsym(void *handle, const char *name) {
   if (strcmp(name, "pow") == 0) return (void *) pow;
   if (strcmp(name, "sin") == 0) return (void *) sin;
   if (strcmp(name, "cos") == 0) return (void *) cos;
+  if (strcmp(name, "get_my_struct") == 0) return (void *) get_my_struct;
+  if (strcmp(name, "get_my_struct_descr") == 0) {
+    return (void *) get_my_struct_descr;
+  }
   return NULL;
   (void) handle;
 }
@@ -2616,45 +2623,6 @@ const char *test_objects(struct mjs *mjs) {
       "p_foo:3_o1_foo:2_o2_foo:3_"
       );
 
-  {
-    struct mg_str dummy = mg_mk_str("baz");
-    struct my {
-      int a;
-      const char *b;
-      double c;
-      struct mg_str d;
-      struct mg_str *e;
-      float f;
-      bool g;
-    } s = {17, "foo", 12.34, {"bar", 3}, &dummy, 45.67f, true};
-    const struct mjs_c_struct_member def[] = {
-      {"a", offsetof(struct my, a), MJS_FFI_CTYPE_INT},
-      {"b", offsetof(struct my, b), MJS_FFI_CTYPE_CHAR_PTR},
-      {"c", offsetof(struct my, c), MJS_FFI_CTYPE_DOUBLE},
-      {"d", offsetof(struct my, d), MJS_FFI_CTYPE_STRUCT_MG_STR},
-      {"e", offsetof(struct my, e), MJS_FFI_CTYPE_STRUCT_MG_STR_PTR},
-      {"f", offsetof(struct my, f), MJS_FFI_CTYPE_FLOAT},
-      {"g", offsetof(struct my, g), MJS_FFI_CTYPE_BOOL},
-      {NULL, 0, MJS_FFI_CTYPE_NONE},
-    };
-    mjs_val_t v = mjs_struct_to_obj(mjs, &s, def);
-    mjs_set(mjs, mjs_get_global(mjs), "my", ~0, v);
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.a", &res));
-    ASSERT_EQ(mjs_get_int(mjs, res), 17);
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.b", &res));
-    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "foo");
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.c", &res));
-    ASSERT_EQ(mjs_get_double(mjs, res), 12.34);
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.d", &res));
-    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "bar");
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.e", &res));
-    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "baz");
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.f", &res));
-    ASSERT_EQ(mjs_get_double(mjs, res), 45.67f);
-    ASSERT_EXEC_OK(mjs_exec(mjs, "my.g", &res));
-    ASSERT_EQ(mjs_get_bool(mjs, res), true);
-  }
-
   mjs_disown(mjs, &res);
 
   return NULL;
@@ -3763,6 +3731,85 @@ const char *test_lib_math(struct mjs *mjs) {
   return NULL;
 }
 
+struct my_struct {
+  int a;
+  const char *b;
+  double c;
+  struct mg_str d;
+  struct mg_str *e;
+  float f;
+  bool g;
+};
+
+static struct my_struct *s_ts = NULL;
+
+static const struct mjs_c_struct_member my_struct_descr[] = {
+  {"a", offsetof(struct my_struct, a), MJS_FFI_CTYPE_INT},
+  {"b", offsetof(struct my_struct, b), MJS_FFI_CTYPE_CHAR_PTR},
+  {"c", offsetof(struct my_struct, c), MJS_FFI_CTYPE_DOUBLE},
+  {"d", offsetof(struct my_struct, d), MJS_FFI_CTYPE_STRUCT_MG_STR},
+  {"e", offsetof(struct my_struct, e), MJS_FFI_CTYPE_STRUCT_MG_STR_PTR},
+  {"f", offsetof(struct my_struct, f), MJS_FFI_CTYPE_FLOAT},
+  {"g", offsetof(struct my_struct, g), MJS_FFI_CTYPE_BOOL},
+  {NULL, 0, MJS_FFI_CTYPE_NONE},
+};
+
+static const void *get_my_struct(void) {
+  return s_ts;
+}
+
+static const struct mjs_c_struct_member *get_my_struct_descr(void) {
+  return my_struct_descr;
+};
+
+const char *test_s2o(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED;
+  mjs_own(mjs, &res);
+  mjs_set_ffi_resolver(mjs, stub_dlsym);
+  s_ts = NULL;
+  ASSERT_EXEC_OK(mjs_exec(mjs, "let s = undefined, sd = undefined, o;", &res));
+  {
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o = s2o(s, sd);", &res));
+    ASSERT_TRUE(mjs_is_undefined(res));
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o = s2o(123, 456);", &res));
+    ASSERT_TRUE(mjs_is_undefined(res));
+  }
+  {
+    ASSERT_EXEC_OK(mjs_exec(mjs, "s = ffi('void *get_my_struct(void)')();", &res));
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o = s2o(s, sd);", &res));
+    ASSERT_TRUE(mjs_is_undefined(res));
+  }
+  {
+    ASSERT_EXEC_OK(mjs_exec(mjs, "sd = ffi('void *get_my_struct_descr(void)')();", &res));
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o = s2o(s, sd);", &res));
+    ASSERT_TRUE(mjs_is_undefined(res));
+  }
+  {
+    struct mg_str dummy = mg_mk_str_n("bazaar", 3);
+    struct my_struct ts = {17, "foo", 1.23, {"bar!", 3}, &dummy, 4.56f, true};
+    s_ts = &ts;
+    ASSERT_EXEC_OK(mjs_exec(mjs, "s = ffi('void *get_my_struct(void)')();", &res));
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o = s2o(s, sd);", &res));
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.a", &res));
+    ASSERT_EQ(mjs_get_int(mjs, res), 17);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.b", &res));
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "foo");
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.c", &res));
+    ASSERT_EQ(mjs_get_double(mjs, res), 1.23);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.d", &res));
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "bar");
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.e", &res));
+    ASSERT_STREQ(mjs_get_cstring(mjs, &res), "baz");
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.f", &res));
+    ASSERT_EQ(mjs_get_double(mjs, res), 4.56f);
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.g", &res));
+    ASSERT_EQ(mjs_get_bool(mjs, res), true);
+  }
+
+  mjs_disown(mjs, &res);
+  return NULL;
+}
+
 const char *test_parser(struct mjs *mjs) {
   mjs_val_t res = MJS_UNDEFINED;
   mjs_own(mjs, &res);
@@ -3847,6 +3894,8 @@ const char *tests_run(const char *filter) {
 
   RUN_TEST_MJS(test_lib_math);
   RUN_TEST(test_exec);
+
+  RUN_TEST_MJS(test_s2o);
 
   return NULL;
 }

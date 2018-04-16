@@ -8522,6 +8522,13 @@ static void mjs_do_gc(struct mjs *mjs) {
   mjs_return(mjs, arg0);
 }
 
+static void mjs_s2o(struct mjs *mjs) {
+  mjs_return(mjs,
+             mjs_struct_to_obj(mjs, mjs_get_ptr(mjs, mjs_arg(mjs, 0)),
+                               (const struct mjs_c_struct_member *) mjs_get_ptr(
+                                   mjs, mjs_arg(mjs, 1))));
+}
+
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_val_t v;
 
@@ -8545,6 +8552,8 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
           mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_do_gc));
   mjs_set(mjs, obj, "chr", ~0,
           mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_chr));
+  mjs_set(mjs, obj, "s2o", ~0,
+          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_s2o));
 
   /*
    * Populate JSON.parse() and JSON.stringify()
@@ -11342,7 +11351,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR &&
           sig->val_types[0] != MJS_FFI_CTYPE_CHAR_PTR) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid return value type");
         goto clean;
       }
       break;
@@ -11354,7 +11363,7 @@ MJS_PRIVATE int mjs_ffi_sig_validate(struct mjs *mjs, mjs_ffi_sig_t *sig,
           sig->val_types[0] != MJS_FFI_CTYPE_DOUBLE &&
           sig->val_types[0] != MJS_FFI_CTYPE_FLOAT &&
           sig->val_types[0] != MJS_FFI_CTYPE_VOID_PTR) {
-        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "wrong return value type");
+        mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "invalid return value type");
         goto clean;
       }
   }
@@ -12875,7 +12884,10 @@ clean:
 
 mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
                             const struct mjs_c_struct_member *def) {
-  mjs_val_t obj = mjs_mk_object(mjs);
+  mjs_val_t obj;
+  if (base == NULL || def == NULL) return MJS_UNDEFINED;
+  obj = mjs_mk_object(mjs);
+  mjs_own(mjs, &obj); /* Pin the object while it is being built */
   for (; def->name != NULL; def++) {
     const char *ptr = (const char *) base + def->offset;
     switch (def->type) {
@@ -12917,9 +12929,12 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
         break;
       }
       default:
-        return MJS_UNDEFINED;
+        obj = MJS_UNDEFINED;
+        goto clean;
     }
   }
+clean:
+  mjs_disown(mjs, &obj);
   return obj;
 }
 #ifdef MJS_MODULE_LINES

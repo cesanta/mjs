@@ -282,7 +282,10 @@ clean:
 
 mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
                             const struct mjs_c_struct_member *def) {
-  mjs_val_t obj = mjs_mk_object(mjs);
+  mjs_val_t obj;
+  if (base == NULL || def == NULL) return MJS_UNDEFINED;
+  obj = mjs_mk_object(mjs);
+  mjs_own(mjs, &obj); /* Pin the object while it is being built */
   for (; def->name != NULL; def++) {
     const char *ptr = (const char *) base + def->offset;
     switch (def->type) {
@@ -324,8 +327,11 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
         break;
       }
       default:
-        return MJS_UNDEFINED;
+        obj = MJS_UNDEFINED;
+        goto clean;
     }
   }
+clean:
+  mjs_disown(mjs, &obj);
   return obj;
 }
