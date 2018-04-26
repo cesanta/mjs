@@ -3,8 +3,8 @@
  * All rights reserved
  */
 
-#include "common/cs_varint.h"
 #include "common/cs_file.h"
+#include "common/cs_varint.h"
 
 #include "mjs/src/mjs_array.h"
 #include "mjs/src/mjs_bcode.h"
@@ -503,6 +503,20 @@ static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
   return 1;
 }
 
+static void mjs_apply_(struct mjs *mjs) {
+  mjs_val_t res = MJS_UNDEFINED, *args = NULL;
+  mjs_val_t func = mjs->vals.this_obj, v = mjs_arg(mjs, 1);
+  int i, nargs = 0;
+  if (mjs_is_array(v)) {
+    nargs = mjs_array_length(mjs, v);
+    args = calloc(nargs, sizeof(args[0]));
+    for (i = 0; i < nargs; i++) args[i] = mjs_array_get(mjs, v, i);
+  }
+  mjs_apply(mjs, &res, func, mjs_arg(mjs, 0), nargs, args);
+  free(args);
+  mjs_return(mjs, res);
+}
+
 static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
                            mjs_val_t *res) {
   size_t n;
@@ -515,6 +529,9 @@ static int getprop_builtin(struct mjs *mjs, mjs_val_t val, mjs_val_t name,
   if (err == MJS_OK) {
     if (mjs_is_string(val)) {
       handled = getprop_builtin_string(mjs, val, s, n, res);
+    } else if (s != NULL && n == 5 && strncmp(s, "apply", n) == 0) {
+      *res = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_apply_);
+      handled = 1;
     } else if (mjs_is_array(val)) {
       handled = getprop_builtin_array(mjs, val, s, n, res);
     } else if (mjs_is_foreign(val)) {
@@ -1085,7 +1102,7 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   va_list ap;
   int i;
   mjs_err_t ret;
-  mjs_val_t *args = calloc(1, sizeof(mjs_val_t) * nargs);
+  mjs_val_t *args = calloc(nargs, sizeof(mjs_val_t));
   va_start(ap, nargs);
   for (i = 0; i < nargs; i++) {
     args[i] = va_arg(ap, mjs_val_t);
@@ -1093,10 +1110,6 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   va_end(ap);
 
   ret = mjs_apply(mjs, res, func, this_val, nargs, args);
-  /*
-   * NOTE: calling `bf_run()` invalidates `func` and `this_val`. If you ever
-   * need to use them afterwards, you need to own them before.
-   */
 
   free(args);
   return ret;
@@ -1104,22 +1117,21 @@ mjs_err_t mjs_call(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
 mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
                     mjs_val_t this_val, int nargs, mjs_val_t *args) {
-  mjs_val_t r, prev_this_val, retval_stack_idx;
+  mjs_val_t r, prev_this_val, retval_stack_idx, *resp;
   int i;
-  size_t addr;
 
-  if (!mjs_is_function(func)) {
+  if (!mjs_is_function(func) && !mjs_is_foreign(func) &&
+      !mjs_is_ffi_sig(func)) {
     return mjs_set_errorf(mjs, MJS_TYPE_ERROR, "calling non-callable");
   }
-
-  addr = mjs_get_func_addr(func);
 
   LOG(LL_VERBOSE_DEBUG, ("applying func %d", (int) mjs_get_func_addr(func)));
 
   prev_this_val = mjs->vals.this_obj;
 
-  /* Push undefined which will be later replaced with the return value */
-  mjs_push(mjs, MJS_UNDEFINED);
+  /* Push callable which will be later replaced with the return value */
+  mjs_push(mjs, func);
+  resp = vptr(&mjs->stack, -1);
 
   /* Remember index by which return value should be written */
   retval_stack_idx = mjs_mk_number(mjs, (double) mjs_stack_size(&mjs->stack));
@@ -1134,7 +1146,18 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 
   /* Push call stack frame, just like OP_CALL does that */
   call_stack_push_frame(mjs, MJS_BCODE_OFFSET_EXIT, retval_stack_idx);
-  mjs_execute(mjs, addr, &r);
+
+  if (mjs_is_foreign(func)) {
+    ((void (*) (struct mjs *)) mjs_get_ptr(mjs, func))(mjs);
+    if (res != NULL) *res = *resp;
+  } else if (mjs_is_ffi_sig(func)) {
+    mjs_ffi_call2(mjs);
+    if (res != NULL) *res = *resp;
+  } else {
+    size_t addr = mjs_get_func_addr(func);
+    mjs_execute(mjs, addr, &r);
+    if (res != NULL) *res = r;
+  }
 
   /*
    * If there was an error, we need to restore frame and do the cleanup
@@ -1146,8 +1169,6 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
     // Pop cell at which the returned value should've been written
     mjs_pop(mjs);
   }
-
-  if (res != NULL) *res = r;
   mjs->vals.this_obj = prev_this_val;
 
   return mjs->error;

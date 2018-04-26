@@ -3074,6 +3074,8 @@ const char *test_call_api(struct mjs *mjs) {
   ASSERT_EQ(mjs_call(mjs, &res, MJS_UNDEFINED, MJS_UNDEFINED, 0), MJS_TYPE_ERROR);
   ASSERT_EQ(mjs_apply(mjs, &res, MJS_UNDEFINED, MJS_UNDEFINED, 0, NULL), MJS_TYPE_ERROR);
 
+  CHECK_NUMERIC("let f = function(a,b){return a+b;}; f.apply(null,[1,2])", 3);
+
   mjs_disown(mjs, &obj);
   mjs_disown(mjs, &res);
   mjs_disown(mjs, &func);
