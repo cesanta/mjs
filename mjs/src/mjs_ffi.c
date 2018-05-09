@@ -809,26 +809,24 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
         break;
       case MJS_FFI_CTYPE_CHAR_PTR: {
         size_t s;
-        if (!mjs_is_string(arg)) {
+        if (mjs_is_string(arg)) {
+          /*
+           * String argument should be saved separately in order to support
+           * short strings (which are packed into mjs_val_t itself)
+           */
+          argvs[i] = arg;
+          ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
+        } else if (mjs_is_null(arg)) {
+          ffi_set_ptr(&args[i], NULL);
+        } else {
           ret = MJS_TYPE_ERROR;
           mjs_prepend_errorf(
               mjs, ret, "actual arg #%d is not a string (the type idx is: %s)",
               i, mjs_typeof(arg));
           goto clean;
         }
-        /*
-         * String argument should be saved separately in order to support
-         * short strings (which are packed into mjs_val_t itself)
-         */
-        argvs[i] = arg;
-        ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &s));
       } break;
       case MJS_FFI_CTYPE_VOID_PTR:
-        if (!mjs_is_foreign(arg) && !mjs_is_string(arg)) {
-          ret = MJS_TYPE_ERROR;
-          mjs_prepend_errorf(mjs, ret, "actual arg #%d is not a ptr", i);
-          goto clean;
-        }
         if (mjs_is_string(arg)) {
           size_t n;
           /*
@@ -837,8 +835,14 @@ MJS_PRIVATE mjs_err_t mjs_ffi_call2(struct mjs *mjs) {
            */
           argvs[i] = arg;
           ffi_set_ptr(&args[i], (void *) mjs_get_string(mjs, &argvs[i], &n));
-        } else {
+        } else if (mjs_is_foreign(arg)) {
           ffi_set_ptr(&args[i], (void *) mjs_get_ptr(mjs, arg));
+        } else if (mjs_is_null(arg)) {
+          ffi_set_ptr(&args[i], NULL);
+        } else {
+          ret = MJS_TYPE_ERROR;
+          mjs_prepend_errorf(mjs, ret, "actual arg #%d is not a ptr", i);
+          goto clean;
         }
         break;
       case MJS_FFI_CTYPE_CALLBACK:

@@ -1176,6 +1176,11 @@ const char *test_call_ffi(struct mjs *mjs) {
   ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s('\\x00')", &res), MJS_OK);
   ASSERT_STREQ(mjs_get_cstring(mjs, &res), "");
 
+  /* null as an argument is allowed and becomes NULL;
+   * return value of NULL becomes null. */
+  ASSERT_EQ(mjs_exec(mjs, "ffi_test_s1s(null)", &res), MJS_OK);
+  ASSERT_TRUE(mjs_is_null(res));
+
   ASSERT_EXEC_OK(
       mjs_exec(mjs, "ffi('double ffi_test_d2d(double,double)')(3.71, 1.28)",
                &res));
@@ -3174,6 +3179,14 @@ const char *test_foreign_ptr(struct mjs *mjs) {
           let get_null = ffi('void *ffi_get_null()');
           let ptr = get_null();
           ptr === null
+          ), &res));
+  ASSERT_EQ(mjs_get_bool(mjs, res), 1);
+
+  ASSERT_EXEC_OK(mjs_exec(mjs,
+        STRINGIFY(
+          let free = ffi('void free(void *)');
+          free(null);  // null is allowed
+          true;
           ), &res));
   ASSERT_EQ(mjs_get_bool(mjs, res), 1);
 
