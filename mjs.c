@@ -2079,7 +2079,11 @@ const char *mg_strstr(const struct mg_str haystack, const struct mg_str needle);
  * Expands to a string representation of its argument: e.g.
  * `CS_STRINGIFY_LIT(5) expands to "5"`
  */
+#if !defined(_MSC_VER) || _MSC_VER >= 1900
+#define CS_STRINGIFY_LIT(...) #__VA_ARGS__
+#else
 #define CS_STRINGIFY_LIT(x) #x
+#endif
 
 /*
  * Expands to a string representation of its argument, which is allowed
