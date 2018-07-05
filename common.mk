@@ -26,6 +26,7 @@ else ifneq ("$(wildcard /usr/bin/clang-format-3.6)","")
   CLANG_FORMAT = /usr/bin/clang-format-3.6
 else
   CLANG_FORMAT = docker run --rm \
+    --user $(shell id -u):$(shell id -g) \
     -v $(REPO_ABS_PATH):$(REPO_ABS_PATH) \
     -w $(REPO_ABS_PATH) \
     $(DOCKER_USER_ARG) \
