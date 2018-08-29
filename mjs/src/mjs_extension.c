@@ -36,6 +36,8 @@ static void mjs_op_time_systime(struct mjs *jsm)
     mjs_set(jsm, ret, "minute", ~0, mjs_mk_number(jsm, tm->tm_min));
     mjs_set(jsm, ret, "second", ~0, mjs_mk_number(jsm, tm->tm_sec));
 
+    mjs_set(jsm, ret, "weekid", ~0, mjs_mk_number(jsm, (int)((tm->tm_yday + 6) / 7)));
+
     mjs_return(jsm, ret);
 }
 
