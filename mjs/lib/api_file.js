@@ -39,7 +39,7 @@ let File = {
   //
   // Example - write a configuration object into a file:
   // ```javascript
-  // File.write(JSON.stringify(obj, 'settings.json'));
+  // File.write(JSON.stringify(obj), 'settings.json');
   // ```
   write: function(str, path, oMode) {
     let fp = File.fopen(path, oMode || 'w');
