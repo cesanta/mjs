@@ -720,11 +720,32 @@ int mjs_is_object(mjs_val_t v);
 /* Make an empty object */
 mjs_val_t mjs_mk_object(struct mjs *mjs);
 
+/* Field types for struct-object conversion. */
+enum mjs_struct_field_type {
+  MJS_STRUCT_FIELD_TYPE_INVALID,
+  MJS_STRUCT_FIELD_TYPE_STRUCT,     /* Struct, arg points to def. */
+  MJS_STRUCT_FIELD_TYPE_STRUCT_PTR, /* Ptr to struct, arg points to def. */
+  MJS_STRUCT_FIELD_TYPE_INT,
+  MJS_STRUCT_FIELD_TYPE_BOOL,
+  MJS_STRUCT_FIELD_TYPE_DOUBLE,
+  MJS_STRUCT_FIELD_TYPE_FLOAT,
+  MJS_STRUCT_FIELD_TYPE_CHAR_PTR,   /* NUL-terminated string. */
+  MJS_STRUCT_FIELD_TYPE_VOID_PTR,   /* Converted to foreign ptr. */
+  MJS_STRUCT_FIELD_TYPE_MG_STR_PTR, /* Converted to string. */
+  MJS_STRUCT_FIELD_TYPE_MG_STR,     /* Converted to string. */
+  MJS_STRUCT_FIELD_TYPE_DATA,       /* Data, arg is length, becomes string. */
+  MJS_STRUCT_FIELD_TYPE_INT8,
+  MJS_STRUCT_FIELD_TYPE_INT16,
+  MJS_STRUCT_FIELD_TYPE_UINT8,
+  MJS_STRUCT_FIELD_TYPE_UINT16,
+};
+
 /* C structure layout descriptor - needed by mjs_struct_to_obj */
 struct mjs_c_struct_member {
   const char *name;
-  size_t offset;
-  enum mjs_ffi_ctype type;
+  int offset;
+  enum mjs_struct_field_type type;
+  const void *arg; /* Additional argument, used for some types. */
 };
 
 /* Create flat JS object from a C memory descriptor */

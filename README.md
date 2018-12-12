@@ -168,14 +168,14 @@ struct my_struct {
 };
 
 static const struct mjs_c_struct_member my_struct_descr[] = {
-  {"a", offsetof(struct my_struct, a), MJS_FFI_CTYPE_INT},
-  {"b", offsetof(struct my_struct, b), MJS_FFI_CTYPE_CHAR_PTR},
-  {"c", offsetof(struct my_struct, c), MJS_FFI_CTYPE_DOUBLE},
-  {"d", offsetof(struct my_struct, d), MJS_FFI_CTYPE_STRUCT_MG_STR},
-  {"e", offsetof(struct my_struct, e), MJS_FFI_CTYPE_STRUCT_MG_STR_PTR},
-  {"f", offsetof(struct my_struct, f), MJS_FFI_CTYPE_FLOAT},
-  {"g", offsetof(struct my_struct, g), MJS_FFI_CTYPE_BOOL},
-  {NULL, 0, MJS_FFI_CTYPE_NONE},
+  {"a", offsetof(struct my_struct, a), MJS_STRUCT_FIELD_TYPE_INT, NULL},
+  {"b", offsetof(struct my_struct, b), MJS_STRUCT_FIELD_TYPE_CHAR_PTR, NULL},
+  {"c", offsetof(struct my_struct, c), MJS_STRUCT_FIELD_TYPE_DOUBLE, NULL},
+  {"d", offsetof(struct my_struct, d), MJS_STRUCT_FIELD_TYPE_MG_STR, NULL},
+  {"e", offsetof(struct my_struct, e), MJS_STRUCT_FIELD_TYPE_MG_STR_PTR, NULL},
+  {"f", offsetof(struct my_struct, f), MJS_STRUCT_FIELD_TYPE_FLOAT, NULL},
+  {"g", offsetof(struct my_struct, g), MJS_STRUCT_FIELD_TYPE_BOOL, NULL},
+  {NULL, 0, MJS_STRUCT_FIELD_TYPE_INVALID, NULL},
 };
 
 const struct mjs_c_struct_member *get_my_struct_descr(void) {
@@ -189,6 +189,37 @@ JS side code:
 let sd = ffi('void *get_my_struct_descr(void)')();
 let o = s2o(s, sd);
 print(o.a, o.b);
+```
+
+Nested structs are also supported - use `MJS_STRUCT_FIELD_TYPE_STRUCT` field type
+and provide pointer to the definition:
+
+```c
+struct my_struct2 {
+  int8_t i8;
+  int16_t i16;
+  uint8_t u8;
+  uint16_t u16;
+};
+
+static const struct mjs_c_struct_member my_struct2_descr[] = {
+  {"i8", offsetof(struct my_struct2, i8), MJS_STRUCT_FIELD_TYPE_INT8, NULL},
+  {"i16", offsetof(struct my_struct2, i16), MJS_STRUCT_FIELD_TYPE_INT16, NULL},
+  {"u8", offsetof(struct my_struct2, u8), MJS_STRUCT_FIELD_TYPE_UINT8, NULL},
+  {"u16", offsetof(struct my_struct2, u16), MJS_STRUCT_FIELD_TYPE_UINT16, NULL},
+  {NULL, 0, MJS_STRUCT_FIELD_TYPE_INVALID, NULL},
+};
+
+struct my_struct {
+  struct my_struct2 s;
+  struct my_struct2 *sp;
+};
+
+static const struct mjs_c_struct_member my_struct_descr[] = {
+  {"s", offsetof(struct my_struct, s), MJS_STRUCT_FIELD_TYPE_STRUCT, my_struct2_descr},
+  {"sp", offsetof(struct my_struct, sp), MJS_STRUCT_FIELD_TYPE_STRUCT_PTR, my_struct2_descr},
+  {NULL, 0, MJS_STRUCT_FIELD_TYPE_INVALID, NULL},
+};
 ```
 
 # Complete embedding example

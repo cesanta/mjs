@@ -3873,11 +3873,32 @@ int mjs_is_object(mjs_val_t v);
 /* Make an empty object */
 mjs_val_t mjs_mk_object(struct mjs *mjs);
 
+/* Field types for struct-object conversion. */
+enum mjs_struct_field_type {
+  MJS_STRUCT_FIELD_TYPE_INVALID,
+  MJS_STRUCT_FIELD_TYPE_STRUCT,     /* Struct, arg points to def. */
+  MJS_STRUCT_FIELD_TYPE_STRUCT_PTR, /* Ptr to struct, arg points to def. */
+  MJS_STRUCT_FIELD_TYPE_INT,
+  MJS_STRUCT_FIELD_TYPE_BOOL,
+  MJS_STRUCT_FIELD_TYPE_DOUBLE,
+  MJS_STRUCT_FIELD_TYPE_FLOAT,
+  MJS_STRUCT_FIELD_TYPE_CHAR_PTR,   /* NUL-terminated string. */
+  MJS_STRUCT_FIELD_TYPE_VOID_PTR,   /* Converted to foreign ptr. */
+  MJS_STRUCT_FIELD_TYPE_MG_STR_PTR, /* Converted to string. */
+  MJS_STRUCT_FIELD_TYPE_MG_STR,     /* Converted to string. */
+  MJS_STRUCT_FIELD_TYPE_DATA,       /* Data, arg is length, becomes string. */
+  MJS_STRUCT_FIELD_TYPE_INT8,
+  MJS_STRUCT_FIELD_TYPE_INT16,
+  MJS_STRUCT_FIELD_TYPE_UINT8,
+  MJS_STRUCT_FIELD_TYPE_UINT16,
+};
+
 /* C structure layout descriptor - needed by mjs_struct_to_obj */
 struct mjs_c_struct_member {
   const char *name;
-  size_t offset;
-  enum mjs_ffi_ctype type;
+  int offset;
+  enum mjs_struct_field_type type;
+  const void *arg; /* Additional argument, used for some types. */
 };
 
 /* Create flat JS object from a C memory descriptor */
@@ -8757,7 +8778,7 @@ MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
       ret = MJS_OUT_OF_MEMORY;
       goto clean;
     }
-    memmove(*p, buf, *sizep+1);
+    memmove(*p, buf, *sizep + 1);
     *need_free = 1;
   } else if (mjs_is_boolean(*v)) {
     if (mjs_get_bool(mjs, *v)) {
@@ -13057,51 +13078,98 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
   obj = mjs_mk_object(mjs);
   mjs_own(mjs, &obj); /* Pin the object while it is being built */
   for (; def->name != NULL; def++) {
+    mjs_val_t v = MJS_UNDEFINED;
     const char *ptr = (const char *) base + def->offset;
     switch (def->type) {
-      case MJS_FFI_CTYPE_INT: {
+      case MJS_STRUCT_FIELD_TYPE_STRUCT: {
+        const void *sub_base = (const void *) ptr;
+        const struct mjs_c_struct_member *sub_def =
+            (const struct mjs_c_struct_member *) def->arg;
+        v = mjs_struct_to_obj(mjs, sub_base, sub_def);
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_STRUCT_PTR: {
+        const void **sub_base = (const void **) ptr;
+        const struct mjs_c_struct_member *sub_def =
+            (const struct mjs_c_struct_member *) def->arg;
+        if (*sub_base != NULL) {
+          v = mjs_struct_to_obj(mjs, *sub_base, sub_def);
+        } else {
+          v = MJS_NULL;
+        }
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_INT: {
         double value = (double) (*(int *) ptr);
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, value));
+        v = mjs_mk_number(mjs, value);
         break;
       }
-      case MJS_FFI_CTYPE_CHAR_PTR: {
-        const char *value = *(const char **) ptr;
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, value, ~0, 1));
+      case MJS_STRUCT_FIELD_TYPE_BOOL: {
+        v = mjs_mk_boolean(mjs, *(bool *) ptr);
         break;
       }
-      case MJS_FFI_CTYPE_DOUBLE: {
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, *(double *) ptr));
+      case MJS_STRUCT_FIELD_TYPE_DOUBLE: {
+        v = mjs_mk_number(mjs, *(double *) ptr);
         break;
       }
-      case MJS_FFI_CTYPE_STRUCT_MG_STR: {
-        const struct mg_str *s = (const struct mg_str *) ptr;
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, s->p, s->len, 1));
-        break;
-      }
-      case MJS_FFI_CTYPE_STRUCT_MG_STR_PTR: {
-        const struct mg_str *s = *(const struct mg_str **) ptr;
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_string(mjs, s->p, s->len, 1));
-        break;
-      }
-      case MJS_FFI_CTYPE_FLOAT: {
+      case MJS_STRUCT_FIELD_TYPE_FLOAT: {
         float value = *(float *) ptr;
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_number(mjs, value));
+        v = mjs_mk_number(mjs, value);
         break;
       }
-      case MJS_FFI_CTYPE_VOID_PTR: {
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_foreign(mjs, *(void **) ptr));
+      case MJS_STRUCT_FIELD_TYPE_CHAR_PTR: {
+        const char *value = *(const char **) ptr;
+        v = mjs_mk_string(mjs, value, ~0, 1);
         break;
       }
-      case MJS_FFI_CTYPE_BOOL: {
-        mjs_set(mjs, obj, def->name, ~0, mjs_mk_boolean(mjs, *(bool *) ptr));
+      case MJS_STRUCT_FIELD_TYPE_VOID_PTR: {
+        v = mjs_mk_foreign(mjs, *(void **) ptr);
         break;
       }
-      default:
-        obj = MJS_UNDEFINED;
-        goto clean;
+      case MJS_STRUCT_FIELD_TYPE_MG_STR_PTR: {
+        const struct mg_str *s = *(const struct mg_str **) ptr;
+        if (s != NULL) {
+          v = mjs_mk_string(mjs, s->p, s->len, 1);
+        } else {
+          v = MJS_NULL;
+        }
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_MG_STR: {
+        const struct mg_str *s = (const struct mg_str *) ptr;
+        v = mjs_mk_string(mjs, s->p, s->len, 1);
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_DATA: {
+        const char *dptr = (const char *) ptr;
+        const intptr_t dlen = *((const intptr_t *) def->arg);
+        v = mjs_mk_string(mjs, dptr, dlen, 1);
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_INT8: {
+        double value = (double) (*(int8_t *) ptr);
+        v = mjs_mk_number(mjs, value);
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_INT16: {
+        double value = (double) (*(int16_t *) ptr);
+        v = mjs_mk_number(mjs, value);
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_UINT8: {
+        double value = (double) (*(uint8_t *) ptr);
+        v = mjs_mk_number(mjs, value);
+        break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_UINT16: {
+        double value = (double) (*(uint16_t *) ptr);
+        v = mjs_mk_number(mjs, value);
+        break;
+      }
+      default: { break; }
     }
+    mjs_set(mjs, obj, def->name, ~0, v);
   }
-clean:
   mjs_disown(mjs, &obj);
   return obj;
 }
@@ -14926,7 +14994,8 @@ MJS_PRIVATE void pinit(const char *file_name, const char *buf,
 // We're not relying on the target libc ctype, as it may incorrectly
 // handle negative arguments, e.g. isspace(-1).
 static int mjs_is_space(int c) {
-  return c == ' ' || c == '\r' || c == '\n' || c == '\t' || c == '\f' || c == '\v';
+  return c == ' ' || c == '\r' || c == '\n' || c == '\t' || c == '\f' ||
+         c == '\v';
 }
 
 MJS_PRIVATE int mjs_is_digit(int c) {
@@ -15118,7 +15187,7 @@ MJS_PRIVATE int pnext(struct pstate *p) {
 
   if (p->pos[0] == '\0') {
     tok = TOK_EOF;
-  } if (mjs_is_digit(p->pos[0])) {
+  } else if (mjs_is_digit(p->pos[0])) {
     tok = getnum(p);
   } else if (p->pos[0] == '\'' || p->pos[0] == '"') {
     tok = getstr(p);

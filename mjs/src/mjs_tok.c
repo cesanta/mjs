@@ -22,7 +22,8 @@ MJS_PRIVATE void pinit(const char *file_name, const char *buf,
 // We're not relying on the target libc ctype, as it may incorrectly
 // handle negative arguments, e.g. isspace(-1).
 static int mjs_is_space(int c) {
-  return c == ' ' || c == '\r' || c == '\n' || c == '\t' || c == '\f' || c == '\v';
+  return c == ' ' || c == '\r' || c == '\n' || c == '\t' || c == '\f' ||
+         c == '\v';
 }
 
 MJS_PRIVATE int mjs_is_digit(int c) {
@@ -214,7 +215,7 @@ MJS_PRIVATE int pnext(struct pstate *p) {
 
   if (p->pos[0] == '\0') {
     tok = TOK_EOF;
-  } if (mjs_is_digit(p->pos[0])) {
+  } else if (mjs_is_digit(p->pos[0])) {
     tok = getnum(p);
   } else if (p->pos[0] == '\'' || p->pos[0] == '"') {
     tok = getstr(p);
