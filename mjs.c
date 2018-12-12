@@ -13148,7 +13148,7 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
       }
       case MJS_STRUCT_FIELD_TYPE_DATA: {
         const char *dptr = (const char *) ptr;
-        const intptr_t dlen = (const intptr_t) def->arg;
+        const intptr_t dlen = (intptr_t) def->arg;
         v = mjs_mk_string(mjs, dptr, dlen, 1);
         break;
       }
@@ -13173,7 +13173,8 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
         break;
       }
       case MJS_STRUCT_FIELD_TYPE_CUSTOM: {
-        mjs_val_t (*fptr)(struct mjs *, const void *) = def->arg;
+        mjs_val_t (*fptr)(struct mjs *, const void *) =
+            (mjs_val_t (*) (struct mjs *, const void *)) def->arg;
         v = fptr(mjs, ptr);
       }
       default: { break; }
