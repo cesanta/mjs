@@ -3891,6 +3891,12 @@ enum mjs_struct_field_type {
   MJS_STRUCT_FIELD_TYPE_INT16,
   MJS_STRUCT_FIELD_TYPE_UINT8,
   MJS_STRUCT_FIELD_TYPE_UINT16,
+  /*
+   * User-provided function. Arg is a pointer to function that takes void *
+   * (pointer to field within the struct) and returns mjs_val_t:
+   * mjs_val_t field_value(struct mjs *mjs, const void *field_ptr) { ... }
+   */
+  MJS_STRUCT_FIELD_TYPE_CUSTOM,
 };
 
 /* C structure layout descriptor - needed by mjs_struct_to_obj */
@@ -13142,7 +13148,7 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
       }
       case MJS_STRUCT_FIELD_TYPE_DATA: {
         const char *dptr = (const char *) ptr;
-        const intptr_t dlen = *((const intptr_t *) def->arg);
+        const intptr_t dlen = (const intptr_t) def->arg;
         v = mjs_mk_string(mjs, dptr, dlen, 1);
         break;
       }
@@ -13165,6 +13171,10 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
         double value = (double) (*(uint16_t *) ptr);
         v = mjs_mk_number(mjs, value);
         break;
+      }
+      case MJS_STRUCT_FIELD_TYPE_CUSTOM: {
+        mjs_val_t (*fptr)(struct mjs *, const void *) = def->arg;
+        v = fptr(mjs, ptr);
       }
       default: { break; }
     }

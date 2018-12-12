@@ -222,6 +222,20 @@ static const struct mjs_c_struct_member my_struct_descr[] = {
 };
 ```
 
+For complicated cases, a custom conversion function can be invoked that returns value:
+```c
+mjs_val_t custom_value_func(struct mjs *mjs, void *ap) {
+  /* Do something with ap, construct and return mjs_val_t */
+}
+
+static const struct mjs_c_struct_member my_struct_descr[] = {
+  ...
+  {"x", offsetof(struct my_struct, x), MJS_STRUCT_FIELD_TYPE_CUSTOM, custom_value_func},
+  ...
+};
+```
+
+
 # Complete embedding example
 
 We export C function `foo` to the JS environment and call it from the JS.

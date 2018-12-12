@@ -3771,9 +3771,14 @@ struct my_struct {
   bool g;
   struct my_struct2 s;
   struct my_struct2 *sp;
+  int x;
 };
 
 static struct my_struct *s_ts = NULL;
+
+mjs_val_t custom_value_func(struct mjs *mjs, void *ap) {
+  return mjs_mk_number(mjs, (*((int *) ap)) + 10);
+}
 
 static const struct mjs_c_struct_member my_struct_descr[] = {
   {"a", offsetof(struct my_struct, a), MJS_STRUCT_FIELD_TYPE_INT, NULL},
@@ -3785,6 +3790,7 @@ static const struct mjs_c_struct_member my_struct_descr[] = {
   {"g", offsetof(struct my_struct, g), MJS_STRUCT_FIELD_TYPE_BOOL, NULL},
   {"s", offsetof(struct my_struct, s), MJS_STRUCT_FIELD_TYPE_STRUCT, my_struct2_descr},
   {"sp", offsetof(struct my_struct, sp), MJS_STRUCT_FIELD_TYPE_STRUCT_PTR, my_struct2_descr},
+  {"x", offsetof(struct my_struct, x), MJS_STRUCT_FIELD_TYPE_CUSTOM, custom_value_func},
   {NULL, 0, MJS_STRUCT_FIELD_TYPE_INVALID, NULL},
 };
 
@@ -3820,9 +3826,11 @@ const char *test_s2o(struct mjs *mjs) {
   }
   {
     struct mg_str baz = mg_mk_str_n("bazaar", 3);
-    struct my_struct ts = {17, "foo", 1.23, {"bar!", 3}, NULL, 4.56f, true,
-      {-10, -20000, 130, 20000},
-    NULL};
+    struct my_struct ts = {
+        17, "foo", 1.23, {"bar!", 3}, NULL, 4.56f, true,
+        {-10, -20000, 130, 20000},
+        NULL, 32,
+    };
     s_ts = &ts;
     ASSERT_EXEC_OK(mjs_exec(mjs, "s = ffi('void *get_my_struct(void)')();", &res));
     ASSERT_EXEC_OK(mjs_exec(mjs, "o = s2o(s, sd);", &res));
@@ -3850,6 +3858,8 @@ const char *test_s2o(struct mjs *mjs) {
     ASSERT_EQ(mjs_get_int(mjs, res), 20000);
     ASSERT_EXEC_OK(mjs_exec(mjs, "o.sp", &res));
     ASSERT_TRUE(mjs_is_null(res));
+    ASSERT_EXEC_OK(mjs_exec(mjs, "o.x", &res));
+    ASSERT_EQ(mjs_get_int(mjs, res), 42);
 
     ts.e = &baz;
     ts.sp = &ts.s;
