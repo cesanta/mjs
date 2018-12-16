@@ -281,12 +281,20 @@ clean:
 }
 
 mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
-                            const struct mjs_c_struct_member *def) {
+                            const struct mjs_c_struct_member *defs) {
   mjs_val_t obj;
+  const struct mjs_c_struct_member *def = defs;
   if (base == NULL || def == NULL) return MJS_UNDEFINED;
   obj = mjs_mk_object(mjs);
-  mjs_own(mjs, &obj); /* Pin the object while it is being built */
-  for (; def->name != NULL; def++) {
+  /* Pin the object while it is being built */
+  mjs_own(mjs, &obj);
+  /*
+   * Because mjs inserts new properties at the head of the list,
+   * start from the end so the constructed object more closely resembles
+   * the definition.
+   */
+  while (def->name != NULL) def++;
+  for (def--; def >= defs; def--) {
     mjs_val_t v = MJS_UNDEFINED;
     const char *ptr = (const char *) base + def->offset;
     switch (def->type) {
