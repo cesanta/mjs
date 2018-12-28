@@ -131,7 +131,7 @@ static void mjs_op_sys_regMatch(struct mjs *jsm)
         }
 
         if (mre_match(reo, ps, false)) {
-            for (uint32_t i = 1; i < mre_sub_count(reo, 0); i++) {
+            for (uint32_t i = 0; i < mre_sub_count(reo, 0); i++) {
                 const char *sp, *ep;
                 if (mre_sub_get(reo, 0, i, &sp, &ep)) {
                     mjs_val_t sub = mjs_mk_string(jsm, sp, (ep - sp), 1);
