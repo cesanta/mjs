@@ -32,6 +32,10 @@ else
 Q := @
 endif
 
+ifeq ($(USE_FCGI),1)
+MFLAGS += -DUSE_FCGI
+endif
+
 ifeq ($(OS),Windows_NT)
   UNAME_S := Windows
 else

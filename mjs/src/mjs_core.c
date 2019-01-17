@@ -2,7 +2,9 @@
  * Copyright (c) 2017 Cesanta Software Limited
  * All rights reserved
  */
-
+#ifdef USE_FCGI
+#include <fcgi_stdio.h>
+#endif
 #include "common/cs_varint.h"
 #include "common/str_util.h"
 
