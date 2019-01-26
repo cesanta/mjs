@@ -1769,6 +1769,10 @@ typedef struct stat cs_stat_t;
 #define CS_ENABLE_DEBUG 0
 #endif
 
+#ifndef CS_LOG_PREFIX_LEN
+#define CS_LOG_PREFIX_LEN 24
+#endif
+
 #ifndef CS_LOG_ENABLE_TS_DIFF
 #define CS_LOG_ENABLE_TS_DIFF 0
 #endif
@@ -1799,51 +1803,28 @@ enum cs_log_level {
 void cs_log_set_level(enum cs_log_level level);
 
 /*
- * Set log filter. NULL (a default) logs everything.
- * Otherwise, function name and file name will be tested against the given
- * pattern, and only matching messages will be printed.
+ * A comma-separated set of prefix=level.
+ * prefix is matched against the log prefix exactly as printed, including line
+ * number, but partial match is ok. Check stops on first matching entry.
+ * If nothing matches, default level is used.
  *
- * For the pattern syntax, refer to `mg_match_prefix()` in `str_util.h`.
+ * Examples:
+ *   main.c:=4 - everything from main C at verbose debug level.
+ *   mongoose.c=1,mjs.c=1,=4 - everything at verbose debug except mg_* and mjs_*
  *
- * Example:
- * ```c
- * void foo(void) {
- *   LOG(LL_INFO, ("hello from foo"));
- * }
- *
- * void bar(void) {
- *   LOG(LL_INFO, ("hello from bar"));
- * }
- *
- * void test(void) {
- *   cs_log_set_filter(NULL);
- *   foo();
- *   bar();
- *
- *   cs_log_set_filter("f*");
- *   foo();
- *   bar(); // Will NOT print anything
- *
- *   cs_log_set_filter("bar");
- *   foo(); // Will NOT print anything
- *   bar();
- * }
- * ```
  */
-void cs_log_set_filter(const char *pattern);
+void cs_log_set_file_level(const char *file_level);
 
 /*
- * Helper function which prints message prefix with the given `level`, function
- * name `func` and `filename`. If message should be printed (accordingly to the
- * current log level and filter), prints the prefix and returns 1, otherwise
- * returns 0.
+ * Helper function which prints message prefix with the given `level`.
+ * If message should be printed (according to the current log level
+ * and filter), prints the prefix and returns 1, otherwise returns 0.
  *
  * Clients should typically just use `LOG()` macro.
  */
-int cs_log_print_prefix(enum cs_log_level level, const char *func,
-                        const char *filename);
+int cs_log_print_prefix(enum cs_log_level level, const char *fname, int line);
 
-extern enum cs_log_level cs_log_threshold;
+extern enum cs_log_level cs_log_level;
 
 #if CS_ENABLE_STDIO
 
@@ -1868,9 +1849,11 @@ void cs_log_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
  * LOG(LL_DEBUG, ("my debug message: %d", 123));
  * ```
  */
-#define LOG(l, x)                                                    \
-  do {                                                               \
-    if (cs_log_print_prefix(l, __func__, __FILE__)) cs_log_printf x; \
+#define LOG(l, x)                                     \
+  do {                                                \
+    if (cs_log_print_prefix(l, __FILE__, __LINE__)) { \
+      cs_log_printf x;                                \
+    }                                                 \
   } while (0)
 
 #else
@@ -2223,6 +2206,8 @@ const char *mg_next_comma_list_entry(const char *list, struct mg_str *val,
 
 /*
  * Like `mg_next_comma_list_entry()`, but takes `list` as `struct mg_str`.
+ * NB: Test return value's .p, not .len. On last itreation that yields result
+ * .len will be 0 but .p will not. When finished, .p will be NULL.
  */
 struct mg_str mg_next_comma_list_entry_n(struct mg_str list, struct mg_str *val,
                                          struct mg_str *eq_val);
@@ -5062,7 +5047,7 @@ mjs_parse(const char *path, const char *buf, struct mjs *);
 /* Amalgamated: #include "common/cs_time.h" */
 /* Amalgamated: #include "common/str_util.h" */
 
-enum cs_log_level cs_log_threshold WEAK =
+enum cs_log_level cs_log_level WEAK =
 #if CS_ENABLE_DEBUG
     LL_VERBOSE_DEBUG;
 #else
@@ -5070,10 +5055,9 @@ enum cs_log_level cs_log_threshold WEAK =
 #endif
 
 #if CS_ENABLE_STDIO
-static char *s_filter_pattern = NULL;
-static size_t s_filter_pattern_len;
+static char *s_file_level = NULL;
 
-void cs_log_set_filter(const char *pattern) WEAK;
+void cs_log_set_file_level(const char *file_level) WEAK;
 
 FILE *cs_log_file WEAK = NULL;
 
@@ -5083,34 +5067,62 @@ double cs_log_ts WEAK;
 
 enum cs_log_level cs_log_cur_msg_level WEAK = LL_NONE;
 
-void cs_log_set_filter(const char *pattern) {
-  free(s_filter_pattern);
-  if (pattern != NULL) {
-    s_filter_pattern = strdup(pattern);
-    s_filter_pattern_len = strlen(pattern);
+void cs_log_set_file_level(const char *file_level) {
+  char *fl = s_file_level;
+  if (file_level != NULL) {
+    s_file_level = strdup(file_level);
   } else {
-    s_filter_pattern = NULL;
-    s_filter_pattern_len = 0;
+    s_file_level = NULL;
   }
+  free(fl);
 }
 
-int cs_log_print_prefix(enum cs_log_level, const char *, const char *) WEAK;
-int cs_log_print_prefix(enum cs_log_level level, const char *func,
-                        const char *filename) {
-  char prefix[21];
+int cs_log_print_prefix(enum cs_log_level level, const char *file, int ln) WEAK;
+int cs_log_print_prefix(enum cs_log_level level, const char *file, int ln) {
+  char prefix[CS_LOG_PREFIX_LEN], *q;
+  const char *p;
+  size_t fl = 0, ll = 0, pl = 0;
 
-  if (level > cs_log_threshold) return 0;
-  if (s_filter_pattern != NULL &&
-      mg_match_prefix(s_filter_pattern, s_filter_pattern_len, func) == 0 &&
-      mg_match_prefix(s_filter_pattern, s_filter_pattern_len, filename) == 0) {
-    return 0;
+  if (level > cs_log_level && s_file_level == NULL) return 0;
+
+  p = file + strlen(file);
+
+  while (p != file) {
+    const char c = *(p - 1);
+    if (c == '/' || c == '\\') break;
+    p--;
+    fl++;
   }
 
-  strncpy(prefix, func, 20);
-  prefix[20] = '\0';
+  ll = (ln < 10000 ? (ln < 1000 ? (ln < 100 ? (ln < 10 ? 1 : 2) : 3) : 4) : 5);
+  if (fl > (sizeof(prefix) - ll - 2)) fl = (sizeof(prefix) - ll - 2);
+
+  pl = fl + 1 + ll;
+  memcpy(prefix, p, fl);
+  q = prefix + pl;
+  memset(q, ' ', sizeof(prefix) - pl);
+  do {
+    *(--q) = '0' + (ln % 10);
+    ln /= 10;
+  } while (ln > 0);
+  *(--q) = ':';
+
+  if (s_file_level != NULL) {
+    enum cs_log_level pll = cs_log_level;
+    struct mg_str fl = mg_mk_str(s_file_level), ps = MG_MK_STR_N(prefix, pl);
+    struct mg_str k, v;
+    while ((fl = mg_next_comma_list_entry_n(fl, &k, &v)).p != NULL) {
+      bool yes = !(!mg_str_starts_with(ps, k) || v.len == 0);
+      if (!yes) continue;
+      pll = (enum cs_log_level)(*v.p - '0');
+      break;
+    }
+    if (level > pll) return 0;
+  }
+
   if (cs_log_file == NULL) cs_log_file = stderr;
   cs_log_cur_msg_level = level;
-  fprintf(cs_log_file, "%-20s ", prefix);
+  fwrite(prefix, 1, sizeof(prefix), cs_log_file);
 #if CS_LOG_ENABLE_TS_DIFF
   {
     double now = cs_time();
@@ -5139,15 +5151,15 @@ void cs_log_set_file(FILE *file) {
 
 #else
 
-void cs_log_set_filter(const char *pattern) {
-  (void) pattern;
+void cs_log_set_file_level(const char *file_level) {
+  (void) file_level;
 }
 
 #endif /* CS_ENABLE_STDIO */
 
 void cs_log_set_level(enum cs_log_level level) WEAK;
 void cs_log_set_level(enum cs_log_level level) {
-  cs_log_threshold = level;
+  cs_log_level = level;
 #if CS_LOG_ENABLE_TS_DIFF && CS_ENABLE_STDIO
   cs_log_ts = cs_time();
 #endif
@@ -10326,7 +10338,7 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
-  if (cs_log_threshold >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1);
+  if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1);
   if (generate_jsc == -1) generate_jsc = mjs->generate_jsc;
   if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
