@@ -1,6 +1,4 @@
 GO_PACKAGES = cesanta.com/common/... \
-             cesanta.com/fw/... \
-             cesanta.com/mos/... \
              cesanta.com/ourci/... \
              cesanta.com/projects/breez/...
 
