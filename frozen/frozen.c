@@ -99,7 +99,7 @@ struct fstate {
   do {                                                                        \
     if ((fr)->callback &&                                                     \
         ((fr)->path_len == 0 || (fr)->path[(fr)->path_len - 1] != '.')) {     \
-      struct json_token t = {(value), (int)(len), (tok)};                          \
+      struct json_token t = {(value), (int) (len), (tok)};                    \
                                                                               \
       /* Call the callback with the given value and current name */           \
       (fr)->callback((fr)->callback_data, (fr)->cur_name, (fr)->cur_name_len, \
@@ -546,14 +546,12 @@ static int b64dec(const char *src, int n, char *dst) {
 }
 #endif /* JSON_ENABLE_BASE64 */
 
-#if JSON_ENABLE_HEX
 static unsigned char hexdec(const char *s) {
 #define HEXTOI(x) (x >= '0' && x <= '9' ? x - '0' : x - 'W')
   int a = tolower(*(const unsigned char *) s);
   int b = tolower(*(const unsigned char *) (s + 1));
   return (HEXTOI(a) << 4) | HEXTOI(b);
 }
-#endif /* JSON_ENABLE_HEX */
 
 int json_vprintf(struct json_out *out, const char *fmt, va_list xap) WEAK;
 int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
@@ -870,8 +868,16 @@ int json_unescape(const char *src, int slen, char *dst, int dlen) {
     if (*src == '\\') {
       if (++src >= send) return JSON_STRING_INCOMPLETE;
       if (*src == 'u') {
-        /* TODO(lsm): \uXXXX escapes drag utf8 lib... Do it at some stage */
-        return JSON_STRING_INVALID;
+        if (send - src < 5) return JSON_STRING_INCOMPLETE;
+        /* Here we go: this is a \u.... escape. Process simple one-byte chars */
+        if (src[1] == '0' && src[2] == '0') {
+          /* This is \u00xx character from the ASCII range */
+          if (dst < dend) *dst = hexdec(src + 3);
+          src += 4;
+        } else {
+          /* Complex \uXXXX escapes drag utf8 lib... Do it at some stage */
+          return JSON_STRING_INVALID;
+        }
       } else if ((p = (char *) strchr(esc1, *src)) != NULL) {
         if (dst < dend) *dst = esc2[p - esc1];
       } else {
@@ -1411,7 +1417,7 @@ static void *json_next(const char *s, int len, void *handle, const char *path,
   struct json_token tmpval, *v = val == NULL ? &tmpval : val;
   struct json_token tmpkey, *k = key == NULL ? &tmpkey : key;
   int tmpidx, *pidx = i == NULL ? &tmpidx : i;
-  struct next_data data = {handle, path, (int)strlen(path), 0, k, v, pidx};
+  struct next_data data = {handle, path, (int) strlen(path), 0, k, v, pidx};
   json_walk(s, len, json_next_cb, &data);
   return data.found ? data.handle : NULL;
 }
