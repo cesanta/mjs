@@ -689,8 +689,10 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
          * inherit the advancement made by vprintf.
          * 32-bit (linux or windows) passes va_list by value.
          */
-        if ((n + 1 == strlen("%" PRId64) && strcmp(fmt2, "%" PRId64) == 0) ||
-            (n + 1 == strlen("%" PRIu64) && strcmp(fmt2, "%" PRIu64) == 0)) {
+        if ((n + 1 == (int) strlen("%" PRId64) &&
+             strcmp(fmt2, "%" PRId64) == 0) ||
+            (n + 1 == (int) strlen("%" PRIu64) &&
+             strcmp(fmt2, "%" PRIu64) == 0)) {
           (void) va_arg(ap, int64_t);
         } else if (strcmp(fmt2, "%.*s") == 0) {
           (void) va_arg(ap, int);
