@@ -478,22 +478,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_esp32.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_ESP32_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_ESP32_H_
@@ -535,22 +519,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_esp8266.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_ESP8266_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_ESP8266_H_
@@ -608,22 +576,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_cc3100.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_CC3100_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_CC3100_H_
@@ -669,22 +621,6 @@ int inet_pton(int af, const char *src, void *dst);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/simplelink/cs_simplelink.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_SIMPLELINK_CS_SIMPLELINK_H_
 #define CS_COMMON_PLATFORMS_SIMPLELINK_CS_SIMPLELINK_H_
@@ -848,22 +784,6 @@ int slfs_open(const unsigned char *fname, uint32_t flags, uint32_t *token);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_cc3200.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_CC3200_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_CC3200_H_
@@ -985,22 +905,6 @@ int stat(const char *pathname, struct stat *st);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_cc3220.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_CC3220_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_CC3220_H_
@@ -1109,22 +1013,6 @@ int stat(const char *pathname, struct stat *st);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_mbed.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_MBED_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_MBED_H_
@@ -1205,22 +1093,6 @@ in_addr_t inet_addr(const char *cp);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_nrf51.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NRF51_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_NRF51_H_
 #if CS_PLATFORM == CS_P_NRF51
@@ -1262,22 +1134,6 @@ int gettimeofday(struct timeval *tp, void *tzp);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_nrf52.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NRF52_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_NRF52_H_
 #if CS_PLATFORM == CS_P_NRF52
@@ -1526,22 +1382,6 @@ const char *strerror();
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_nxp_lpc.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NXP_LPC_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_NXP_LPC_H_
@@ -1594,22 +1434,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_nxp_kinetis.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NXP_KINETIS_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_NXP_KINETIS_H_
@@ -1640,22 +1464,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_pic32.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_PIC32_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_PIC32_H_
@@ -1692,22 +1500,6 @@ char *inet_ntoa(struct in_addr in);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_rs14100.h"
 #endif
-/*
- * Copyright (c) 2014-2019 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_RS14100_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_RS14100_H_
@@ -1756,22 +1548,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/platforms/platform_stm32.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_STM32_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_STM32_H_
@@ -1810,22 +1586,6 @@ typedef struct stat cs_stat_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_dbg.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_CS_DBG_H_
 #define CS_COMMON_CS_DBG_H_
@@ -1961,22 +1721,6 @@ void cs_log_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_time.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_CS_TIME_H_
 #define CS_COMMON_CS_TIME_H_
@@ -2006,22 +1750,6 @@ double cs_timegm(const struct tm *tm);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mg_str.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_MG_STR_H_
 #define CS_COMMON_MG_STR_H_
@@ -2122,22 +1850,6 @@ int mg_str_starts_with(struct mg_str s, struct mg_str prefix);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/str_util.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_STR_UTIL_H_
 #define CS_COMMON_STR_UTIL_H_
@@ -2323,22 +2035,6 @@ size_t mg_match_prefix_n(const struct mg_str pattern, const struct mg_str str);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_file.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_CS_FILE_H_
 #define CS_COMMON_CS_FILE_H_
@@ -2374,22 +2070,6 @@ char *cs_mmap_file(const char *path, size_t *size);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mbuf.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 /*
  * Mbufs are mutable/growing memory buffers, like C++ strings.
@@ -2488,22 +2168,6 @@ void mbuf_trim(struct mbuf *);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mg_mem.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_MG_MEM_H_
 #define CS_COMMON_MG_MEM_H_
@@ -2536,23 +2200,6 @@ extern "C" {
 #ifdef MJS_MODULE_LINES
 #line 1 "frozen/frozen.h"
 #endif
-/*
- * Copyright (c) 2004-2013 Sergey Lyubka <valenok@gmail.com>
- * Copyright (c) 2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_FROZEN_FROZEN_H_
 #define CS_FROZEN_FROZEN_H_
@@ -2868,10 +2515,6 @@ void *json_next_elem(const char *s, int len, void *handle, const char *path,
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/ffi/ffi.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FFI_FFI_H_
 #define MJS_FFI_FFI_H_
@@ -2925,10 +2568,6 @@ void ffi_set_float(struct ffi_arg *arg, float v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_internal.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_INTERNAL_H_
 #define MJS_INTERNAL_H_
@@ -3018,30 +2657,9 @@ typedef unsigned long uintptr_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_license.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- *
- * This software is dual-licensed: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation. For the terms of this
- * license, see <http://www.gnu.org/licenses/>.
- *
- * You are free to use this software under the terms of the GNU General
- * Public License, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- * Alternatively, you can license this software under a commercial
- * license, as set out in <https://www.cesanta.com/license>.
- */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_features.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FEATURES_H_
 #define MJS_FEATURES_H_
@@ -3074,10 +2692,6 @@ typedef unsigned long uintptr_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
@@ -3310,10 +2924,6 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_array_public.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /*
  * === Arrays
@@ -3361,10 +2971,6 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_array.h"
 #endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_ARRAY_H_
 #define MJS_ARRAY_H_
@@ -3391,10 +2997,6 @@ MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_ffi_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
@@ -3432,10 +3034,6 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_ffi.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FFI_H_
 #define MJS_FFI_H_
@@ -3573,10 +3171,6 @@ MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_mm.h"
 #endif
-/*
- * Copyright (c) 2014-2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_MM_H_
 #define MJS_MM_H_
@@ -3620,10 +3214,6 @@ struct gc_arena {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_gc.h"
 #endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_GC_H_
 #define MJS_GC_H_
@@ -3688,10 +3278,6 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_CORE_H
 #define MJS_CORE_H
@@ -3872,10 +3458,6 @@ MJS_PRIVATE void mjs_die(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_CONVERSION_H_
 #define MJS_CONVERSION_H_
@@ -3915,10 +3497,6 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_object_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
@@ -4042,10 +3620,6 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_object.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_OBJECT_H_
 #define MJS_OBJECT_H_
@@ -4103,10 +3677,6 @@ MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_primitive_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_PRIMITIVE_PUBLIC_H_
 #define MJS_PRIMITIVE_PUBLIC_H_
@@ -4227,10 +3797,6 @@ int mjs_is_function(mjs_val_t v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_primitive.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_PRIMITIVE_H
 #define MJS_PRIMITIVE_H
@@ -4271,10 +3837,6 @@ MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_string_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_STRING_PUBLIC_H_
 #define MJS_STRING_PUBLIC_H_
@@ -4352,10 +3914,6 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_string.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_STRING_H_
 #define MJS_STRING_H_
@@ -4399,10 +3957,6 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_util_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_UTIL_PUBLIC_H_
 #define MJS_UTIL_PUBLIC_H_
@@ -4452,10 +4006,6 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_util.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_UTIL_H_
 #define MJS_UTIL_H_
@@ -4507,22 +4057,6 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_varint.h"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef CS_COMMON_CS_VARINT_H_
 #define CS_COMMON_CS_VARINT_H_
@@ -4569,10 +4103,6 @@ uint64_t cs_varint_decode_unsafe(const uint8_t *buf, int *llen);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_bcode.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_BCODE_H_
 #define MJS_BCODE_H_
@@ -4679,10 +4209,6 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_internal.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_INTERNAL_H_
 #define MJS_INTERNAL_H_
@@ -4772,10 +4298,6 @@ typedef unsigned long uintptr_t;
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_tok.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_TOK_H_
 #define MJS_TOK_H_
@@ -4916,10 +4438,6 @@ MJS_PRIVATE int mjs_is_digit(int c);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_dataview.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_DATAVIEW_H_
 #define MJS_DATAVIEW_H_
@@ -4951,10 +4469,6 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_exec_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_EXEC_PUBLIC_H_
 #define MJS_EXEC_PUBLIC_H_
@@ -4984,10 +4498,6 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_exec.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_EXEC_H_
 #define MJS_EXEC_H_
@@ -5014,10 +4524,6 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_json.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_JSON_H_
 #define MJS_JSON_H_
@@ -5046,10 +4552,6 @@ mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_builtin.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_BUILTIN_H_
 #define MJS_BUILTIN_H_
@@ -5071,10 +4573,6 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_parser.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_PARSER_H
 #define MJS_PARSER_H
@@ -5097,22 +4595,6 @@ mjs_parse(const char *path, const char *buf, struct mjs *);
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_dbg.c"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 /* Amalgamated: #include "common/cs_dbg.h" */
 
@@ -5243,22 +4725,6 @@ void cs_log_set_level(enum cs_log_level level) {
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_file.c"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 /* Amalgamated: #include "common/cs_file.h" */
 
@@ -5313,22 +4779,6 @@ char *cs_mmap_file(const char *path, size_t *size) {
 #ifdef MJS_MODULE_LINES
 #line 1 "common/cs_varint.c"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 /* Amalgamated: #include "cs_varint.h" */
 
@@ -5392,22 +4842,6 @@ uint64_t cs_varint_decode_unsafe(const uint8_t *buf, int *llen) {
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mbuf.c"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef EXCLUDE_COMMON
 
@@ -5546,22 +4980,6 @@ void mbuf_move(struct mbuf *from, struct mbuf *to) {
 #ifdef MJS_MODULE_LINES
 #line 1 "common/mg_str.c"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 /* Amalgamated: #include "common/mg_mem.h" */
 /* Amalgamated: #include "common/mg_str.h" */
@@ -5727,22 +5145,6 @@ int mg_str_starts_with(struct mg_str s, struct mg_str prefix) {
 #ifdef MJS_MODULE_LINES
 #line 1 "common/str_util.c"
 #endif
-/*
- * Copyright (c) 2014-2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #ifndef EXCLUDE_COMMON
 
@@ -6262,23 +5664,6 @@ size_t mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 #ifdef MJS_MODULE_LINES
 #line 1 "frozen/frozen.c"
 #endif
-/*
- * Copyright (c) 2004-2013 Sergey Lyubka <valenok@gmail.com>
- * Copyright (c) 2018 Cesanta Software Limited
- * All rights reserved
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 #define _CRT_SECURE_NO_WARNINGS /* Disable deprecation warning in VS2005+ */
 
@@ -7735,10 +7120,6 @@ char *json_asprintf(const char *fmt, ...) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/ffi/ffi.c"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/ffi/ffi.h" */
 
@@ -8304,10 +7685,6 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_array.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #include <stdio.h>
 /* Amalgamated: #include "common/str_util.h" */
@@ -8545,10 +7922,6 @@ clean:
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_bcode.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/cs_varint.h" */
 
@@ -8696,10 +8069,6 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_builtin.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/mjs_bcode.h" */
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
@@ -8879,10 +8248,6 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_conversion.c"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/mjs_conversion.h" */
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
@@ -8962,10 +8327,6 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "common/str_util.h" */
@@ -9352,10 +8713,6 @@ void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_dataview.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/mjs_exec_public.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
@@ -9441,10 +8798,6 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_exec.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/cs_file.h" */
 /* Amalgamated: #include "common/cs_varint.h" */
@@ -10619,10 +9972,6 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_ffi.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/mg_str.h" */
 
@@ -11798,10 +11147,6 @@ void *dlsym(void *handle, const char *name) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_gc.c"
 #endif
-/*
- * Copyright (c) 2014 Cesanta Software Limited
- * All rights reserved
- */
 
 #include <stdio.h>
 
@@ -12339,10 +11684,6 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *ptr) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_json.c"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "frozen.h" */
@@ -12858,10 +12199,6 @@ MJS_PRIVATE void mjs_op_json_parse(struct mjs *mjs) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_main.c"
 #endif
-/*
- * Copyright (c) 2014-2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifdef MJS_MAIN
 
@@ -12921,10 +12258,6 @@ int main(int argc, char *argv[]) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_object.c"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/mjs_object.h" */
 /* Amalgamated: #include "mjs/src/mjs_conversion.h" */
@@ -13321,10 +12654,6 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_parser.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/cs_varint.h" */
 
@@ -14352,10 +13681,6 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_primitive.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/mjs_core.h" */
 /* Amalgamated: #include "mjs/src/mjs_internal.h" */
@@ -14515,10 +13840,6 @@ MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_string.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "mjs/src/mjs_string.h" */
 /* Amalgamated: #include "common/cs_varint.h" */
@@ -15115,10 +14436,6 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_tok.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #include <stdlib.h>
 #include <string.h>
@@ -15372,10 +14689,6 @@ MJS_PRIVATE int pnext(struct pstate *p) {
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_util.c"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "frozen.h" */

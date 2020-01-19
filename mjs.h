@@ -1,30 +1,9 @@
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_license.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- *
- * This software is dual-licensed: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation. For the terms of this
- * license, see <http://www.gnu.org/licenses/>.
- *
- * You are free to use this software under the terms of the GNU General
- * Public License, but WITHOUT ANY WARRANTY; without even the implied
- * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- * Alternatively, you can license this software under a commercial
- * license, as set out in <https://www.cesanta.com/license>.
- */
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_features.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FEATURES_H_
 #define MJS_FEATURES_H_
@@ -57,10 +36,6 @@
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
@@ -293,10 +268,6 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_ffi_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
@@ -335,10 +306,6 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_array_public.h"
 #endif
-/*
- * Copyright (c) 2017 Cesanta Software Limited
- * All rights reserved
- */
 
 /*
  * === Arrays
@@ -386,10 +353,6 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_core_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_CORE_PUBLIC_H_
 #define MJS_CORE_PUBLIC_H_
@@ -622,10 +585,6 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_exec_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_EXEC_PUBLIC_H_
 #define MJS_EXEC_PUBLIC_H_
@@ -655,10 +614,6 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_ffi_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
@@ -696,10 +651,6 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_object_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
@@ -823,10 +774,6 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_primitive_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_PRIMITIVE_PUBLIC_H_
 #define MJS_PRIMITIVE_PUBLIC_H_
@@ -947,10 +894,6 @@ int mjs_is_function(mjs_val_t v);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_string_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_STRING_PUBLIC_H_
 #define MJS_STRING_PUBLIC_H_
@@ -1028,10 +971,6 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 #ifdef MJS_MODULE_LINES
 #line 1 "mjs/src/mjs_util_public.h"
 #endif
-/*
- * Copyright (c) 2016 Cesanta Software Limited
- * All rights reserved
- */
 
 #ifndef MJS_UTIL_PUBLIC_H_
 #define MJS_UTIL_PUBLIC_H_
