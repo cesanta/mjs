@@ -195,7 +195,7 @@ mjs_val_t mjs_get_global(struct mjs *mjs);
  * be owned, and we could forget to do that.
  *
  * Also, if the user code has some C function called from MJS, and in this C
- * function some MJS value (`mjs_val_t`) needs to be stored somewhhere and to
+ * function some MJS value (`mjs_val_t`) needs to be stored somewhere and to
  * stay alive after the C function has returned, it also needs to be properly
  * owned.
  */
@@ -512,7 +512,7 @@ mjs_val_t mjs_get_global(struct mjs *mjs);
  * be owned, and we could forget to do that.
  *
  * Also, if the user code has some C function called from MJS, and in this C
- * function some MJS value (`mjs_val_t`) needs to be stored somewhhere and to
+ * function some MJS value (`mjs_val_t`) needs to be stored somewhere and to
  * stay alive after the C function has returned, it also needs to be properly
  * owned.
  */
