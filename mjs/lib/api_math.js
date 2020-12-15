@@ -33,7 +33,7 @@ let Math = {
   // Returns the square root of `x`.
   sqrt: ffi('double sqrt(double)'),
 
-  // ## **`Math.floor(x)`**
+  // ## **`Math.exp(x)`**
   // Returns the base-e exponential function of `x`, which is e raised to the
   // power `x`.
   exp: ffi('double exp(double)'),
