@@ -1,8 +1,8 @@
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_license.h"
+#line 1 "src/mjs_license.h"
 #endif
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_features.h"
+#line 1 "src/mjs_features.h"
 #endif
 
 #ifndef MJS_FEATURES_H_
@@ -34,7 +34,7 @@
 
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_core_public.h"
+#line 1 "src/mjs_core_public.h"
 #endif
 
 #ifndef MJS_CORE_PUBLIC_H_
@@ -49,8 +49,8 @@ typedef unsigned char uint8_t;
 #endif
 #include <stdio.h>
 #include <stddef.h>
-/* Amalgamated: #include "mjs/src/mjs_license.h" */
-/* Amalgamated: #include "mjs/src/mjs_features.h" */
+/* Amalgamated: #include "mjs_license.h" */
+/* Amalgamated: #include "mjs_features.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -266,13 +266,13 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 
 #endif /* MJS_CORE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_ffi_public.h"
+#line 1 "src/mjs_ffi_public.h"
 #endif
 
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -304,7 +304,7 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #endif /* MJS_FFI_PUBLIC_H_ */
 #ifndef MJS_EXPORT_INTERNAL_HEADERS
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_array_public.h"
+#line 1 "src/mjs_array_public.h"
 #endif
 
 /*
@@ -314,7 +314,7 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 #ifndef MJS_ARRAY_PUBLIC_H_
 #define MJS_ARRAY_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -351,7 +351,7 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 
 #endif /* MJS_ARRAY_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_core_public.h"
+#line 1 "src/mjs_core_public.h"
 #endif
 
 #ifndef MJS_CORE_PUBLIC_H_
@@ -366,8 +366,8 @@ typedef unsigned char uint8_t;
 #endif
 #include <stdio.h>
 #include <stddef.h>
-/* Amalgamated: #include "mjs/src/mjs_license.h" */
-/* Amalgamated: #include "mjs/src/mjs_features.h" */
+/* Amalgamated: #include "mjs_license.h" */
+/* Amalgamated: #include "mjs_features.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -583,13 +583,13 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 
 #endif /* MJS_CORE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_exec_public.h"
+#line 1 "src/mjs_exec_public.h"
 #endif
 
 #ifndef MJS_EXEC_PUBLIC_H_
 #define MJS_EXEC_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 #include <stdio.h>
 
 #if defined(__cplusplus)
@@ -612,13 +612,13 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_ffi_public.h"
+#line 1 "src/mjs_ffi_public.h"
 #endif
 
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -649,15 +649,15 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 
 #endif /* MJS_FFI_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_object_public.h"
+#line 1 "src/mjs_object_public.h"
 #endif
 
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
 
 #include <stddef.h>
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
+/* Amalgamated: #include "mjs_ffi_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -772,13 +772,13 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
 
 #endif /* MJS_OBJECT_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_primitive_public.h"
+#line 1 "src/mjs_primitive_public.h"
 #endif
 
 #ifndef MJS_PRIMITIVE_PUBLIC_H_
 #define MJS_PRIMITIVE_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -892,13 +892,13 @@ int mjs_is_function(mjs_val_t v);
 
 #endif /* MJS_PRIMITIVE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_string_public.h"
+#line 1 "src/mjs_string_public.h"
 #endif
 
 #ifndef MJS_STRING_PUBLIC_H_
 #define MJS_STRING_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #define MJS_STRING_LITERAL_MAX_LEN 128
 
@@ -969,13 +969,13 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 #endif /* MJS_STRING_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_util_public.h"
+#line 1 "src/mjs_util_public.h"
 #endif
 
 #ifndef MJS_UTIL_PUBLIC_H_
 #define MJS_UTIL_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 #include <stdio.h>
 
 #if defined(__cplusplus)
