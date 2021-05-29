@@ -12,7 +12,6 @@
 #include "mjs_exec.h"
 #include "mjs_ffi.h"
 #include "mjs_internal.h"
-#include "mjs_license.h"
 #include "mjs_object.h"
 #include "mjs_primitive.h"
 #include "mjs_string.h"

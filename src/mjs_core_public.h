@@ -15,7 +15,6 @@ typedef unsigned char uint8_t;
 #endif
 #include <stdio.h>
 #include <stddef.h>
-#include "mjs_license.h"
 #include "mjs_features.h"
 
 #if defined(__cplusplus)
