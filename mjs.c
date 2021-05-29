@@ -1,6 +1,6 @@
 #include "mjs.h"
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platform.h"
+#line 1 "src/common/platform.h"
 #endif
 #ifndef CS_COMMON_PLATFORM_H_
 #define CS_COMMON_PLATFORM_H_
@@ -142,7 +142,7 @@
 
 #endif /* CS_COMMON_PLATFORM_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_windows.h"
+#line 1 "src/common/platforms/platform_windows.h"
 #endif
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_WINDOWS_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_WINDOWS_H_
@@ -328,7 +328,7 @@ unsigned int sleep(unsigned int seconds);
 #endif /* CS_PLATFORM == CS_P_WINDOWS */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_WINDOWS_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_unix.h"
+#line 1 "src/common/platforms/platform_unix.h"
 #endif
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_UNIX_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_UNIX_H_
@@ -476,7 +476,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_UNIX */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_UNIX_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_esp32.h"
+#line 1 "src/common/platforms/platform_esp32.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_ESP32_H_
@@ -517,7 +517,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_ESP32 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_ESP32_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_esp8266.h"
+#line 1 "src/common/platforms/platform_esp8266.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_ESP8266_H_
@@ -574,7 +574,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_ESP8266 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_ESP8266_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_cc3100.h"
+#line 1 "src/common/platforms/platform_cc3100.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_CC3100_H_
@@ -619,7 +619,7 @@ int inet_pton(int af, const char *src, void *dst);
 #endif /* CS_PLATFORM == CS_P_CC3100 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_CC3100_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/simplelink/cs_simplelink.h"
+#line 1 "src/common/platforms/simplelink/cs_simplelink.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_SIMPLELINK_CS_SIMPLELINK_H_
@@ -782,7 +782,7 @@ int slfs_open(const unsigned char *fname, uint32_t flags, uint32_t *token);
 
 #endif /* CS_COMMON_PLATFORMS_SIMPLELINK_CS_SIMPLELINK_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_cc3200.h"
+#line 1 "src/common/platforms/platform_cc3200.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_CC3200_H_
@@ -903,7 +903,7 @@ int stat(const char *pathname, struct stat *st);
 #endif /* CS_PLATFORM == CS_P_CC3200 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_CC3200_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_cc3220.h"
+#line 1 "src/common/platforms/platform_cc3220.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_CC3220_H_
@@ -1011,7 +1011,7 @@ int stat(const char *pathname, struct stat *st);
 #endif /* CS_PLATFORM == CS_P_CC3220 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_CC3200_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_mbed.h"
+#line 1 "src/common/platforms/platform_mbed.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_MBED_H_
@@ -1091,7 +1091,7 @@ in_addr_t inet_addr(const char *cp);
 #endif /* CS_PLATFORM == CS_P_MBED */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_MBED_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_nrf51.h"
+#line 1 "src/common/platforms/platform_nrf51.h"
 #endif
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NRF51_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_NRF51_H_
@@ -1132,7 +1132,7 @@ int gettimeofday(struct timeval *tp, void *tzp);
 #endif /* CS_PLATFORM == CS_P_NRF51 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_NRF51_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_nrf52.h"
+#line 1 "src/common/platforms/platform_nrf52.h"
 #endif
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NRF52_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_NRF52_H_
@@ -1176,7 +1176,7 @@ int gettimeofday(struct timeval *tp, void *tzp);
 #endif /* CS_PLATFORM == CS_P_NRF52 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_NRF52_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_wince.h"
+#line 1 "src/common/platforms/platform_wince.h"
 #endif
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_WINCE_H_
 #define CS_COMMON_PLATFORMS_PLATFORM_WINCE_H_
@@ -1380,7 +1380,7 @@ const char *strerror();
 #endif /* CS_PLATFORM == CS_P_WINCE */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_WINCE_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_nxp_lpc.h"
+#line 1 "src/common/platforms/platform_nxp_lpc.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NXP_LPC_H_
@@ -1432,7 +1432,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_NXP_LPC */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_NXP_LPC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_nxp_kinetis.h"
+#line 1 "src/common/platforms/platform_nxp_kinetis.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_NXP_KINETIS_H_
@@ -1462,7 +1462,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_NXP_KINETIS */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_NXP_KINETIS_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_pic32.h"
+#line 1 "src/common/platforms/platform_pic32.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_PIC32_H_
@@ -1498,7 +1498,7 @@ char *inet_ntoa(struct in_addr in);
 
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_PIC32_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_rs14100.h"
+#line 1 "src/common/platforms/platform_rs14100.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_RS14100_H_
@@ -1546,7 +1546,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_RS14100 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_RS14100_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/platforms/platform_stm32.h"
+#line 1 "src/common/platforms/platform_stm32.h"
 #endif
 
 #ifndef CS_COMMON_PLATFORMS_PLATFORM_STM32_H_
@@ -1584,7 +1584,7 @@ typedef struct stat cs_stat_t;
 #endif /* CS_PLATFORM == CS_P_STM32 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_STM32_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_dbg.h"
+#line 1 "src/common/cs_dbg.h"
 #endif
 
 #ifndef CS_COMMON_CS_DBG_H_
@@ -1719,7 +1719,7 @@ void cs_log_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 
 #endif /* CS_COMMON_CS_DBG_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_time.h"
+#line 1 "src/common/cs_time.h"
 #endif
 
 #ifndef CS_COMMON_CS_TIME_H_
@@ -1748,7 +1748,7 @@ double cs_timegm(const struct tm *tm);
 
 #endif /* CS_COMMON_CS_TIME_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/mg_str.h"
+#line 1 "src/common/mg_str.h"
 #endif
 
 #ifndef CS_COMMON_MG_STR_H_
@@ -1848,7 +1848,7 @@ int mg_str_starts_with(struct mg_str s, struct mg_str prefix);
 
 #endif /* CS_COMMON_MG_STR_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/str_util.h"
+#line 1 "src/common/str_util.h"
 #endif
 
 #ifndef CS_COMMON_STR_UTIL_H_
@@ -2033,7 +2033,7 @@ size_t mg_match_prefix_n(const struct mg_str pattern, const struct mg_str str);
 
 #endif /* CS_COMMON_STR_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_file.h"
+#line 1 "src/common/cs_file.h"
 #endif
 
 #ifndef CS_COMMON_CS_FILE_H_
@@ -2068,7 +2068,7 @@ char *cs_mmap_file(const char *path, size_t *size);
 
 #endif /* CS_COMMON_CS_FILE_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/mbuf.h"
+#line 1 "src/common/mbuf.h"
 #endif
 
 /*
@@ -2166,7 +2166,7 @@ void mbuf_trim(struct mbuf *);
 
 #endif /* CS_COMMON_MBUF_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/mg_mem.h"
+#line 1 "src/common/mg_mem.h"
 #endif
 
 #ifndef CS_COMMON_MG_MEM_H_
@@ -2198,7 +2198,7 @@ extern "C" {
 
 #endif /* CS_COMMON_MG_MEM_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "frozen/frozen.h"
+#line 1 "src/frozen/frozen.h"
 #endif
 
 #ifndef CS_FROZEN_FROZEN_H_
@@ -2513,7 +2513,7 @@ void *json_next_elem(const char *s, int len, void *handle, const char *path,
 
 #endif /* CS_FROZEN_FROZEN_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/ffi/ffi.h"
+#line 1 "src/ffi/ffi.h"
 #endif
 
 #ifndef MJS_FFI_FFI_H_
@@ -2566,7 +2566,7 @@ void ffi_set_float(struct ffi_arg *arg, float v);
 
 #endif /* MJS_FFI_FFI_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_internal.h"
+#line 1 "src/mjs_internal.h"
 #endif
 
 #ifndef MJS_INTERNAL_H_
@@ -2655,10 +2655,10 @@ typedef unsigned long uintptr_t;
 
 #endif /* MJS_INTERNAL_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_license.h"
+#line 1 "src/mjs_license.h"
 #endif
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_features.h"
+#line 1 "src/mjs_features.h"
 #endif
 
 #ifndef MJS_FEATURES_H_
@@ -2690,7 +2690,7 @@ typedef unsigned long uintptr_t;
 
 #endif /* MJS_FEATURES_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_core_public.h"
+#line 1 "src/mjs_core_public.h"
 #endif
 
 #ifndef MJS_CORE_PUBLIC_H_
@@ -2705,8 +2705,8 @@ typedef unsigned char uint8_t;
 #endif
 #include <stdio.h>
 #include <stddef.h>
-/* Amalgamated: #include "mjs/src/mjs_license.h" */
-/* Amalgamated: #include "mjs/src/mjs_features.h" */
+/* Amalgamated: #include "mjs_license.h" */
+/* Amalgamated: #include "mjs_features.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -2922,7 +2922,7 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 
 #endif /* MJS_CORE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_array_public.h"
+#line 1 "src/mjs_array_public.h"
 #endif
 
 /*
@@ -2932,7 +2932,7 @@ void mjs_return(struct mjs *mjs, mjs_val_t v);
 #ifndef MJS_ARRAY_PUBLIC_H_
 #define MJS_ARRAY_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -2969,14 +2969,14 @@ void mjs_array_del(struct mjs *mjs, mjs_val_t arr, unsigned long index);
 
 #endif /* MJS_ARRAY_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_array.h"
+#line 1 "src/mjs_array.h"
 #endif
 
 #ifndef MJS_ARRAY_H_
 #define MJS_ARRAY_H_
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_array_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_array_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -2995,13 +2995,13 @@ MJS_PRIVATE void mjs_array_push_internal(struct mjs *mjs);
 
 #endif /* MJS_ARRAY_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_ffi_public.h"
+#line 1 "src/mjs_ffi_public.h"
 #endif
 
 #ifndef MJS_FFI_PUBLIC_H_
 #define MJS_FFI_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3032,15 +3032,15 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 
 #endif /* MJS_FFI_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_ffi.h"
+#line 1 "src/mjs_ffi.h"
 #endif
 
 #ifndef MJS_FFI_H_
 #define MJS_FFI_H_
 
-/* Amalgamated: #include "mjs/src/ffi/ffi.h" */
-/* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "ffi/ffi.h" */
+/* Amalgamated: #include "mjs_ffi_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3169,13 +3169,13 @@ MJS_PRIVATE void mjs_ffi_args_free_list(struct mjs *mjs);
 
 #endif /* MJS_FFI_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_mm.h"
+#line 1 "src/mjs_mm.h"
 #endif
 
 #ifndef MJS_MM_H_
 #define MJS_MM_H_
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3212,15 +3212,15 @@ struct gc_arena {
 
 #endif /* MJS_MM_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_gc.h"
+#line 1 "src/mjs_gc.h"
 #endif
 
 #ifndef MJS_GC_H_
 #define MJS_GC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_mm.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_mm.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3276,15 +3276,15 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *p);
 
 #endif /* MJS_GC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_core.h"
+#line 1 "src/mjs_core.h"
 #endif
 
 #ifndef MJS_CORE_H
 #define MJS_CORE_H
 
-/* Amalgamated: #include "mjs/src/mjs_ffi.h" */
-/* Amalgamated: #include "mjs/src/mjs_gc.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_ffi.h" */
+/* Amalgamated: #include "mjs_gc.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3456,14 +3456,14 @@ MJS_PRIVATE void mjs_die(struct mjs *mjs);
 
 #endif /* MJS_CORE_H */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_conversion.h"
+#line 1 "src/mjs_conversion.h"
 #endif
 
 #ifndef MJS_CONVERSION_H_
 #define MJS_CONVERSION_H_
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_core.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3495,15 +3495,15 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v);
 
 #endif /* MJS_CONVERSION_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_object_public.h"
+#line 1 "src/mjs_object_public.h"
 #endif
 
 #ifndef MJS_OBJECT_PUBLIC_H_
 #define MJS_OBJECT_PUBLIC_H_
 
 #include <stddef.h>
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_ffi_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
+/* Amalgamated: #include "mjs_ffi_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3618,14 +3618,14 @@ mjs_val_t mjs_next(struct mjs *mjs, mjs_val_t obj, mjs_val_t *iterator);
 
 #endif /* MJS_OBJECT_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_object.h"
+#line 1 "src/mjs_object.h"
 #endif
 
 #ifndef MJS_OBJECT_H_
 #define MJS_OBJECT_H_
 
-/* Amalgamated: #include "mjs/src/mjs_object_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_object_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3675,13 +3675,13 @@ MJS_PRIVATE void mjs_op_create_object(struct mjs *mjs);
 
 #endif /* MJS_OBJECT_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_primitive_public.h"
+#line 1 "src/mjs_primitive_public.h"
 #endif
 
 #ifndef MJS_PRIMITIVE_PUBLIC_H_
 #define MJS_PRIMITIVE_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3795,14 +3795,14 @@ int mjs_is_function(mjs_val_t v);
 
 #endif /* MJS_PRIMITIVE_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_primitive.h"
+#line 1 "src/mjs_primitive.h"
 #endif
 
 #ifndef MJS_PRIMITIVE_H
 #define MJS_PRIMITIVE_H
 
-/* Amalgamated: #include "mjs/src/mjs_primitive_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_primitive_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3835,13 +3835,13 @@ MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs);
 
 #endif /* MJS_PRIMITIVE_H */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_string_public.h"
+#line 1 "src/mjs_string_public.h"
 #endif
 
 #ifndef MJS_STRING_PUBLIC_H_
 #define MJS_STRING_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 
 #define MJS_STRING_LITERAL_MAX_LEN 128
 
@@ -3912,14 +3912,14 @@ int mjs_strcmp(struct mjs *mjs, mjs_val_t *a, const char *b, size_t len);
 
 #endif /* MJS_STRING_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_string.h"
+#line 1 "src/mjs_string.h"
 #endif
 
 #ifndef MJS_STRING_H_
 #define MJS_STRING_H_
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_string_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_string_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -3955,13 +3955,13 @@ MJS_PRIVATE void mjs_string_char_code_at(struct mjs *mjs);
 
 #endif /* MJS_STRING_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_util_public.h"
+#line 1 "src/mjs_util_public.h"
 #endif
 
 #ifndef MJS_UTIL_PUBLIC_H_
 #define MJS_UTIL_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 #include <stdio.h>
 
 #if defined(__cplusplus)
@@ -4004,15 +4004,15 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num);
 
 #endif /* MJS_UTIL_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_util.h"
+#line 1 "src/mjs_util.h"
 #endif
 
 #ifndef MJS_UTIL_H_
 #define MJS_UTIL_H_
 
 /* Amalgamated: #include "frozen.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_util_public.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_util_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -4055,7 +4055,7 @@ void mjs_jprintf(mjs_val_t v, struct mjs *mjs, struct json_out *out);
 
 #endif /* MJS_UTIL_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_varint.h"
+#line 1 "src/common/cs_varint.h"
 #endif
 
 #ifndef CS_COMMON_CS_VARINT_H_
@@ -4101,15 +4101,15 @@ uint64_t cs_varint_decode_unsafe(const uint8_t *buf, int *llen);
 
 #endif /* CS_COMMON_CS_VARINT_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_bcode.h"
+#line 1 "src/mjs_bcode.h"
 #endif
 
 #ifndef MJS_BCODE_H_
 #define MJS_BCODE_H_
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
+/* Amalgamated: #include "mjs_core.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -4207,96 +4207,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs);
 
 #endif /* MJS_BCODE_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_internal.h"
-#endif
-
-#ifndef MJS_INTERNAL_H_
-#define MJS_INTERNAL_H_
-
-#include <assert.h>
-#include <ctype.h>
-#include <math.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-
-#ifndef FAST
-#define FAST
-#endif
-
-#ifndef STATIC
-#define STATIC
-#endif
-
-#ifndef ENDL
-#define ENDL "\n"
-#endif
-
-#ifdef MJS_EXPOSE_PRIVATE
-#define MJS_PRIVATE
-#define MJS_EXTERN extern
-#else
-#define MJS_PRIVATE static
-#define MJS_EXTERN static
-#endif
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-#endif
-
-#if !defined(WEAK)
-#if (defined(__GNUC__) || defined(__TI_COMPILER_VERSION__)) && !defined(_WIN32)
-#define WEAK __attribute__((weak))
-#else
-#define WEAK
-#endif
-#endif
-
-#ifndef CS_ENABLE_STDIO
-#define CS_ENABLE_STDIO 1
-#endif
-
-/* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "common/cs_file.h" */
-/* Amalgamated: #include "common/mbuf.h" */
-
-#if defined(_WIN32) && _MSC_VER < 1700
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef int int32_t;
-typedef unsigned int uint32_t;
-typedef short int16_t;
-typedef unsigned short uint16_t;
-typedef __int64 int64_t;
-typedef unsigned long uintptr_t;
-#define STRX(x) #x
-#define STR(x) STRX(x)
-#define __func__ __FILE__ ":" STR(__LINE__)
-// #define snprintf _snprintf
-#define vsnprintf _vsnprintf
-#define isnan(x) _isnan(x)
-#define va_copy(x, y) (x) = (y)
-#define CS_DEFINE_DIRENT
-#include <windows.h>
-#else
-#if defined(__unix__) || defined(__APPLE__)
-#include <dlfcn.h>
-#endif
-#endif
-
-/*
- * Number of bytes reserved for the jump offset initially. The most practical
- * value is 1, but for testing it's useful to set it to 0 and to some large
- * value as well (like, 4), to make sure that the code behaves correctly under
- * all circumstances.
- */
-#ifndef MJS_INIT_OFFSET_SIZE
-#define MJS_INIT_OFFSET_SIZE 1
-#endif
-
-#endif /* MJS_INTERNAL_H_ */
-#ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_tok.h"
+#line 1 "src/mjs_tok.h"
 #endif
 
 #ifndef MJS_TOK_H_
@@ -4436,7 +4347,7 @@ MJS_PRIVATE int mjs_is_digit(int c);
 
 #endif /* MJS_TOK_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_dataview.h"
+#line 1 "src/mjs_dataview.h"
 #endif
 
 #ifndef MJS_DATAVIEW_H_
@@ -4467,13 +4378,13 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian);
 
 #endif /* MJS_DATAVIEW_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_exec_public.h"
+#line 1 "src/mjs_exec_public.h"
 #endif
 
 #ifndef MJS_EXEC_PUBLIC_H_
 #define MJS_EXEC_PUBLIC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
 #include <stdio.h>
 
 #if defined(__cplusplus)
@@ -4496,13 +4407,13 @@ mjs_val_t mjs_get_this(struct mjs *mjs);
 
 #endif /* MJS_EXEC_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_exec.h"
+#line 1 "src/mjs_exec.h"
 #endif
 
 #ifndef MJS_EXEC_H_
 #define MJS_EXEC_H_
 
-/* Amalgamated: #include "mjs/src/mjs_exec_public.h" */
+/* Amalgamated: #include "mjs_exec_public.h" */
 
 /*
  * A special bcode offset value which causes mjs_execute() to exit immediately;
@@ -4522,7 +4433,7 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res);
 
 #endif /* MJS_EXEC_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_json.h"
+#line 1 "src/mjs_json.h"
 #endif
 
 #ifndef MJS_JSON_H_
@@ -4550,14 +4461,14 @@ mjs_json_parse(struct mjs *mjs, const char *str, size_t len, mjs_val_t *res);
 
 #endif /* MJS_JSON_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_builtin.h"
+#line 1 "src/mjs_builtin.h"
 #endif
 
 #ifndef MJS_BUILTIN_H_
 #define MJS_BUILTIN_H_
 
-/* Amalgamated: #include "mjs/src/mjs_core_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_core_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -4571,13 +4482,13 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj);
 
 #endif /* MJS_BUILTIN_H_ */
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_parser.h"
+#line 1 "src/mjs_parser.h"
 #endif
 
 #ifndef MJS_PARSER_H
 #define MJS_PARSER_H
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
+/* Amalgamated: #include "mjs_internal.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -4593,7 +4504,7 @@ mjs_parse(const char *path, const char *buf, struct mjs *);
 #endif /* MJS_PARSER_H */
 #ifndef MJS_EXPORT_INTERNAL_HEADERS
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_dbg.c"
+#line 1 "src/common/cs_dbg.c"
 #endif
 
 /* Amalgamated: #include "common/cs_dbg.h" */
@@ -4723,7 +4634,7 @@ void cs_log_set_level(enum cs_log_level level) {
 #endif
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_file.c"
+#line 1 "src/common/cs_file.c"
 #endif
 
 /* Amalgamated: #include "common/cs_file.h" */
@@ -4777,7 +4688,7 @@ char *cs_mmap_file(const char *path, size_t *size) {
 }
 #endif
 #ifdef MJS_MODULE_LINES
-#line 1 "common/cs_varint.c"
+#line 1 "src/common/cs_varint.c"
 #endif
 
 /* Amalgamated: #include "cs_varint.h" */
@@ -4840,7 +4751,7 @@ uint64_t cs_varint_decode_unsafe(const uint8_t *buf, int *llen) {
   return v;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "common/mbuf.c"
+#line 1 "src/common/mbuf.c"
 #endif
 
 #ifndef EXCLUDE_COMMON
@@ -4978,7 +4889,7 @@ void mbuf_move(struct mbuf *from, struct mbuf *to) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MJS_MODULE_LINES
-#line 1 "common/mg_str.c"
+#line 1 "src/common/mg_str.c"
 #endif
 
 /* Amalgamated: #include "common/mg_mem.h" */
@@ -5143,7 +5054,7 @@ int mg_str_starts_with(struct mg_str s, struct mg_str prefix) {
   return (mg_strcmp(sp, prefix) == 0);
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "common/str_util.c"
+#line 1 "src/common/str_util.c"
 #endif
 
 #ifndef EXCLUDE_COMMON
@@ -5662,7 +5573,7 @@ size_t mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 
 #endif /* EXCLUDE_COMMON */
 #ifdef MJS_MODULE_LINES
-#line 1 "frozen/frozen.c"
+#line 1 "src/frozen/frozen.c"
 #endif
 
 #define _CRT_SECURE_NO_WARNINGS /* Disable deprecation warning in VS2005+ */
@@ -5690,7 +5601,7 @@ size_t mg_match_prefix(const char *pattern, int pattern_len, const char *str) {
 #define vsnprintf cs_win_vsnprintf
 int cs_win_snprintf(char *str, size_t size, const char *format, ...);
 int cs_win_vsnprintf(char *str, size_t size, const char *format, va_list ap);
-#if _MSC_VER >= 1700 || (defined(__GNUC__))
+#if _MSC_VER >= 1700
 #include <stdint.h>
 #else
 typedef _int64 int64_t;
@@ -6338,10 +6249,8 @@ int json_vprintf(struct json_out *out, const char *fmt, va_list xap) {
          * inherit the advancement made by vprintf.
          * 32-bit (linux or windows) passes va_list by value.
          */
-        if ((n + 1 == (int) strlen("%" PRId64) &&
-             strcmp(fmt2, "%" PRId64) == 0) ||
-            (n + 1 == (int) strlen("%" PRIu64) &&
-             strcmp(fmt2, "%" PRIu64) == 0)) {
+        if ((n + 1 == strlen("%" PRId64) && strcmp(fmt2, "%" PRId64) == 0) ||
+            (n + 1 == strlen("%" PRIu64) && strcmp(fmt2, "%" PRIu64) == 0)) {
           (void) va_arg(ap, int64_t);
         } else if (strcmp(fmt2, "%.*s") == 0) {
           (void) va_arg(ap, int);
@@ -6715,8 +6624,7 @@ int json_vscanf(const char *s, int len, const char *fmt, va_list ap) {
           memcpy(fmtbuf, fmt + i, conv_len);
           fmtbuf[conv_len] = '\0';
           i += conv_len;
-          if (fmt[i] != '}')
-            i += strspn(fmt + i, delims);
+          i += strspn(fmt + i, delims);
           break;
         }
       }
@@ -7119,10 +7027,10 @@ char *json_asprintf(const char *fmt, ...) {
   return result;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/ffi/ffi.c"
+#line 1 "src/ffi/ffi.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/ffi/ffi.h" */
+/* Amalgamated: #include "ffi/ffi.h" */
 
 #define IS_W(arg) ((arg).ctype == FFI_CTYPE_WORD)
 #define IS_D(arg) ((arg).ctype == FFI_CTYPE_DOUBLE)
@@ -7684,19 +7592,19 @@ int ffi_call(ffi_fn_t *func, int nargs, struct ffi_arg *res,
   return 0;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_array.c"
+#line 1 "src/mjs_array.c"
 #endif
 
 #include <stdio.h>
 /* Amalgamated: #include "common/str_util.h" */
-/* Amalgamated: #include "mjs/src/mjs_array.h" */
-/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_array.h" */
+/* Amalgamated: #include "mjs_conversion.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 #define SPLICE_NEW_ITEM_IDX 2
 
@@ -7921,15 +7829,15 @@ clean:
   mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_bcode.c"
+#line 1 "src/mjs_bcode.c"
 #endif
 
 /* Amalgamated: #include "common/cs_varint.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_tok.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_bcode.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_tok.h" */
 
 static void add_lineno_map_item(struct pstate *pstate) {
   if (pstate->last_emitted_line_no < pstate->line_no) {
@@ -8068,19 +7976,19 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
   mjs->bcode_len += bp.data.len;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_builtin.c"
+#line 1 "src/mjs_builtin.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_dataview.h" */
-/* Amalgamated: #include "mjs/src/mjs_exec.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_json.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_bcode.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_dataview.h" */
+/* Amalgamated: #include "mjs_exec.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_json.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 static void mjs_print(struct mjs *mjs) {
   size_t i, num_args = mjs_nargs(mjs);
@@ -8247,14 +8155,14 @@ void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
           mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_isnan));
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_conversion.c"
+#line 1 "src/mjs_conversion.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_conversion.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 MJS_PRIVATE mjs_err_t mjs_to_string(struct mjs *mjs, mjs_val_t *v, char **p,
                                     size_t *sizep, int *need_free) {
@@ -8326,23 +8234,23 @@ MJS_PRIVATE int mjs_is_truthy(struct mjs *mjs, mjs_val_t v) {
   return mjs_get_bool(mjs, mjs_to_boolean_v(mjs, v));
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_core.c"
+#line 1 "src/mjs_core.c"
 #endif
 
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "common/str_util.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
-/* Amalgamated: #include "mjs/src/mjs_builtin.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_exec.h" */
-/* Amalgamated: #include "mjs/src/mjs_ffi.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_license.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_bcode.h" */
+/* Amalgamated: #include "mjs_builtin.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_exec.h" */
+/* Amalgamated: #include "mjs_ffi.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_license.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 #ifndef MJS_OBJECT_ARENA_SIZE
 #define MJS_OBJECT_ARENA_SIZE 20
@@ -8712,14 +8620,14 @@ void mjs_set_generate_jsc(struct mjs *mjs, int generate_jsc) {
   mjs->generate_jsc = generate_jsc;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_dataview.c"
+#line 1 "src/mjs_dataview.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/mjs_exec_public.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_exec_public.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 void *mjs_mem_to_ptr(unsigned val) {
   return (void *) (uintptr_t) val;
@@ -8797,24 +8705,24 @@ void mjs_mem_set_int(void *ptr, int val, int size, int bigendian) {
   mjs_mem_set_uint(ptr, val, size, bigendian);
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_exec.c"
+#line 1 "src/mjs_exec.c"
 #endif
 
 /* Amalgamated: #include "common/cs_file.h" */
 /* Amalgamated: #include "common/cs_varint.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_array.h" */
-/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
-/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_exec.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_parser.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_tok.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_array.h" */
+/* Amalgamated: #include "mjs_bcode.h" */
+/* Amalgamated: #include "mjs_conversion.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_exec.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_parser.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_tok.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
 #include <sys/mman.h>
@@ -9971,18 +9879,18 @@ mjs_err_t mjs_apply(struct mjs *mjs, mjs_val_t *res, mjs_val_t func,
   return mjs->error;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_ffi.c"
+#line 1 "src/mjs_ffi.c"
 #endif
 
 /* Amalgamated: #include "common/mg_str.h" */
 
-/* Amalgamated: #include "mjs/src/ffi/ffi.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_exec.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "ffi/ffi.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_exec.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 /*
  * on linux this is enabled only if __USE_GNU is defined, but we cannot set it
@@ -11146,7 +11054,7 @@ void *dlsym(void *handle, const char *name) {
 }
 #endif
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_gc.c"
+#line 1 "src/mjs_gc.c"
 #endif
 
 #include <stdio.h>
@@ -11154,13 +11062,13 @@ void *dlsym(void *handle, const char *name) {
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "common/mbuf.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_ffi.h" */
-/* Amalgamated: #include "mjs/src/mjs_gc.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_ffi.h" */
+/* Amalgamated: #include "mjs_gc.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
 
 /*
  * Macros for marking reachable things: use bit 0.
@@ -11683,18 +11591,18 @@ MJS_PRIVATE int gc_check_ptr(const struct gc_arena *a, const void *ptr) {
   return 0;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_json.c"
+#line 1 "src/mjs_json.c"
 #endif
 
 /* Amalgamated: #include "common/str_util.h" */
 /* Amalgamated: #include "frozen.h" */
-/* Amalgamated: #include "mjs/src/mjs_array.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs_array.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_conversion.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
 
 #define BUF_LEFT(size, used) (((size_t)(used) < (size)) ? ((size) - (used)) : 0)
 
@@ -12198,18 +12106,18 @@ MJS_PRIVATE void mjs_op_json_parse(struct mjs *mjs) {
   mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_main.c"
+#line 1 "src/mjs_main.c"
 #endif
 
 #ifdef MJS_MAIN
 
 // #include <dlfcn.h>
 
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_exec.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_exec.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 int main(int argc, char *argv[]) {
   struct mjs *mjs = mjs_create();
@@ -12257,16 +12165,16 @@ int main(int argc, char *argv[]) {
 }
 #endif
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_object.c"
+#line 1 "src/mjs_object.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_conversion.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 /* Amalgamated: #include "common/mg_str.h" */
 
@@ -12653,17 +12561,17 @@ mjs_val_t mjs_struct_to_obj(struct mjs *mjs, const void *base,
   return obj;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_parser.c"
+#line 1 "src/mjs_parser.c"
 #endif
 
 /* Amalgamated: #include "common/cs_varint.h" */
 
-/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_parser.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_tok.h" */
+/* Amalgamated: #include "mjs_bcode.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_parser.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_tok.h" */
 
 #ifndef MAX_TOKS_IN_EXPR
 #define MAX_TOKS_IN_EXPR 40
@@ -13680,12 +13588,12 @@ mjs_parse(const char *path, const char *buf, struct mjs *mjs) {
   return res;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_primitive.c"
+#line 1 "src/mjs_primitive.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
 
 mjs_val_t mjs_mk_null(void) {
   return MJS_NULL;
@@ -13839,17 +13747,17 @@ MJS_PRIVATE void mjs_op_isnan(struct mjs *mjs) {
   mjs_return(mjs, ret);
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_string.c"
+#line 1 "src/mjs_string.c"
 #endif
 
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
+/* Amalgamated: #include "mjs_string.h" */
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "common/mg_str.h" */
-/* Amalgamated: #include "mjs/src/mjs_conversion.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
+/* Amalgamated: #include "mjs_conversion.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_util.h" */
 
 // No UTF
 typedef unsigned short Rune;
@@ -14435,14 +14343,14 @@ MJS_PRIVATE void embed_string(struct mbuf *m, size_t offset, const char *p,
   }
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_tok.c"
+#line 1 "src/mjs_tok.c"
 #endif
 
 #include <stdlib.h>
 #include <string.h>
 
 /* Amalgamated: #include "common/cs_dbg.h" */
-/* Amalgamated: #include "mjs/src/mjs_tok.h" */
+/* Amalgamated: #include "mjs_tok.h" */
 
 MJS_PRIVATE void pinit(const char *file_name, const char *buf,
                        struct pstate *p) {
@@ -14688,20 +14596,20 @@ MJS_PRIVATE int pnext(struct pstate *p) {
   return p->tok.tok;
 }
 #ifdef MJS_MODULE_LINES
-#line 1 "mjs/src/mjs_util.c"
+#line 1 "src/mjs_util.c"
 #endif
 
 /* Amalgamated: #include "common/cs_varint.h" */
 /* Amalgamated: #include "frozen.h" */
-/* Amalgamated: #include "mjs/src/mjs_array.h" */
-/* Amalgamated: #include "mjs/src/mjs_bcode.h" */
-/* Amalgamated: #include "mjs/src/mjs_core.h" */
-/* Amalgamated: #include "mjs/src/mjs_internal.h" */
-/* Amalgamated: #include "mjs/src/mjs_object.h" */
-/* Amalgamated: #include "mjs/src/mjs_primitive.h" */
-/* Amalgamated: #include "mjs/src/mjs_string.h" */
-/* Amalgamated: #include "mjs/src/mjs_util.h" */
-/* Amalgamated: #include "mjs/src/mjs_tok.h" */
+/* Amalgamated: #include "mjs_array.h" */
+/* Amalgamated: #include "mjs_bcode.h" */
+/* Amalgamated: #include "mjs_core.h" */
+/* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_object.h" */
+/* Amalgamated: #include "mjs_primitive.h" */
+/* Amalgamated: #include "mjs_string.h" */
+/* Amalgamated: #include "mjs_util.h" */
+/* Amalgamated: #include "mjs_tok.h" */
 
 const char *mjs_typeof(mjs_val_t v) {
   return mjs_stringify_type(mjs_get_type(v));
