@@ -1,13 +1,13 @@
-COMMON = common
-FROZEN = frozen
+COMMON_SOURCES = \
+          common/cs_dbg.c \
+          common/cs_file.c \
+          common/cs_varint.c \
+          common/mbuf.c \
+          common/mg_str.c \
+          common/str_util.c \
+          frozen/frozen.c
 
-SOURCES = $(COMMON)/cs_dbg.c \
-          $(COMMON)/cs_file.c \
-          $(COMMON)/cs_varint.c \
-          $(COMMON)/mbuf.c \
-          $(COMMON)/mg_str.c \
-          $(COMMON)/str_util.c \
-          $(FROZEN)/frozen.c \
+MJS_SOURCES = \
           ffi/ffi.c \
           mjs_array.c \
           mjs_bcode.c \
@@ -27,41 +27,43 @@ SOURCES = $(COMMON)/cs_dbg.c \
           mjs_tok.c \
           mjs_util.c
 
-HEADERS = $(COMMON)/mbuf.h \
-          $(COMMON)/cs_dbg.h \
-          $(COMMON)/cs_file.h \
-          $(COMMON)/cs_time.h \
-          $(COMMON)/cs_varint.h \
-          $(COMMON)/str_util.h \
-          $(COMMON)/mg_mem.h \
-          $(COMMON)/platform.h \
-          $(FROZEN)/frozen.h \
+MJS_PUBLIC_HEADERS = \
+          mjs_array_public.h \
+          mjs_core_public.h \
+          mjs_exec_public.h \
+          mjs_ffi_public.h \
+          mjs_object_public.h \
+          mjs_primitive_public.h \
+          mjs_string_public.h \
+          mjs_util_public.h
+
+HEADERS = common/mbuf.h \
+          common/cs_dbg.h \
+          common/cs_file.h \
+          common/cs_time.h \
+          common/cs_varint.h \
+          common/str_util.h \
+          common/mg_mem.h \
+          common/platform.h \
+          frozen/frozen.h \
           ffi/ffi.h \
           mjs_array.h \
-          mjs_array_public.h \
           mjs_bcode.h \
           mjs_builtin.h \
           mjs_conversion.h \
           mjs_core.h \
-          mjs_core_public.h \
           mjs_dataview.h \
           mjs_exec.h \
-          mjs_exec_public.h \
           mjs_features.h \
           mjs_ffi.h \
-          mjs_ffi_public.h \
           mjs_gc.h \
           mjs_internal.h \
           mjs_json.h \
           mjs_license.h \
           mjs_mm.h \
           mjs_object.h \
-          mjs_object_public.h \
           mjs_parser.h \
           mjs_primitive.h \
-          mjs_primitive_public.h \
           mjs_string.h \
-          mjs_string_public.h \
           mjs_tok.h \
-          mjs_util.h \
-          mjs_util_public.h
+          mjs_util.h

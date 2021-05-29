@@ -1,3 +1,4 @@
+MAKEFLAGS += --warn-undefined-variables
 SRCPATH = src
 BUILD_DIR = build
 
@@ -7,12 +8,13 @@ DOCKER_CLANG ?= $(RD) mgos/clang
 
 include $(SRCPATH)/mjs_sources.mk
 
-TOP_SOURCES = $(addprefix $(SRCPATH)/, $(SOURCES))
 TOP_HEADERS = $(addprefix $(SRCPATH)/, $(HEADERS))
-TOP_SOURCES_DIRS = $(sort $(dir $(TOP_SOURCES)))
-TOP_HEADERS_DIRS = $(sort $(dir $(TOP_HEADERS)))
+TOP_MJS_PUBLIC_HEADERS = $(addprefix $(SRCPATH)/, $(MJS_PUBLIC_HEADERS))
+TOP_MJS_SOURCES = $(addprefix $(SRCPATH)/, $(MJS_SOURCES))
+TOP_COMMON_SOURCES = $(addprefix $(SRCPATH)/, $(COMMON_SOURCES))
 
-MFLAGS += -I. -Isrc
+CFLAGS_EXTRA ?=
+MFLAGS += -I. -Isrc -Isrc/frozen
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG -I../frozen
 MFLAGS += $(CFLAGS_EXTRA)
 CFLAGS += -lm -std=c99 -Wall -Wextra -pedantic -g $(MFLAGS)
@@ -45,39 +47,46 @@ endif
 
 PROG = $(BUILD_DIR)/mjs
 
-all: $(PROG)
+all: mjs.c mjs_no_common.c $(PROG)
 
 TESTUTIL_FILES = $(SRCPATH)/common/cs_dirent.c \
                  $(SRCPATH)/common/cs_time.c   \
                  $(SRCPATH)/common/test_main.c \
                  $(SRCPATH)/common/test_util.c
 
-mjs.c: $(TOP_SOURCES) mjs.h Makefile
-	@printf "AMALGAMATING mjs.c\n"
+mjs.h: $(TOP_MJS_PUBLIC_HEADERS) Makefile tools/amalgam.py
+	@printf "AMALGAMATING $@\n"
 	$(Q) (tools/amalgam.py \
-	  --autoinc --exportable-headers -I src -I src/frozen --prefix MJS \
-    --public-header mjs.h --ignore mjs.h \
-    --first common/platform.h,common/platforms/platform_windows.h,common/platforms/platform_unix.h,common/platforms/platform_esp_lwip.h \
-    $(TOP_SOURCES)) > $@
+    --autoinc -I src --prefix MJS --strict --license src/mjs_license.h \
+    --first common/platform.h $(TOP_MJS_PUBLIC_HEADERS)) > $@
 
-mjs.h: $(TOP_HEADERS) $(TOP_SOURCES) Makefile tools/amalgam.py
-	@printf "AMALGAMATING mjs.h\n"
+mjs.c: $(TOP_COMMON_SOURCES) $(TOP_MJS_SOURCES) mjs.h Makefile
+	@printf "AMALGAMATING $@\n"
 	$(Q) (tools/amalgam.py \
-	  --autoinc --exportable-headers -I src --prefix MJS --strict \
-    --ignore mjs.h \
-    --first common/platform.h $(filter %_public.h,$(TOP_HEADERS))) > $@
+    --autoinc -I src -I src/frozen --prefix MJS --license src/mjs_license.h \
+    --license src/mjs_license.h --public-header mjs.h --autoinc-ignore mjs_*_public.h \
+    --first mjs_common_guard_begin.h,common/platform.h,common/platforms/platform_windows.h,common/platforms/platform_unix.h,common/platforms/platform_esp_lwip.h \
+    $(TOP_COMMON_SOURCES) $(TOP_MJS_SOURCES)) > $@
+
+mjs_no_common.c: $(TOP_MJS_SOURCES) mjs.h Makefile
+	@printf "AMALGAMATING $@\n"
+	$(Q) (tools/amalgam.py \
+    --autoinc -I src -I src/frozen --prefix MJS --license src/mjs_license.h \
+    --public-header mjs.h --ignore mjs.h,*common/*,*frozen.[ch] \
+    --first mjs_common_guard_begin.h,common/platform.h,common/platforms/platform_windows.h,common/platforms/platform_unix.h,common/platforms/platform_esp_lwip.h \
+    $(TOP_MJS_SOURCES)) > $@
 
 CFLAGS += $(COMMON_CFLAGS)
 
 # NOTE: we compile straight from sources, not from the single amalgamated file,
 # in order to make sure that all sources include the right headers
-$(PROG): $(TOP_SOURCES) $(TOP_HEADERS) $(BUILD_DIR)
-	$(DOCKER_CLANG) clang $(CFLAGS) $(CPPFLAGS) $(TOP_SOURCES) -o $(PROG)
+$(PROG): $(TOP_MJS_SOURCES) $(TOP_COMMON_SOURCES) $(TOP_HEADERS) $(BUILD_DIR)
+	$(DOCKER_CLANG) clang $(CFLAGS) $(TOP_MJS_SOURCES) $(TOP_COMMON_SOURCES) -o $(PROG)
 
 $(BUILD_DIR):
 	mkdir -p $@
 
-$(BUILD_DIR)/%.o: %.c $(TOP_HEADERS)
+$(BUILD_DIR)/%.o: %.c $(TOP_HEADERS) mjs.h
 	$(CLANG) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 COMMON_TEST_FLAGS = -W -Wall -I. -Isrc -g3 -O0 $(COMMON_CFLAGS) $< $(TESTUTIL_FILES) -DMJS_MEMORY_STATS
@@ -198,12 +207,6 @@ test: $(firstword $(TEST_VARIANTS))
 
 clean:
 	rm -rf $(BUILD_DIR) *.obj mjs.c mjs.h _CL_*
-
-print_sources:
-	@echo $(TOP_SOURCES) $(TOP_HEADERS)
-
-print_source_dirs:
-	@echo $(TOP_SOURCES_DIRS) $(TOP_HEADERS_DIRS)
 
 difftest:
 	@TMP=`mktemp -t checkout-diff.XXXXXX`; \
