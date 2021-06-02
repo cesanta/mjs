@@ -661,6 +661,30 @@ void mjs_set_ffi_resolver(struct mjs *mjs, mjs_ffi_resolver_t *dlsym);
 
 #endif /* MJS_FFI_PUBLIC_H_ */
 #ifdef MJS_MODULE_LINES
+#line 1 "src/mjs_gc_public.h"
+#endif
+
+#ifndef MJS_GC_PUBLIC_H_
+#define MJS_GC_PUBLIC_H_
+
+/* Amalgamated: #include "mjs_core_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+/*
+ * Perform garbage collection.
+ * Pass true to full in order to reclaim unused heap back to the OS.
+ */
+void mjs_gc(struct mjs *mjs, int full);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* MJS_GC_PUBLIC_H_ */
+#ifdef MJS_MODULE_LINES
 #line 1 "src/mjs_object_public.h"
 #endif
 

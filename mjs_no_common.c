@@ -713,6 +713,30 @@ struct gc_arena {
 
 #endif /* MJS_MM_H_ */
 #ifdef MJS_MODULE_LINES
+#line 1 "src/mjs_gc_public.h"
+#endif
+
+#ifndef MJS_GC_PUBLIC_H_
+#define MJS_GC_PUBLIC_H_
+
+/* Amalgamated: #include "mjs_core_public.h" */
+
+#if defined(__cplusplus)
+extern "C" {
+#endif /* __cplusplus */
+
+/*
+ * Perform garbage collection.
+ * Pass true to full in order to reclaim unused heap back to the OS.
+ */
+void mjs_gc(struct mjs *mjs, int full);
+
+#if defined(__cplusplus)
+}
+#endif /* __cplusplus */
+
+#endif /* MJS_GC_PUBLIC_H_ */
+#ifdef MJS_MODULE_LINES
 #line 1 "src/mjs_gc.h"
 #endif
 
@@ -722,6 +746,7 @@ struct gc_arena {
 /* Amalgamated: #include "mjs_core.h" */
 /* Amalgamated: #include "mjs_mm.h" */
 /* Amalgamated: #include "mjs_internal.h" */
+/* Amalgamated: #include "mjs_gc_public.h" */
 
 #if defined(__cplusplus)
 extern "C" {
@@ -740,12 +765,6 @@ struct gc_cell {
     uintptr_t word;
   } head;
 };
-
-/*
- * Perform garbage collection.
- * Pass true to full in order to reclaim unused heap back to the OS.
- */
-void mjs_gc(struct mjs *mjs, int full);
 
 MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs);
 
@@ -2914,6 +2933,7 @@ MJS_PRIVATE void mjs_bcode_commit(struct mjs *mjs) {
 /* Amalgamated: #include "mjs_core.h" */
 /* Amalgamated: #include "mjs_dataview.h" */
 /* Amalgamated: #include "mjs_exec.h" */
+/* Amalgamated: #include "mjs_gc.h" */
 /* Amalgamated: #include "mjs_internal.h" */
 /* Amalgamated: #include "mjs_json.h" */
 /* Amalgamated: #include "mjs_object.h" */

@@ -9,6 +9,7 @@
 #include "mjs_core.h"
 #include "mjs_mm.h"
 #include "mjs_internal.h"
+#include "mjs_gc_public.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -27,12 +28,6 @@ struct gc_cell {
     uintptr_t word;
   } head;
 };
-
-/*
- * Perform garbage collection.
- * Pass true to full in order to reclaim unused heap back to the OS.
- */
-void mjs_gc(struct mjs *mjs, int full);
 
 MJS_PRIVATE int gc_strings_is_gc_needed(struct mjs *mjs);
 
