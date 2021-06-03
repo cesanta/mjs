@@ -7,6 +7,7 @@
 #include "mjs_core.h"
 #include "mjs_dataview.h"
 #include "mjs_exec.h"
+#include "mjs_gc.h"
 #include "mjs_internal.h"
 #include "mjs_json.h"
 #include "mjs_object.h"

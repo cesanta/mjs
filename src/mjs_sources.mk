@@ -32,6 +32,7 @@ MJS_PUBLIC_HEADERS = \
           mjs_core_public.h \
           mjs_exec_public.h \
           mjs_ffi_public.h \
+          mjs_gc_public.h \
           mjs_object_public.h \
           mjs_primitive_public.h \
           mjs_string_public.h \
