@@ -213,7 +213,9 @@ typedef unsigned char uint8_t;
 extern "C" {
 #endif /* __cplusplus */
 
-#define MJS_ENABLE_DEBUG 1
+#ifndef MJS_ENABLE_DEBUG
+#define MJS_ENABLE_DEBUG 0
+#endif
 
 /*
  *  Double-precision floating-point number, IEEE 754
@@ -4651,7 +4653,9 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
+#if MJS_ENABLE_DEBUG
   if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1);
+#endif
   if (generate_jsc == -1) generate_jsc = mjs->generate_jsc;
   if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
@@ -9639,8 +9643,6 @@ void mjs_fprintf(mjs_val_t v, struct mjs *mjs, FILE *fp) {
   mjs_jprintf(v, mjs, &out);
 }
 
-#if MJS_ENABLE_DEBUG
-
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode) {
   static const char *names[] = {
       "NOP", "DROP", "DUP", "SWAP", "JMP", "JMP_TRUE", "JMP_NEUTRAL_TRUE",
@@ -9819,6 +9821,8 @@ void mjs_disasm(const uint8_t *code, size_t len) {
   }
 }
 
+#if MJS_ENABLE_DEBUG
+
 static void mjs_dump_obj_stack(const char *name, const struct mbuf *m,
                                struct mjs *mjs) {
   char buf[50];
@@ -9849,6 +9853,8 @@ void mjs_dump(struct mjs *mjs, int do_disasm) {
   }
   LOG(LL_VERBOSE_DEBUG, ("------- MJS VM DUMP END"));
 }
+
+#endif
 
 MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
                               const char *arg_name, enum mjs_type expected_type,
@@ -9973,5 +9979,3 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num) {
   }
   return ret;
 }
-
-#endif

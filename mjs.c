@@ -3313,8 +3313,11 @@ extern "C" {
 
 struct mjs_bcode_part;
 
+#if MJS_ENABLE_DEBUG
 MJS_PRIVATE const char *opcodetostr(uint8_t opcode);
 MJS_PRIVATE size_t mjs_disasm_single(const uint8_t *code, size_t i);
+#endif
+
 MJS_PRIVATE const char *mjs_stringify_type(enum mjs_type t);
 
 /*
@@ -8552,7 +8555,9 @@ MJS_PRIVATE mjs_err_t mjs_execute(struct mjs *mjs, size_t off, mjs_val_t *res) {
 #endif
 
     code = (const uint8_t *) bp.data.p;
+#if MJS_ENABLE_DEBUG
     mjs_disasm_single(code, i);
+#endif
     prev_opcode = opcode;
     opcode = code[i];
     switch (opcode) {
@@ -8964,7 +8969,9 @@ MJS_PRIVATE mjs_err_t mjs_exec_internal(struct mjs *mjs, const char *path,
   size_t off = mjs->bcode_len;
   mjs_val_t r = MJS_UNDEFINED;
   mjs->error = mjs_parse(path, src, mjs);
+#if MJS_ENABLE_DEBUG
   if (cs_log_level >= LL_VERBOSE_DEBUG) mjs_dump(mjs, 1);
+#endif
   if (generate_jsc == -1) generate_jsc = mjs->generate_jsc;
   if (mjs->error == MJS_OK) {
 #if MJS_GENERATE_JSC && defined(CS_MMAP)
@@ -14163,6 +14170,8 @@ void mjs_dump(struct mjs *mjs, int do_disasm) {
   LOG(LL_VERBOSE_DEBUG, ("------- MJS VM DUMP END"));
 }
 
+#endif
+
 MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
                               const char *arg_name, enum mjs_type expected_type,
                               mjs_val_t *parg) {
@@ -14286,5 +14295,3 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num) {
   }
   return ret;
 }
-
-#endif

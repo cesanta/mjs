@@ -304,6 +304,8 @@ void mjs_dump(struct mjs *mjs, int do_disasm) {
   LOG(LL_VERBOSE_DEBUG, ("------- MJS VM DUMP END"));
 }
 
+#endif
+
 MJS_PRIVATE int mjs_check_arg(struct mjs *mjs, int arg_num,
                               const char *arg_name, enum mjs_type expected_type,
                               mjs_val_t *parg) {
@@ -427,5 +429,3 @@ int mjs_get_offset_by_call_frame_num(struct mjs *mjs, int cf_num) {
   }
   return ret;
 }
-
-#endif
