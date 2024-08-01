@@ -11192,6 +11192,7 @@ static void frozen_cb(void *data, const char *name, size_t name_len,
                       const char *path, const struct json_token *token) {
   struct json_parse_ctx *ctx = (struct json_parse_ctx *) data;
   mjs_val_t v = MJS_UNDEFINED;
+  char *dst = NULL;  // Initialize dst to NULL
 
   (void) path;
 
@@ -11199,15 +11200,17 @@ static void frozen_cb(void *data, const char *name, size_t name_len,
 
   switch (token->type) {
     case JSON_TYPE_STRING: {
-      char *dst;
       if (token->len > 0 && (dst = malloc(token->len)) != NULL) {
         int len = json_unescape(token->ptr, token->len, dst, token->len);
         if (len < 0) {
           mjs_prepend_errorf(ctx->mjs, MJS_TYPE_ERROR, "invalid JSON string");
+          free(dst);  // Free dst if there's an error
+          dst = NULL;  // Set to NULL after freeing
           break;
         }
         v = mjs_mk_string(ctx->mjs, dst, len, 1 /* copy */);
         free(dst);
+        dst = NULL;  // Set to NULL after freeing
       } else {
         /*
          * This branch is for 0-len strings, and for malloc errors
