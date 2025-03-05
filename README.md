@@ -324,3 +324,7 @@ happy to work on a solution with you.
 
 Prototyping: While your project is still in prototyping stage and not for sale,
 you can use MJS’s open source code without license restrictions.
+
+# See also
+- [Mongoose Web Server Library](https://mongoose.ws/) - a robust, open-source solution licensed under GPLv2, designed to seamlessly integrate web server functionality into your embedded devices. 
+- With complementary [Mongoose Wizard](https://mongoose.ws/wizard/) - a no-code visual tool that enables rapid WebUI creation without the need for frontend expertise.
