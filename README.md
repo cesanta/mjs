@@ -327,4 +327,9 @@ you can use MJS’s open source code without license restrictions.
 
 # See also
 - [Mongoose Web Server Library](https://mongoose.ws/) - a robust, open-source solution licensed under GPLv2, designed to seamlessly integrate web server functionality into your embedded devices. 
-- With complementary [Mongoose Wizard](https://mongoose.ws/wizard/) - a no-code visual tool that enables rapid WebUI creation without the need for frontend expertise.
+- With complementary [Mongoose Wizard](https://mongoose.ws/wizard/) - a no-code visual tool that enables rapid WebUI creation without the need for frontend expertise. 
+
+# Technical guides
+
+Technical atricles and deep dives into embedded networking technologies:
+- [Embedded Web Server: A Comprehensive Guide for Modern Connected Devices](https://mongoose.ws/articles/embedded-web-server-a-comprehensive-guide-for-modern-connected-devices/)
