@@ -333,3 +333,4 @@ you can use MJS’s open source code without license restrictions.
 
 Technical atricles and deep dives into embedded networking technologies:
 - [Embedded Web Server: A Comprehensive Guide for Modern Connected Devices](https://mongoose.ws/articles/embedded-web-server-a-comprehensive-guide-for-modern-connected-devices/)
+- [Building Embedded Web Device Dashboards](https://mongoose.ws/articles/building-embedded-web-device-dashboard/)
