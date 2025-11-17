@@ -12,13 +12,15 @@ TOP_HEADERS = $(addprefix $(SRCPATH)/, $(HEADERS))
 TOP_MJS_PUBLIC_HEADERS = $(addprefix $(SRCPATH)/, $(MJS_PUBLIC_HEADERS))
 TOP_MJS_SOURCES = $(addprefix $(SRCPATH)/, $(MJS_SOURCES))
 TOP_COMMON_SOURCES = $(addprefix $(SRCPATH)/, $(COMMON_SOURCES))
+CFLAGS_MMAP ?= -DCS_MMAP
 
 CFLAGS_EXTRA ?=
 MFLAGS += -I. -Isrc -Isrc/frozen
 MFLAGS += -DMJS_MAIN -DMJS_EXPOSE_PRIVATE -DCS_ENABLE_STDIO -DMJS_ENABLE_DEBUG -I../frozen
 MFLAGS += $(CFLAGS_EXTRA)
-CFLAGS += -lm -std=c99 -Wall -Wextra -pedantic -g $(MFLAGS)
-COMMON_CFLAGS = -DCS_MMAP -DMJS_MODULE_LINES
+CFLAGS += --std=c99 -Wall -Wextra -pedantic -g $(MFLAGS)
+LDFLAGS ?=
+COMMON_CFLAGS = $(CFLAGS_MMAP) -DMJS_MODULE_LINES
 ASAN_CFLAGS = -fsanitize=address
 
 .PHONY: all test test_full difftest ci-test
@@ -37,7 +39,8 @@ else
 endif
 
 ifeq ($(UNAME_S),Linux)
-  COMMON_CFLAGS += -Wl,--no-as-needed -ldl
+  COMMON_CFLAGS += -Wl,--no-as-needed
+	LDFLAGS += -ldl -lm
   ASAN_CFLAGS += -fsanitize=leak
 endif
 
@@ -81,7 +84,7 @@ CFLAGS += $(COMMON_CFLAGS)
 # NOTE: we compile straight from sources, not from the single amalgamated file,
 # in order to make sure that all sources include the right headers
 $(PROG): $(TOP_MJS_SOURCES) $(TOP_COMMON_SOURCES) $(TOP_HEADERS) $(BUILD_DIR)
-	$(DOCKER_CLANG) clang $(CFLAGS) $(TOP_MJS_SOURCES) $(TOP_COMMON_SOURCES) -o $(PROG)
+	$(DOCKER_CLANG) clang $(CFLAGS) $(TOP_MJS_SOURCES) $(TOP_COMMON_SOURCES) $(LDFLAGS) -o $(PROG)
 
 $(BUILD_DIR):
 	mkdir -p $@
