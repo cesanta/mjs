@@ -270,6 +270,17 @@ Hello 1234!
 
 # Build stand-alone mJS binary
 
+> [!NOTE]\
+> By default, it starts Docker container to perform build.
+> If you needn't that, you can disable Docker by passing `DOCKER_CLANG=`
+> argument into the Make command: `make all DOCKER_CLANG=`
+
+> [!NOTE]\
+> On Windows, you have to use UNIX-like environment emulators (Cygwin/Msys2).
+> Also, there can be problems with POSIX headers (like `sys/mman.h`).
+> To fix this, you need to pass `CFLAGS_MMAP=` argument into the Make command:
+> `make all CFLAGS_MMAP=`.
+
 Build:
 ```
 $ make
