@@ -341,3 +341,4 @@ Technical atricles and deep dives into embedded networking technologies:
 - [Web dashboard on Zephyr RTOS](https://mongoose.ws/articles/web-dashboard-on-zephyr-rtos/)
 - [Limiting TCP/IP RAM usage on STM32](https://mongoose.ws/articles/limiting-tcpip-ram-usage-on-stm32/)
 - [STM32 Ethernet explained](https://mongoose.ws/articles/stm32-ethernet-explained/)
+- [MQTT on a Microcontroller](https://mongoose.ws/articles/mqtt-on-a-microcontroller/)
