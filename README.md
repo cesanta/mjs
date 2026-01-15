@@ -344,3 +344,4 @@ Technical atricles and deep dives into embedded networking technologies:
 - [MQTT on a Microcontroller](https://mongoose.ws/articles/mqtt-on-a-microcontroller/)
 - [STM32 OTA Firmware Update](https://mongoose.ws/articles/stm32-ota-firmware-update/)
 - [RP2350 OTA Firmware Update](https://mongoose.ws/articles/rp2350-ota-firmware-update/)
+- [STM32 Ethernet and caches](https://mongoose.ws/articles/stm32-ethernet-and-cache/)
