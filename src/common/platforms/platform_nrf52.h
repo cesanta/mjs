@@ -51,7 +51,9 @@
 /*
  * ARM C Compiler doesn't have strdup, so we provide it
  */
-#define CS_ENABLE_STRDUP defined(__ARMCC_VERSION)
+#if defined(__ARMCC_VERSION)
+#define CS_ENABLE_STRDUP 1
+#endif
 
 #endif /* CS_PLATFORM == CS_P_NRF52 */
 #endif /* CS_COMMON_PLATFORMS_PLATFORM_NRF52_H_ */
