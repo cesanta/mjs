@@ -99,6 +99,9 @@ where it enables scripting for IoT devices.
   <dd>Perform garbage collection. If `full` is `true`, reclaim RAM to OS.</dd>
 </dl>
 
+There are TypeScript-typings ([mjs.d.ts](./mjs.d.ts))
+with all these mJS builtins.
+
 # C/C++ interoperability
 
 mJS requires no glue code. The mJS's Foreign Function Interface (FFI)
