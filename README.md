@@ -345,3 +345,5 @@ Technical atricles and deep dives into embedded networking technologies:
 - [STM32 OTA Firmware Update](https://mongoose.ws/articles/stm32-ota-firmware-update/)
 - [RP2350 OTA Firmware Update](https://mongoose.ws/articles/rp2350-ota-firmware-update/)
 - [STM32 Ethernet and caches](https://mongoose.ws/articles/stm32-ethernet-and-cache/)
+- [NXP RW612 OTA Firmware Update](https://mongoose.ws/articles/rw612-ota-firmware-update/)
+
