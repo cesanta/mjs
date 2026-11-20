@@ -137,18 +137,18 @@ def emit_body(out, name, parent_name):
         for l in f:
             if in_comment:
                 comment += l
-                if re.match('\s*\*/$', l):
+                if re.match(r'\s*\*/$', l):
                     in_comment = False
-                    if not re.match('.*Copyright.*Cesanta', comment, re.M | re.S):
+                    if not re.match(r'.*Copyright.*Cesanta', comment, re.M | re.S):
                         out.write(comment)
                 continue
 
-            if re.match('/\*$', l):
+            if re.match(r'/\*$', l):
                 in_comment = True
                 comment = l
                 continue
 
-            match = re.match('( *#include "(.*)")', l)
+            match = re.match(r'( *#include "(.*)")', l)
             if match:
                 all_match, path_to_include = match.groups()
                 if not should_ignore(path_to_include):
