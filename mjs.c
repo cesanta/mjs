@@ -1630,6 +1630,9 @@ typedef struct stat cs_stat_t;
 extern "C" {
 #endif /* __cplusplus */
 
+/* patch for the misused address access using built-in object (segmentation fault) */
+static int64_t BUILT_IN_ADDRESS[18];
+
 /*
  * Log level; `LL_INFO` is the default. Use `cs_log_set_level()` to change it.
  */
@@ -7373,53 +7376,65 @@ static void mjs_s2o(struct mjs *mjs) {
 void mjs_init_builtin(struct mjs *mjs, mjs_val_t obj) {
   mjs_val_t v;
 
-  mjs_set(mjs, obj, "global", ~0, obj);
-
-  mjs_set(mjs, obj, "load", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_load));
-  mjs_set(mjs, obj, "print", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_print));
-  mjs_set(mjs, obj, "ffi", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_call));
-  mjs_set(mjs, obj, "ffi_cb_free", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_cb_free));
-  mjs_set(mjs, obj, "mkstr", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_mkstr));
-  mjs_set(mjs, obj, "getMJS", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_get_mjs));
-  mjs_set(mjs, obj, "die", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_die));
-  mjs_set(mjs, obj, "gc", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_do_gc));
-  mjs_set(mjs, obj, "chr", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_chr));
-  mjs_set(mjs, obj, "s2o", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_s2o));
+  BUILT_IN_ADDRESS[0] = obj;
+  mjs_set(mjs, obj, "global", ~0, BUILT_IN_ADDRESS[0]);
+  BUILT_IN_ADDRESS[1] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_load);
+  mjs_set(mjs, obj, "load", ~0, BUILT_IN_ADDRESS[1]);
+  BUILT_IN_ADDRESS[2] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_print);
+  mjs_set(mjs, obj, "print", ~0, BUILT_IN_ADDRESS[2]);
+  BUILT_IN_ADDRESS[3] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_call);
+  mjs_set(mjs, obj, "ffi", ~0, BUILT_IN_ADDRESS[3]);
+  BUILT_IN_ADDRESS[4] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_ffi_cb_free);
+  mjs_set(mjs, obj, "ffi_cb_free", ~0, BUILT_IN_ADDRESS[4]);
+  BUILT_IN_ADDRESS[5] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_mkstr);
+  mjs_set(mjs, obj, "mkstr", ~0, BUILT_IN_ADDRESS[5]);
+  BUILT_IN_ADDRESS[6] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_get_mjs);
+  mjs_set(mjs, obj, "getMJS", ~0, BUILT_IN_ADDRESS[6]);
+  BUILT_IN_ADDRESS[7] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_die);
+  mjs_set(mjs, obj, "die", ~0, BUILT_IN_ADDRESS[7]);
+  BUILT_IN_ADDRESS[8] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_do_gc);
+  mjs_set(mjs, obj, "gc", ~0, BUILT_IN_ADDRESS[8]);
+  BUILT_IN_ADDRESS[9] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_chr);
+  mjs_set(mjs, obj, "chr", ~0, BUILT_IN_ADDRESS[9]);
+  BUILT_IN_ADDRESS[10] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_s2o);
+  mjs_set(mjs, obj, "s2o", ~0, BUILT_IN_ADDRESS[10]);
 
   /*
    * Populate JSON.parse() and JSON.stringify()
    */
   v = mjs_mk_object(mjs);
-  mjs_set(mjs, v, "stringify", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_stringify));
-  mjs_set(mjs, v, "parse", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_parse));
-  mjs_set(mjs, obj, "JSON", ~0, v);
+  BUILT_IN_ADDRESS[11] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_stringify);
+  mjs_set(mjs, v, "stringify", ~0, BUILT_IN_ADDRESS[11]);
+  BUILT_IN_ADDRESS[12] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_json_parse);
+  mjs_set(mjs, v, "parse", ~0, BUILT_IN_ADDRESS[12]);
+  BUILT_IN_ADDRESS[13] = v;
+  mjs_set(mjs, obj, "JSON", ~0, BUILT_IN_ADDRESS[13]);
 
   /*
    * Populate Object.create()
    */
   v = mjs_mk_object(mjs);
-  mjs_set(mjs, v, "create", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_create_object));
-  mjs_set(mjs, obj, "Object", ~0, v);
+  BUILT_IN_ADDRESS[14] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_create_object);
+  mjs_set(mjs, v, "create", ~0, BUILT_IN_ADDRESS[14]);
+  BUILT_IN_ADDRESS[15] = v;
+  mjs_set(mjs, obj, "Object", ~0, BUILT_IN_ADDRESS[15]);
 
   /*
    * Populate numeric stuff
    */
-  mjs_set(mjs, obj, "NaN", ~0, MJS_TAG_NAN);
-  mjs_set(mjs, obj, "isNaN", ~0,
-          mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_isnan));
+  BUILT_IN_ADDRESS[16] = MJS_TAG_NAN;
+  mjs_set(mjs, obj, "NaN", ~0, BUILT_IN_ADDRESS[16]);
+  BUILT_IN_ADDRESS[17] = mjs_mk_foreign_func(mjs, (mjs_func_ptr_t) mjs_op_isnan);
+  mjs_set(mjs, obj, "isNaN", ~0, BUILT_IN_ADDRESS[17]);
+}
+
+int check_builtin_object(int64_t address) {
+  for(int i = 0; i < 18; i++){
+    if (BUILT_IN_ADDRESS[i] == address) {
+      return 1;
+    }
+  }
+  return 0;
 }
 #ifdef MJS_MODULE_LINES
 #line 1 "src/mjs_conversion.c"
@@ -8228,21 +8243,37 @@ static void exec_expr(struct mjs *mjs, int op) {
     case TOK_URSHIFT: {
       mjs_val_t b = mjs_pop(mjs);
       mjs_val_t a = mjs_pop(mjs);
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, do_op(mjs, a, b, op));
       break;
     }
     case TOK_UNARY_MINUS: {
       double a = mjs_get_double(mjs, mjs_pop(mjs));
+      if (check_builtin_object(a)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_number(mjs, -a));
       break;
     }
     case TOK_NOT: {
       mjs_val_t val = mjs_pop(mjs);
+      if (check_builtin_object(val)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, !mjs_is_truthy(mjs, val)));
       break;
     }
     case TOK_TILDA: {
       double a = mjs_get_double(mjs, mjs_pop(mjs));
+      if (check_builtin_object(a)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_number(mjs, (double) (~(int64_t) a)));
       break;
     }
@@ -8257,36 +8288,60 @@ static void exec_expr(struct mjs *mjs, int op) {
     case TOK_EQ_EQ: {
       mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, check_equal(mjs, a, b)));
       break;
     }
     case TOK_NE_NE: {
       mjs_val_t a = mjs_pop(mjs);
       mjs_val_t b = mjs_pop(mjs);
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, !check_equal(mjs, a, b)));
       break;
     }
     case TOK_LT: {
       double b = mjs_get_double(mjs, mjs_pop(mjs));
       double a = mjs_get_double(mjs, mjs_pop(mjs));
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, a < b));
       break;
     }
     case TOK_GT: {
       double b = mjs_get_double(mjs, mjs_pop(mjs));
       double a = mjs_get_double(mjs, mjs_pop(mjs));
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, a > b));
       break;
     }
     case TOK_LE: {
       double b = mjs_get_double(mjs, mjs_pop(mjs));
       double a = mjs_get_double(mjs, mjs_pop(mjs));
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, a <= b));
       break;
     }
     case TOK_GE: {
       double b = mjs_get_double(mjs, mjs_pop(mjs));
       double a = mjs_get_double(mjs, mjs_pop(mjs));
+      if (check_builtin_object(a) || check_builtin_object(b)) {
+        printf("Operators cannot be used on built-in objects.\n");
+        exit(-1);
+      }
       mjs_push(mjs, mjs_mk_boolean(mjs, a >= b));
       break;
     }
@@ -8296,7 +8351,7 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj)) {
         mjs_set_v(mjs, obj, key, val);
-      } else if (mjs_is_foreign(obj)) {
+      } else if (mjs_is_foreign(obj) && !check_builtin_object(obj)) {
         /*
          * We don't have setters, so in order to support properties which behave
          * like setters, we have to parse key right here, instead of having real
@@ -8328,6 +8383,10 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
+        if (check_builtin_object(v)) {
+          printf("Operators cannot be used on built-in objects.\n");
+          exit(-1);
+        }
         mjs_val_t v1 = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_PLUS);
         mjs_set_v(mjs, obj, key, v1);
         mjs_push(mjs, v);
@@ -8341,6 +8400,10 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
+        if (check_builtin_object(v)) {
+          printf("Operators cannot be used on built-in objects.\n");
+          exit(-1);
+        }
         mjs_val_t v1 = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_MINUS);
         mjs_set_v(mjs, obj, key, v1);
         mjs_push(mjs, v);
@@ -8354,6 +8417,10 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
+        if (check_builtin_object(v)) {
+          printf("Operators cannot be used on built-in objects.\n");
+          exit(-1);
+        }
         v = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_MINUS);
         mjs_set_v(mjs, obj, key, v);
         mjs_push(mjs, v);
@@ -8367,6 +8434,10 @@ static void exec_expr(struct mjs *mjs, int op) {
       mjs_val_t key = mjs_pop(mjs);
       if (mjs_is_object(obj) && mjs_is_string(key)) {
         mjs_val_t v = mjs_get_v(mjs, obj, key);
+        if (check_builtin_object(v)) {
+          printf("Operators cannot be used on built-in objects.\n");
+          exit(-1);
+        }
         v = do_op(mjs, v, mjs_mk_number(mjs, 1), TOK_PLUS);
         mjs_set_v(mjs, obj, key, v);
         mjs_push(mjs, v);
@@ -8469,6 +8540,10 @@ static int getprop_builtin_foreign(struct mjs *mjs, mjs_val_t val,
     mjs_prepend_errorf(mjs, MJS_TYPE_ERROR, "index must be a number");
   } else {
     uint8_t *ptr = (uint8_t *) mjs_get_ptr(mjs, val);
+    if (check_builtin_object(val)) {
+      printf("Operators cannot be used on built-in objects.\n");
+      exit(-1);
+    }
     *res = mjs_mk_number(mjs, *(ptr + idx));
   }
   return 1;
